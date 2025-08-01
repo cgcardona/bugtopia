@@ -172,88 +172,197 @@ class Arena {
         clearSpawnAreas()
     }
     
-    /// Determines terrain type based on position and procedural rules
+    // MARK: - New Organic Terrain Generation
+    
+    /// Different world generation types for variety
+    private enum WorldType: CaseIterable {
+        case continental    // Large landmasses with coasts
+        case archipelago    // Island chains
+        case canyon         // Deep valleys and mesas  
+        case wetlands       // Lots of water and marshes
+        case volcanic       // Hills and harsh terrain
+        case plains         // Open areas with scattered features
+        case maze           // Complex wall systems
+    }
+    
+    /// Generates organic terrain without forced borders
     private func generateTerrainForPosition(row: Int, col: Int) -> TerrainType {
-        let centerX = Double(gridWidth) / 2.0
-        let centerY = Double(gridHeight) / 2.0
-        let distanceFromCenter = sqrt(pow(Double(col) - centerX, 2) + pow(Double(row) - centerY, 2))
-        let maxDistance = sqrt(pow(centerX, 2) + pow(centerY, 2))
-        let normalizedDistance = distanceFromCenter / maxDistance
+        // Choose world type based on time-based seed for variety
+        let worldSeed = abs(Int(Date().timeIntervalSince1970)) % 7
+        let worldType = WorldType.allCases[worldSeed]
         
-        // Use multiple noise layers for more complex terrain
-        let noise1 = Double.random(in: 0...1)
-        let noise2 = Double.random(in: 0...1)
-        let combinedNoise = (noise1 + noise2 * 0.5) / 1.5
+        let x = Double(col)
+        let y = Double(row)
+        let width = Double(gridWidth)
+        let height = Double(gridHeight)
         
-        // Randomized edge barriers (not always walls)
-        if col == 0 || col == gridWidth - 1 || row == 0 || row == gridHeight - 1 {
-            let edgeNoise = Double.random(in: 0...1)
-            if edgeNoise < 0.7 {
-                return .wall
-            } else if edgeNoise < 0.85 {
-                return .water
-            } else if edgeNoise < 0.95 {
-                return .hill
-            } else {
-                return .open // Occasional gaps in the border!
-            }
+        // Create spatial correlation using multiple noise octaves
+        let noise1 = spatialNoise(x: x, y: y, scale: 0.1)
+        let noise2 = spatialNoise(x: x, y: y, scale: 0.05) * 0.5
+        let noise3 = spatialNoise(x: x, y: y, scale: 0.2) * 0.25
+        let combinedNoise = noise1 + noise2 + noise3
+        
+        // Distance from edges (for some world types)
+        let edgeDistance = min(min(x, width - x), min(y, height - y)) / min(width, height) * 2.0
+        
+        // Generate terrain based on world type
+        switch worldType {
+        case .continental:
+            return generateContinental(noise: combinedNoise, edgeDistance: edgeDistance, x: x, y: y)
+        case .archipelago:
+            return generateArchipelago(noise: combinedNoise, x: x, y: y, width: width, height: height)
+        case .canyon:
+            return generateCanyon(noise: combinedNoise, x: x, y: y)
+        case .wetlands:
+            return generateWetlands(noise: combinedNoise, edgeDistance: edgeDistance)
+        case .volcanic:
+            return generateVolcanic(noise: combinedNoise, x: x, y: y)
+        case .plains:
+            return generatePlains(noise: combinedNoise)
+        case .maze:
+            return generateMaze(noise: combinedNoise, x: x, y: y)
+        }
+    }
+    
+    /// Simulates spatial noise using deterministic pseudo-randomness
+    private func spatialNoise(x: Double, y: Double, scale: Double) -> Double {
+        // Use position-based seeding for spatial correlation
+        let seed = Int(x * 73856093) ^ Int(y * 19349663) ^ Int(scale * 83492791)
+        srand48(seed)
+        return drand48()
+    }
+    
+    /// Continental world: coastlines and inland areas
+    private func generateContinental(noise: Double, edgeDistance: Double, x: Double, y: Double) -> TerrainType {
+        // Create natural coastlines
+        if edgeDistance < 0.15 {
+            if noise < 0.6 { return .water }
+            if noise < 0.8 { return .open }
+            return .hill
         }
         
-        // Distance-based terrain probability (varies by distance from center)
-        let innerThreshold = 0.3
-        let outerThreshold = 0.7
+        // Inland terrain
+        if noise < 0.05 { return .water }        // Rivers
+        if noise < 0.08 { return .food }         // Fertile areas
+        if noise < 0.12 { return .hill }         // Elevated terrain
+        if noise < 0.14 { return .shadow }       // Forests
+        if noise < 0.16 { return .predator }     // Dangerous areas
+        if noise < 0.18 { return .wall }         // Rock formations
+        if noise < 0.19 { return .wind }         // Open windy areas
+        return .open
+    }
+    
+    /// Archipelago world: island chains in water
+    private func generateArchipelago(noise: Double, x: Double, y: Double, width: Double, height: Double) -> TerrainType {
+        // Create island clusters
+        let islandNoise1 = spatialNoise(x: x, y: y, scale: 0.03)
+        let islandNoise2 = spatialNoise(x: x + 1000, y: y + 1000, scale: 0.08)
+        let islandStrength = (islandNoise1 + islandNoise2 * 0.5) / 1.5
         
-        if normalizedDistance < innerThreshold {
-            // Inner area - more open with some features
-            if combinedNoise < 0.08 {
-                return .food
-            } else if combinedNoise < 0.12 {
-                return .water
-            } else if combinedNoise < 0.15 {
-                return .hill
-            } else if combinedNoise < 0.17 {
-                return .wall
-            }
-        } else if normalizedDistance < outerThreshold {
-            // Middle ring - mixed terrain
-            if combinedNoise < 0.06 {
-                return .wall
-            } else if combinedNoise < 0.10 {
-                return .water
-            } else if combinedNoise < 0.14 {
-                return .hill
-            } else if combinedNoise < 0.16 {
-                return .shadow
-            } else if combinedNoise < 0.18 {
-                return .predator
-            } else if combinedNoise < 0.21 {
-                return .wind
-            } else if combinedNoise < 0.24 {
-                return .food
-            }
+        if islandStrength < 0.35 {
+            return .water  // Ocean
+        } else if islandStrength < 0.45 {
+            // Coastlines
+            if noise < 0.3 { return .water }
+            if noise < 0.6 { return .open }
+            return .hill
         } else {
-            // Outer ring - harsher terrain
-            if combinedNoise < 0.10 {
-                return .wall
-            } else if combinedNoise < 0.15 {
-                return .predator
-            } else if combinedNoise < 0.20 {
-                return .shadow
-            } else if combinedNoise < 0.25 {
-                return .wind
-            } else if combinedNoise < 0.28 {
-                return .hill
-            } else if combinedNoise < 0.30 {
-                return .water
-            }
+            // Island interiors
+            if noise < 0.08 { return .hill }
+            if noise < 0.12 { return .food }
+            if noise < 0.14 { return .shadow }
+            if noise < 0.16 { return .predator }
+            if noise < 0.17 { return .wall }
+            return .open
+        }
+    }
+    
+    /// Canyon world: deep valleys and mesa formations
+    private func generateCanyon(noise: Double, x: Double, y: Double) -> TerrainType {
+        let valleyNoise = spatialNoise(x: x, y: y, scale: 0.02)
+        
+        if valleyNoise < 0.2 {
+            // Valley floors
+            if noise < 0.1 { return .water }     // Creek beds
+            if noise < 0.15 { return .food }     // Valley vegetation
+            return .open
+        } else if valleyNoise < 0.4 {
+            // Slopes
+            if noise < 0.3 { return .hill }
+            if noise < 0.35 { return .shadow }
+            return .open
+        } else {
+            // Mesa tops and cliff faces
+            if noise < 0.4 { return .wall }      // Cliff faces
+            if noise < 0.5 { return .hill }      // Mesa tops
+            if noise < 0.55 { return .wind }     // Exposed areas
+            if noise < 0.57 { return .predator } // Dangerous cliffs
+            return .open
+        }
+    }
+    
+    /// Wetlands world: marshes and waterways
+    private func generateWetlands(noise: Double, edgeDistance: Double) -> TerrainType {
+        if noise < 0.25 { return .water }        // Lots of water
+        if noise < 0.35 { return .open }         // Soggy ground
+        if noise < 0.4 { return .food }          // Rich wetland vegetation
+        if noise < 0.42 { return .shadow }       // Dense vegetation
+        if noise < 0.44 { return .predator }     // Dangerous swamps
+        if noise < 0.46 { return .hill }         // Occasional dry ground
+        if noise < 0.47 { return .wind }         // Open marsh
+        return .open
+    }
+    
+    /// Volcanic world: hills and harsh terrain
+    private func generateVolcanic(noise: Double, x: Double, y: Double) -> TerrainType {
+        let volcanoNoise = spatialNoise(x: x, y: y, scale: 0.04)
+        
+        if volcanoNoise > 0.8 {
+            // Volcanic centers
+            if noise < 0.4 { return .predator }  // Lava/dangerous
+            if noise < 0.7 { return .hill }      // Volcanic peaks
+            return .wall                         // Solid rock
+        } else {
+            if noise < 0.05 { return .water }    // Rare water sources
+            if noise < 0.15 { return .hill }     // Rough terrain
+            if noise < 0.18 { return .wall }     // Rock outcrops
+            if noise < 0.2 { return .predator }  // Dangerous areas
+            if noise < 0.22 { return .wind }     // Ash-blown areas
+            if noise < 0.25 { return .shadow }   // Sheltered spots
+            if noise < 0.27 { return .food }     // Hardy vegetation
+            return .open
+        }
+    }
+    
+    /// Plains world: open areas with scattered features
+    private func generatePlains(noise: Double) -> TerrainType {
+        if noise < 0.03 { return .water }        // Occasional ponds
+        if noise < 0.05 { return .hill }         // Gentle hills
+        if noise < 0.08 { return .food }         // Fertile patches
+        if noise < 0.09 { return .shadow }       // Tree groves
+        if noise < 0.1 { return .predator }      // Dangerous areas
+        if noise < 0.11 { return .wall }         // Rocky outcrops
+        if noise < 0.12 { return .wind }         // Windy areas
+        return .open                             // Mostly open plains
+    }
+    
+    /// Maze world: complex wall systems
+    private func generateMaze(noise: Double, x: Double, y: Double) -> TerrainType {
+        let mazeNoise1 = spatialNoise(x: x, y: y, scale: 0.15)
+        let mazeNoise2 = spatialNoise(x: x + 500, y: y + 500, scale: 0.3)
+        
+        // Create corridor patterns
+        if (mazeNoise1 < 0.3 && mazeNoise2 > 0.4) || (mazeNoise1 > 0.7 && mazeNoise2 < 0.6) {
+            return .wall  // Maze walls
         }
         
-        // Add some random scattered features
-        let scatterNoise = Double.random(in: 0...1)
-        if scatterNoise < 0.05 {
-            return [.wall, .water, .hill, .food].randomElement() ?? .open
-        }
-        
+        // Features in open areas
+        if noise < 0.05 { return .food }
+        if noise < 0.08 { return .predator }
+        if noise < 0.1 { return .shadow }
+        if noise < 0.11 { return .water }
+        if noise < 0.12 { return .hill }
+        if noise < 0.13 { return .wind }
         return .open
     }
     
