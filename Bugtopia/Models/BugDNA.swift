@@ -47,6 +47,11 @@ struct BugDNA: Codable, Hashable {
     /// Exploration vs exploitation tendency (0.0 to 1.0)
     let curiosity: Double
     
+    // MARK: - Neural Intelligence
+    
+    /// Evolvable neural network for decision making
+    let neuralDNA: NeuralDNA
+    
     // MARK: - Visual Traits
     
     /// Primary color hue (0.0 to 1.0)
@@ -109,6 +114,7 @@ struct BugDNA: Codable, Hashable {
     init(speed: Double, visionRadius: Double, energyEfficiency: Double, 
          size: Double, strength: Double, memory: Double, stickiness: Double,
          camouflage: Double, aggression: Double, curiosity: Double,
+         neuralDNA: NeuralDNA,
          colorHue: Double, colorSaturation: Double, colorBrightness: Double) {
         self.speed = max(0.1, min(2.0, speed))
         self.visionRadius = max(10, min(100, visionRadius))
@@ -120,6 +126,7 @@ struct BugDNA: Codable, Hashable {
         self.camouflage = max(0.0, min(1.0, camouflage))
         self.aggression = max(0.0, min(1.0, aggression))
         self.curiosity = max(0.0, min(1.0, curiosity))
+        self.neuralDNA = neuralDNA
         self.colorHue = max(0.0, min(1.0, colorHue))
         self.colorSaturation = max(0.3, min(1.0, colorSaturation))
         self.colorBrightness = max(0.4, min(1.0, colorBrightness))
@@ -138,6 +145,7 @@ struct BugDNA: Codable, Hashable {
             camouflage: Double.random(in: 0.1...0.9),
             aggression: Double.random(in: 0.2...0.8),
             curiosity: Double.random(in: 0.3...0.8),
+            neuralDNA: NeuralDNA.random(),
             colorHue: Double.random(in: 0...1),
             colorSaturation: Double.random(in: 0.5...1.0),
             colorBrightness: Double.random(in: 0.6...1.0)
@@ -160,6 +168,7 @@ struct BugDNA: Codable, Hashable {
             camouflage: Bool.random() ? parent1.camouflage : parent2.camouflage,
             aggression: Bool.random() ? parent1.aggression : parent2.aggression,
             curiosity: Bool.random() ? parent1.curiosity : parent2.curiosity,
+            neuralDNA: NeuralDNA.crossover(parent1.neuralDNA, parent2.neuralDNA),
             colorHue: Bool.random() ? parent1.colorHue : parent2.colorHue,
             colorSaturation: Bool.random() ? parent1.colorSaturation : parent2.colorSaturation,
             colorBrightness: Bool.random() ? parent1.colorBrightness : parent2.colorBrightness
@@ -187,6 +196,7 @@ struct BugDNA: Codable, Hashable {
             camouflage: mutate(camouflage, range: 0.0...1.0),
             aggression: mutate(aggression, range: 0.0...1.0),
             curiosity: mutate(curiosity, range: 0.0...1.0),
+            neuralDNA: neuralDNA.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),
             colorHue: mutate(colorHue, range: 0.0...1.0),
             colorSaturation: mutate(colorSaturation, range: 0.3...1.0),
             colorBrightness: mutate(colorBrightness, range: 0.4...1.0)

@@ -436,9 +436,9 @@ struct SimulationView: View {
                         .padding(.bottom, 4)
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("DNA Traits")
+                        Text("🧬 Physical DNA")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.blue)
                         
                         StatRow(label: "Speed", value: String(format: "%.2f", selected.dna.speed))
                         StatRow(label: "Vision", value: String(format: "%.1f", selected.dna.visionRadius))
@@ -451,7 +451,31 @@ struct SimulationView: View {
                         StatRow(label: "Aggression", value: String(format: "%.2f", selected.dna.aggression))
                         StatRow(label: "Curiosity", value: String(format: "%.2f", selected.dna.curiosity))
                         
-                        Text("Current State")
+                        Text("🧠 Neural Network")
+                            .font(.subheadline)
+                            .foregroundColor(.purple)
+                            .padding(.top, 8)
+                        
+                        StatRow(label: "Topology", value: "\(selected.dna.neuralDNA.topology.map(String.init).joined(separator: "-"))")
+                        StatRow(label: "Weights", value: "\(selected.dna.neuralDNA.weights.count)")
+                        StatRow(label: "Biases", value: "\(selected.dna.neuralDNA.biases.count)")
+                        StatRow(label: "Layers", value: "\(selected.dna.neuralDNA.topology.count)")
+                        
+                        if let decision = selected.lastDecision {
+                            Text("🎯 Current Decision")
+                                .font(.subheadline)
+                                .foregroundColor(.green)
+                                .padding(.top, 8)
+                            
+                            StatRow(label: "Move X", value: String(format: "%.2f", decision.moveX))
+                            StatRow(label: "Move Y", value: String(format: "%.2f", decision.moveY))
+                            StatRow(label: "Aggression", value: String(format: "%.2f", decision.aggression))
+                            StatRow(label: "Exploration", value: String(format: "%.2f", decision.exploration))
+                            StatRow(label: "Social", value: String(format: "%.2f", decision.social))
+                            StatRow(label: "Reproduction", value: String(format: "%.2f", decision.reproduction))
+                        }
+                        
+                        Text("📊 Current State")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .padding(.top, 8)
@@ -464,7 +488,7 @@ struct SimulationView: View {
                         let currentTerrain = simulationEngine.arena.terrainAt(selected.position)
                         let modifiers = simulationEngine.arena.movementModifiers(at: selected.position, for: selected.dna)
                         
-                        Text("Current Environment")
+                        Text("🌍 Current Environment")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .padding(.top, 8)

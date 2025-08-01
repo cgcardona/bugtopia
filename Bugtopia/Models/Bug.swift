@@ -25,6 +25,11 @@ class Bug: Identifiable, Hashable {
     var energy: Double
     var age: Int
     
+    // MARK: - Neural Intelligence
+    
+    private let neuralNetwork: NeuralNetwork
+    var lastDecision: BugOutputs?
+    
     // MARK: - Behavioral State
     
     var targetFood: CGPoint?
@@ -72,6 +77,7 @@ class Bug: Identifiable, Hashable {
         self.velocity = CGPoint.zero
         self.energy = Self.initialEnergy
         self.age = 0
+        self.neuralNetwork = NeuralNetwork(dna: dna.neuralDNA)
         self.lastMovementTime = 0
         self.reproductionCooldown = 0
     }
@@ -87,7 +93,7 @@ class Bug: Identifiable, Hashable {
     
     // MARK: - Simulation Updates
     
-    /// Updates the bug's state for one simulation tick
+    /// Updates the bug's state for one simulation tick using neural network decisions
     func update(in arena: Arena, foods: [CGPoint], otherBugs: [Bug]) {
         guard isAlive else { return }
         
@@ -102,15 +108,94 @@ class Bug: Identifiable, Hashable {
         let terrainLoss = baseLoss * modifiers.energyCost
         energy -= terrainLoss
         
-        // Behavioral updates with terrain awareness
-        updateTargetFood(foods: foods, arena: arena)
-        updateMovement(in: arena)
+        // Neural network decision making
+        makeNeuralDecision(in: arena, foods: foods, otherBugs: otherBugs)
+        
+        // Execute decisions
+        executeMovement(in: arena, modifiers: modifiers)
         checkFoodConsumption(foods: foods)
         handleBugInteractions(otherBugs: otherBugs)
         handleTerrainEffects(arena: arena)
         
         // Clamp energy
         energy = max(0, min(Self.maxEnergy, energy))
+    }
+    
+    /// Uses neural network to make behavioral decisions
+    private func makeNeuralDecision(in arena: Arena, foods: [CGPoint], otherBugs: [Bug]) {
+        // Create sensory inputs for neural network
+        let inputs = BugSensors.createInputs(bug: self, arena: arena, foods: foods, otherBugs: otherBugs)
+        
+        // Get neural network outputs
+        let rawOutputs = neuralNetwork.predict(inputs: inputs)
+        lastDecision = BugOutputs(from: rawOutputs)
+        
+        // Neural network can override hardcoded food targeting
+        if let decision = lastDecision {
+            // High exploration tendency means ignore current food and wander
+            if decision.exploration > 0.7 {
+                targetFood = nil
+            } else {
+                // Use traditional food seeking when exploitation mode
+                updateTargetFood(foods: foods, arena: arena)
+            }
+        }
+    }
+    
+    /// Executes movement based on neural network decision
+    private func executeMovement(in arena: Arena, modifiers: (speed: Double, vision: Double, energyCost: Double)) {
+        guard let decision = lastDecision else {
+            // Fallback to random movement if no decision
+            velocity = CGPoint(x: Double.random(in: -1...1), y: Double.random(in: -1...1))
+            return
+        }
+        
+        let terrainSpeed = currentSpeed * modifiers.speed
+        
+        // Neural network controls movement direction
+        let neuralVelocity = CGPoint(
+            x: decision.moveX * terrainSpeed,
+            y: decision.moveY * terrainSpeed
+        )
+        
+        // Blend neural decision with traditional food seeking based on decision.exploration
+        let blendFactor = 1.0 - decision.exploration
+        
+        if let target = targetFood, blendFactor > 0.3 {
+            // Traditional pathfinding when in exploitation mode
+            let direction = normalize(CGPoint(x: target.x - position.x, y: target.y - position.y))
+            let traditionalVelocity = CGPoint(
+                x: direction.x * terrainSpeed,
+                y: direction.y * terrainSpeed
+            )
+            
+            // Blend neural and traditional movement
+            velocity = CGPoint(
+                x: neuralVelocity.x * (1 - blendFactor) + traditionalVelocity.x * blendFactor,
+                y: neuralVelocity.y * (1 - blendFactor) + traditionalVelocity.y * blendFactor
+            )
+        } else {
+            // Pure neural control
+            velocity = neuralVelocity
+        }
+        
+        // Calculate proposed new position
+        let proposedPosition = CGPoint(
+            x: position.x + velocity.x,
+            y: position.y + velocity.y
+        )
+        
+        // Check if the proposed position is passable
+        if arena.isPassable(proposedPosition, for: dna) {
+            position = proposedPosition
+        } else {
+            // Neural network should learn to avoid walls, but provide basic collision
+            velocity = CGPoint(x: velocity.x * -0.5, y: velocity.y * -0.5)
+        }
+        
+        // Keep bug within arena bounds
+        position.x = max(arena.bounds.minX, min(arena.bounds.maxX, position.x))
+        position.y = max(arena.bounds.minY, min(arena.bounds.maxY, position.y))
     }
     
     /// Finds and targets the nearest food within vision range, accounting for terrain
@@ -250,29 +335,51 @@ class Bug: Identifiable, Hashable {
         }
     }
     
-    /// Handles interactions with other bugs
+    /// Handles interactions with other bugs using neural network decisions
     private func handleBugInteractions(otherBugs: [Bug]) {
+        guard let decision = lastDecision else { return }
+        
         for other in otherBugs {
             guard other.id != self.id else { continue }
             
             let dist = distance(to: other.position)
             if dist < (visualRadius + other.visualRadius) {
-                // Simple interaction based on aggression
-                if dna.aggression > 0.6 && other.dna.aggression < 0.4 {
-                    // Aggressive bug steals some energy
-                    let stolenEnergy = min(5.0, other.energy * 0.1)
+                // Neural network controls aggression level
+                let aggressionLevel = decision.aggression * dna.aggression
+                
+                if aggressionLevel > 0.7 && other.lastDecision?.aggression ?? 0 < 0.3 {
+                    // Aggressive neural decision leads to energy theft
+                    let stolenEnergy = min(5.0, other.energy * 0.1 * aggressionLevel)
                     energy += stolenEnergy
                     other.energy -= stolenEnergy
+                }
+                
+                // Social behavior based on neural decision
+                if decision.social > 0.6 && other.lastDecision?.social ?? 0 > 0.6 {
+                    // Mutual social interaction provides small energy bonus
+                    let socialBonus = 1.0
+                    energy += socialBonus
+                    other.energy += socialBonus
                 }
             }
         }
     }
     
-    /// Attempts to reproduce with another compatible bug
+    /// Attempts to reproduce with another compatible bug using neural decision
     func reproduce(with partner: Bug) -> Bug? {
         guard canReproduce && partner.canReproduce else { return nil }
         guard distance(to: partner.position) < max(visualRadius, partner.visualRadius) else { return nil }
         guard energy > Self.reproductionCost && partner.energy > Self.reproductionCost else { return nil }
+        
+        // Neural networks must both want to reproduce
+        let myDesire = lastDecision?.reproduction ?? 0.5
+        let partnerDesire = partner.lastDecision?.reproduction ?? 0.5
+        
+        // Higher neural reproduction desire increases success chance
+        let reproductionChance = (myDesire + partnerDesire) / 2.0
+        if Double.random(in: 0...1) > reproductionChance {
+            return nil // Neural networks decided against reproduction
+        }
         
         // Create offspring with crossover and mutation
         let childDNA = BugDNA.crossover(dna, partner.dna).mutated()
@@ -340,7 +447,7 @@ class Bug: Identifiable, Hashable {
     // MARK: - Utility Functions
     
     /// Calculates distance to a point
-    private func distance(to point: CGPoint) -> Double {
+    func distance(to point: CGPoint) -> Double {
         let dx = position.x - point.x
         let dy = position.y - point.y
         return sqrt(dx * dx + dy * dy)
