@@ -27,6 +27,7 @@ class SimulationEngine {
     var weatherManager = WeatherManager()       // Dynamic weather patterns
     var disasterManager = DisasterManager()     // Natural disasters and terrain reshaping
     var ecosystemManager = EcosystemManager()   // Resource depletion and ecosystem cycles
+    var territoryManager = TerritoryManager()   // Migration and territorial behaviors
     var isRunning = false
     var currentGeneration = 0
     var tickCount = 0
@@ -98,6 +99,8 @@ class SimulationEngine {
         disasterManager.setWorldBounds(arena.bounds) // Set disaster spawn area
         ecosystemManager.reset() // Reset ecosystem state
         ecosystemManager.initializeResourceZones(from: arena) // Initialize resource tracking
+        territoryManager.reset() // Reset territorial data
+        territoryManager.setWorldBounds(arena.bounds) // Set territory boundaries
         currentGeneration = 0
         tickCount = 0
         statistics = SimulationStatistics()
@@ -116,7 +119,16 @@ class SimulationEngine {
         // Update all bugs with arena awareness and communication
         var newSignals: [Signal] = []
         for bug in bugs {
-            bug.update(in: arena, foods: foods, otherBugs: bugs, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager, ecosystemManager: ecosystemManager)
+            bug.update(
+    in: arena,
+    foods: foods,
+    otherBugs: bugs,
+    seasonalManager: seasonalManager,
+    weatherManager: weatherManager,
+    disasterManager: disasterManager,
+    ecosystemManager: ecosystemManager,
+    territoryManager: territoryManager
+)
             
             // Let bug generate signals
             if let signal = bug.generateSignals(in: arena, foods: foods, otherBugs: bugs) {
@@ -163,6 +175,13 @@ class SimulationEngine {
             foods: foods,
             generationCount: currentGeneration,
             deltaTime: tickInterval
+        )
+        
+        // Update territories and migrations
+        territoryManager.update(
+            populations: speciationManager.populations,
+            arena: arena,
+            ecosystemManager: ecosystemManager
         )
         
         // Update populations and speciation

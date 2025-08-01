@@ -203,6 +203,9 @@ struct SimulationView: View {
                 
                 // Ecosystem overlay effects
                 EcosystemOverlay(ecosystemManager: simulationEngine.ecosystemManager, canvasSize: geometry.size)
+                
+                // Territory overlay effects
+                TerritoryOverlay(territoryManager: simulationEngine.territoryManager, speciationManager: simulationEngine.speciationManager, canvasSize: geometry.size)
         }
         }
     }
@@ -730,6 +733,11 @@ struct SimulationView: View {
                     
                     // Ecosystem Health Information
                     EcosystemStatusView(ecosystemManager: simulationEngine.ecosystemManager)
+                    
+                    Divider()
+                    
+                    // Territory Information
+                    TerritoryStatusView(territoryManager: simulationEngine.territoryManager, speciationManager: simulationEngine.speciationManager)
                 }
                 
                 if let selected = selectedBug {

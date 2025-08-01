@@ -126,6 +126,7 @@ struct SpeciesAverages: Codable, Equatable, Hashable {
     // Communication traits
     var signalStrength: Double = 0.0
     var socialResponseRate: Double = 0.0
+    var avgColorHue: Double = 0.0
     
     /// Update averages from a collection of bugs
     mutating func updateFromBugs(_ bugs: [Bug]) {
@@ -149,6 +150,7 @@ struct SpeciesAverages: Codable, Equatable, Hashable {
         
         signalStrength = bugs.map { $0.dna.communicationDNA.signalStrength }.reduce(0, +) / count
         socialResponseRate = bugs.map { $0.dna.communicationDNA.socialResponseRate }.reduce(0, +) / count
+        avgColorHue = bugs.map { $0.dna.colorHue }.reduce(0, +) / count
     }
     
     /// Calculate genetic distance to another population

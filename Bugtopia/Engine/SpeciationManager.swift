@@ -386,6 +386,7 @@ class SpeciationManager {
         // Add bug to best fitting population
         if let index = populations.firstIndex(where: { $0.id == bestPopulation.id }) {
             populations[index].addBug(bug.id, at: bug.position)
+            bug.populationId = bestPopulation.id  // Set the bug's population ID
         }
     }
     

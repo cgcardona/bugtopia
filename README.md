@@ -258,7 +258,7 @@ struct BugDNA {
 
 ## 🗺️ Roadmap
 
-### ✅ COMPLETED: Phase 1-6.3 ✨
+### ✅ COMPLETED: Phase 1-6.4 ✨
 - [x] **Evolvable Neural Networks**: Deep AI brains (3-10 layers) with structural evolution
 - [x] **Predator-Prey Ecosystem**: Four species with hunting/defensive behaviors
 - [x] **Advanced Genetics**: Neural + behavioral + physical trait evolution
@@ -270,7 +270,9 @@ struct BugDNA {
 - [x] **🌋 Natural Disasters**: Floods, earthquakes, wildfires, volcanic eruptions with terrain reshaping and evolutionary pressure
 
 ### 🚀 ACTIVE: Phase 6.4 - Environmental Cycles (Current Development)
-- [ ] **🔄 Environmental Cycles**: Resource depletion, regeneration, and long-term ecosystem changes
+- [x] **🔄 Environmental Cycles**: Resource depletion, regeneration, and long-term ecosystem changes
+
+### 🚀 ACTIVE: Phase 6.5 - Migration & Territoriality (Current Development)
 - [ ] **🌍 Migration Patterns**: Seasonal migration, territorial behaviors, and habitat selection
 - [ ] **🏛️ Civilization**: Cultural knowledge, technology, and multi-generational progress
 
