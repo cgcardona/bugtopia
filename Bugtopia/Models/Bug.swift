@@ -102,6 +102,25 @@ class Bug: Identifiable, Hashable {
         return dna.speciesTraits.defensiveBehavior
     }
     
+    /// Current carrying capacity based on DNA traits
+    var maxCarryingCapacity: Int {
+        return Int(dna.toolDNA.carryingCapacity * 10) // Base capacity of 2-20 resources
+    }
+    
+    /// Current weight being carried
+    var currentWeight: Double {
+        return carriedResources.reduce(0.0) { total, entry in
+            let (resourceType, quantity) = entry
+            return total + (resourceType.weight * Double(quantity))
+        }
+    }
+    
+    /// Whether this bug can carry more resources
+    var canCarryMore: Bool {
+        let totalItems = carriedResources.values.reduce(0, +)
+        return totalItems < maxCarryingCapacity && currentWeight < dna.toolDNA.carryingCapacity * 20
+    }
+    
     // MARK: - Initialization
     
     init(dna: BugDNA, position: CGPoint, generation: Int = 0) {
