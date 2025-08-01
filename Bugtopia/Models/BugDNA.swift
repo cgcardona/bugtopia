@@ -186,16 +186,11 @@ struct BugDNA: Codable, Hashable {
             neuralDNA: NeuralDNA.random(),
             speciesTraits: SpeciesTraits.forSpecies(species),
             communicationDNA: CommunicationDNA.random(),
+            toolDNA: ToolDNA.random(),
             colorHue: Double.random(in: 0...1),
             colorSaturation: Double.random(in: 0.5...1.0),
             colorBrightness: Double.random(in: 0.6...1.0)
         )
-    }
-    
-    /// Creates completely random DNA (picks random species)
-    static func random() -> BugDNA {
-        let randomSpecies = SpeciesType.allCases.randomElement() ?? .herbivore
-        return random(species: randomSpecies)
     }
     
     /// Creates random DNA for a specific species
@@ -214,6 +209,7 @@ struct BugDNA: Codable, Hashable {
             neuralDNA: NeuralDNA.random(),
             speciesTraits: SpeciesTraits.forSpecies(species),
             communicationDNA: CommunicationDNA.random(),
+            toolDNA: ToolDNA.random(),
             colorHue: Double.random(in: 0...1),
             colorSaturation: Double.random(in: 0.5...1.0),
             colorBrightness: Double.random(in: 0.6...1.0)
