@@ -144,6 +144,9 @@ class Arena {
         self.gridHeight = Int(bounds.height / tileSize.height)
         self.tiles = []
         
+        // Seed random number generator with current time for unique worlds
+        srand48(Int(Date().timeIntervalSince1970))
+        
         generateTerrain()
     }
     
@@ -177,46 +180,69 @@ class Arena {
         let maxDistance = sqrt(pow(centerX, 2) + pow(centerY, 2))
         let normalizedDistance = distanceFromCenter / maxDistance
         
-        // Create concentric rings of different terrain
-        let noise = Double.random(in: 0...1)
+        // Use multiple noise layers for more complex terrain
+        let noise1 = Double.random(in: 0...1)
+        let noise2 = Double.random(in: 0...1)
+        let combinedNoise = (noise1 + noise2 * 0.5) / 1.5
         
         // Walls around edges
         if col == 0 || col == gridWidth - 1 || row == 0 || row == gridHeight - 1 {
             return .wall
         }
         
-        // Random obstacles and features
-        if noise < 0.05 {
-            return .wall
-        } else if noise < 0.08 {
-            return .water
-        } else if noise < 0.10 {
-            return .hill
-        } else if noise < 0.12 {
-            return .shadow
-        } else if noise < 0.13 {
-            return .predator
-        } else if noise < 0.15 {
-            return .wind
-        } else if noise < 0.18 {
-            return .food
+        // Distance-based terrain probability (varies by distance from center)
+        let innerThreshold = 0.3
+        let outerThreshold = 0.7
+        
+        if normalizedDistance < innerThreshold {
+            // Inner area - more open with some features
+            if combinedNoise < 0.08 {
+                return .food
+            } else if combinedNoise < 0.12 {
+                return .water
+            } else if combinedNoise < 0.15 {
+                return .hill
+            } else if combinedNoise < 0.17 {
+                return .wall
+            }
+        } else if normalizedDistance < outerThreshold {
+            // Middle ring - mixed terrain
+            if combinedNoise < 0.06 {
+                return .wall
+            } else if combinedNoise < 0.10 {
+                return .water
+            } else if combinedNoise < 0.14 {
+                return .hill
+            } else if combinedNoise < 0.16 {
+                return .shadow
+            } else if combinedNoise < 0.18 {
+                return .predator
+            } else if combinedNoise < 0.21 {
+                return .wind
+            } else if combinedNoise < 0.24 {
+                return .food
+            }
+        } else {
+            // Outer ring - harsher terrain
+            if combinedNoise < 0.10 {
+                return .wall
+            } else if combinedNoise < 0.15 {
+                return .predator
+            } else if combinedNoise < 0.20 {
+                return .shadow
+            } else if combinedNoise < 0.25 {
+                return .wind
+            } else if combinedNoise < 0.28 {
+                return .hill
+            } else if combinedNoise < 0.30 {
+                return .water
+            }
         }
         
-        // Create some structured features
-        
-        // Central water feature
-        if normalizedDistance > 0.2 && normalizedDistance < 0.3 && noise < 0.3 {
-            return .water
-        }
-        
-        // Hill ranges
-        if (row % 8 == 0 || col % 8 == 0) && noise < 0.2 {
-            return .hill
-        }
-        
-        // Shadow valleys
-        if (row + col) % 12 < 2 && noise < 0.25 {
-            return .shadow
+        // Add some random scattered features
+        let scatterNoise = Double.random(in: 0...1)
+        if scatterNoise < 0.05 {
+            return [.wall, .water, .hill, .food].randomElement() ?? .open
         }
         
         return .open
