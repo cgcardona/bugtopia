@@ -256,11 +256,26 @@ struct SimulationView: View {
                 drawVelocityArrow(context: context, bug: bug, radius: radius)
             }
             
-            // Vision range (for selected bug) - adjusted for terrain
+            // Selection highlight and info (for selected bug)
             if bug.id == selectedBug?.id {
                 let terrainModifiers = simulationEngine.arena.movementModifiers(at: bug.position, for: bug.dna)
                 let effectiveVision = bug.dna.visionRadius * terrainModifiers.vision
                 
+                // Selection highlight - centered on bug
+                let selectionSize = max(radius * 2.5, 20.0) // Minimum 20 pixels
+                let selectionRect = CGRect(
+                    x: bug.position.x - selectionSize/2,
+                    y: bug.position.y - selectionSize/2,
+                    width: selectionSize,
+                    height: selectionSize
+                )
+                context.stroke(
+                    Path(roundedRect: selectionRect, cornerRadius: 4),
+                    with: .color(.yellow),
+                    lineWidth: 2.5
+                )
+                
+                // Vision range circle
                 let visionRect = CGRect(
                     x: bug.position.x - effectiveVision,
                     y: bug.position.y - effectiveVision,
@@ -273,7 +288,7 @@ struct SimulationView: View {
                     lineWidth: 1.5
                 )
                 
-                // Show current terrain effect
+                // Show current terrain effect - positioned to the side
                 drawTerrainInfo(context: context, bug: bug, at: bug.position)
             }
         }
@@ -329,10 +344,10 @@ struct SimulationView: View {
         let currentTerrain = simulationEngine.arena.terrainAt(position)
         let modifiers = simulationEngine.arena.movementModifiers(at: position, for: bug.dna)
         
-        // Draw a small indicator showing terrain effects
+        // Draw a small indicator showing terrain effects - positioned to the side of the bug
         let indicatorRect = CGRect(
-            x: position.x - 8,
-            y: position.y + bug.visualRadius + 5,
+            x: position.x + bug.visualRadius + 8,  // Position to the right of the bug
+            y: position.y - 8,                    // Centered vertically on the bug
             width: 16,
             height: 16
         )
