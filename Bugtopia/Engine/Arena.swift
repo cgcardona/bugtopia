@@ -176,7 +176,6 @@ class Arena {
     
     /// Different world generation types for variety
     private enum WorldType: CaseIterable {
-        case continental    // Large landmasses with coasts
         case archipelago    // Island chains
         case canyon         // Deep valleys and mesas  
         case wetlands       // Lots of water and marshes
@@ -187,8 +186,8 @@ class Arena {
     
     /// Generates organic terrain without forced borders
     private func generateTerrainForPosition(row: Int, col: Int) -> TerrainType {
-        // Choose world type based on time-based seed for variety
-        let worldSeed = abs(Int(Date().timeIntervalSince1970)) % 7
+        // Choose world type based on time-based seed for variety but ensure it's in range
+        let worldSeed = abs(Int(Date().timeIntervalSince1970)) % WorldType.allCases.count
         let worldType = WorldType.allCases[worldSeed]
         
         let x = Double(col)
@@ -202,13 +201,11 @@ class Arena {
         let noise3 = spatialNoise(x: x, y: y, scale: 0.2) * 0.25
         let combinedNoise = noise1 + noise2 + noise3
         
-        // Distance from edges (for some world types)
+        // Distance from edges (for some world types) - fixed for screen coordinates
         let edgeDistance = min(min(x, width - x), min(y, height - y)) / min(width, height) * 2.0
         
         // Generate terrain based on world type
         switch worldType {
-        case .continental:
-            return generateContinental(noise: combinedNoise, edgeDistance: edgeDistance, x: x, y: y)
         case .archipelago:
             return generateArchipelago(noise: combinedNoise, x: x, y: y, width: width, height: height)
         case .canyon:
@@ -232,25 +229,7 @@ class Arena {
         return drand48()
     }
     
-    /// Continental world: coastlines and inland areas
-    private func generateContinental(noise: Double, edgeDistance: Double, x: Double, y: Double) -> TerrainType {
-        // Create natural coastlines
-        if edgeDistance < 0.15 {
-            if noise < 0.6 { return .water }
-            if noise < 0.8 { return .open }
-            return .hill
-        }
-        
-        // Inland terrain
-        if noise < 0.05 { return .water }        // Rivers
-        if noise < 0.08 { return .food }         // Fertile areas
-        if noise < 0.12 { return .hill }         // Elevated terrain
-        if noise < 0.14 { return .shadow }       // Forests
-        if noise < 0.16 { return .predator }     // Dangerous areas
-        if noise < 0.18 { return .wall }         // Rock formations
-        if noise < 0.19 { return .wind }         // Open windy areas
-        return .open
-    }
+
     
     /// Archipelago world: island chains in water
     private func generateArchipelago(noise: Double, x: Double, y: Double, width: Double, height: Double) -> TerrainType {

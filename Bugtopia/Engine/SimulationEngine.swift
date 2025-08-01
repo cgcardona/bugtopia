@@ -25,6 +25,7 @@ class SimulationEngine {
     var speciationManager = SpeciationManager() // Population and speciation tracking
     var seasonalManager = SeasonalManager()     // Dynamic seasonal system
     var weatherManager = WeatherManager()       // Dynamic weather patterns
+    var disasterManager = DisasterManager()     // Natural disasters and terrain reshaping
     var isRunning = false
     var currentGeneration = 0
     var tickCount = 0
@@ -92,6 +93,8 @@ class SimulationEngine {
         speciationManager = SpeciationManager() // Reset speciation tracking
         seasonalManager.reset() // Reset seasonal cycle
         weatherManager.reset() // Reset weather patterns
+        disasterManager.reset() // Reset disaster system
+        disasterManager.setWorldBounds(arena.bounds) // Set disaster spawn area
         currentGeneration = 0
         tickCount = 0
         statistics = SimulationStatistics()
@@ -110,7 +113,7 @@ class SimulationEngine {
         // Update all bugs with arena awareness and communication
         var newSignals: [Signal] = []
         for bug in bugs {
-            bug.update(in: arena, foods: foods, otherBugs: bugs, seasonalManager: seasonalManager, weatherManager: weatherManager)
+            bug.update(in: arena, foods: foods, otherBugs: bugs, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
             
             // Let bug generate signals
             if let signal = bug.generateSignals(in: arena, foods: foods, otherBugs: bugs) {
@@ -147,6 +150,9 @@ class SimulationEngine {
         
         // Update weather patterns
         weatherManager.update(seasonalManager: seasonalManager)
+        
+        // Update natural disasters
+        disasterManager.update(seasonalManager: seasonalManager, weatherManager: weatherManager)
         
         // Update populations and speciation
         speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: arena)
@@ -422,13 +428,14 @@ class SimulationEngine {
         foods = newFoods
     }
     
-    /// Strategically spawns new food in appropriate areas (seasonally adjusted)
+    /// Strategically spawns new food in appropriate areas (seasonally and disaster adjusted)
     private func spawnFood() {
         let seasonalFoodSpawnRate = seasonalManager.adjustedFoodSpawnRate(baseRate: baseFoodSpawnRate)
+        let weatherAdjustedSpawnRate = seasonalFoodSpawnRate * weatherManager.currentEffects.foodSpawnRateModifier
         // Cap seasonal max to prevent oversaturation - seasons affect spawn rate, not total capacity
         let seasonalMaxFood = maxFoodItems  // Use base limit, let spawn rate handle seasonal effects
         
-        if foods.count < seasonalMaxFood && Double.random(in: 0...1) < seasonalFoodSpawnRate {
+        if foods.count < seasonalMaxFood && Double.random(in: 0...1) < weatherAdjustedSpawnRate {
             // Prevent food oversaturation in food zones - bias toward distributed spawning
             let foodZoneChance = min(0.3, 1.0 - (Double(foods.count) / Double(seasonalMaxFood))) // Reduce food zone chance as food increases
             
@@ -454,7 +461,10 @@ class SimulationEngine {
                         x: tile.position.x + randomOffset.x,
                         y: tile.position.y + randomOffset.y
                     )
-                    foods.append(newFood)
+                    // Check if disasters would destroy this food immediately
+                    if !disasterManager.shouldDestroyFood(at: newFood) {
+                        foods.append(newFood)
+                    }
                 }
             } else {
                 let openTiles = arena.tilesOfType(.open)
@@ -478,9 +488,25 @@ class SimulationEngine {
                             x: tile.position.x + randomOffset.x,
                             y: tile.position.y + randomOffset.y
                         )
-                        foods.append(newFood)
+                        // Check if disasters would destroy this food immediately
+                        if !disasterManager.shouldDestroyFood(at: newFood) {
+                            foods.append(newFood)
+                        }
                     }
                 }
+            }
+        }
+        
+        // Destroy existing food due to disasters
+        let foodCountBefore = foods.count
+        foods.removeAll { foodPosition in
+            disasterManager.shouldDestroyFood(at: foodPosition)
+        }
+        
+        if foods.count < foodCountBefore {
+            let destroyed = foodCountBefore - foods.count
+            if destroyed > 0 {
+                print("🔥 Disasters destroyed \(destroyed) food items")
             }
         }
     }

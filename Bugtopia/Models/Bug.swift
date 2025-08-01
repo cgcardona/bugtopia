@@ -156,7 +156,7 @@ class Bug: Identifiable, Hashable {
     // MARK: - Simulation Updates
     
     /// Updates the bug's state for one simulation tick using neural network decisions
-    func update(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager, weatherManager: WeatherManager) {
+    func update(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager, weatherManager: WeatherManager, disasterManager: DisasterManager) {
         guard isAlive else { return }
         
         age += 1
@@ -175,17 +175,24 @@ class Bug: Identifiable, Hashable {
         // Get terrain modifiers for current position
         let modifiers = arena.movementModifiers(at: position, for: dna)
         
-        // Lose energy based on efficiency, terrain, species metabolic rate, season, and weather
+        // Get disaster effects at current position
+        let disasterEffects = disasterManager.getDisasterEffectsAt(position)
+        
+        // Lose energy based on efficiency, terrain, species metabolic rate, season, weather, and disasters
         let baseLoss = Self.energyLossPerTick * dna.energyEfficiency * dna.speciesTraits.metabolicRate
         let terrainLoss = baseLoss * modifiers.energyCost
         let seasonalLoss = seasonalManager.adjustedEnergyDrain(baseDrain: terrainLoss)
         let weatherEffects = weatherManager.currentEffects
         let weatherDrain = seasonalLoss * weatherEffects.energyDrainModifier
+        let disasterDrain = weatherDrain * disasterEffects.energyDrainModifier
         
-        energy -= weatherDrain
+        energy -= disasterDrain
         
         // Apply weather-specific damage
         energy -= weatherEffects.coldDamage + weatherEffects.heatDamage
+        
+        // Apply disaster damage (direct health damage)
+        energy -= disasterEffects.directDamage
         
         // Performance optimization: Skip complex behaviors for very young bugs
         if age < 10 {
@@ -202,12 +209,12 @@ class Bug: Identifiable, Hashable {
             return
         }
         
-        // Neural network decision making (with timeout protection, including seasonal and weather awareness)
-        makeNeuralDecision(in: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager, weatherManager: weatherManager)
+        // Neural network decision making (with timeout protection, including seasonal, weather, and disaster awareness)
+        makeNeuralDecision(in: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
         
         // Execute decisions based on species and neural outputs
         updatePredatorPreyTargets(otherBugs: otherBugs)
-        executeMovement(in: arena, modifiers: modifiers, seasonalManager: seasonalManager, weatherManager: weatherManager)
+        executeMovement(in: arena, modifiers: modifiers, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
         
         // Species-specific behaviors
         if dna.speciesTraits.speciesType.canEatPlants {
@@ -237,9 +244,9 @@ class Bug: Identifiable, Hashable {
     }
     
     /// Uses neural network to make behavioral decisions
-    private func makeNeuralDecision(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager, weatherManager: WeatherManager) {
-        // Create sensory inputs for neural network (including seasonal and weather awareness)
-        let inputs = BugSensors.createInputs(bug: self, arena: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager, weatherManager: weatherManager)
+    private func makeNeuralDecision(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager, weatherManager: WeatherManager, disasterManager: DisasterManager) {
+        // Create sensory inputs for neural network (including seasonal, weather, and disaster awareness)
+        let inputs = BugSensors.createInputs(bug: self, arena: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
         
         // Get neural network outputs
         let rawOutputs = neuralNetwork.predict(inputs: inputs)
@@ -258,22 +265,30 @@ class Bug: Identifiable, Hashable {
     }
     
     /// Executes movement based on neural network decision
-    private func executeMovement(in arena: Arena, modifiers: (speed: Double, vision: Double, energyCost: Double), seasonalManager: SeasonalManager, weatherManager: WeatherManager) {
+    private func executeMovement(in arena: Arena, modifiers: (speed: Double, vision: Double, energyCost: Double), seasonalManager: SeasonalManager, weatherManager: WeatherManager, disasterManager: DisasterManager) {
         guard let decision = lastDecision else {
             // Fallback to random movement if no decision
             velocity = CGPoint(x: Double.random(in: -1...1), y: Double.random(in: -1...1))
             return
         }
         
-        // Apply terrain and seasonal speed modifiers
+        // Apply terrain, seasonal, weather, and disaster speed modifiers
         let baseSpeed = seasonalManager.adjustedMovementSpeed(baseSpeed: currentSpeed)
         let terrainSpeed = baseSpeed * modifiers.speed
+        let weatherSpeed = terrainSpeed * weatherManager.currentEffects.movementSpeedModifier
+        let disasterEffects = disasterManager.getDisasterEffectsAt(position)
+        let finalSpeed = weatherSpeed * disasterEffects.movementSpeedModifier
         
         // Neural network controls movement direction
-        let neuralVelocity = CGPoint(
-            x: decision.moveX * terrainSpeed,
-            y: decision.moveY * terrainSpeed
+        var neuralVelocity = CGPoint(
+            x: decision.moveX * finalSpeed,
+            y: decision.moveY * finalSpeed
         )
+        
+        // Apply disaster displacement force (earthquakes, floods, etc.)
+        let displacementForce = disasterManager.getDisplacementForce(at: position)
+        neuralVelocity.x += displacementForce.x * 2.0  // Amplify displacement effect
+        neuralVelocity.y += displacementForce.y * 2.0
         
         // Behavioral priority system: fleeing > hunting > food seeking > exploration
         var finalVelocity = neuralVelocity
@@ -283,8 +298,8 @@ class Bug: Identifiable, Hashable {
             let fleeDirection = normalize(CGPoint(x: position.x - threat.position.x, y: position.y - threat.position.y))
             let fleeSpeedMultiplier = dna.speciesTraits.defensiveBehavior?.fleeSpeedMultiplier ?? 1.3
             let fleeVelocity = CGPoint(
-                x: fleeDirection.x * terrainSpeed * fleeSpeedMultiplier,
-                y: fleeDirection.y * terrainSpeed * fleeSpeedMultiplier
+                x: fleeDirection.x * finalSpeed * fleeSpeedMultiplier,
+                y: fleeDirection.y * finalSpeed * fleeSpeedMultiplier
             )
             finalVelocity = fleeVelocity
             

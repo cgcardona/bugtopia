@@ -80,7 +80,7 @@ struct SimulationView: View {
             Divider()
                 .frame(height: 30)
             
-            // Weather and Season indicators
+            // Weather, Season, and Disaster indicators
             HStack(spacing: 8) {
                 WeatherIndicator(weatherManager: simulationEngine.weatherManager)
                 
@@ -98,6 +98,12 @@ struct SimulationView: View {
                 .padding(.vertical, 4)
                 .background(Capsule().fill(simulationEngine.seasonalManager.currentSeason.color.opacity(0.2)))
                 .cornerRadius(10)
+                
+                Text("•")
+                    .foregroundColor(.secondary)
+                
+                // Disaster indicator
+                DisasterIndicator(disasterManager: simulationEngine.disasterManager)
             }
             
             Divider()
@@ -180,8 +186,11 @@ struct SimulationView: View {
                 selectBugNear(location, canvasSize: geometry.size)
             }
             
-            // Weather overlay effects
-            WeatherOverlay(weatherManager: simulationEngine.weatherManager, canvasSize: geometry.size)
+                                            // Weather overlay effects
+                                WeatherOverlay(weatherManager: simulationEngine.weatherManager, canvasSize: geometry.size)
+                                
+                                // Disaster overlay effects
+                                DisasterOverlay(disasterManager: simulationEngine.disasterManager, canvasSize: geometry.size)
         }
         }
     }
@@ -691,9 +700,15 @@ struct SimulationView: View {
                 
                 Divider()
                 
-                // Weather Information
-                WeatherStatusView(weatherManager: simulationEngine.weatherManager)
-                    .padding(.top, 8)
+                                        // Weather Information
+                        WeatherStatusView(weatherManager: simulationEngine.weatherManager)
+                            .padding(.top, 8)
+                        
+                        Divider()
+                        
+                        // Disaster Information
+                        DisasterStatusView(disasterManager: simulationEngine.disasterManager)
+                            .padding(.top, 8)
                 }
                 
                 if let selected = selectedBug {
