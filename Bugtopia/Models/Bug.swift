@@ -48,6 +48,14 @@ class Bug: Identifiable, Hashable {
     var groupRole: GroupRole = .member      // Role within the group
     var signalCooldown: Int = 0             // Cooldown between signals
     
+    // MARK: - Tool & Construction State
+    
+    var carriedResources: [ResourceType: Int] = [:]  // Resources currently carried
+    var currentProject: ToolBlueprint?               // Tool being constructed
+    var constructionCooldown: Int = 0                // Cooldown after construction
+    var lastToolUse: TimeInterval = 0                // When last used a tool
+    var knownTools: Set<UUID> = []                   // Tools this bug is aware of
+    
     // MARK: - Constants
     
     static let maxEnergy: Double = 100.0
@@ -59,6 +67,7 @@ class Bug: Identifiable, Hashable {
     static let huntingCooldownTime: Int = 30     // Ticks between hunting attempts
     static let fleeingCooldownTime: Int = 50     // Ticks to maintain flee state
     static let signalCooldownTime: Int = 15      // Minimum ticks between signals
+    static let constructionCooldownTime: Int = 60   // Ticks between construction attempts
     
     // MARK: - Computed Properties
     
@@ -129,6 +138,7 @@ class Bug: Identifiable, Hashable {
         huntingCooldown = max(0, huntingCooldown - 1)
         fleeingCooldown = max(0, fleeingCooldown - 1)
         signalCooldown = max(0, signalCooldown - 1)
+        constructionCooldown = max(0, constructionCooldown - 1)
         
         // Get terrain modifiers for current position
         let modifiers = arena.movementModifiers(at: position, for: dna)
@@ -175,6 +185,11 @@ class Bug: Identifiable, Hashable {
         
         // Process communications (internal method)
         processSignals(in: arena, foods: foods, otherBugs: otherBugs)
+        
+        // Tool and construction behaviors
+        if dna.toolDNA.constructionDrive > 0.3 && constructionCooldown <= 0 {
+            considerConstruction(in: arena, otherBugs: otherBugs)
+        }
         
         // Clamp energy
         energy = max(0, min(Self.maxEnergy, energy))
@@ -838,6 +853,276 @@ class Bug: Identifiable, Hashable {
         }
         
         return nil
+    }
+    
+    // MARK: - Tool & Construction Methods
+    
+    /// Decides whether to start construction projects based on needs and environment
+    private func considerConstruction(in arena: Arena, otherBugs: [Bug]) {
+        guard currentProject == nil,
+              energy > 40.0, // Need enough energy for construction
+              dna.toolDNA.constructionDrive > Double.random(in: 0...1) else {
+            return
+        }
+        
+        // Analyze environment to determine useful tools
+        let currentTerrain = arena.terrainAt(position)
+        let nearbyTerrain = scanNearbyTerrain(in: arena)
+        
+        var constructionPriorities: [ToolType: Double] = [:]
+        
+        // Water nearby - consider bridge
+        if nearbyTerrain.contains(.water) {
+            constructionPriorities[.bridge] = 0.8
+        }
+        
+        // Hills nearby - consider ramp
+        if nearbyTerrain.contains(.hill) {
+            constructionPriorities[.ramp] = 0.6
+        }
+        
+        // Walls nearby - consider tunnel
+        if nearbyTerrain.contains(.wall) {
+            constructionPriorities[.tunnel] = 0.7
+        }
+        
+        // Group formation - consider nest
+        if let group = currentGroup, groupRole == .leader {
+            constructionPriorities[.nest] = 0.9
+        }
+        
+        // Predator zones - consider shelter
+        if nearbyTerrain.contains(.predator) {
+            constructionPriorities[.shelter] = 0.8
+        }
+        
+        // Hunting opportunities - consider trap
+        if dna.speciesTraits.speciesType.canHunt && !otherBugs.filter({ isValidPrey($0) }).isEmpty {
+            constructionPriorities[.trap] = 0.5
+        }
+        
+        // Simple marker for territory/navigation
+        if dna.toolDNA.engineeringIntelligence > 0.7 && Double.random(in: 0...1) < 0.1 {
+            constructionPriorities[.marker] = 0.3
+        }
+        
+        // Choose the highest priority tool that we can potentially build
+        if let (toolType, _) = constructionPriorities.max(by: { $0.value < $1.value }),
+           dna.toolDNA.toolCrafting > 0.4,
+           energy > toolType.energyCost {
+            
+            startConstruction(toolType: toolType)
+        }
+    }
+    
+    /// Scans nearby terrain to understand construction opportunities
+    private func scanNearbyTerrain(in arena: Arena) -> Set<TerrainType> {
+        let scanRadius = dna.toolDNA.toolVision * 100.0 // Vision affects planning distance
+        var terrainTypes: Set<TerrainType> = []
+        
+        // Sample points around the bug
+        let samplePoints = 12
+        for i in 0..<samplePoints {
+            let angle = Double(i) * 2.0 * Double.pi / Double(samplePoints)
+            let checkPoint = CGPoint(
+                x: position.x + cos(angle) * scanRadius,
+                y: position.y + sin(angle) * scanRadius
+            )
+            
+            let terrain = arena.terrainAt(checkPoint)
+            terrainTypes.insert(terrain)
+        }
+        
+        return terrainTypes
+    }
+    
+    /// Starts a construction project
+    private func startConstruction(toolType: ToolType) {
+        let requiredResources = ToolRecipes.requiredResources(for: toolType)
+        
+        currentProject = ToolBlueprint(
+            type: toolType,
+            position: position,
+            requiredResources: requiredResources,
+            gatheredResources: [:],
+            builderId: id,
+            startTime: Date().timeIntervalSince1970,
+            workProgress: 0
+        )
+        
+        constructionCooldown = Self.constructionCooldownTime
+        
+        // Emit construction signal for cooperation
+        if dna.toolDNA.collaborationTendency > 0.5 {
+            _ = emitSignal(
+                type: .groupForm,
+                data: SignalData(groupSize: 1) // TODO: Add construction data
+            )
+        }
+    }
+    
+    /// Checks if another bug is valid prey for hunting
+    private func isValidPrey(_ other: Bug) -> Bool {
+        guard other.id != self.id,
+              dna.speciesTraits.speciesType.canHunt,
+              dna.speciesTraits.speciesType != other.dna.speciesTraits.speciesType else {
+            return false
+        }
+        
+        // Simple prey logic - different species and reasonable distance
+        let distance = distance(to: other.position)
+        return distance < 100.0
+    }
+    
+    /// Gathers resources from the environment
+    func gatherResource(from resource: inout Resource) -> Bool {
+        guard canCarryMore,
+              resource.isAvailable,
+              dna.toolDNA.resourceGathering > 0.3 else {
+            return false
+        }
+        
+        let gatheringEfficiency = dna.toolDNA.resourceGathering
+        let maxGather = Int(gatheringEfficiency * 3.0) + 1
+        let gathered = resource.harvest(amount: maxGather)
+        
+        if gathered > 0 {
+            let current = carriedResources[resource.type] ?? 0
+            carriedResources[resource.type] = current + gathered
+            
+            // Energy cost for gathering
+            energy -= Double(gathered) * 0.5
+            
+            return true
+        }
+        
+        return false
+    }
+    
+    /// Contributes resources to a construction project
+    func contributeToConstruction(_ blueprint: inout ToolBlueprint) -> Bool {
+        guard blueprint.builderId == self.id || dna.toolDNA.collaborationTendency > 0.6 else {
+            return false
+        }
+        
+        var contributed = false
+        
+        for (resourceType, needed) in blueprint.requiredResources {
+            let alreadyGathered = blueprint.gatheredResources[resourceType] ?? 0
+            let stillNeeded = needed - alreadyGathered
+            
+            if stillNeeded > 0, let carried = carriedResources[resourceType], carried > 0 {
+                let contribution = min(carried, stillNeeded)
+                blueprint.addResource(type: resourceType, amount: contribution)
+                carriedResources[resourceType] = carried - contribution
+                
+                if carriedResources[resourceType] == 0 {
+                    carriedResources.removeValue(forKey: resourceType)
+                }
+                
+                contributed = true
+            }
+        }
+        
+        return contributed
+    }
+    
+    /// Works on construction if at the site
+    func workOnConstruction(_ blueprint: inout ToolBlueprint) -> Bool {
+        let distanceToSite = distance(to: blueprint.position)
+        guard distanceToSite < 20.0, // Must be close to work site
+              blueprint.hasAllResources else {
+            return false
+        }
+        
+        let workEfficiency = dna.toolDNA.toolCrafting
+        let workDone = Int(workEfficiency * 3.0) + 1
+        blueprint.addWork(ticks: workDone)
+        
+        // Energy cost for construction work
+        energy -= Double(workDone) * 0.2
+        
+        return true
+    }
+    
+    /// Uses a tool if available and beneficial
+    func useTool(_ tool: inout Tool, in arena: Arena) -> Bool {
+        guard tool.isUsable,
+              distance(to: tool.position) < 30.0, // Must be close enough
+              dna.toolDNA.toolProficiency > 0.3 else {
+            return false
+        }
+        
+        let currentTime = Date().timeIntervalSince1970
+        
+        // Don't use tools too frequently
+        guard currentTime - lastToolUse > 1.0 else { return false }
+        
+        // Check if tool is beneficial in current situation
+        let benefit = calculateToolBenefit(tool, in: arena)
+        guard benefit > 0.3 else { return false }
+        
+        // Use the tool
+        tool.use()
+        lastToolUse = currentTime
+        
+        // Add tool to known tools
+        knownTools.insert(tool.id)
+        
+        // Apply tool effects based on type
+        applyToolEffects(tool)
+        
+        return true
+    }
+    
+    /// Calculates how beneficial a tool would be to use (needs arena reference)
+    private func calculateToolBenefit(_ tool: Tool, in arena: Arena) -> Double {
+        let currentTerrain = arena.terrainAt(position)
+        
+        switch tool.type {
+        case .bridge:
+            return currentTerrain == .water ? 0.9 : 0.1
+        case .tunnel:
+            return currentTerrain == .wall ? 0.8 : 0.1
+        case .ramp:
+            return currentTerrain == .hill ? 0.7 : 0.1
+        case .shelter:
+            return energy < 40.0 ? 0.8 : 0.2
+        case .nest:
+            return canReproduce ? 0.9 : 0.1
+        case .trap:
+            return targetPrey != nil ? 0.6 : 0.1
+        case .lever:
+            return 0.4 // General utility
+        case .marker:
+            return 0.3 // Navigation aid
+        }
+    }
+    
+    /// Applies effects when using a tool
+    private func applyToolEffects(_ tool: Tool) {
+        switch tool.type {
+        case .shelter:
+            energy += 5.0 // Recovery bonus
+        case .nest:
+            if canReproduce {
+                energy += 3.0 // Breeding bonus
+            }
+        case .trap:
+            if let prey = targetPrey, distance(to: prey.position) < 50.0 {
+                // Trap increases hunting success
+                huntingCooldown = max(0, huntingCooldown - 30)
+            }
+        default:
+            break // Other tools provide passive benefits through ToolEffects
+        }
+    }
+    
+    /// Total carrying capacity including tool bonuses
+    var totalCarryingCapacity: Int {
+        let baseCapacity = maxCarryingCapacity
+        // Tools could provide carrying bonuses in the future
+        return baseCapacity
     }
     
     /// Calculates distance to a point

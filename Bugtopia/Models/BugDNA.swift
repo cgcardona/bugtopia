@@ -62,6 +62,11 @@ struct BugDNA: Codable, Hashable {
     /// Communication and social cooperation abilities
     let communicationDNA: CommunicationDNA
     
+    // MARK: - Tool Use & Construction Traits
+    
+    /// Tool creation and environmental modification abilities
+    let toolDNA: ToolDNA
+    
     // MARK: - Visual Traits
     
     /// Primary color hue (0.0 to 1.0)
@@ -143,7 +148,7 @@ struct BugDNA: Codable, Hashable {
     init(speed: Double, visionRadius: Double, energyEfficiency: Double, 
          size: Double, strength: Double, memory: Double, stickiness: Double,
          camouflage: Double, aggression: Double, curiosity: Double,
-         neuralDNA: NeuralDNA, speciesTraits: SpeciesTraits, communicationDNA: CommunicationDNA,
+         neuralDNA: NeuralDNA, speciesTraits: SpeciesTraits, communicationDNA: CommunicationDNA, toolDNA: ToolDNA,
          colorHue: Double, colorSaturation: Double, colorBrightness: Double) {
         self.speed = max(0.1, min(2.0, speed))
         self.visionRadius = max(10, min(100, visionRadius))
@@ -158,6 +163,7 @@ struct BugDNA: Codable, Hashable {
         self.neuralDNA = neuralDNA
         self.speciesTraits = speciesTraits
         self.communicationDNA = communicationDNA
+        self.toolDNA = toolDNA
         self.colorHue = max(0.0, min(1.0, colorHue))
         self.colorSaturation = max(0.3, min(1.0, colorSaturation))
         self.colorBrightness = max(0.4, min(1.0, colorBrightness))
@@ -227,6 +233,7 @@ struct BugDNA: Codable, Hashable {
             neuralDNA: NeuralDNA.crossover(parent1.neuralDNA, parent2.neuralDNA),
             speciesTraits: SpeciesTraits.crossover(parent1.speciesTraits, parent2.speciesTraits),
             communicationDNA: CommunicationDNA.crossover(parent1: parent1.communicationDNA, parent2: parent2.communicationDNA),
+            toolDNA: ToolDNA.crossover(parent1: parent1.toolDNA, parent2: parent2.toolDNA),
             colorHue: Bool.random() ? parent1.colorHue : parent2.colorHue,
             colorSaturation: Bool.random() ? parent1.colorSaturation : parent2.colorSaturation,
             colorBrightness: Bool.random() ? parent1.colorBrightness : parent2.colorBrightness
@@ -257,6 +264,7 @@ struct BugDNA: Codable, Hashable {
             neuralDNA: neuralDNA.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),
             speciesTraits: speciesTraits.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),
             communicationDNA: communicationDNA.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),
+            toolDNA: toolDNA.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),
             colorHue: mutate(colorHue, range: 0.0...1.0),
             colorSaturation: mutate(colorSaturation, range: 0.3...1.0),
             colorBrightness: mutate(colorBrightness, range: 0.4...1.0)

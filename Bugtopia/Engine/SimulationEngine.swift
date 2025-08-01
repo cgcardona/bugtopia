@@ -19,6 +19,9 @@ class SimulationEngine {
     var foods: [CGPoint] = []
     var signals: [Signal] = []     // Active signals in the world
     var groups: [BugGroup] = []    // Active bug groups
+    var tools: [Tool] = []         // Constructed tools in the world
+    var resources: [Resource] = [] // Resource nodes for gathering
+    var blueprints: [ToolBlueprint] = [] // Construction projects in progress
     var isRunning = false
     var currentGeneration = 0
     var tickCount = 0
@@ -78,12 +81,18 @@ class SimulationEngine {
         pause()
         bugs.removeAll()
         foods.removeAll()
+        signals.removeAll()
+        groups.removeAll()
+        tools.removeAll()
+        resources.removeAll()
+        blueprints.removeAll()
         currentGeneration = 0
         tickCount = 0
         statistics = SimulationStatistics()
         
         setupInitialPopulation()
         spawnInitialFood()
+        spawnInitialResources()
     }
     
     // MARK: - Main Simulation Loop
@@ -111,6 +120,9 @@ class SimulationEngine {
         
         // Clean up expired signals
         cleanupSignals()
+        
+        // Update tools and construction
+        updateToolsAndConstruction()
         
         // Handle reproduction
         handleReproduction()
@@ -415,6 +427,142 @@ class SimulationEngine {
         // Limit total signals to prevent memory issues
         if signals.count > 200 {
             signals = Array(signals.suffix(200))
+        }
+    }
+    
+    // MARK: - Tool & Construction Management
+    
+    /// Updates tools, resources, and construction projects
+    private func updateToolsAndConstruction() {
+        // Degrade tools over time
+        for i in 0..<tools.count {
+            tools[i].degrade()
+        }
+        
+        // Remove broken tools
+        tools.removeAll { !$0.isUsable }
+        
+        // Regenerate resources
+        for i in 0..<resources.count {
+            resources[i].regenerate()
+        }
+        
+        // Update construction projects
+        updateConstructionProjects()
+        
+        // Handle tool usage by bugs
+        handleToolInteractions()
+        
+        // Handle resource gathering
+        handleResourceGathering()
+    }
+    
+    /// Updates construction projects and completes finished ones
+    private func updateConstructionProjects() {
+        var completedProjects: [ToolBlueprint] = []
+        
+        for i in 0..<blueprints.count {
+            let blueprint = blueprints[i]
+            
+            // Find bugs working on this project
+            let workers = bugs.filter { bug in
+                bug.distance(to: blueprint.position) < 30.0 &&
+                (bug.id == blueprint.builderId || bug.dna.toolDNA.collaborationTendency > 0.6)
+            }
+            
+            // Add work from nearby bugs
+            for worker in workers {
+                if blueprints[i].hasAllResources {
+                    _ = worker.workOnConstruction(&blueprints[i])
+                }
+            }
+            
+            // Check if construction is complete
+            if blueprints[i].isComplete {
+                completedProjects.append(blueprints[i])
+            }
+        }
+        
+        // Complete finished projects
+        for project in completedProjects {
+            completeConstruction(project)
+            blueprints.removeAll { $0.id == project.builderId && $0.position == project.position }
+        }
+    }
+    
+    /// Completes a construction project by creating the tool
+    private func completeConstruction(_ blueprint: ToolBlueprint) {
+        let newTool = Tool(
+            type: blueprint.type,
+            position: blueprint.position,
+            creatorId: blueprint.builderId,
+            creationTime: Date().timeIntervalSince1970,
+            durability: 1.0,
+            uses: 0,
+            generation: currentGeneration
+        )
+        
+        tools.append(newTool)
+        
+        // Notify the builder
+        if let builder = bugs.first(where: { $0.id == blueprint.builderId }) {
+            builder.currentProject = nil
+        }
+    }
+    
+    /// Handles bugs interacting with tools
+    private func handleToolInteractions() {
+        for bug in bugs {
+            // Find nearby tools
+            let nearbyTools = tools.filter { bug.distance(to: $0.position) < 50.0 }
+            
+            for i in 0..<tools.count {
+                if nearbyTools.contains(where: { $0.id == tools[i].id }) {
+                    _ = bug.useTool(&tools[i], in: arena)
+                }
+            }
+        }
+    }
+    
+    /// Handles bugs gathering resources from nodes
+    private func handleResourceGathering() {
+        for bug in bugs {
+            guard bug.canCarryMore else { continue }
+            
+            // Find nearby resources
+            for i in 0..<resources.count {
+                if bug.distance(to: resources[i].position) < 20.0 {
+                    _ = bug.gatherResource(from: &resources[i])
+                    break // Only gather from one resource per tick
+                }
+            }
+            
+            // Contribute to nearby construction projects
+            for i in 0..<blueprints.count {
+                if bug.distance(to: blueprints[i].position) < 30.0 {
+                    _ = bug.contributeToConstruction(&blueprints[i])
+                }
+            }
+        }
+    }
+    
+    /// Spawns initial resource nodes around the arena
+    private func spawnInitialResources() {
+        let resourceCount = 30 // Base number of resource nodes
+        
+        for _ in 0..<resourceCount {
+            let resourceType = ResourceType.allCases.randomElement() ?? .stick
+            let position = arena.findSpawnPosition()
+            
+            let resource = Resource(
+                type: resourceType,
+                position: position,
+                quantity: Int.random(in: 5...10),
+                respawnRate: Double.random(in: 0.01...0.05), // Resources respawn slowly
+                lastHarvest: Date().timeIntervalSince1970
+            )
+            
+            resources.append(resource)
         }
     }
     
