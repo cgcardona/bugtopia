@@ -52,6 +52,17 @@ struct BugDNA: Codable, Hashable {
     /// Evolvable neural network for decision making
     let neuralDNA: NeuralDNA
     
+    // MARK: - Neural Energy Economics
+    
+    /// Neural energy efficiency (0.5 to 2.0, lower is better)
+    let neuralEnergyEfficiency: Double
+    
+    /// Brain plasticity - ability to adapt neural structure (0.0 to 1.0)
+    let brainPlasticity: Double
+    
+    /// Neural pruning tendency when energy is low (0.0 to 1.0)
+    let neuralPruningTendency: Double
+    
     // MARK: - Species & Ecological Traits
     
     /// Species type and ecological behaviors
@@ -148,7 +159,8 @@ struct BugDNA: Codable, Hashable {
     init(speed: Double, visionRadius: Double, energyEfficiency: Double, 
          size: Double, strength: Double, memory: Double, stickiness: Double,
          camouflage: Double, aggression: Double, curiosity: Double,
-         neuralDNA: NeuralDNA, speciesTraits: SpeciesTraits, communicationDNA: CommunicationDNA, toolDNA: ToolDNA,
+         neuralDNA: NeuralDNA, neuralEnergyEfficiency: Double, brainPlasticity: Double, neuralPruningTendency: Double,
+         speciesTraits: SpeciesTraits, communicationDNA: CommunicationDNA, toolDNA: ToolDNA,
          colorHue: Double, colorSaturation: Double, colorBrightness: Double) {
         self.speed = max(0.1, min(2.0, speed))
         self.visionRadius = max(10, min(100, visionRadius))
@@ -161,6 +173,9 @@ struct BugDNA: Codable, Hashable {
         self.aggression = max(0.0, min(1.0, aggression))
         self.curiosity = max(0.0, min(1.0, curiosity))
         self.neuralDNA = neuralDNA
+        self.neuralEnergyEfficiency = max(0.5, min(2.0, neuralEnergyEfficiency))
+        self.brainPlasticity = max(0.0, min(1.0, brainPlasticity))
+        self.neuralPruningTendency = max(0.0, min(1.0, neuralPruningTendency))
         self.speciesTraits = speciesTraits
         self.communicationDNA = communicationDNA
         self.toolDNA = toolDNA
@@ -202,6 +217,9 @@ struct BugDNA: Codable, Hashable {
             aggression: Double.random(in: 0.2...0.8),
             curiosity: Double.random(in: 0.3...0.8),
             neuralDNA: NeuralDNA.random(),
+            neuralEnergyEfficiency: Double.random(in: 0.8...1.5),
+            brainPlasticity: Double.random(in: 0.2...0.8),
+            neuralPruningTendency: Double.random(in: 0.3...0.7),
             speciesTraits: SpeciesTraits.forSpecies(species),
             communicationDNA: CommunicationDNA.random(),
             toolDNA: ToolDNA.random(),
@@ -225,6 +243,9 @@ struct BugDNA: Codable, Hashable {
             aggression: Double.random(in: 0.2...0.8),
             curiosity: Double.random(in: 0.3...0.8),
             neuralDNA: NeuralDNA.random(),
+            neuralEnergyEfficiency: Double.random(in: 0.8...1.5),
+            brainPlasticity: Double.random(in: 0.2...0.8),
+            neuralPruningTendency: Double.random(in: 0.3...0.7),
             speciesTraits: SpeciesTraits.forSpecies(species),
             communicationDNA: CommunicationDNA.random(),
             toolDNA: ToolDNA.random(),
@@ -251,6 +272,9 @@ struct BugDNA: Codable, Hashable {
             aggression: Bool.random() ? parent1.aggression : parent2.aggression,
             curiosity: Bool.random() ? parent1.curiosity : parent2.curiosity,
             neuralDNA: NeuralDNA.crossover(parent1.neuralDNA, parent2.neuralDNA),
+            neuralEnergyEfficiency: Bool.random() ? parent1.neuralEnergyEfficiency : parent2.neuralEnergyEfficiency,
+            brainPlasticity: Bool.random() ? parent1.brainPlasticity : parent2.brainPlasticity,
+            neuralPruningTendency: Bool.random() ? parent1.neuralPruningTendency : parent2.neuralPruningTendency,
             speciesTraits: SpeciesTraits.crossover(parent1.speciesTraits, parent2.speciesTraits),
             communicationDNA: CommunicationDNA.crossover(parent1: parent1.communicationDNA, parent2: parent2.communicationDNA),
             toolDNA: ToolDNA.crossover(parent1: parent1.toolDNA, parent2: parent2.toolDNA),
@@ -282,6 +306,9 @@ struct BugDNA: Codable, Hashable {
             aggression: mutate(aggression, range: 0.0...1.0),
             curiosity: mutate(curiosity, range: 0.0...1.0),
             neuralDNA: neuralDNA.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),
+            neuralEnergyEfficiency: mutate(neuralEnergyEfficiency, range: 0.5...2.0),
+            brainPlasticity: mutate(brainPlasticity, range: 0.0...1.0),
+            neuralPruningTendency: mutate(neuralPruningTendency, range: 0.0...1.0),
             speciesTraits: speciesTraits.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),
             communicationDNA: communicationDNA.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),
             toolDNA: toolDNA.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),
@@ -307,7 +334,10 @@ extension BugDNA: CustomStringConvertible {
             stickiness: \(String(format: "%.2f", stickiness)),
             camouflage: \(String(format: "%.2f", camouflage)),
             aggression: \(String(format: "%.2f", aggression)),
-            curiosity: \(String(format: "%.2f", curiosity))
+            curiosity: \(String(format: "%.2f", curiosity)),
+            neuralEnergyEfficiency: \(String(format: "%.2f", neuralEnergyEfficiency)),
+            brainPlasticity: \(String(format: "%.2f", brainPlasticity)),
+            neuralPruningTendency: \(String(format: "%.2f", neuralPruningTendency))
         )
         """
     }

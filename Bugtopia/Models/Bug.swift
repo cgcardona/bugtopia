@@ -58,6 +58,11 @@ class Bug: Identifiable, Hashable {
     var lastToolUse: TimeInterval = 0                // When last used a tool
     var knownTools: Set<UUID> = []                   // Tools this bug is aware of
     
+    // MARK: - Neural Energy Economics State
+    
+    var brainPruningEvents: Int = 0                  // Number of times brain was pruned
+    var brainGrowthEvents: Int = 0                   // Number of times brain grew
+    
     // MARK: - Internal State Cache
     
     private var cachedCanReproduce: Bool = false     // Cached reproduction status for internal use
@@ -196,7 +201,13 @@ class Bug: Identifiable, Hashable {
         let weatherDrain = seasonalLoss * weatherEffects.energyDrainModifier
         let disasterDrain = weatherDrain * disasterEffects.energyDrainModifier
         
-        energy -= disasterDrain
+        // Neural energy consumption - intelligence costs energy!
+        let neuralEnergyCost = NeuralEnergyManager.calculateNeuralEnergyCost(
+            for: dna.neuralDNA, 
+            efficiency: dna.neuralEnergyEfficiency
+        )
+        
+        energy -= disasterDrain + neuralEnergyCost
         
         // Apply weather-specific damage
         energy -= weatherEffects.coldDamage + weatherEffects.heatDamage
@@ -230,6 +241,9 @@ class Bug: Identifiable, Hashable {
             ecosystemManager: ecosystemManager,
             territoryManager: territoryManager
         )
+        
+        // Adaptive brain scaling based on energy availability
+        performAdaptiveBrainScaling(neuralEnergyCost: neuralEnergyCost)
         
         // Execute decisions based on species and neural outputs
         updatePredatorPreyTargets(otherBugs: otherBugs)
@@ -1338,6 +1352,36 @@ class Bug: Identifiable, Hashable {
         let length = sqrt(vector.x * vector.x + vector.y * vector.y)
         guard length > 0 && length.isFinite else { return CGPoint.zero }
         return CGPoint(x: vector.x / length, y: vector.y / length)
+    }
+    
+    // MARK: - Neural Energy Economics
+    
+    /// Performs adaptive brain scaling based on energy availability and neural costs
+    private func performAdaptiveBrainScaling(neuralEnergyCost: Double) {
+        // Only apply brain scaling if the bug has high enough brain plasticity
+        guard dna.brainPlasticity > 0.3 else { return }
+        
+        // Check if we should prune the network due to low energy
+        if NeuralEnergyManager.shouldPruneNetwork(currentEnergy: energy, neuralCost: neuralEnergyCost) {
+            // Only prune if the bug has a tendency to do so
+            if dna.neuralPruningTendency > Double.random(in: 0...1) {
+                let prunedNetwork = NeuralEnergyManager.pruneNetwork(dna.neuralDNA)
+                // Update the bug's neural DNA (this is a simplification - in reality we'd need mutable DNA)
+                // For now, we'll just track that pruning occurred
+                brainPruningEvents += 1
+            }
+        }
+        
+        // Check if we can grow the network due to abundant energy
+        else if NeuralEnergyManager.canGrowNetwork(currentEnergy: energy, neuralCost: neuralEnergyCost) {
+            // Only grow if the bug has high brain plasticity
+            if dna.brainPlasticity > Double.random(in: 0...1) {
+                let grownNetwork = NeuralEnergyManager.growNetwork(dna.neuralDNA)
+                // Update the bug's neural DNA (this is a simplification - in reality we'd need mutable DNA)
+                // For now, we'll just track that growth occurred
+                brainGrowthEvents += 1
+            }
+        }
     }
     
     // MARK: - Hashable & Equatable

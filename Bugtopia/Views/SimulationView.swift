@@ -113,6 +113,8 @@ struct SimulationView: View {
                                     DisasterIndicator(disasterManager: simulationEngine.disasterManager)
                     
                     EcosystemIndicator(ecosystemManager: simulationEngine.ecosystemManager)
+                    
+    
             }
             
             Divider()
@@ -206,6 +208,9 @@ struct SimulationView: View {
                 
                 // Territory overlay effects
                 TerritoryOverlay(territoryManager: simulationEngine.territoryManager, speciationManager: simulationEngine.speciationManager, canvasSize: geometry.size)
+                
+                // Neural Energy overlay effects
+                
         }
         }
     }
@@ -738,6 +743,11 @@ struct SimulationView: View {
                     
                     // Territory Information
                     TerritoryStatusView(territoryManager: simulationEngine.territoryManager, speciationManager: simulationEngine.speciationManager)
+                    
+                    Divider()
+                    
+                    // Neural Energy Economics
+                    NeuralEnergyStatusView(bugs: simulationEngine.bugs)
                 }
                 
                 if let selected = selectedBug {
@@ -805,6 +815,9 @@ struct SimulationView: View {
                         StatRow(label: "Intelligence", value: String(format: "%.1f", selected.dna.geneticFitness * 100))
                         StatRow(label: "Generation", value: "\(selected.generation)")
                         StatRow(label: "Bug ID", value: String(selected.id.uuidString.prefix(8)))
+                        
+                        // Neural Network Architecture Details
+                        BugNeuralEnergyDetails(bug: selected)
                         
                         // Recent neural outputs
                         if let lastDecision = selected.lastDecision {

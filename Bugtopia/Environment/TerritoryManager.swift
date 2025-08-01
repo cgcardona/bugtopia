@@ -102,9 +102,9 @@ class TerritoryManager {
         
         // Create territories in different areas of the arena based on population ID
         // This creates more realistic, distributed territories
-        let populationHash = bugs.first?.hashValue ?? 0
+        let populationHash = abs(bugs.first?.hashValue ?? 0)
         let seedX = Double(populationHash % 1000) / 1000.0
-        let seedY = Double((populationHash * 7) % 1000) / 1000.0
+        let seedY = Double((populationHash + 12345) % 1000) / 1000.0
         
         let centerX = arena.bounds.minX + (arena.bounds.width * seedX)
         let centerY = arena.bounds.minY + (arena.bounds.height * seedY)

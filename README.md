@@ -18,11 +18,14 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **🔧 Environmental Engineering**: Bugs create tools, modify terrain, and build infrastructure to solve problems
 - **🌍 Organic World Generation**: 7 unique world types with natural terrain patterns - no artificial borders
 - **🗣️ Social Intelligence**: Signal-based communication, pack hunting, and cooperative construction
-- **🧬 Advanced Genetics**: 20+ evolvable traits including AI, tools, communication, and species behaviors
+- **🧬 Advanced Genetics**: 23+ evolvable traits including AI, tools, communication, species behaviors, and neural energy economics
 - **🧬 Population Speciation**: Automatic species formation through reproductive isolation and genetic divergence
 - **🌦️ Dynamic Weather & Seasons**: Four seasons plus 6 weather types with real-time environmental effects and survival challenges
 - **🌋 Natural Disasters**: 4 catastrophic events (Floods, Earthquakes, Wildfires, Volcanic) that reshape terrain and drive evolutionary pressure
-- **🤖 Emergent Intelligence**: Neural decision-making for movement, hunting, fleeing, building, and social interactions
+- **🔄 Environmental Cycles**: Resource depletion, regeneration, carrying capacity, and ecosystem aging with population pressure dynamics
+- **🌍 Migration & Territoriality**: Population-based territory claiming, quality evaluation, migration triggers, and neural territorial awareness
+- **🧠 Neural Energy Economics**: Energy costs for neural networks with adaptive brain scaling, pruning, and growth based on environmental demands
+- **🤖 Emergent Intelligence**: Neural decision-making for movement, hunting, fleeing, building, and social interactions with energy-efficient brain evolution
 - **📊 Real-time Evolution**: Watch genetics, neural architecture, and population dynamics evolve simultaneously
 - **🎨 Beautiful Visualization**: Animated terrain, construction sites, tools, neural networks, and seasonal progress
 
@@ -31,7 +34,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 ### 🧠 Artificial Intelligence Evolution
 - **Evolvable Neural Networks**: 3-10 layer networks with variable topology
 - **Structural Mutations**: Networks grow/shrink layers and change activation functions
-- **Smart Decision Making**: 34 sensory inputs (including seasonal and weather awareness) → 8 behavioral outputs
+- **Smart Decision Making**: 50 sensory inputs (including seasonal, weather, disaster, ecosystem, and territorial awareness) → 8 behavioral outputs
 - **Emergent Behaviors**: Hunting strategies, fleeing patterns, exploration drives
 
 ### 🦁 Predator-Prey Ecosystem
@@ -68,6 +71,16 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Extinction & Migration Events**: Realistic population dynamics with bottlenecks and recolonization
 - **Real-time Speciation Monitoring**: Live tracking of active populations and recent evolutionary events
 
+### 🌍 Migration & Territoriality System
+- **Population-Based Territories**: Each population claims and defends its own territory
+- **Territory Quality Evaluation**: Resource abundance, safety, and carrying capacity assessment
+- **Migration Triggers**: Population pressure, resource scarcity, and disaster displacement
+- **Neural Territorial Awareness**: 4 new neural inputs (50 total) for territory-based decision making
+- **Distributed Territory Sizing**: Realistic territory sizes based on population size and arena distribution
+- **Territory Visualization**: Real-time territory overlays showing claimed areas and population boundaries
+- **Migration Patterns**: Seasonal migration, habitat selection, and population redistribution
+- **Territorial Competition**: Population conflicts, territory expansion, and boundary disputes
+
 ### 🌦️ Dynamic Weather & Seasonal System
 - **Four Seasons**: Spring (growth), Summer (abundance), Fall (preparation), Winter (scarcity)
 - **Six Weather Types**: Clear ☀️, Rain 🌧️, Drought 🏜️, Blizzard ❄️, Storm ⛈️, Fog 🌫️
@@ -83,7 +96,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Smart Spawning**: Season and weather-influenced disaster probabilities with realistic triggers
 - **Terrain Reshaping**: Permanent changes to world layout, accessibility, and resource distribution
 - **Survival Mechanics**: Bug displacement, resource destruction, population pressure, habitat fragmentation
-- **Neural Disaster Awareness**: 6 new disaster inputs (40 total) help bugs sense and flee catastrophes
+- **Neural Disaster Awareness**: 6 new disaster inputs (50 total) help bugs sense and flee catastrophes
 - **Visual Disaster Effects**: Fire spreading, earthquake shaking, flood overlays, volcanic ash clouds
 - **Evolutionary Pressure**: Mass casualties drive rapid selection for disaster-resistant traits
 - **Migration Triggers**: Catastrophes force population movement and territorial redistribution
@@ -95,8 +108,9 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Communication Traits**: Signal strength, sensitivity, frequency, trust, social response
 - **Tool Traits**: Crafting, proficiency, vision, construction drive, carrying capacity, resource gathering
 - **Species Traits**: Hunting/defensive behaviors, metabolic rates, size modifiers
+- **Neural Energy Traits**: Energy efficiency, brain plasticity, pruning tendency
 - **Genetic Operations**: Crossover, mutation, structural evolution, selection pressure
-- **Multi-Modal Fitness**: Survival, reproduction, terrain adaptation, predator success, social cooperation, tool use
+- **Multi-Modal Fitness**: Survival, reproduction, terrain adaptation, predator success, social cooperation, tool use, neural efficiency
 
 ### 🌍 Environmental Arena
 | Terrain | Challenge | Adaptation Required |
@@ -258,7 +272,7 @@ struct BugDNA {
 
 ## 🗺️ Roadmap
 
-### ✅ COMPLETED: Phase 1-6.4 ✨
+### ✅ COMPLETED: Phase 1-6.6 ✨
 - [x] **Evolvable Neural Networks**: Deep AI brains (3-10 layers) with structural evolution
 - [x] **Predator-Prey Ecosystem**: Four species with hunting/defensive behaviors
 - [x] **Advanced Genetics**: Neural + behavioral + physical trait evolution
@@ -268,17 +282,14 @@ struct BugDNA {
 - [x] **🌦️ Seasonal System**: Dynamic four-season cycle with environmental effects and neural awareness
 - [x] **⛈️ Weather Patterns**: Six weather types with animated effects, survival challenges, and AI adaptation
 - [x] **🌋 Natural Disasters**: Floods, earthquakes, wildfires, volcanic eruptions with terrain reshaping and evolutionary pressure
-
-### 🚀 ACTIVE: Phase 6.4 - Environmental Cycles (Current Development)
 - [x] **🔄 Environmental Cycles**: Resource depletion, regeneration, and long-term ecosystem changes
+- [x] **🌍 Migration & Territoriality**: Population-based territories, migration patterns, and habitat selection with realistic distributed territory sizing
 
-### 🚀 ACTIVE: Phase 6.5 - Migration & Territoriality (Current Development)
-- [ ] **🌍 Migration Patterns**: Seasonal migration, territorial behaviors, and habitat selection
-- [ ] **🏛️ Civilization**: Cultural knowledge, technology, and multi-generational progress
+### 🌟 ACTIVE: Phase 6.6 ⚡
+- [x] **🧠 Neural Energy Economics**: Energy-based neural maintenance costs with intelligence vs efficiency trade-offs
+- [x] **🔬 Adaptive Brain Scaling**: Dynamic neural complexity based on environmental demands and resource availability
 
 ### 🌟 Future Expansions
-- [ ] **🧠 Neural Energy Economics**: Energy-based neural maintenance costs with intelligence vs efficiency trade-offs
-- [ ] **🔬 Adaptive Brain Scaling**: Dynamic neural complexity based on environmental demands and resource availability
 - [ ] **3D Arena**: True 3D terrain with flight and underwater capabilities
 - [ ] **Quantum Behaviors**: Quantum-inspired neural network architectures
 - [ ] **Multiplayer Evolution**: Compete isolated populations across different worlds

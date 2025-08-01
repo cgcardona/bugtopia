@@ -393,7 +393,18 @@ class SimulationEngine {
         // Exploration bonus for bugs that have been in different terrain types
         let explorationBonus = calculateExplorationBonus(for: bug)
         
-        return survivalBonus + energyBonus + reproductionBonus + geneticBonus + terrainBonus + explorationBonus
+        // Neural energy efficiency bonus - reward energy-efficient brains
+        let neuralCost = NeuralEnergyManager.calculateNeuralEnergyCost(
+            for: bug.dna.neuralDNA, 
+            efficiency: bug.dna.neuralEnergyEfficiency
+        )
+        let intelligence = NeuralEnergyManager.calculateIntelligenceScore(
+            for: bug.dna.neuralDNA, 
+            efficiency: bug.dna.neuralEnergyEfficiency
+        )
+        let neuralEfficiencyBonus = (intelligence / max(0.001, neuralCost * 100)) * 2 // Reward intelligence per energy cost
+        
+        return survivalBonus + energyBonus + reproductionBonus + geneticBonus + terrainBonus + explorationBonus + neuralEfficiencyBonus
     }
     
     /// Calculates bonus for bugs that successfully navigate different terrains
