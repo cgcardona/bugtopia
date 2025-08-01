@@ -140,8 +140,9 @@ class Arena {
     init(bounds: CGRect, tileSize: CGSize = CGSize(width: 40, height: 40)) {
         self.bounds = bounds
         self.tileSize = tileSize
-        self.gridWidth = Int(bounds.width / tileSize.width)
-        self.gridHeight = Int(bounds.height / tileSize.height)
+        // Ensure tiles fit entirely within bounds - reduce by 1 to prevent clipping
+        self.gridWidth = max(1, Int(bounds.width / tileSize.width) - 1)
+        self.gridHeight = max(1, Int(bounds.height / tileSize.height) - 1)
         self.tiles = []
         
         // Seed random number generator with current time for unique worlds
