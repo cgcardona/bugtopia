@@ -34,10 +34,10 @@ class Bug: Identifiable, Hashable {
     // MARK: - Constants
     
     static let maxEnergy: Double = 100.0
-    static let initialEnergy: Double = 50.0
-    static let energyLossPerTick: Double = 0.5
+    static let initialEnergy: Double = 80.0  // Increased from 50 to give more survival time
+    static let energyLossPerTick: Double = 0.15  // Reduced from 0.5 to 0.15 (4.5/sec instead of 15/sec)
     static let reproductionThreshold: Double = 70.0
-    static let reproductionCost: Double = 30.0
+    static let reproductionCost: Double = 20.0  // Reduced from 30 to encourage reproduction
     static let maxAge: Int = 1000
     
     // MARK: - Computed Properties
@@ -172,9 +172,13 @@ class Bug: Identifiable, Hashable {
             if dna.memory > 0.7 {
                 // Smart pathfinding for high-memory bugs
                 let path = arena.findPath(from: position, to: target, for: dna)
-                if path.count > 1 {
+                if path.count > 1, path.indices.contains(1) {
                     let nextWaypoint = path[1]
                     let direction = normalize(CGPoint(x: nextWaypoint.x - position.x, y: nextWaypoint.y - position.y))
+                    newVelocity = CGPoint(x: direction.x * terrainSpeed, y: direction.y * terrainSpeed)
+                } else if let firstWaypoint = path.first {
+                    // Fallback to direct movement if pathfinding fails
+                    let direction = normalize(CGPoint(x: firstWaypoint.x - position.x, y: firstWaypoint.y - position.y))
                     newVelocity = CGPoint(x: direction.x * terrainSpeed, y: direction.y * terrainSpeed)
                 }
             } else {
@@ -241,7 +245,7 @@ class Bug: Identifiable, Hashable {
         guard let target = targetFood else { return }
         
         if distance(to: target) < visualRadius {
-            energy += 15.0 // Energy gained from food
+            energy += 25.0 // Increased from 15 to 25 for better sustainability
             targetFood = nil
         }
     }
@@ -268,6 +272,7 @@ class Bug: Identifiable, Hashable {
     func reproduce(with partner: Bug) -> Bug? {
         guard canReproduce && partner.canReproduce else { return nil }
         guard distance(to: partner.position) < max(visualRadius, partner.visualRadius) else { return nil }
+        guard energy > Self.reproductionCost && partner.energy > Self.reproductionCost else { return nil }
         
         // Create offspring with crossover and mutation
         let childDNA = BugDNA.crossover(dna, partner.dna).mutated()
@@ -296,20 +301,20 @@ class Bug: Identifiable, Hashable {
             // Predator zones are dangerous - lose energy unless well-adapted
             let survivalAbility = max(dna.aggression, dna.camouflage)
             if survivalAbility < 0.4 {
-                energy -= 2.0 // Extra energy loss in dangerous areas
+                energy -= 0.5 // Reduced from 2.0 to 0.5
             }
             
         case .shadow:
             // Shadow zones make bugs "lost" and consume extra energy unless they have good memory
             if dna.memory < 0.5 {
-                energy -= 0.5 // Confusion penalty
+                energy -= 0.2 // Reduced from 0.5 to 0.2
             }
             
         case .water:
             // Water is difficult to cross without proper adaptations
             let waterAbility = (dna.speed + (2.0 - dna.energyEfficiency)) / 2.0
             if waterAbility < 0.5 {
-                energy -= 1.5 // Drowning/struggling penalty
+                energy -= 0.5 // Reduced from 1.5 to 0.5
             }
             
         case .wind:
@@ -323,8 +328,8 @@ class Bug: Identifiable, Hashable {
             
         case .food:
             // Food-rich areas provide small energy bonuses
-            if Double.random(in: 0...1) < 0.1 { // 10% chance per tick
-                energy += 2.0
+            if Double.random(in: 0...1) < 0.3 { // Increased from 10% to 30% chance per tick
+                energy += 3.0 // Increased from 2.0 to 3.0
             }
             
         default:

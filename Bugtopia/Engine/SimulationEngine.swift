@@ -26,8 +26,8 @@ class SimulationEngine {
     let arena: Arena
     private let maxPopulation = 100
     private let initialPopulation = 30
-    private let maxFoodItems = 150
-    private let foodSpawnRate = 0.3 // Probability per tick
+    private let maxFoodItems = 200  // Increased from 150
+    private let foodSpawnRate = 0.5 // Increased from 0.3 to 0.5 (15 food/sec instead of 9)
     
     // MARK: - Evolution Parameters
     
@@ -166,7 +166,17 @@ class SimulationEngine {
         let neededBugs = max(15, initialPopulation - bugs.count)
         
         for _ in 0..<neededBugs {
-            let parent = survivors.randomElement() ?? survivors[0]
+            // Safe random parent selection with fallback to random DNA
+            let parent: Bug
+            if let randomSurvivor = survivors.randomElement() {
+                parent = randomSurvivor
+            } else {
+                // If no survivors, create completely new bug
+                let spawnPosition = arena.findSpawnPosition()
+                bugs.append(Bug(dna: BugDNA.random(), position: spawnPosition, generation: currentGeneration))
+                continue
+            }
+            
             let mutatedDNA = parent.dna.mutated(mutationRate: 0.3, mutationStrength: 0.2)
             let spawnPosition = arena.findSpawnPosition()
             bugs.append(Bug(dna: mutatedDNA, position: spawnPosition, generation: currentGeneration))
@@ -202,6 +212,9 @@ class SimulationEngine {
             let tournament = Array(bugsWithFitness.shuffled().prefix(3))
             if let winner = tournament.max(by: { $0.1 < $1.1 }) {
                 survivors.append(winner.0)
+            } else if let fallback = bugsWithFitness.first {
+                // If tournament fails, use the best available bug
+                survivors.append(fallback.0)
             }
         }
         
@@ -217,8 +230,21 @@ class SimulationEngine {
         
         // Fill rest of population with offspring
         while newPopulation.count < initialPopulation {
-            let parent1 = survivors.randomElement()!
-            let parent2 = survivors.randomElement()!
+            // Safe parent selection with fallbacks
+            guard let parent1 = survivors.randomElement() else {
+                // If no survivors, create random bug
+                let randomPosition = arena.findSpawnPosition()
+                newPopulation.append(Bug(dna: BugDNA.random(), position: randomPosition, generation: currentGeneration))
+                continue
+            }
+            
+            guard let parent2 = survivors.randomElement() else {
+                // If only one survivor, use asexual reproduction (mutation only)
+                let mutatedDNA = parent1.dna.mutated(mutationRate: 0.2, mutationStrength: 0.3)
+                let childPosition = arena.findSpawnPosition()
+                newPopulation.append(Bug(dna: mutatedDNA, position: childPosition, generation: currentGeneration))
+                continue
+            }
             
             let childDNA = BugDNA.crossover(parent1.dna, parent2.dna).mutated()
             let childPosition = arena.findSpawnPosition()

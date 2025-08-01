@@ -80,19 +80,19 @@ enum TerrainType: String, CaseIterable {
         let result: Double
         switch self {
         case .water:
-            result = 2.0 - (bug.speed * 0.5) // Fast bugs use less energy in water
+            result = 1.6 - (bug.speed * 0.4) // Reduced from 2.0, fast bugs get better efficiency
         case .hill:
-            result = 2.5 - bug.strength // Strong bugs use less energy climbing
+            result = 1.8 - (bug.strength * 0.6) // Reduced from 2.5, strength has more impact
         case .wind:
-            result = 1.5 - (bug.size * 0.3) // Large bugs resist wind better
+            result = 1.3 - (bug.size * 0.2) // Reduced from 1.5, more manageable
         case .predator:
-            result = 1.8 - (bug.camouflage * 0.5) // Camouflaged bugs stress less
+            result = 1.4 - (bug.camouflage * 0.3) // Reduced from 1.8, less punishing
         default:
             result = 1.0
         }
         
-        // Ensure result is finite and within reasonable bounds
-        return max(0.1, min(5.0, result.isFinite ? result : 1.0))
+        // Ensure result is finite and within more reasonable bounds
+        return max(0.5, min(2.0, result.isFinite ? result : 1.0))  // Reduced max from 5.0 to 2.0
     }
 }
 
