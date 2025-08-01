@@ -185,9 +185,18 @@ class Arena {
         let noise2 = Double.random(in: 0...1)
         let combinedNoise = (noise1 + noise2 * 0.5) / 1.5
         
-        // Walls around edges
+        // Randomized edge barriers (not always walls)
         if col == 0 || col == gridWidth - 1 || row == 0 || row == gridHeight - 1 {
-            return .wall
+            let edgeNoise = Double.random(in: 0...1)
+            if edgeNoise < 0.7 {
+                return .wall
+            } else if edgeNoise < 0.85 {
+                return .water
+            } else if edgeNoise < 0.95 {
+                return .hill
+            } else {
+                return .open // Occasional gaps in the border!
+            }
         }
         
         // Distance-based terrain probability (varies by distance from center)
@@ -248,21 +257,33 @@ class Arena {
         return .open
     }
     
-    /// Ensures spawn areas are open terrain
+    /// Ensures spawn areas are open terrain with randomized locations
     private func clearSpawnAreas() {
-        let spawnRadius = 3
+        let spawnRadius = 2
+        let numSpawnAreas = Int.random(in: 3...6) // Random number of spawn areas
         
-        // Clear corners for initial spawning
-        let spawnAreas = [
-            (2, 2), (gridWidth - 3, 2),
-            (2, gridHeight - 3), (gridWidth - 3, gridHeight - 3),
-            (gridWidth / 2, gridHeight / 2)
-        ]
+        // Generate random spawn areas instead of fixed corners
+        var spawnAreas: [(Int, Int)] = []
+        
+        for _ in 0..<numSpawnAreas {
+            let randomCol = Int.random(in: spawnRadius...(gridWidth - spawnRadius - 1))
+            let randomRow = Int.random(in: spawnRadius...(gridHeight - spawnRadius - 1))
+            spawnAreas.append((randomCol, randomRow))
+        }
+        
+        // Always ensure at least one spawn area near center for reliability
+        let centerCol = gridWidth / 2 + Int.random(in: -2...2)
+        let centerRow = gridHeight / 2 + Int.random(in: -2...2)
+        spawnAreas.append((centerCol, centerRow))
         
         for (centerCol, centerRow) in spawnAreas {
-            for row in max(0, centerRow - spawnRadius)...min(gridHeight - 1, centerRow + spawnRadius) {
-                for col in max(0, centerCol - spawnRadius)...min(gridWidth - 1, centerCol + spawnRadius) {
-                    if tiles[row][col].terrain == .wall {
+            // Use variable radius for more organic clearing
+            let actualRadius = Int.random(in: 1...spawnRadius)
+            
+            for row in max(1, centerRow - actualRadius)...min(gridHeight - 2, centerRow + actualRadius) {
+                for col in max(1, centerCol - actualRadius)...min(gridWidth - 2, centerCol + actualRadius) {
+                    // Clear to open terrain, but occasionally leave some features
+                    if Double.random(in: 0...1) < 0.8 { // 80% chance to clear
                         let position = tiles[row][col].position
                         tiles[row][col] = ArenaTile(terrain: .open, position: position, size: tileSize)
                     }
