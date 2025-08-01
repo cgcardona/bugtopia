@@ -24,6 +24,7 @@ class SimulationEngine {
     var blueprints: [ToolBlueprint] = [] // Construction projects in progress
     var speciationManager = SpeciationManager() // Population and speciation tracking
     var seasonalManager = SeasonalManager()     // Dynamic seasonal system
+    var weatherManager = WeatherManager()       // Dynamic weather patterns
     var isRunning = false
     var currentGeneration = 0
     var tickCount = 0
@@ -90,6 +91,7 @@ class SimulationEngine {
         blueprints.removeAll()
         speciationManager = SpeciationManager() // Reset speciation tracking
         seasonalManager.reset() // Reset seasonal cycle
+        weatherManager.reset() // Reset weather patterns
         currentGeneration = 0
         tickCount = 0
         statistics = SimulationStatistics()
@@ -108,7 +110,7 @@ class SimulationEngine {
         // Update all bugs with arena awareness and communication
         var newSignals: [Signal] = []
         for bug in bugs {
-            bug.update(in: arena, foods: foods, otherBugs: bugs, seasonalManager: seasonalManager)
+            bug.update(in: arena, foods: foods, otherBugs: bugs, seasonalManager: seasonalManager, weatherManager: weatherManager)
             
             // Let bug generate signals
             if let signal = bug.generateSignals(in: arena, foods: foods, otherBugs: bugs) {
@@ -142,6 +144,9 @@ class SimulationEngine {
         
         // Update seasonal system
         seasonalManager.update()
+        
+        // Update weather patterns
+        weatherManager.update(seasonalManager: seasonalManager)
         
         // Update populations and speciation
         speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: arena)

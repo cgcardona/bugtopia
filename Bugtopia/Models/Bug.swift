@@ -156,7 +156,7 @@ class Bug: Identifiable, Hashable {
     // MARK: - Simulation Updates
     
     /// Updates the bug's state for one simulation tick using neural network decisions
-    func update(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager) {
+    func update(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager, weatherManager: WeatherManager) {
         guard isAlive else { return }
         
         age += 1
@@ -175,11 +175,17 @@ class Bug: Identifiable, Hashable {
         // Get terrain modifiers for current position
         let modifiers = arena.movementModifiers(at: position, for: dna)
         
-        // Lose energy based on efficiency, terrain, species metabolic rate, and season
+        // Lose energy based on efficiency, terrain, species metabolic rate, season, and weather
         let baseLoss = Self.energyLossPerTick * dna.energyEfficiency * dna.speciesTraits.metabolicRate
         let terrainLoss = baseLoss * modifiers.energyCost
         let seasonalLoss = seasonalManager.adjustedEnergyDrain(baseDrain: terrainLoss)
-        energy -= seasonalLoss
+        let weatherEffects = weatherManager.currentEffects
+        let weatherDrain = seasonalLoss * weatherEffects.energyDrainModifier
+        
+        energy -= weatherDrain
+        
+        // Apply weather-specific damage
+        energy -= weatherEffects.coldDamage + weatherEffects.heatDamage
         
         // Performance optimization: Skip complex behaviors for very young bugs
         if age < 10 {
@@ -196,12 +202,12 @@ class Bug: Identifiable, Hashable {
             return
         }
         
-        // Neural network decision making (with timeout protection, including seasonal awareness)
-        makeNeuralDecision(in: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager)
+        // Neural network decision making (with timeout protection, including seasonal and weather awareness)
+        makeNeuralDecision(in: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager, weatherManager: weatherManager)
         
         // Execute decisions based on species and neural outputs
         updatePredatorPreyTargets(otherBugs: otherBugs)
-        executeMovement(in: arena, modifiers: modifiers, seasonalManager: seasonalManager)
+        executeMovement(in: arena, modifiers: modifiers, seasonalManager: seasonalManager, weatherManager: weatherManager)
         
         // Species-specific behaviors
         if dna.speciesTraits.speciesType.canEatPlants {
@@ -231,9 +237,9 @@ class Bug: Identifiable, Hashable {
     }
     
     /// Uses neural network to make behavioral decisions
-    private func makeNeuralDecision(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager) {
-        // Create sensory inputs for neural network (including seasonal awareness)
-        let inputs = BugSensors.createInputs(bug: self, arena: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager)
+    private func makeNeuralDecision(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager, weatherManager: WeatherManager) {
+        // Create sensory inputs for neural network (including seasonal and weather awareness)
+        let inputs = BugSensors.createInputs(bug: self, arena: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager, weatherManager: weatherManager)
         
         // Get neural network outputs
         let rawOutputs = neuralNetwork.predict(inputs: inputs)
@@ -252,7 +258,7 @@ class Bug: Identifiable, Hashable {
     }
     
     /// Executes movement based on neural network decision
-    private func executeMovement(in arena: Arena, modifiers: (speed: Double, vision: Double, energyCost: Double), seasonalManager: SeasonalManager) {
+    private func executeMovement(in arena: Arena, modifiers: (speed: Double, vision: Double, energyCost: Double), seasonalManager: SeasonalManager, weatherManager: WeatherManager) {
         guard let decision = lastDecision else {
             // Fallback to random movement if no decision
             velocity = CGPoint(x: Double.random(in: -1...1), y: Double.random(in: -1...1))
@@ -701,12 +707,13 @@ class Bug: Identifiable, Hashable {
                     other.energy -= stolenEnergy
                 }
                 
-                // Social behavior based on neural decision
+                // Social behavior based on neural decision - FIXED: Much smaller bonus, shared not doubled
                 if decision.social > 0.6 && other.lastDecision?.social ?? 0 > 0.6 {
-                    // Mutual social interaction provides small energy bonus
-                    let socialBonus = 1.0
+                    // Small social interaction bonus - but not enough to sustain life
+                    let socialBonus = 0.1  // Reduced from 1.0 to 0.1
                     energy += socialBonus
-                    other.energy += socialBonus
+                    // Don't give bonus to both bugs - that doubles the effect
+                    // other.energy += socialBonus  // REMOVED: Prevents energy duplication
                 }
             }
         }

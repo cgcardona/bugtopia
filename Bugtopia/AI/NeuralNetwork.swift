@@ -62,7 +62,7 @@ struct NeuralDNA: Codable, Hashable {
     
     // MARK: - Network Configuration
     
-    static let inputCount = 28  // Sensory inputs (expanded for predator/prey + edge detection + seasonal awareness)
+    static let inputCount = 34  // 28 previous + 6 weather inputs  // Sensory inputs (expanded for predator/prey + edge detection + seasonal awareness)
     static let outputCount = 8   // Motor outputs (expanded for hunting/fleeing)
     static let maxHiddenLayers = 8    // Allow much deeper networks (up to 10 total layers!)
     static let maxNeuronsPerLayer = 32 // Allow wider networks for complex processing
@@ -317,7 +317,8 @@ struct BugSensors {
         arena: Arena,
         foods: [CGPoint],
         otherBugs: [Bug],
-        seasonalManager: SeasonalManager
+        seasonalManager: SeasonalManager,
+        weatherManager: WeatherManager
     ) -> [Double] {
         
         var inputs: [Double] = []
@@ -428,6 +429,10 @@ struct BugSensors {
         inputs.append(seasonalManager.currentSeason.foodAbundance)      // Food availability
         inputs.append(seasonalManager.currentSeason.energyDrainModifier) // Energy requirements
         inputs.append(seasonalManager.currentSeason.reproductionModifier) // Breeding opportunity
+        
+        // Weather awareness (6 inputs)
+        let weatherInputs = weatherManager.weatherInputs
+        inputs.append(contentsOf: weatherInputs)
         
         return inputs
     }

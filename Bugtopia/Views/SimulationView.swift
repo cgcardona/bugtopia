@@ -16,7 +16,7 @@ struct SimulationView: View {
     
     init(worldSize: CGSize = CGSize(width: 800, height: 600)) {
         let bounds = CGRect(origin: .zero, size: worldSize)
-        _simulationEngine = State(initialValue: SimulationEngine(worldBounds: bounds))
+        _simulationEngine = State(wrappedValue: SimulationEngine(worldBounds: bounds))
     }
     
     var body: some View {
@@ -80,6 +80,29 @@ struct SimulationView: View {
             Divider()
                 .frame(height: 30)
             
+            // Weather and Season indicators
+            HStack(spacing: 8) {
+                WeatherIndicator(weatherManager: simulationEngine.weatherManager)
+                
+                Text("•")
+                    .foregroundColor(.secondary)
+                
+                // Season indicator
+                HStack(spacing: 4) {
+                    Text(simulationEngine.seasonalManager.currentSeason.emoji)
+                        .font(.title2)
+                    Text(simulationEngine.seasonalManager.currentSeason.rawValue.capitalized)
+                        .font(.headline)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(simulationEngine.seasonalManager.currentSeason.color.opacity(0.2)))
+                .cornerRadius(10)
+            }
+            
+            Divider()
+                .frame(height: 30)
+            
             // Generation Info
             VStack(alignment: .leading, spacing: 2) {
                 Text("Generation: \(simulationEngine.currentGeneration)")
@@ -120,17 +143,18 @@ struct SimulationView: View {
     
     private var simulationCanvas: some View {
         GeometryReader { geometry in
-            Canvas { context, size in
-                // Scale the simulation to fit the canvas
-                let scaleX = size.width / simulationEngine.arena.bounds.width
-                let scaleY = size.height / simulationEngine.arena.bounds.height
-                let scale = min(scaleX, scaleY)
+            ZStack {
+                Canvas { context, size in
+                    // Scale the simulation to fit the canvas
+                    let scaleX = size.width / simulationEngine.arena.bounds.width
+                    let scaleY = size.height / simulationEngine.arena.bounds.height
+                    let scale = min(scaleX, scaleY)
+                    
+                                // Transform context to simulation coordinates
+                context.scaleBy(x: scale, y: scale)
                 
-                            // Transform context to simulation coordinates
-            context.scaleBy(x: scale, y: scale)
-            
-            // Draw arena terrain
-            drawTerrain(context: context)
+                // Draw arena terrain
+                drawTerrain(context: context)
             
             // Draw resources
             drawResources(context: context)
@@ -155,6 +179,10 @@ struct SimulationView: View {
             .onTapGesture { location in
                 selectBugNear(location, canvasSize: geometry.size)
             }
+            
+            // Weather overlay effects
+            WeatherOverlay(weatherManager: simulationEngine.weatherManager, canvasSize: geometry.size)
+        }
         }
     }
     
@@ -659,6 +687,12 @@ struct SimulationView: View {
                 
                 // Seasonal Information
                 SeasonalStatusView(seasonalManager: simulationEngine.seasonalManager)
+                    .padding(.top, 8)
+                
+                Divider()
+                
+                // Weather Information
+                WeatherStatusView(weatherManager: simulationEngine.weatherManager)
                     .padding(.top, 8)
                 }
                 
