@@ -325,6 +325,8 @@ git push origin feature/amazing-new-trait
 - **[🧬 Genetic System](docs/features/genetic-system.md)**: DNA, mutations, and inheritance
 - **[🔨 Tool System](docs/features/tool-system.md)**: Construction, resources, and environmental modification
 - **[📊 GUI Interface System](docs/features/gui-interface-system.md)**: User interface, statistics panels, and visual indicators
+- **[🌱 Ecosystem Health System](docs/features/ecosystem-health-system.md)**: Resource zones, population dynamics, and ecological cycles
+- **[🌍 Territory System](docs/features/territory-system.md)**: Population-based territories, migration, and spatial behaviors
 
 ## 📚 Technical Details
 
