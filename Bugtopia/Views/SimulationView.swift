@@ -132,6 +132,15 @@ struct SimulationView: View {
             // Draw arena terrain
             drawTerrain(context: context)
             
+            // Draw resources
+            drawResources(context: context)
+            
+            // Draw construction sites
+            drawConstructionSites(context: context)
+            
+            // Draw tools
+            drawTools(context: context)
+            
             // Draw food
             drawFood(context: context)
             
@@ -364,6 +373,161 @@ struct SimulationView: View {
             with: .color(speedColor),
             lineWidth: 2
         )
+    }
+    
+    // MARK: - Tool System Rendering
+    
+    /// Draws resource nodes in the arena
+    private func drawResources(context: GraphicsContext) {
+        for resource in simulationEngine.resources {
+            guard resource.isAvailable else { continue }
+            
+            let size: Double = 12.0
+            let rect = CGRect(
+                x: resource.position.x - size/2,
+                y: resource.position.y - size/2,
+                width: size,
+                height: size
+            )
+            
+            // Resource background
+            context.fill(
+                Path(ellipseIn: rect),
+                with: .color(resource.type.color)
+            )
+            
+            // Quantity indicator (size represents amount)
+            let quantitySize = size * (Double(resource.quantity) / 10.0) * 0.7
+            let quantityRect = CGRect(
+                x: resource.position.x - quantitySize/2,
+                y: resource.position.y - quantitySize/2,
+                width: quantitySize,
+                height: quantitySize
+            )
+            
+            context.fill(
+                Path(ellipseIn: quantityRect),
+                with: .color(resource.type.color.opacity(0.8))
+            )
+            
+            // Resource type indicator
+            context.draw(
+                Text(resource.type.emoji)
+                    .font(.system(size: 8)),
+                at: CGPoint(x: resource.position.x, y: resource.position.y + size/2 + 8),
+                anchor: .center
+            )
+        }
+    }
+    
+    /// Draws construction blueprints and progress
+    private func drawConstructionSites(context: GraphicsContext) {
+        for blueprint in simulationEngine.blueprints {
+            let size = blueprint.type.energyCost / 2.0 // Size based on complexity
+            let rect = CGRect(
+                x: blueprint.position.x - size/2,
+                y: blueprint.position.y - size/2,
+                width: size,
+                height: size
+            )
+            
+            // Construction site outline
+            context.stroke(
+                Path(roundedRect: rect, cornerRadius: 4),
+                with: .color(.orange),
+                style: StrokeStyle(lineWidth: 2, dash: [4, 4])
+            )
+            
+            // Progress indicator
+            let progress = blueprint.completionPercentage
+            let progressRect = CGRect(
+                x: rect.minX,
+                y: rect.minY,
+                width: rect.width * progress,
+                height: rect.height
+            )
+            
+            context.fill(
+                Path(roundedRect: progressRect, cornerRadius: 4),
+                with: .color(.orange.opacity(0.3))
+            )
+            
+            // Tool type indicator
+            context.draw(
+                Text(blueprint.type.emoji)
+                    .font(.system(size: 14)),
+                at: blueprint.position,
+                anchor: .center
+            )
+            
+            // Progress percentage
+            if progress > 0.1 {
+                context.draw(
+                    Text("\(Int(progress * 100))%")
+                        .font(.system(size: 8))
+                        .foregroundColor(.white),
+                    at: CGPoint(x: blueprint.position.x, y: blueprint.position.y + size/2 + 12),
+                    anchor: .center
+                )
+            }
+        }
+    }
+    
+    /// Draws completed tools in the arena
+    private func drawTools(context: GraphicsContext) {
+        for tool in simulationEngine.tools {
+            guard tool.isUsable else { continue }
+            
+            let rect = CGRect(
+                x: tool.position.x - tool.size.width/2,
+                y: tool.position.y - tool.size.height/2,
+                width: tool.size.width,
+                height: tool.size.height
+            )
+            
+            // Tool body with durability fade
+            let alpha = tool.durability
+            context.fill(
+                Path(roundedRect: rect, cornerRadius: 3),
+                with: .color(tool.type.color.opacity(alpha))
+            )
+            
+            // Tool border
+            context.stroke(
+                Path(roundedRect: rect, cornerRadius: 3),
+                with: .color(.gray),
+                lineWidth: 1
+            )
+            
+            // Tool icon
+            context.draw(
+                Text(tool.type.emoji)
+                    .font(.system(size: min(tool.size.width, tool.size.height) * 0.6)),
+                at: tool.position,
+                anchor: .center
+            )
+            
+            // Durability indicator
+            if tool.durability < 0.5 {
+                let warningColor: Color = tool.durability < 0.2 ? .red : .yellow
+                context.stroke(
+                    Path(roundedRect: rect, cornerRadius: 3),
+                    with: .color(warningColor),
+                    style: StrokeStyle(lineWidth: 2, dash: [2, 2])
+                )
+            }
+            
+            // Usage count for frequently used tools
+            if tool.uses > 5 {
+                context.draw(
+                    Text("×\(tool.uses)")
+                        .font(.system(size: 6))
+                        .foregroundColor(.white),
+                    at: CGPoint(x: tool.position.x, y: tool.position.y - tool.size.height/2 - 8),
+                    anchor: .center
+                )
+            }
+        }
     }
     
     // MARK: - Interaction
