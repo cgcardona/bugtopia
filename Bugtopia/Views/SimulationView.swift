@@ -436,6 +436,11 @@ struct SimulationView: View {
                         .padding(.bottom, 4)
                     
                     VStack(alignment: .leading, spacing: 8) {
+                        Text("\(selected.dna.speciesTraits.speciesType.emoji) \(selected.dna.speciesTraits.speciesType.rawValue.capitalized)")
+                            .font(.subheadline)
+                            .foregroundColor(selected.dna.speciesTraits.speciesType.baseColor)
+                            .fontWeight(.bold)
+                        
                         Text("🧬 Physical DNA")
                             .font(.subheadline)
                             .foregroundColor(.blue)
@@ -461,6 +466,30 @@ struct SimulationView: View {
                         StatRow(label: "Biases", value: "\(selected.dna.neuralDNA.biases.count)")
                         StatRow(label: "Layers", value: "\(selected.dna.neuralDNA.topology.count)")
                         
+                        if selected.dna.speciesTraits.speciesType.canHunt, let hunting = selected.dna.speciesTraits.huntingBehavior {
+                            Text("🦁 Hunting Traits")
+                                .font(.subheadline)
+                                .foregroundColor(.red)
+                                .padding(.top, 8)
+                            
+                            StatRow(label: "Hunt Intensity", value: String(format: "%.2f", hunting.huntingIntensity))
+                            StatRow(label: "Detection Range", value: String(format: "%.0f", hunting.preyDetectionRange))
+                            StatRow(label: "Chase Speed", value: String(format: "%.2fx", hunting.chaseSpeedMultiplier))
+                            StatRow(label: "Stealth", value: String(format: "%.2f", hunting.stealthLevel))
+                        }
+                        
+                        if let defensive = selected.dna.speciesTraits.defensiveBehavior {
+                            Text("🛡️ Defensive Traits")
+                                .font(.subheadline)
+                                .foregroundColor(.green)
+                                .padding(.top, 8)
+                            
+                            StatRow(label: "Predator Detection", value: String(format: "%.2f", defensive.predatorDetection))
+                            StatRow(label: "Flee Speed", value: String(format: "%.2fx", defensive.fleeSpeedMultiplier))
+                            StatRow(label: "Hiding Skill", value: String(format: "%.2f", defensive.hidingSkill))
+                            StatRow(label: "Flocking", value: String(format: "%.2f", defensive.flockingTendency))
+                        }
+                        
                         if let decision = selected.lastDecision {
                             Text("🎯 Current Decision")
                                 .font(.subheadline)
@@ -473,6 +502,8 @@ struct SimulationView: View {
                             StatRow(label: "Exploration", value: String(format: "%.2f", decision.exploration))
                             StatRow(label: "Social", value: String(format: "%.2f", decision.social))
                             StatRow(label: "Reproduction", value: String(format: "%.2f", decision.reproduction))
+                            StatRow(label: "Hunting", value: String(format: "%.2f", decision.hunting))
+                            StatRow(label: "Fleeing", value: String(format: "%.2f", decision.fleeing))
                         }
                         
                         Text("📊 Current State")

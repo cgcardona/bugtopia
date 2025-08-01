@@ -52,6 +52,11 @@ struct BugDNA: Codable, Hashable {
     /// Evolvable neural network for decision making
     let neuralDNA: NeuralDNA
     
+    // MARK: - Species & Ecological Traits
+    
+    /// Species type and ecological behaviors
+    let speciesTraits: SpeciesTraits
+    
     // MARK: - Visual Traits
     
     /// Primary color hue (0.0 to 1.0)
@@ -65,9 +70,28 @@ struct BugDNA: Codable, Hashable {
     
     // MARK: - Computed Properties
     
-    /// SwiftUI Color representation of the bug
+    /// SwiftUI Color representation of the bug (influenced by species)
     var color: Color {
-        Color(hue: colorHue, saturation: colorSaturation, brightness: colorBrightness)
+        // Base individual color from genetics
+        let baseColor = Color(hue: colorHue, saturation: colorSaturation, brightness: colorBrightness)
+        
+        // Modify hue slightly based on species type
+        let speciesHueShift: Double
+        switch speciesTraits.speciesType {
+        case .herbivore:
+            speciesHueShift = 0.3  // Green tint
+        case .carnivore:
+            speciesHueShift = 0.0  // Red tint
+        case .omnivore:
+            speciesHueShift = 0.1  // Orange tint
+        case .scavenger:
+            speciesHueShift = 0.8  // Purple tint
+        }
+        
+        // Blend individual hue with species identity (80% individual, 20% species)
+        let blendedHue = (colorHue * 0.8 + speciesHueShift * 0.2).truncatingRemainder(dividingBy: 1.0)
+        
+        return Color(hue: blendedHue, saturation: colorSaturation, brightness: colorBrightness)
     }
     
     /// Fitness score based on trait optimization and environmental adaptation
@@ -114,12 +138,12 @@ struct BugDNA: Codable, Hashable {
     init(speed: Double, visionRadius: Double, energyEfficiency: Double, 
          size: Double, strength: Double, memory: Double, stickiness: Double,
          camouflage: Double, aggression: Double, curiosity: Double,
-         neuralDNA: NeuralDNA,
+         neuralDNA: NeuralDNA, speciesTraits: SpeciesTraits,
          colorHue: Double, colorSaturation: Double, colorBrightness: Double) {
         self.speed = max(0.1, min(2.0, speed))
         self.visionRadius = max(10, min(100, visionRadius))
         self.energyEfficiency = max(0.5, min(1.5, energyEfficiency))
-        self.size = max(0.5, min(2.0, size))
+        self.size = max(0.5, min(2.0, size)) * speciesTraits.sizeModifier
         self.strength = max(0.2, min(1.5, strength))
         self.memory = max(0.1, min(1.2, memory))
         self.stickiness = max(0.3, min(1.3, stickiness))
@@ -127,6 +151,7 @@ struct BugDNA: Codable, Hashable {
         self.aggression = max(0.0, min(1.0, aggression))
         self.curiosity = max(0.0, min(1.0, curiosity))
         self.neuralDNA = neuralDNA
+        self.speciesTraits = speciesTraits
         self.colorHue = max(0.0, min(1.0, colorHue))
         self.colorSaturation = max(0.3, min(1.0, colorSaturation))
         self.colorBrightness = max(0.4, min(1.0, colorBrightness))
@@ -134,6 +159,7 @@ struct BugDNA: Codable, Hashable {
     
     /// Creates random DNA for initial population
     static func random() -> BugDNA {
+        let species = SpeciesType.allCases.randomElement() ?? .herbivore
         return BugDNA(
             speed: Double.random(in: 0.5...1.5),
             visionRadius: Double.random(in: 20...80),
@@ -146,6 +172,28 @@ struct BugDNA: Codable, Hashable {
             aggression: Double.random(in: 0.2...0.8),
             curiosity: Double.random(in: 0.3...0.8),
             neuralDNA: NeuralDNA.random(),
+            speciesTraits: SpeciesTraits.forSpecies(species),
+            colorHue: Double.random(in: 0...1),
+            colorSaturation: Double.random(in: 0.5...1.0),
+            colorBrightness: Double.random(in: 0.6...1.0)
+        )
+    }
+    
+    /// Creates random DNA for a specific species
+    static func random(species: SpeciesType) -> BugDNA {
+        return BugDNA(
+            speed: Double.random(in: 0.5...1.5),
+            visionRadius: Double.random(in: 20...80),
+            energyEfficiency: Double.random(in: 0.7...1.3),
+            size: Double.random(in: 0.7...1.3),
+            strength: Double.random(in: 0.4...1.2),
+            memory: Double.random(in: 0.3...1.0),
+            stickiness: Double.random(in: 0.5...1.1),
+            camouflage: Double.random(in: 0.1...0.9),
+            aggression: Double.random(in: 0.2...0.8),
+            curiosity: Double.random(in: 0.3...0.8),
+            neuralDNA: NeuralDNA.random(),
+            speciesTraits: SpeciesTraits.forSpecies(species),
             colorHue: Double.random(in: 0...1),
             colorSaturation: Double.random(in: 0.5...1.0),
             colorBrightness: Double.random(in: 0.6...1.0)
@@ -169,6 +217,7 @@ struct BugDNA: Codable, Hashable {
             aggression: Bool.random() ? parent1.aggression : parent2.aggression,
             curiosity: Bool.random() ? parent1.curiosity : parent2.curiosity,
             neuralDNA: NeuralDNA.crossover(parent1.neuralDNA, parent2.neuralDNA),
+            speciesTraits: SpeciesTraits.crossover(parent1.speciesTraits, parent2.speciesTraits),
             colorHue: Bool.random() ? parent1.colorHue : parent2.colorHue,
             colorSaturation: Bool.random() ? parent1.colorSaturation : parent2.colorSaturation,
             colorBrightness: Bool.random() ? parent1.colorBrightness : parent2.colorBrightness
@@ -197,6 +246,7 @@ struct BugDNA: Codable, Hashable {
             aggression: mutate(aggression, range: 0.0...1.0),
             curiosity: mutate(curiosity, range: 0.0...1.0),
             neuralDNA: neuralDNA.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),
+            speciesTraits: speciesTraits.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),
             colorHue: mutate(colorHue, range: 0.0...1.0),
             colorSaturation: mutate(colorSaturation, range: 0.3...1.0),
             colorBrightness: mutate(colorBrightness, range: 0.4...1.0)

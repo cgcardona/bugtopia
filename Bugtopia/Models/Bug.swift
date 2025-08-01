@@ -33,8 +33,12 @@ class Bug: Identifiable, Hashable {
     // MARK: - Behavioral State
     
     var targetFood: CGPoint?
+    var targetPrey: Bug?
+    var predatorThreat: Bug?
     var lastMovementTime: TimeInterval
     var reproductionCooldown: Int
+    var huntingCooldown: Int
+    var fleeingCooldown: Int
     
     // MARK: - Constants
     
@@ -44,6 +48,8 @@ class Bug: Identifiable, Hashable {
     static let reproductionThreshold: Double = 70.0
     static let reproductionCost: Double = 20.0  // Reduced from 30 to encourage reproduction
     static let maxAge: Int = 1000
+    static let huntingCooldownTime: Int = 30     // Ticks between hunting attempts
+    static let fleeingCooldownTime: Int = 50     // Ticks to maintain flee state
     
     // MARK: - Computed Properties
     
@@ -68,6 +74,16 @@ class Bug: Identifiable, Hashable {
         return dna.size * 5.0
     }
     
+    /// Convenient access to hunting behavior
+    var huntingBehavior: HuntingBehavior? {
+        return dna.speciesTraits.huntingBehavior
+    }
+    
+    /// Convenient access to defensive behavior
+    var defensiveBehavior: DefensiveBehavior? {
+        return dna.speciesTraits.defensiveBehavior
+    }
+    
     // MARK: - Initialization
     
     init(dna: BugDNA, position: CGPoint, generation: Int = 0) {
@@ -80,6 +96,8 @@ class Bug: Identifiable, Hashable {
         self.neuralNetwork = NeuralNetwork(dna: dna.neuralDNA)
         self.lastMovementTime = 0
         self.reproductionCooldown = 0
+        self.huntingCooldown = 0
+        self.fleeingCooldown = 0
     }
     
     /// Creates a bug with random DNA at a random position
@@ -99,21 +117,33 @@ class Bug: Identifiable, Hashable {
         
         age += 1
         reproductionCooldown = max(0, reproductionCooldown - 1)
+        huntingCooldown = max(0, huntingCooldown - 1)
+        fleeingCooldown = max(0, fleeingCooldown - 1)
         
         // Get terrain modifiers for current position
         let modifiers = arena.movementModifiers(at: position, for: dna)
         
-        // Lose energy based on efficiency and terrain
-        let baseLoss = Self.energyLossPerTick * dna.energyEfficiency
+        // Lose energy based on efficiency, terrain, and species metabolic rate
+        let baseLoss = Self.energyLossPerTick * dna.energyEfficiency * dna.speciesTraits.metabolicRate
         let terrainLoss = baseLoss * modifiers.energyCost
         energy -= terrainLoss
         
         // Neural network decision making
         makeNeuralDecision(in: arena, foods: foods, otherBugs: otherBugs)
         
-        // Execute decisions
+        // Execute decisions based on species and neural outputs
+        updatePredatorPreyTargets(otherBugs: otherBugs)
         executeMovement(in: arena, modifiers: modifiers)
-        checkFoodConsumption(foods: foods)
+        
+        // Species-specific behaviors
+        if dna.speciesTraits.speciesType.canEatPlants {
+            checkFoodConsumption(foods: foods)
+        }
+        
+        if dna.speciesTraits.speciesType.canHunt {
+            handleHuntingBehavior(otherBugs: otherBugs)
+        }
+        
         handleBugInteractions(otherBugs: otherBugs)
         handleTerrainEffects(arena: arena)
         
@@ -135,8 +165,8 @@ class Bug: Identifiable, Hashable {
             // High exploration tendency means ignore current food and wander
             if decision.exploration > 0.7 {
                 targetFood = nil
-            } else {
-                // Use traditional food seeking when exploitation mode
+            } else if dna.speciesTraits.speciesType.canEatPlants {
+                // Use traditional food seeking when exploitation mode (for herbivores/omnivores)
                 updateTargetFood(foods: foods, arena: arena)
             }
         }
@@ -158,26 +188,54 @@ class Bug: Identifiable, Hashable {
             y: decision.moveY * terrainSpeed
         )
         
-        // Blend neural decision with traditional food seeking based on decision.exploration
-        let blendFactor = 1.0 - decision.exploration
+        // Behavioral priority system: fleeing > hunting > food seeking > exploration
+        var finalVelocity = neuralVelocity
         
-        if let target = targetFood, blendFactor > 0.3 {
-            // Traditional pathfinding when in exploitation mode
+        // 1. FLEEING - highest priority
+        if let threat = predatorThreat, decision.fleeing > 0.5 {
+            let fleeDirection = normalize(CGPoint(x: position.x - threat.position.x, y: position.y - threat.position.y))
+            let fleeSpeedMultiplier = dna.speciesTraits.defensiveBehavior?.fleeSpeedMultiplier ?? 1.3
+            let fleeVelocity = CGPoint(
+                x: fleeDirection.x * terrainSpeed * fleeSpeedMultiplier,
+                y: fleeDirection.y * terrainSpeed * fleeSpeedMultiplier
+            )
+            finalVelocity = fleeVelocity
+            
+            // Energy cost for fleeing
+            energy -= dna.speciesTraits.defensiveBehavior?.fleeEnergyCost ?? 1.5
+        }
+        // 2. HUNTING - second priority
+        else if let prey = targetPrey, decision.hunting > 0.5, dna.speciesTraits.speciesType.canHunt {
+            let huntDirection = normalize(CGPoint(x: prey.position.x - position.x, y: prey.position.y - position.y))
+            let chaseSpeedMultiplier = dna.speciesTraits.huntingBehavior?.chaseSpeedMultiplier ?? 1.2
+            let huntVelocity = CGPoint(
+                x: huntDirection.x * terrainSpeed * chaseSpeedMultiplier,
+                y: huntDirection.y * terrainSpeed * chaseSpeedMultiplier
+            )
+            
+            // Blend hunting direction with neural movement (70% hunting, 30% neural)
+            finalVelocity = CGPoint(
+                x: huntVelocity.x * 0.7 + neuralVelocity.x * 0.3,
+                y: huntVelocity.y * 0.7 + neuralVelocity.y * 0.3
+            )
+        }
+        // 3. FOOD SEEKING - third priority
+        else if let target = targetFood, decision.exploration < 0.7 {
             let direction = normalize(CGPoint(x: target.x - position.x, y: target.y - position.y))
-            let traditionalVelocity = CGPoint(
+            let foodVelocity = CGPoint(
                 x: direction.x * terrainSpeed,
                 y: direction.y * terrainSpeed
             )
             
-            // Blend neural and traditional movement
-            velocity = CGPoint(
-                x: neuralVelocity.x * (1 - blendFactor) + traditionalVelocity.x * blendFactor,
-                y: neuralVelocity.y * (1 - blendFactor) + traditionalVelocity.y * blendFactor
+            // Blend food seeking with neural movement (60% food, 40% neural)
+            finalVelocity = CGPoint(
+                x: foodVelocity.x * 0.6 + neuralVelocity.x * 0.4,
+                y: foodVelocity.y * 0.6 + neuralVelocity.y * 0.4
             )
-        } else {
-            // Pure neural control
-            velocity = neuralVelocity
         }
+        // 4. PURE NEURAL EXPLORATION - lowest priority
+        
+        velocity = finalVelocity
         
         // Calculate proposed new position
         let proposedPosition = CGPoint(
@@ -196,6 +254,97 @@ class Bug: Identifiable, Hashable {
         // Keep bug within arena bounds
         position.x = max(arena.bounds.minX, min(arena.bounds.maxX, position.x))
         position.y = max(arena.bounds.minY, min(arena.bounds.maxY, position.y))
+    }
+    
+    /// Updates predator and prey targets based on neural network decisions
+    private func updatePredatorPreyTargets(otherBugs: [Bug]) {
+        guard let decision = lastDecision else { return }
+        
+        // Clear old targets if neural network decides to stop hunting/fleeing
+        if decision.hunting < 0.3 {
+            targetPrey = nil
+        }
+        if decision.fleeing < 0.3 {
+            predatorThreat = nil
+        }
+        
+        // Update predator threat if fleeing behavior is high
+        if decision.fleeing > 0.6 {
+            let potentialPredators = otherBugs.filter { other in
+                other.id != self.id &&
+                other.dna.speciesTraits.speciesType.canHunt &&
+                other.dna.speciesTraits.speciesType != self.dna.speciesTraits.speciesType &&
+                distance(to: other.position) < (dna.speciesTraits.defensiveBehavior?.predatorDetection ?? 0.5) * 100
+            }
+            
+            predatorThreat = potentialPredators.min(by: { distance(to: $0.position) < distance(to: $1.position) })
+        }
+        
+        // Update prey target if hunting behavior is high and this bug can hunt
+        if decision.hunting > 0.6 && dna.speciesTraits.speciesType.canHunt {
+            let potentialPrey = otherBugs.filter { other in
+                other.id != self.id &&
+                other.dna.speciesTraits.speciesType != self.dna.speciesTraits.speciesType &&
+                distance(to: other.position) < (dna.speciesTraits.huntingBehavior?.preyDetectionRange ?? 50.0)
+            }
+            
+            targetPrey = potentialPrey.min(by: { distance(to: $0.position) < distance(to: $1.position) })
+        }
+    }
+    
+    /// Handles hunting behavior for carnivores and omnivores
+    private func handleHuntingBehavior(otherBugs: [Bug]) {
+        guard let huntingBehavior = dna.speciesTraits.huntingBehavior,
+              let decision = lastDecision,
+              huntingCooldown == 0,
+              decision.hunting > 0.5 else { return }
+        
+        // Find nearby prey
+        let nearbyPrey = otherBugs.filter { other in
+            other.id != self.id &&
+            other.isAlive &&
+            other.dna.speciesTraits.speciesType != self.dna.speciesTraits.speciesType &&
+            distance(to: other.position) < huntingBehavior.preyDetectionRange
+        }
+        
+        for prey in nearbyPrey {
+            let huntDistance = distance(to: prey.position)
+            
+            // Successful hunt if close enough and conditions are met
+            if huntDistance < visualRadius * 0.5 {
+                let huntSuccess = calculateHuntSuccess(prey: prey, huntingBehavior: huntingBehavior)
+                
+                if Double.random(in: 0...1) < huntSuccess {
+                    // Successful hunt!
+                    let energyGained = dna.speciesTraits.huntEnergyGain
+                    energy += energyGained
+                    
+                    // Prey loses significant energy or dies
+                    prey.energy -= energyGained * 0.8
+                    
+                    huntingCooldown = Self.huntingCooldownTime
+                    break
+                } else {
+                    // Failed hunt - energy cost
+                    energy -= huntingBehavior.huntingEnergyCost
+                    huntingCooldown = Self.huntingCooldownTime / 2
+                }
+            }
+        }
+    }
+    
+    /// Calculates hunting success probability
+    private func calculateHuntSuccess(prey: Bug, huntingBehavior: HuntingBehavior) -> Double {
+        let sizeAdvantage = (dna.size / prey.dna.size) * 0.3
+        let speedAdvantage = (dna.speed / prey.dna.speed) * 0.2
+        let stealthBonus = huntingBehavior.stealthLevel * 0.2
+        let preyDefense = prey.dna.speciesTraits.defensiveBehavior?.counterAttackSkill ?? 0.0
+        let preyCamouflage = prey.dna.camouflage * 0.15
+        
+        let baseSuccess = huntingBehavior.huntingIntensity * 0.4
+        let totalSuccess = baseSuccess + sizeAdvantage + speedAdvantage + stealthBonus - preyDefense - preyCamouflage
+        
+        return max(0.05, min(0.95, totalSuccess)) // Clamp between 5% and 95%
     }
     
     /// Finds and targets the nearest food within vision range, accounting for terrain
@@ -327,10 +476,13 @@ class Bug: Identifiable, Hashable {
     
     /// Checks if bug is close enough to consume food
     private func checkFoodConsumption(foods: [CGPoint]) {
-        guard let target = targetFood else { return }
+        guard let target = targetFood,
+              dna.speciesTraits.speciesType.canEatPlants else { return }
         
         if distance(to: target) < visualRadius {
-            energy += 25.0 // Increased from 15 to 25 for better sustainability
+            // Consume food based on species
+            let energyGain = dna.speciesTraits.plantEnergyGain
+            energy += energyGain
             targetFood = nil
         }
     }

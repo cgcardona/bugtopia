@@ -62,8 +62,8 @@ struct NeuralDNA: Codable, Hashable {
     
     // MARK: - Network Configuration
     
-    static let inputCount = 12  // Sensory inputs
-    static let outputCount = 6  // Motor outputs
+    static let inputCount = 16  // Sensory inputs (expanded for predator/prey)
+    static let outputCount = 8   // Motor outputs (expanded for hunting/fleeing)
     static let maxHiddenLayers = 3
     static let maxNeuronsPerLayer = 16
     
@@ -313,13 +313,47 @@ struct BugSensors {
             inputs.append(0.0)
         }
         
-        // Nearest bug distance (for social behavior)
-        if let nearestBug = otherBugs.filter({ $0.id != bug.id }).min(by: { bug.distance(to: $0.position) < bug.distance(to: $1.position) }) {
-            let distance = bug.distance(to: nearestBug.position)
+        // Predator detection (nearest predator)
+        let predators = otherBugs.filter { $0.id != bug.id && $0.dna.speciesTraits.speciesType.canHunt && $0.dna.speciesTraits.speciesType != bug.dna.speciesTraits.speciesType }
+        if let nearestPredator = predators.min(by: { bug.distance(to: $0.position) < bug.distance(to: $1.position) }) {
+            let distance = bug.distance(to: nearestPredator.position)
             let maxDistance = arena.bounds.width
             inputs.append(min(1.0, distance / maxDistance))
+            
+            // Predator direction (normalized)
+            let dx = (nearestPredator.position.x - bug.position.x) / maxDistance
+            let dy = (nearestPredator.position.y - bug.position.y) / maxDistance
+            inputs.append(max(-1.0, min(1.0, dx)))
+            inputs.append(max(-1.0, min(1.0, dy)))
         } else {
-            inputs.append(1.0) // No other bugs
+            inputs.append(1.0) // No predators
+            inputs.append(0.0)
+            inputs.append(0.0)
+        }
+        
+        // Prey detection (for carnivores/omnivores)
+        if bug.dna.speciesTraits.speciesType.canHunt {
+            let prey = otherBugs.filter { $0.id != bug.id && $0.dna.speciesTraits.speciesType != bug.dna.speciesTraits.speciesType }
+            if let nearestPrey = prey.min(by: { bug.distance(to: $0.position) < bug.distance(to: $1.position) }) {
+                let distance = bug.distance(to: nearestPrey.position)
+                let maxDistance = arena.bounds.width
+                inputs.append(min(1.0, distance / maxDistance))
+                
+                // Prey direction (normalized)
+                let dx = (nearestPrey.position.x - bug.position.x) / maxDistance
+                let dy = (nearestPrey.position.y - bug.position.y) / maxDistance
+                inputs.append(max(-1.0, min(1.0, dx)))
+                inputs.append(max(-1.0, min(1.0, dy)))
+            } else {
+                inputs.append(1.0) // No prey
+                inputs.append(0.0)
+                inputs.append(0.0)
+            }
+        } else {
+            // Herbivores don't hunt
+            inputs.append(1.0)
+            inputs.append(0.0)
+            inputs.append(0.0)
         }
         
         // Current velocity (normalized)
@@ -337,6 +371,8 @@ struct BugOutputs {
     let exploration: Double  // Exploration vs exploitation (0 to 1)
     let social: Double       // Social seeking behavior (0 to 1)
     let reproduction: Double // Reproduction seeking (0 to 1)
+    let hunting: Double      // Hunting behavior intensity (0 to 1)
+    let fleeing: Double      // Fleeing behavior intensity (0 to 1)
     
     init(from outputs: [Double]) {
         moveX = outputs.count > 0 ? max(-1.0, min(1.0, outputs[0])) : 0.0
@@ -345,6 +381,8 @@ struct BugOutputs {
         exploration = outputs.count > 3 ? max(0.0, min(1.0, outputs[3])) : 0.0
         social = outputs.count > 4 ? max(0.0, min(1.0, outputs[4])) : 0.0
         reproduction = outputs.count > 5 ? max(0.0, min(1.0, outputs[5])) : 0.0
+        hunting = outputs.count > 6 ? max(0.0, min(1.0, outputs[6])) : 0.0
+        fleeing = outputs.count > 7 ? max(0.0, min(1.0, outputs[7])) : 0.0
     }
 }
 
