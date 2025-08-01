@@ -21,6 +21,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **🧬 Advanced Genetics**: 20+ evolvable traits including AI, tools, communication, and species behaviors
 - **🧬 Population Speciation**: Automatic species formation through reproductive isolation and genetic divergence
 - **🌦️ Dynamic Weather & Seasons**: Four seasons plus 6 weather types with real-time environmental effects and survival challenges
+- **🌋 Natural Disasters**: 4 catastrophic events (Floods, Earthquakes, Wildfires, Volcanic) that reshape terrain and drive evolutionary pressure
 - **🤖 Emergent Intelligence**: Neural decision-making for movement, hunting, fleeing, building, and social interactions
 - **📊 Real-time Evolution**: Watch genetics, neural architecture, and population dynamics evolve simultaneously
 - **🎨 Beautiful Visualization**: Animated terrain, construction sites, tools, neural networks, and seasonal progress
@@ -76,6 +77,16 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Neural Weather Awareness**: 14 new neural inputs (8 seasonal + 6 weather) for environmental decision-making  
 - **Visual Weather Effects**: Animated rain, snow, fog overlays with lightning during storms
 - **Beautiful Progress Tracking**: Live seasonal and weather progress bars with survival advice
+
+### 🌋 Natural Disasters & Catastrophic Events
+- **Four Disaster Types**: Floods 🌊, Earthquakes ⚡, Wildfires 🔥, Volcanic Eruptions 🌋
+- **Smart Spawning**: Season and weather-influenced disaster probabilities with realistic triggers
+- **Terrain Reshaping**: Permanent changes to world layout, accessibility, and resource distribution
+- **Survival Mechanics**: Bug displacement, resource destruction, population pressure, habitat fragmentation
+- **Neural Disaster Awareness**: 6 new disaster inputs (40 total) help bugs sense and flee catastrophes
+- **Visual Disaster Effects**: Fire spreading, earthquake shaking, flood overlays, volcanic ash clouds
+- **Evolutionary Pressure**: Mass casualties drive rapid selection for disaster-resistant traits
+- **Migration Triggers**: Catastrophes force population movement and territorial redistribution
 
 ### 🧬 Advanced Genetic System
 - **Core Traits**: Speed, Vision, Energy Efficiency, Size, Strength
@@ -247,7 +258,7 @@ struct BugDNA {
 
 ## 🗺️ Roadmap
 
-### ✅ COMPLETED: Phase 1-6.2
+### ✅ COMPLETED: Phase 1-6.3
 - [x] **Evolvable Neural Networks**: Deep AI brains (3-10 layers) with structural evolution
 - [x] **Predator-Prey Ecosystem**: Four species with hunting/defensive behaviors
 - [x] **Advanced Genetics**: Neural + behavioral + physical trait evolution
@@ -256,10 +267,11 @@ struct BugDNA {
 - [x] **Speciation Events**: Population splitting, reproductive isolation, and dynamic species formation
 - [x] **🌦️ Seasonal System**: Dynamic four-season cycle with environmental effects and neural awareness
 - [x] **⛈️ Weather Patterns**: Six weather types with animated effects, survival challenges, and AI adaptation
+- [x] **🌋 Natural Disasters**: Floods, earthquakes, wildfires, volcanic eruptions reshaping terrain and driving evolution
 
-### 🚀 NEXT: Phase 6.3-7 (Current Development)
-- [ ] **🌋 Natural Disasters**: Floods, earthquakes, fires that reshape terrain and population dynamics
+### 🚀 NEXT: Phase 6.4-7 (Current Development)
 - [ ] **🔄 Environmental Cycles**: Resource depletion, regeneration, and long-term ecosystem changes
+- [ ] **🌍 Migration Patterns**: Seasonal migration, territorial behaviors, and habitat selection
 - [ ] **🏛️ Civilization**: Cultural knowledge, technology, and multi-generational progress
 
 ### 🌟 Future Expansions
