@@ -247,11 +247,11 @@ class Arena {
             return .hill
         } else {
             // Island interiors
-            if noise < 0.08 { return .hill }
-            if noise < 0.12 { return .food }
-            if noise < 0.14 { return .shadow }
-            if noise < 0.16 { return .predator }
-            if noise < 0.17 { return .wall }
+            if noise < 0.15 { return .hill }
+            if noise < 0.25 { return .food }
+            if noise < 0.32 { return .shadow }
+            if noise < 0.37 { return .predator }
+            if noise < 0.42 { return .wall }
             return .open
         }
     }
@@ -262,20 +262,22 @@ class Arena {
         
         if valleyNoise < 0.2 {
             // Valley floors
-            if noise < 0.1 { return .water }     // Creek beds
-            if noise < 0.15 { return .food }     // Valley vegetation
+            if noise < 0.15 { return .water }     // Creek beds
+            if noise < 0.35 { return .food }      // Valley vegetation
+            if noise < 0.45 { return .shadow }    // Shaded areas
             return .open
         } else if valleyNoise < 0.4 {
             // Slopes
-            if noise < 0.3 { return .hill }
-            if noise < 0.35 { return .shadow }
+            if noise < 0.45 { return .hill }
+            if noise < 0.55 { return .shadow }
+            if noise < 0.60 { return .wind }      // Exposed slopes
             return .open
         } else {
             // Mesa tops and cliff faces
-            if noise < 0.4 { return .wall }      // Cliff faces
-            if noise < 0.5 { return .hill }      // Mesa tops
-            if noise < 0.55 { return .wind }     // Exposed areas
-            if noise < 0.57 { return .predator } // Dangerous cliffs
+            if noise < 0.50 { return .wall }      // Cliff faces
+            if noise < 0.70 { return .hill }      // Mesa tops
+            if noise < 0.80 { return .wind }      // Exposed areas
+            if noise < 0.85 { return .predator }  // Dangerous cliffs
             return .open
         }
     }
@@ -315,14 +317,14 @@ class Arena {
     
     /// Plains world: open areas with scattered features
     private func generatePlains(noise: Double) -> TerrainType {
-        if noise < 0.03 { return .water }        // Occasional ponds
-        if noise < 0.05 { return .hill }         // Gentle hills
-        if noise < 0.08 { return .food }         // Fertile patches
-        if noise < 0.09 { return .shadow }       // Tree groves
-        if noise < 0.1 { return .predator }      // Dangerous areas
-        if noise < 0.11 { return .wall }         // Rocky outcrops
-        if noise < 0.12 { return .wind }         // Windy areas
-        return .open                             // Mostly open plains
+        if noise < 0.05 { return .water }        // Occasional ponds
+        if noise < 0.12 { return .hill }         // Gentle hills
+        if noise < 0.20 { return .food }         // Fertile patches
+        if noise < 0.25 { return .shadow }       // Tree groves
+        if noise < 0.28 { return .predator }     // Dangerous areas
+        if noise < 0.33 { return .wall }         // Rocky outcrops
+        if noise < 0.38 { return .wind }         // Windy areas
+        return .open                             // Open plains (now 62% instead of 88%)
     }
     
     /// Maze world: complex wall systems
@@ -336,12 +338,12 @@ class Arena {
         }
         
         // Features in open areas
-        if noise < 0.05 { return .food }
-        if noise < 0.08 { return .predator }
-        if noise < 0.1 { return .shadow }
-        if noise < 0.11 { return .water }
-        if noise < 0.12 { return .hill }
-        if noise < 0.13 { return .wind }
+        if noise < 0.12 { return .food }
+        if noise < 0.20 { return .predator }
+        if noise < 0.28 { return .shadow }
+        if noise < 0.33 { return .water }
+        if noise < 0.40 { return .hill }
+        if noise < 0.45 { return .wind }
         return .open
     }
     
@@ -368,8 +370,8 @@ class Arena {
             // Use variable radius for more organic clearing
             let actualRadius = Int.random(in: 1...spawnRadius)
             
-            for row in max(1, centerRow - actualRadius)...min(gridHeight - 2, centerRow + actualRadius) {
-                for col in max(1, centerCol - actualRadius)...min(gridWidth - 2, centerCol + actualRadius) {
+            for row in max(0, centerRow - actualRadius)...min(gridHeight - 1, centerRow + actualRadius) {
+                for col in max(0, centerCol - actualRadius)...min(gridWidth - 1, centerCol + actualRadius) {
                     // Clear to open terrain, but occasionally leave some features
                     if Double.random(in: 0...1) < 0.8 { // 80% chance to clear
                         let position = tiles[row][col].position
