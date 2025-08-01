@@ -22,6 +22,7 @@ class SimulationEngine {
     var tools: [Tool] = []         // Constructed tools in the world
     var resources: [Resource] = [] // Resource nodes for gathering
     var blueprints: [ToolBlueprint] = [] // Construction projects in progress
+    var speciationManager = SpeciationManager() // Population and speciation tracking
     var isRunning = false
     var currentGeneration = 0
     var tickCount = 0
@@ -86,6 +87,7 @@ class SimulationEngine {
         tools.removeAll()
         resources.removeAll()
         blueprints.removeAll()
+        speciationManager = SpeciationManager() // Reset speciation tracking
         currentGeneration = 0
         tickCount = 0
         statistics = SimulationStatistics()
@@ -136,6 +138,9 @@ class SimulationEngine {
         // Remove consumed food
         removeConsumedFood()
         
+        // Update populations and speciation
+        speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: arena)
+        
         // Update statistics
         updateStatistics()
         
@@ -160,7 +165,7 @@ class SimulationEngine {
         }
     }
     
-    /// Handles bug reproduction
+    /// Handles reproduction between compatible bugs with speciation constraints
     private func handleReproduction() {
         let reproducableBugs = bugs.filter { $0.canReproduce }
         var newBugs: [Bug] = []
@@ -168,13 +173,21 @@ class SimulationEngine {
         for i in 0..<reproducableBugs.count {
             let bug1 = reproducableBugs[i]
             
-            // Find nearby compatible partner
-            for j in (i+1)..<reproducableBugs.count {
-                let bug2 = reproducableBugs[j]
-                
-                if let offspring = bug1.reproduce(with: bug2) {
+            // Find nearby compatible partners
+            let nearbyPartners = reproducableBugs[(i+1)...].filter { bug2 in
+                bug1.distance(to: bug2.position) < 50.0
+            }
+            
+            // Filter partners by reproductive compatibility
+            let compatiblePartners = nearbyPartners.filter { bug2 in
+                let compatibility = speciationManager.getReproductiveCompatibility(bug1: bug1, bug2: bug2)
+                return compatibility > 0.3 // Minimum compatibility threshold
+            }
+            
+            // Choose partner based on compatibility (higher compatibility = higher chance)
+            if let partner = selectMateByCompatibility(compatiblePartners, for: bug1) {
+                if let offspring = bug1.reproduce(with: partner) {
                     newBugs.append(offspring)
-                    break // One reproduction per bug per tick
                 }
             }
         }
@@ -182,6 +195,32 @@ class SimulationEngine {
         // Add new bugs if population allows
         let newBugsToAdd = min(newBugs.count, maxPopulation - bugs.count)
         bugs.append(contentsOf: Array(newBugs.prefix(newBugsToAdd)))
+    }
+    
+    /// Select a mate based on reproductive compatibility
+    private func selectMateByCompatibility(_ candidates: [Bug], for bug: Bug) -> Bug? {
+        guard !candidates.isEmpty else { return nil }
+        
+        // Calculate compatibility scores
+        let compatibilityScores = candidates.map { mate in
+            speciationManager.getReproductiveCompatibility(bug1: bug, bug2: mate)
+        }
+        
+        // Weighted random selection based on compatibility
+        let totalCompatibility = compatibilityScores.reduce(0, +)
+        guard totalCompatibility > 0 else { return candidates.randomElement() }
+        
+        let randomValue = Double.random(in: 0...totalCompatibility)
+        var runningSum = 0.0
+        
+        for (index, compatibility) in compatibilityScores.enumerated() {
+            runningSum += compatibility
+            if randomValue <= runningSum {
+                return candidates[index]
+            }
+        }
+        
+        return candidates.last
     }
     
     /// Repopulates from survivors when population gets too low

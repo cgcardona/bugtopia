@@ -15,11 +15,13 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 
 - **🧠 Evolvable Neural Networks**: Bugs grow deeper, more complex brains (3-10 layers) through structural evolution
 - **🦁 Predator-Prey Dynamics**: Four species types (herbivores, carnivores, omnivores, scavengers) in dynamic food webs
-- **🧬 Advanced Genetics**: 10+ evolvable traits including AI parameters, hunting behaviors, and defensive strategies
-- **🌍 Environmental Pressure**: 8 distinct terrain types each requiring different survival strategies  
-- **🤖 Emergent Intelligence**: Neural decision-making for movement, hunting, fleeing, and social interactions
-- **📊 Real-time Evolution**: Watch both genetics AND neural architecture evolve simultaneously
-- **🎨 Beautiful Visualization**: Animated terrain, species indicators, neural network displays, and hunting behaviors
+- **🔧 Environmental Engineering**: Bugs create tools, modify terrain, and build infrastructure to solve problems
+- **🌍 Organic World Generation**: 7 unique world types with natural terrain patterns - no artificial borders
+- **🗣️ Social Intelligence**: Signal-based communication, pack hunting, and cooperative construction
+- **🧬 Advanced Genetics**: 20+ evolvable traits including AI, tools, communication, and species behaviors
+- **🤖 Emergent Intelligence**: Neural decision-making for movement, hunting, fleeing, building, and social interactions
+- **📊 Real-time Evolution**: Watch genetics, neural architecture, and technology evolve simultaneously
+- **🎨 Beautiful Visualization**: Animated terrain, construction sites, tools, neural networks, and social behaviors
 
 ## 🎮 Features
 
@@ -42,14 +44,28 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Social Intelligence**: Neural-driven communication decisions and cooperation strategies
 - **Information Networks**: Knowledge sharing about food sources, threats, and territories
 
+### 🔧 Environmental Modification & Tool Use
+- **8 Tool Types**: Bridges, tunnels, shelters, traps, markers, levers, ramps, nests
+- **Resource Economy**: 5 resource types with weight-based carrying and regeneration
+- **Construction Intelligence**: Environmental analysis, multi-stage building, cooperative projects
+- **Engineering Evolution**: 8 evolvable tool traits including crafting, proficiency, and collaboration
+- **Infrastructure Networks**: Tools persist across generations, creating technological heritage
+
+### 🌍 Organic World Generation
+- **7 World Types**: Continental, Archipelago, Canyon, Wetlands, Volcanic, Plains, Maze
+- **Natural Boundaries**: No forced edge walls - terrain flows organically to boundaries
+- **Spatial Correlation**: Multi-octave noise creates realistic terrain clustering
+- **Unique Experiences**: Different world type selected each app launch for variety
+
 ### 🧬 Advanced Genetic System
 - **Core Traits**: Speed, Vision, Energy Efficiency, Size, Strength
 - **Neural Traits**: Network topology, weights, biases, activation functions  
 - **Behavioral Traits**: Memory, Stickiness, Camouflage, Curiosity, Aggression
 - **Communication Traits**: Signal strength, sensitivity, frequency, trust, social response
+- **Tool Traits**: Crafting, proficiency, vision, construction drive, carrying capacity, resource gathering
 - **Species Traits**: Hunting/defensive behaviors, metabolic rates, size modifiers
 - **Genetic Operations**: Crossover, mutation, structural evolution, selection pressure
-- **Multi-Modal Fitness**: Survival, reproduction, terrain adaptation, predator success, social cooperation
+- **Multi-Modal Fitness**: Survival, reproduction, terrain adaptation, predator success, social cooperation, tool use
 
 ### 🌍 Environmental Arena
 | Terrain | Challenge | Adaptation Required |
@@ -64,15 +80,17 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 | ⬛ **Open** | Normal terrain | Baseline traits |
 
 ### 🎯 Emergent AI Behaviors
-- **Neural Decision Making**: AI-driven movement, hunting, and fleeing decisions
+- **Neural Decision Making**: AI-driven movement, hunting, fleeing, and construction decisions
+- **Environmental Engineering**: Analyzing terrain to decide optimal tool placement and construction
+- **Resource Management**: Strategic gathering, storage, and allocation for construction projects
+- **Cooperative Construction**: Multi-bug collaboration on large-scale building projects
+- **Infrastructure Planning**: Creating transportation networks and settlement optimization
+- **Tool Innovation**: Developing new construction techniques and tool usage strategies
 - **Predator-Prey Dynamics**: Stalking, ambushing, pack hunting, and escape strategies
 - **Communication Networks**: Signal-based information sharing about food, danger, and opportunities
-- **Cooperative Strategies**: Group formation, coordinated hunting, collective defense
-- **Social Hierarchies**: Leadership roles, specialization (scouts, guards, foragers, hunters)
-- **Intelligent Food Seeking**: Line-of-sight vision with wall detection and neural exploration
-- **Obstacle Navigation**: Memory-based pathfinding around barriers with AI route optimization
-- **Terrain Adaptation**: Dynamic speed/energy modifiers with species-specific advantages
-- **Trust & Deception**: Evolving trust levels and potential for misinformation
+- **Social Hierarchies**: Leadership roles, specialization (scouts, guards, foragers, hunters, builders)
+- **Terrain Adaptation**: Dynamic speed/energy modifiers with species-specific advantages and tool assistance
+- **Technology Heritage**: Maintaining and improving tools across generations
 - **Adaptive Learning**: Neural networks develop specialized strategies over generations
 
 ### 📊 Advanced Analytics
@@ -119,26 +137,28 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 
 ```
 🧬 Bugtopia Architecture
-├── 🌍 Arena System          # Terrain generation and physics
+├── 🌍 Arena System          # Organic world generation and terrain physics
 ├── 🧠 AI Engine             # Neural networks and decision making
 ├── 🗣️ Communication System  # Signal propagation and social behaviors
 ├── 🦁 Species System        # Predator-prey dynamics and behaviors
+├── 🔧 Tool System           # Construction, resources, and environmental modification
 ├── 🧬 Genetic Engine        # DNA, traits, and evolution
-├── 🐛 Bug Entities          # Individual organism AI and physics
+├── 🐛 Bug Entities          # Individual organism AI, physics, and construction
 ├── 🔄 Simulation Engine     # Population management and evolutionary cycles
-└── 🎨 Visualization Layer   # SwiftUI + Canvas rendering
+└── 🎨 Visualization Layer   # SwiftUI + Canvas rendering with construction sites
 ```
 
 ### Core Components
 
-- **`Arena`**: Tile-based terrain system with procedural generation
+- **`Arena`**: Organic world generation with 7 world types and spatial correlation
 - **`NeuralNetwork`**: Evolvable AI brains with structural mutations
 - **`Communication`**: Signal system with 8 types and propagation physics
 - **`Species`**: Predator-prey types with hunting/defensive behaviors
-- **`BugDNA`**: Genetic blueprint with 15+ traits + neural + communication architecture
-- **`Bug`**: Individual organism with AI decision-making, species behaviors, and social communication
-- **`SimulationEngine`**: Population dynamics, evolution, ecosystem management, and signal distribution
-- **`SimulationView`**: Real-time rendering with neural network visualization and communication indicators
+- **`Tools`**: Construction system with 8 tool types, resources, and blueprints
+- **`BugDNA`**: Genetic blueprint with 20+ traits including neural, communication, and tool genetics
+- **`Bug`**: Individual organism with AI decision-making, construction abilities, and social communication
+- **`SimulationEngine`**: Population dynamics, evolution, ecosystem management, construction, and resource economy
+- **`SimulationView`**: Real-time rendering with neural networks, construction sites, tools, and resource visualization
 
 ## 🧪 The Science
 
@@ -206,14 +226,14 @@ struct BugDNA {
 
 ## 🗺️ Roadmap
 
-### ✅ COMPLETED: Phase 1, 2 & 3
+### ✅ COMPLETED: Phase 1, 2, 3 & 4
 - [x] **Evolvable Neural Networks**: Deep AI brains (3-10 layers) with structural evolution
 - [x] **Predator-Prey Ecosystem**: Four species with hunting/defensive behaviors
 - [x] **Advanced Genetics**: Neural + behavioral + physical trait evolution
 - [x] **Communication & Cooperation**: Signal-based pack hunting, group formation, and social intelligence
+- [x] **Environmental Modification & Tool Use**: Construction system with 8 tool types and resource economy
 
-### 🚀 NEXT: Phase 4-7 (Current Development)
-- [ ] **🔧 Environmental Modification**: Tool creation and world-shaping abilities
+### 🚀 NEXT: Phase 5-7 (Current Development)
 - [ ] **🧬 Speciation Events**: Population splitting and reproductive isolation
 - [ ] **🌦️ Dynamic World**: Seasonal changes, disasters, and environmental cycles
 - [ ] **🏛️ Civilization**: Cultural knowledge, technology, and multi-generational progress
