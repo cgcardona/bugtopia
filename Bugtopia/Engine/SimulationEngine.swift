@@ -486,7 +486,7 @@ class SimulationEngine {
         // Complete finished projects
         for project in completedProjects {
             completeConstruction(project)
-            blueprints.removeAll { $0.id == project.builderId && $0.position == project.position }
+            blueprints.removeAll { $0.builderId == project.builderId && $0.position == project.position }
         }
     }
     
