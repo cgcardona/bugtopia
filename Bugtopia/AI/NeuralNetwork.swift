@@ -62,7 +62,7 @@ struct NeuralDNA: Codable, Hashable {
     
     // MARK: - Network Configuration
     
-    static let inputCount = 40  // 28 base + 6 weather + 6 disaster inputs  // Sensory inputs (expanded for predator/prey + edge detection + seasonal + weather + disaster awareness)
+    static let inputCount = 46  // 28 base + 6 weather + 6 disaster + 6 ecosystem inputs  // Sensory inputs (expanded for predator/prey + edge detection + seasonal + weather + disaster awareness)
     static let outputCount = 8   // Motor outputs (expanded for hunting/fleeing)
     static let maxHiddenLayers = 8    // Allow much deeper networks (up to 10 total layers!)
     static let maxNeuronsPerLayer = 32 // Allow wider networks for complex processing
@@ -319,7 +319,8 @@ struct BugSensors {
         otherBugs: [Bug],
         seasonalManager: SeasonalManager,
         weatherManager: WeatherManager,
-        disasterManager: DisasterManager
+        disasterManager: DisasterManager,
+        ecosystemManager: EcosystemManager
     ) -> [Double] {
         
         var inputs: [Double] = []
@@ -435,10 +436,14 @@ struct BugSensors {
         let weatherInputs = weatherManager.weatherInputs
         inputs.append(contentsOf: weatherInputs)
         
-        // Disaster awareness (6 inputs)
+                // Disaster awareness (6 inputs)
         let disasterInputs = disasterManager.disasterInputs
         inputs.append(contentsOf: disasterInputs)
         
+        // Ecosystem awareness (6 inputs)
+        let ecosystemInputs = ecosystemManager.ecosystemInputs
+        inputs.append(contentsOf: ecosystemInputs)
+
         return inputs
     }
 }

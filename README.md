@@ -275,6 +275,8 @@ struct BugDNA {
 - [ ] **🏛️ Civilization**: Cultural knowledge, technology, and multi-generational progress
 
 ### 🌟 Future Expansions
+- [ ] **🧠 Neural Energy Economics**: Energy-based neural maintenance costs with intelligence vs efficiency trade-offs
+- [ ] **🔬 Adaptive Brain Scaling**: Dynamic neural complexity based on environmental demands and resource availability
 - [ ] **3D Arena**: True 3D terrain with flight and underwater capabilities
 - [ ] **Quantum Behaviors**: Quantum-inspired neural network architectures
 - [ ] **Multiplayer Evolution**: Compete isolated populations across different worlds

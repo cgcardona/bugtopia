@@ -156,7 +156,7 @@ class Bug: Identifiable, Hashable {
     // MARK: - Simulation Updates
     
     /// Updates the bug's state for one simulation tick using neural network decisions
-    func update(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager, weatherManager: WeatherManager, disasterManager: DisasterManager) {
+    func update(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager, weatherManager: WeatherManager, disasterManager: DisasterManager, ecosystemManager: EcosystemManager) {
         guard isAlive else { return }
         
         age += 1
@@ -210,7 +210,7 @@ class Bug: Identifiable, Hashable {
         }
         
         // Neural network decision making (with timeout protection, including seasonal, weather, and disaster awareness)
-        makeNeuralDecision(in: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
+        makeNeuralDecision(in: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager, ecosystemManager: ecosystemManager)
         
         // Execute decisions based on species and neural outputs
         updatePredatorPreyTargets(otherBugs: otherBugs)
@@ -244,9 +244,9 @@ class Bug: Identifiable, Hashable {
     }
     
     /// Uses neural network to make behavioral decisions
-    private func makeNeuralDecision(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager, weatherManager: WeatherManager, disasterManager: DisasterManager) {
+    private func makeNeuralDecision(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager, weatherManager: WeatherManager, disasterManager: DisasterManager, ecosystemManager: EcosystemManager) {
         // Create sensory inputs for neural network (including seasonal, weather, and disaster awareness)
-        let inputs = BugSensors.createInputs(bug: self, arena: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
+        let inputs = BugSensors.createInputs(bug: self, arena: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager, ecosystemManager: ecosystemManager)
         
         // Get neural network outputs
         let rawOutputs = neuralNetwork.predict(inputs: inputs)

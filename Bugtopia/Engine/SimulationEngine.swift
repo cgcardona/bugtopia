@@ -26,6 +26,7 @@ class SimulationEngine {
     var seasonalManager = SeasonalManager()     // Dynamic seasonal system
     var weatherManager = WeatherManager()       // Dynamic weather patterns
     var disasterManager = DisasterManager()     // Natural disasters and terrain reshaping
+    var ecosystemManager = EcosystemManager()   // Resource depletion and ecosystem cycles
     var isRunning = false
     var currentGeneration = 0
     var tickCount = 0
@@ -95,6 +96,8 @@ class SimulationEngine {
         weatherManager.reset() // Reset weather patterns
         disasterManager.reset() // Reset disaster system
         disasterManager.setWorldBounds(arena.bounds) // Set disaster spawn area
+        ecosystemManager.reset() // Reset ecosystem state
+        ecosystemManager.initializeResourceZones(from: arena) // Initialize resource tracking
         currentGeneration = 0
         tickCount = 0
         statistics = SimulationStatistics()
@@ -113,7 +116,7 @@ class SimulationEngine {
         // Update all bugs with arena awareness and communication
         var newSignals: [Signal] = []
         for bug in bugs {
-            bug.update(in: arena, foods: foods, otherBugs: bugs, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
+            bug.update(in: arena, foods: foods, otherBugs: bugs, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager, ecosystemManager: ecosystemManager)
             
             // Let bug generate signals
             if let signal = bug.generateSignals(in: arena, foods: foods, otherBugs: bugs) {
@@ -153,6 +156,14 @@ class SimulationEngine {
         
         // Update natural disasters
         disasterManager.update(seasonalManager: seasonalManager, weatherManager: weatherManager)
+        
+        // Update ecosystem dynamics and resource health
+        ecosystemManager.update(
+            bugs: bugs,
+            foods: foods,
+            generationCount: currentGeneration,
+            deltaTime: tickInterval
+        )
         
         // Update populations and speciation
         speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: arena)
@@ -432,10 +443,12 @@ class SimulationEngine {
     private func spawnFood() {
         let seasonalFoodSpawnRate = seasonalManager.adjustedFoodSpawnRate(baseRate: baseFoodSpawnRate)
         let weatherAdjustedSpawnRate = seasonalFoodSpawnRate * weatherManager.currentEffects.foodSpawnRateModifier
+        // Ecosystem-adjusted spawn rate (resource depletion affects food availability)
+        let finalFoodSpawnRate = weatherAdjustedSpawnRate * ecosystemManager.foodSpawnModifier
         // Cap seasonal max to prevent oversaturation - seasons affect spawn rate, not total capacity
         let seasonalMaxFood = maxFoodItems  // Use base limit, let spawn rate handle seasonal effects
         
-        if foods.count < seasonalMaxFood && Double.random(in: 0...1) < weatherAdjustedSpawnRate {
+        if foods.count < seasonalMaxFood && Double.random(in: 0...1) < finalFoodSpawnRate {
             // Prevent food oversaturation in food zones - bias toward distributed spawning
             let foodZoneChance = min(0.3, 1.0 - (Double(foods.count) / Double(seasonalMaxFood))) // Reduce food zone chance as food increases
             

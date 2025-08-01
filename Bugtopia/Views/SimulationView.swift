@@ -103,7 +103,9 @@ struct SimulationView: View {
                     .foregroundColor(.secondary)
                 
                 // Disaster indicator
-                DisasterIndicator(disasterManager: simulationEngine.disasterManager)
+                                    DisasterIndicator(disasterManager: simulationEngine.disasterManager)
+                    
+                    EcosystemIndicator(ecosystemManager: simulationEngine.ecosystemManager)
             }
             
             Divider()
@@ -189,8 +191,11 @@ struct SimulationView: View {
                                             // Weather overlay effects
                                 WeatherOverlay(weatherManager: simulationEngine.weatherManager, canvasSize: geometry.size)
                                 
-                                // Disaster overlay effects
-                                DisasterOverlay(disasterManager: simulationEngine.disasterManager, canvasSize: geometry.size)
+                                                // Disaster overlay effects
+                DisasterOverlay(disasterManager: simulationEngine.disasterManager, canvasSize: geometry.size)
+                
+                // Ecosystem overlay effects
+                EcosystemOverlay(ecosystemManager: simulationEngine.ecosystemManager, canvasSize: geometry.size)
         }
         }
     }
@@ -708,6 +713,12 @@ struct SimulationView: View {
                         
                         // Disaster Information
                         DisasterStatusView(disasterManager: simulationEngine.disasterManager)
+                            .padding(.top, 8)
+                        
+                        Divider()
+                        
+                        // Ecosystem Health Information
+                        EcosystemStatusView(ecosystemManager: simulationEngine.ecosystemManager)
                             .padding(.top, 8)
                 }
                 
