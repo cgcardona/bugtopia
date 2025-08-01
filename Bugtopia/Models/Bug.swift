@@ -57,6 +57,10 @@ class Bug: Identifiable, Hashable {
     var lastToolUse: TimeInterval = 0                // When last used a tool
     var knownTools: Set<UUID> = []                   // Tools this bug is aware of
     
+    // MARK: - Internal State Cache
+    
+    private var cachedCanReproduce: Bool = false     // Cached reproduction status for internal use
+    
     // MARK: - Constants
     
     static let maxEnergy: Double = 100.0
@@ -77,9 +81,11 @@ class Bug: Identifiable, Hashable {
         return energy > 0 && age < Self.maxAge
     }
     
-    /// Whether the bug can reproduce
-    var canReproduce: Bool {
-        return energy >= Self.reproductionThreshold && reproductionCooldown <= 0 && age > 30 // Reduced age requirement
+    /// Whether the bug can reproduce (season-aware)
+    func canReproduce(seasonalManager: SeasonalManager) -> Bool {
+        let baseThreshold = 55.0
+        let seasonalThreshold = seasonalManager.adjustedReproductionThreshold(baseThreshold: baseThreshold)
+        return energy >= seasonalThreshold && reproductionCooldown <= 0 && age > 30
     }
     
     /// Current movement speed based on DNA and energy
@@ -150,7 +156,7 @@ class Bug: Identifiable, Hashable {
     // MARK: - Simulation Updates
     
     /// Updates the bug's state for one simulation tick using neural network decisions
-    func update(in arena: Arena, foods: [CGPoint], otherBugs: [Bug]) {
+    func update(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager) {
         guard isAlive else { return }
         
         age += 1
@@ -163,13 +169,17 @@ class Bug: Identifiable, Hashable {
         // Clear consumed food marker from previous tick
         consumedFood = nil
         
+        // Update cached reproduction status for internal use
+        cachedCanReproduce = canReproduce(seasonalManager: seasonalManager)
+        
         // Get terrain modifiers for current position
         let modifiers = arena.movementModifiers(at: position, for: dna)
         
-        // Lose energy based on efficiency, terrain, and species metabolic rate
+        // Lose energy based on efficiency, terrain, species metabolic rate, and season
         let baseLoss = Self.energyLossPerTick * dna.energyEfficiency * dna.speciesTraits.metabolicRate
         let terrainLoss = baseLoss * modifiers.energyCost
-        energy -= terrainLoss
+        let seasonalLoss = seasonalManager.adjustedEnergyDrain(baseDrain: terrainLoss)
+        energy -= seasonalLoss
         
         // Performance optimization: Skip complex behaviors for very young bugs
         if age < 10 {
@@ -186,12 +196,12 @@ class Bug: Identifiable, Hashable {
             return
         }
         
-        // Neural network decision making (with timeout protection)
-        makeNeuralDecision(in: arena, foods: foods, otherBugs: otherBugs)
+        // Neural network decision making (with timeout protection, including seasonal awareness)
+        makeNeuralDecision(in: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager)
         
         // Execute decisions based on species and neural outputs
         updatePredatorPreyTargets(otherBugs: otherBugs)
-        executeMovement(in: arena, modifiers: modifiers)
+        executeMovement(in: arena, modifiers: modifiers, seasonalManager: seasonalManager)
         
         // Species-specific behaviors
         if dna.speciesTraits.speciesType.canEatPlants {
@@ -221,9 +231,9 @@ class Bug: Identifiable, Hashable {
     }
     
     /// Uses neural network to make behavioral decisions
-    private func makeNeuralDecision(in arena: Arena, foods: [CGPoint], otherBugs: [Bug]) {
-        // Create sensory inputs for neural network
-        let inputs = BugSensors.createInputs(bug: self, arena: arena, foods: foods, otherBugs: otherBugs)
+    private func makeNeuralDecision(in arena: Arena, foods: [CGPoint], otherBugs: [Bug], seasonalManager: SeasonalManager) {
+        // Create sensory inputs for neural network (including seasonal awareness)
+        let inputs = BugSensors.createInputs(bug: self, arena: arena, foods: foods, otherBugs: otherBugs, seasonalManager: seasonalManager)
         
         // Get neural network outputs
         let rawOutputs = neuralNetwork.predict(inputs: inputs)
@@ -242,14 +252,16 @@ class Bug: Identifiable, Hashable {
     }
     
     /// Executes movement based on neural network decision
-    private func executeMovement(in arena: Arena, modifiers: (speed: Double, vision: Double, energyCost: Double)) {
+    private func executeMovement(in arena: Arena, modifiers: (speed: Double, vision: Double, energyCost: Double), seasonalManager: SeasonalManager) {
         guard let decision = lastDecision else {
             // Fallback to random movement if no decision
             velocity = CGPoint(x: Double.random(in: -1...1), y: Double.random(in: -1...1))
             return
         }
         
-        let terrainSpeed = currentSpeed * modifiers.speed
+        // Apply terrain and seasonal speed modifiers
+        let baseSpeed = seasonalManager.adjustedMovementSpeed(baseSpeed: currentSpeed)
+        let terrainSpeed = baseSpeed * modifiers.speed
         
         // Neural network controls movement direction
         let neuralVelocity = CGPoint(
@@ -701,8 +713,8 @@ class Bug: Identifiable, Hashable {
     }
     
     /// Attempts to reproduce with another compatible bug using neural decision
-    func reproduce(with partner: Bug) -> Bug? {
-        guard canReproduce && partner.canReproduce else { return nil }
+    func reproduce(with partner: Bug, seasonalManager: SeasonalManager) -> Bug? {
+        guard canReproduce(seasonalManager: seasonalManager) && partner.canReproduce(seasonalManager: seasonalManager) else { return nil }
         guard distance(to: partner.position) < max(visualRadius, partner.visualRadius) else { return nil }
         guard energy > Self.reproductionCost && partner.energy > Self.reproductionCost else { return nil }
         
@@ -1218,7 +1230,7 @@ class Bug: Identifiable, Hashable {
         case .shelter:
             return energy < 40.0 ? 0.8 : 0.2
         case .nest:
-            return canReproduce ? 0.9 : 0.1
+            return cachedCanReproduce ? 0.9 : 0.1
         case .trap:
             return targetPrey != nil ? 0.6 : 0.1
         case .lever:
@@ -1234,7 +1246,7 @@ class Bug: Identifiable, Hashable {
         case .shelter:
             energy += 5.0 // Recovery bonus
         case .nest:
-            if canReproduce {
+            if cachedCanReproduce {
                 energy += 3.0 // Breeding bonus
             }
         case .trap:

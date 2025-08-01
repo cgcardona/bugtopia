@@ -171,7 +171,25 @@ struct BugDNA: Codable, Hashable {
     
     /// Creates random DNA for initial population
     static func random() -> BugDNA {
-        let species = SpeciesType.allCases.randomElement() ?? .herbivore
+        // Balanced species distribution for stable ecosystem
+        let speciesWeights: [(SpeciesType, Double)] = [
+            (.herbivore, 0.45),    // 45% herbivores (primary producers)
+            (.omnivore, 0.30),     // 30% omnivores (flexible)
+            (.carnivore, 0.20),    // 20% carnivores (predators)
+            (.scavenger, 0.05)     // 5% scavengers (cleanup)
+        ]
+        
+        let randomValue = Double.random(in: 0...1)
+        var cumulative = 0.0
+        
+        for (species, weight) in speciesWeights {
+            cumulative += weight
+            if randomValue <= cumulative {
+                return BugDNA.random(species: species)
+            }
+        }
+        
+        let species: SpeciesType = .herbivore // Fallback
         return BugDNA(
             speed: Double.random(in: 0.5...1.5),
             visionRadius: Double.random(in: 20...80),

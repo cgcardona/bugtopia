@@ -23,6 +23,7 @@ class SimulationEngine {
     var resources: [Resource] = [] // Resource nodes for gathering
     var blueprints: [ToolBlueprint] = [] // Construction projects in progress
     var speciationManager = SpeciationManager() // Population and speciation tracking
+    var seasonalManager = SeasonalManager()     // Dynamic seasonal system
     var isRunning = false
     var currentGeneration = 0
     var tickCount = 0
@@ -33,11 +34,11 @@ class SimulationEngine {
     private let maxPopulation = 180  // Tripled for more genetic diversity and faster evolution
     private let initialPopulation = 90   // Tripled initial population
     private let maxFoodItems = 800  // Doubled to support much larger population (3x bugs need more food)
-    private let foodSpawnRate = 0.8 // Even higher spawn rate to sustain large population
+    private let baseFoodSpawnRate = 0.8 // Base spawn rate, modified by seasons
     
     // MARK: - Evolution Parameters
     
-    private let generationLength = 2000 // Ticks per generation
+    let generationLength = 2000 // Ticks per generation (public for UI)
     private let survivalRate = 0.3 // Fraction that survives to next generation
     private let eliteRate = 0.1 // Fraction of best bugs that survive automatically
     
@@ -88,6 +89,7 @@ class SimulationEngine {
         resources.removeAll()
         blueprints.removeAll()
         speciationManager = SpeciationManager() // Reset speciation tracking
+        seasonalManager.reset() // Reset seasonal cycle
         currentGeneration = 0
         tickCount = 0
         statistics = SimulationStatistics()
@@ -106,7 +108,7 @@ class SimulationEngine {
         // Update all bugs with arena awareness and communication
         var newSignals: [Signal] = []
         for bug in bugs {
-            bug.update(in: arena, foods: foods, otherBugs: bugs)
+            bug.update(in: arena, foods: foods, otherBugs: bugs, seasonalManager: seasonalManager)
             
             // Let bug generate signals
             if let signal = bug.generateSignals(in: arena, foods: foods, otherBugs: bugs) {
@@ -137,6 +139,9 @@ class SimulationEngine {
         
         // Remove consumed food
         removeConsumedFood()
+        
+        // Update seasonal system
+        seasonalManager.update()
         
         // Update populations and speciation
         speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: arena)
@@ -170,9 +175,9 @@ class SimulationEngine {
         }
     }
     
-    /// Handles reproduction between compatible bugs with speciation constraints
+    /// Handles reproduction between compatible bugs with speciation constraints (seasonally adjusted)
     private func handleReproduction() {
-        let reproducableBugs = bugs.filter { $0.canReproduce }
+        let reproducableBugs = bugs.filter { $0.canReproduce(seasonalManager: seasonalManager) }
         var newBugs: [Bug] = []
         
         for i in 0..<reproducableBugs.count {
@@ -191,7 +196,7 @@ class SimulationEngine {
             
             // Choose partner based on compatibility (higher compatibility = higher chance)
             if let partner = selectMateByCompatibility(compatiblePartners, for: bug1) {
-                if let offspring = bug1.reproduce(with: partner) {
+                if let offspring = bug1.reproduce(with: partner, seasonalManager: seasonalManager) {
                     newBugs.append(offspring)
                 }
             }
@@ -365,9 +370,9 @@ class SimulationEngine {
     private func spawnInitialFood() {
         var newFoods: [CGPoint] = []
         
-        // Spawn food in designated food zones (more generous)
+        // Spawn food in designated food zones (limited to prevent oversaturation)
         let foodTiles = arena.tilesOfType(.food)
-        for tile in foodTiles.prefix(maxFoodItems / 2) { // Increased from 1/3 to 1/2
+        for tile in foodTiles.prefix(min(20, maxFoodItems / 20)) { // Much more conservative initial food zone spawning
             let randomOffset = CGPoint(
                 x: Double.random(in: -15...15),
                 y: Double.random(in: -15...15)
@@ -379,11 +384,11 @@ class SimulationEngine {
             newFoods.append(foodPosition)
         }
         
-        // Spawn additional food in open areas AND hills (hills can have scattered food)
+        // Spawn majority of food distributed in open areas AND hills for better distribution
         let openTiles = arena.tilesOfType(.open)
         let hillTiles = arena.tilesOfType(.hill)
         let availableTiles = openTiles + hillTiles
-        for _ in 0..<(maxFoodItems * 2 / 3) { // Increased food spawning
+        for _ in 0..<(maxFoodItems * 4 / 5) { // Most food spawns in distributed areas
             if let tile = availableTiles.randomElement() {
                 let randomOffset = CGPoint(
                     x: Double.random(in: -20...20),
@@ -412,13 +417,30 @@ class SimulationEngine {
         foods = newFoods
     }
     
-    /// Strategically spawns new food in appropriate areas
+    /// Strategically spawns new food in appropriate areas (seasonally adjusted)
     private func spawnFood() {
-        if foods.count < maxFoodItems && Double.random(in: 0...1) < foodSpawnRate {
-            // 50% chance to spawn in food zones, 50% chance in open/hill areas
-            if Double.random(in: 0...1) < 0.5 {
+        let seasonalFoodSpawnRate = seasonalManager.adjustedFoodSpawnRate(baseRate: baseFoodSpawnRate)
+        // Cap seasonal max to prevent oversaturation - seasons affect spawn rate, not total capacity
+        let seasonalMaxFood = maxFoodItems  // Use base limit, let spawn rate handle seasonal effects
+        
+        if foods.count < seasonalMaxFood && Double.random(in: 0...1) < seasonalFoodSpawnRate {
+            // Prevent food oversaturation in food zones - bias toward distributed spawning
+            let foodZoneChance = min(0.3, 1.0 - (Double(foods.count) / Double(seasonalMaxFood))) // Reduce food zone chance as food increases
+            
+            if Double.random(in: 0...1) < foodZoneChance {
                 let foodTiles = arena.tilesOfType(.food)
-                if let tile = foodTiles.randomElement() {
+                
+                // Count existing food near each food zone to prevent oversaturation
+                let availableFoodTiles = foodTiles.filter { tile in
+                    let nearbyFood = foods.filter { food in
+                        let dx = food.x - tile.position.x
+                        let dy = food.y - tile.position.y
+                        return sqrt(dx * dx + dy * dy) < 60.0  // 60 pixel radius
+                    }
+                    return nearbyFood.count < 8  // Max 8 food items per zone
+                }
+                
+                if let tile = availableFoodTiles.randomElement() {
                     let randomOffset = CGPoint(
                         x: Double.random(in: -15...15),
                         y: Double.random(in: -15...15)

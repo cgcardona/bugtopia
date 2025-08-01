@@ -564,46 +564,64 @@ struct SimulationView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Group {
-                    Text("Population Statistics")
+                    Text("📊 Population Statistics")
                         .font(.headline)
                         .padding(.bottom, 4)
                     
-                    StatRow(label: "Total Bugs", value: "\(simulationEngine.statistics.totalBugs)")
-                    StatRow(label: "Alive", value: "\(simulationEngine.statistics.aliveBugs)")
-                    StatRow(label: "Generation", value: "\(simulationEngine.statistics.currentGeneration)")
-                    StatRow(label: "Food Items", value: "\(simulationEngine.statistics.totalFood)")
+                    StatRow(label: "🐛 Total Bugs", value: "\(simulationEngine.statistics.totalBugs)")
+                    StatRow(label: "💚 Alive", value: "\(simulationEngine.statistics.aliveBugs)")
+                    StatRow(label: "🧬 Generation", value: "\(simulationEngine.statistics.currentGeneration)")
+                    StatRow(label: "🍎 Food Items", value: "\(simulationEngine.statistics.totalFood)")
+                    
+                    // Generation Progress Bar
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Generation Progress")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        let generationProgress = Double(simulationEngine.tickCount % simulationEngine.generationLength) / Double(simulationEngine.generationLength)
+                        ProgressView(value: generationProgress)
+                            .accentColor(.blue)
+                            .frame(height: 6)
+                        
+                        let ticksRemaining = simulationEngine.generationLength - (simulationEngine.tickCount % simulationEngine.generationLength)
+                        Text("\(ticksRemaining) ticks until generation \(simulationEngine.currentGeneration + 1)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 4)
                     
                     Divider()
                     
-                    Text("Genetic Averages")
+                    Text("🧬 Genetic Averages")
                         .font(.headline)
                         .padding(.bottom, 4)
                     
-                    StatRow(label: "Speed", value: String(format: "%.2f", simulationEngine.statistics.averageSpeed))
-                    StatRow(label: "Vision", value: String(format: "%.1f", simulationEngine.statistics.averageVision))
-                    StatRow(label: "Efficiency", value: String(format: "%.2f", simulationEngine.statistics.averageEfficiency))
-                    StatRow(label: "Aggression", value: String(format: "%.2f", simulationEngine.statistics.averageAggression))
+                    StatRow(label: "🏃 Speed", value: String(format: "%.2f", simulationEngine.statistics.averageSpeed))
+                    StatRow(label: "👁️ Vision", value: String(format: "%.1f", simulationEngine.statistics.averageVision))
+                    StatRow(label: "⚡ Efficiency", value: String(format: "%.2f", simulationEngine.statistics.averageEfficiency))
+                    StatRow(label: "⚔️ Aggression", value: String(format: "%.2f", simulationEngine.statistics.averageAggression))
                     
                     Divider()
                     
-                    Text("Environmental Adaptations")
+                    Text("🌍 Environmental Adaptations")
                         .font(.headline)
                         .padding(.bottom, 4)
                     
-                    StatRow(label: "Strength", value: String(format: "%.2f", simulationEngine.statistics.averageStrength))
-                    StatRow(label: "Memory", value: String(format: "%.2f", simulationEngine.statistics.averageMemory))
-                    StatRow(label: "Stickiness", value: String(format: "%.2f", simulationEngine.statistics.averageStickiness))
-                    StatRow(label: "Camouflage", value: String(format: "%.2f", simulationEngine.statistics.averageCamouflage))
-                    StatRow(label: "Curiosity", value: String(format: "%.2f", simulationEngine.statistics.averageCuriosity))
+                    StatRow(label: "💪 Strength", value: String(format: "%.2f", simulationEngine.statistics.averageStrength))
+                    StatRow(label: "🧠 Memory", value: String(format: "%.2f", simulationEngine.statistics.averageMemory))
+                    StatRow(label: "🕷️ Stickiness", value: String(format: "%.2f", simulationEngine.statistics.averageStickiness))
+                    StatRow(label: "🫥 Camouflage", value: String(format: "%.2f", simulationEngine.statistics.averageCamouflage))
+                    StatRow(label: "🔍 Curiosity", value: String(format: "%.2f", simulationEngine.statistics.averageCuriosity))
                     
                     Divider()
                     
-                    Text("Current Averages")
+                    Text("📈 Current Averages")
                         .font(.headline)
                         .padding(.bottom, 4)
                     
-                    StatRow(label: "Energy", value: String(format: "%.1f", simulationEngine.statistics.averageEnergy))
-                    StatRow(label: "Age", value: String(format: "%.0f", simulationEngine.statistics.averageAge))
+                    StatRow(label: "⚡ Energy", value: String(format: "%.1f", simulationEngine.statistics.averageEnergy))
+                    StatRow(label: "📅 Age", value: String(format: "%.0f", simulationEngine.statistics.averageAge))
                     
                     Divider()
                     
@@ -620,22 +638,28 @@ struct SimulationView: View {
                         StatRow(label: "Species Age", value: "\(largestPop.age) gen")
                     }
                     
-                    // Recent speciation events
-                    let recentEvents = simulationEngine.speciationManager.getRecentEvents(limit: 2)
-                    if !recentEvents.isEmpty {
-                        Text("Recent Speciation Events:")
-                            .font(.subheadline)
-                            .foregroundColor(.purple)
-                            .padding(.top, 8)
-                        
-                        ForEach(recentEvents.indices, id: \.self) { index in
-                            Text("• \(recentEvents[index].description)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .lineLimit(2)
-                                .padding(.leading, 8)
-                        }
+                                    // Recent speciation events
+                let recentEvents = simulationEngine.speciationManager.getRecentEvents(limit: 2)
+                if !recentEvents.isEmpty {
+                    Text("Recent Speciation Events:")
+                        .font(.subheadline)
+                        .foregroundColor(.purple)
+                        .padding(.top, 8)
+                    
+                    ForEach(recentEvents.indices, id: \.self) { index in
+                        Text("• \(recentEvents[index].description)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                            .padding(.leading, 8)
                     }
+                }
+                
+                Divider()
+                
+                // Seasonal Information
+                SeasonalStatusView(seasonalManager: simulationEngine.seasonalManager)
+                    .padding(.top, 8)
                 }
                 
                 if let selected = selectedBug {
@@ -788,7 +812,7 @@ struct SimulationView: View {
                         StatRow(label: "Generation", value: "\(selected.generation)")
                         StatRow(label: "Energy", value: String(format: "%.1f", selected.energy))
                         StatRow(label: "Age", value: "\(selected.age)")
-                        StatRow(label: "Can Reproduce", value: selected.canReproduce ? "Yes" : "No")
+                        StatRow(label: "Can Reproduce", value: selected.canReproduce(seasonalManager: simulationEngine.seasonalManager) ? "Yes" : "No")
                         
                         let currentTerrain = simulationEngine.arena.terrainAt(selected.position)
                         let modifiers = simulationEngine.arena.movementModifiers(at: selected.position, for: selected.dna)

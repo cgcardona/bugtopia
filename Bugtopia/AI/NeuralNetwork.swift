@@ -62,7 +62,7 @@ struct NeuralDNA: Codable, Hashable {
     
     // MARK: - Network Configuration
     
-    static let inputCount = 20  // Sensory inputs (expanded for predator/prey + edge detection)
+    static let inputCount = 28  // Sensory inputs (expanded for predator/prey + edge detection + seasonal awareness)
     static let outputCount = 8   // Motor outputs (expanded for hunting/fleeing)
     static let maxHiddenLayers = 8    // Allow much deeper networks (up to 10 total layers!)
     static let maxNeuronsPerLayer = 32 // Allow wider networks for complex processing
@@ -311,12 +311,13 @@ class NeuralNetwork {
 /// Input/Output definitions for bug neural networks
 struct BugSensors {
     
-    /// Creates sensory input vector for neural network
+    /// Creates sensory input vector for neural network (including seasonal awareness)
     static func createInputs(
         bug: Bug,
         arena: Arena,
         foods: [CGPoint],
-        otherBugs: [Bug]
+        otherBugs: [Bug],
+        seasonalManager: SeasonalManager
     ) -> [Double] {
         
         var inputs: [Double] = []
@@ -414,6 +415,19 @@ struct BugSensors {
         // Current velocity (normalized)
         inputs.append(max(-1.0, min(1.0, bug.velocity.x / 10.0)))
         inputs.append(max(-1.0, min(1.0, bug.velocity.y / 10.0)))
+        
+        // SEASONAL AWARENESS - Critical for planning and adaptation
+        // Current season indicators (one-hot encoding)
+        let seasonalInputs = seasonalManager.seasonalInputs  // [spring, summer, fall, winter]
+        inputs.append(contentsOf: seasonalInputs)
+        
+        // Season progress (0.0 to 1.0) - how far through current season
+        inputs.append(seasonalManager.seasonProgress)
+        
+        // Environmental pressures from current season
+        inputs.append(seasonalManager.currentSeason.foodAbundance)      // Food availability
+        inputs.append(seasonalManager.currentSeason.energyDrainModifier) // Energy requirements
+        inputs.append(seasonalManager.currentSeason.reproductionModifier) // Breeding opportunity
         
         return inputs
     }
