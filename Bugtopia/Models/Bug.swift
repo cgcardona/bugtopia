@@ -40,6 +40,14 @@ class Bug: Identifiable, Hashable {
     var huntingCooldown: Int
     var fleeingCooldown: Int
     
+    // MARK: - Communication & Social State
+    
+    var recentSignals: [Signal] = []        // Signals received recently
+    var lastSignalTime: TimeInterval = 0    // When last signal was sent
+    var currentGroup: UUID?                 // Group this bug belongs to
+    var groupRole: GroupRole = .member      // Role within the group
+    var signalCooldown: Int = 0             // Cooldown between signals
+    
     // MARK: - Constants
     
     static let maxEnergy: Double = 100.0
@@ -50,6 +58,7 @@ class Bug: Identifiable, Hashable {
     static let maxAge: Int = 1000
     static let huntingCooldownTime: Int = 30     // Ticks between hunting attempts
     static let fleeingCooldownTime: Int = 50     // Ticks to maintain flee state
+    static let signalCooldownTime: Int = 15      // Minimum ticks between signals
     
     // MARK: - Computed Properties
     
@@ -119,6 +128,7 @@ class Bug: Identifiable, Hashable {
         reproductionCooldown = max(0, reproductionCooldown - 1)
         huntingCooldown = max(0, huntingCooldown - 1)
         fleeingCooldown = max(0, fleeingCooldown - 1)
+        signalCooldown = max(0, signalCooldown - 1)
         
         // Get terrain modifiers for current position
         let modifiers = arena.movementModifiers(at: position, for: dna)
@@ -162,6 +172,9 @@ class Bug: Identifiable, Hashable {
         
         handleBugInteractions(otherBugs: otherBugs)
         handleTerrainEffects(arena: arena)
+        
+        // Process communications (internal method)
+        processSignals(in: arena, foods: foods, otherBugs: otherBugs)
         
         // Clamp energy
         energy = max(0, min(Self.maxEnergy, energy))
@@ -624,6 +637,208 @@ class Bug: Identifiable, Hashable {
     }
     
     // MARK: - Utility Functions
+    
+    // MARK: - Communication Methods
+    
+    /// Emits a signal that other bugs can receive
+    func emitSignal(type: SignalType, strength: Double? = nil, data: SignalData? = nil) -> Signal? {
+        guard signalCooldown <= 0, 
+              dna.communicationDNA.communicationFrequency > Double.random(in: 0...1) else {
+            return nil
+        }
+        
+        let actualStrength = strength ?? dna.communicationDNA.signalStrength
+        let signal = Signal(
+            type: type,
+            position: position,
+            emitterId: id,
+            strength: actualStrength,
+            timestamp: Date().timeIntervalSince1970,
+            data: data
+        )
+        
+        signalCooldown = Self.signalCooldownTime
+        lastSignalTime = Date().timeIntervalSince1970
+        
+        // Energy cost for signaling
+        energy -= actualStrength * 2.0 // Stronger signals cost more energy
+        
+        return signal
+    }
+    
+    /// Receives and processes incoming signals
+    func receiveSignal(_ signal: Signal) {
+        let currentTime = Date().timeIntervalSince1970
+        
+        // Check if signal is strong enough to receive
+        guard signal.canReach(position: position, at: currentTime),
+              dna.communicationDNA.signalSensitivity > 0.2 else {
+            return
+        }
+        
+        // Trust filtering
+        let trustThreshold = 1.0 - dna.communicationDNA.signalTrust
+        guard Double.random(in: 0...1) > trustThreshold else {
+            return // Ignore this signal due to low trust
+        }
+        
+        // Add to recent signals
+        recentSignals.append(signal)
+        
+        // Clean up old signals
+        let signalMemoryTime = Double(dna.communicationDNA.signalMemory) / 30.0 // Convert ticks to seconds
+        recentSignals.removeAll { currentTime - $0.timestamp > signalMemoryTime }
+        
+        // Limit memory to prevent overflow
+        if recentSignals.count > 20 {
+            recentSignals = Array(recentSignals.suffix(20))
+        }
+    }
+    
+    /// Decides whether to respond to group calls and signals
+    private func processSignals(in arena: Arena, foods: [CGPoint], otherBugs: [Bug]) -> Signal? {
+        let currentTime = Date().timeIntervalSince1970
+        
+        // Process recent signals by priority
+        let activeSignals = recentSignals.filter { $0.isActive(at: currentTime) }
+        let sortedSignals = activeSignals.sorted { $0.type.priority > $1.type.priority }
+        
+        for signal in sortedSignals {
+            // Respond based on signal type and individual traits
+            switch signal.type {
+            case .dangerAlert, .retreat:
+                if dna.communicationDNA.socialResponseRate > 0.7 {
+                    // High social bugs respond to danger alerts
+                    if let threatId = signal.data?.threatId,
+                       let threat = otherBugs.first(where: { $0.id == threatId }) {
+                        predatorThreat = threat
+                        fleeingCooldown = Self.fleeingCooldownTime
+                    }
+                }
+                
+            case .foodFound:
+                if dna.speciesTraits.speciesType.canEatPlants,
+                   let foodPos = signal.data?.foodPosition,
+                   targetFood == nil {
+                    targetFood = foodPos
+                }
+                
+            case .huntCall:
+                if dna.speciesTraits.speciesType.canHunt,
+                   dna.communicationDNA.socialResponseRate > 0.5,
+                   let huntTargetId = signal.data?.huntTargetId,
+                   let huntTarget = otherBugs.first(where: { $0.id == huntTargetId }) {
+                    targetPrey = huntTarget
+                    huntingCooldown = 0 // Ready to hunt immediately
+                }
+                
+            case .groupForm:
+                if dna.communicationDNA.socialResponseRate > 0.6 {
+                    // Consider joining group
+                    return considerJoiningGroup(signal: signal, otherBugs: otherBugs)
+                }
+                
+            case .helpRequest:
+                if dna.communicationDNA.socialResponseRate > 0.8,
+                   energy > 60 { // Only help if we have spare energy
+                    // Move toward the bug requesting help
+                    targetFood = signal.position
+                }
+                
+            default:
+                break
+            }
+        }
+        
+        return nil
+    }
+    
+    /// Considers joining a group based on signal
+    private func considerJoiningGroup(signal: Signal, otherBugs: [Bug]) -> Signal? {
+        // If already in a group, ignore
+        guard currentGroup == nil else { return nil }
+        
+        // Consider group size and distance
+        let distanceToGroup = distance(to: signal.position)
+        if distanceToGroup < 100.0, // Close enough to group
+           dna.communicationDNA.socialResponseRate > Double.random(in: 0...1) {
+            
+            // Accept group invitation
+            currentGroup = signal.emitterId // Use emitter's ID as group ID temporarily
+            groupRole = .member
+            
+            // Signal acceptance
+            return emitSignal(
+                type: .groupForm,
+                data: SignalData(groupSize: 1)
+            )
+        }
+        
+        return nil
+    }
+    
+    /// Generate signals based on current situation and neural network decisions (called by SimulationEngine)
+    func generateSignals(in arena: Arena, foods: [CGPoint], otherBugs: [Bug]) -> Signal? {
+        guard signalCooldown <= 0,
+              let decision = lastDecision else { return nil }
+        
+        // Neural network influences when to communicate
+        if decision.social < 0.3 { return nil } // Low social tendency = no communication
+        
+        // Generate signals based on current situation
+        let currentTime = Date().timeIntervalSince1970
+        
+        // Danger alert when fleeing
+        if decision.fleeing > 0.8, let threat = predatorThreat {
+            return emitSignal(
+                type: .dangerAlert,
+                strength: 0.8,
+                data: SignalData(threatId: threat.id)
+            )
+        }
+        
+        // Food found signal
+        if let food = targetFood,
+           dna.speciesTraits.speciesType.canEatPlants,
+           Double.random(in: 0...1) < dna.communicationDNA.communicationFrequency {
+            return emitSignal(
+                type: .foodFound,
+                data: SignalData(foodPosition: food)
+            )
+        }
+        
+        // Hunt call for carnivores
+        if decision.hunting > 0.7,
+           let prey = targetPrey,
+           dna.speciesTraits.speciesType.canHunt {
+            return emitSignal(
+                type: .huntCall,
+                strength: 0.7,
+                data: SignalData(huntTargetId: prey.id)
+            )
+        }
+        
+        // Group formation call
+        if decision.social > 0.8,
+           currentGroup == nil,
+           Double.random(in: 0...1) < 0.1 { // Rare event
+            return emitSignal(
+                type: .groupForm,
+                data: SignalData(groupSize: 1)
+            )
+        }
+        
+        // Help request when low on energy
+        if energy < 30.0,
+           Double.random(in: 0...1) < dna.communicationDNA.communicationFrequency {
+            return emitSignal(
+                type: .helpRequest,
+                data: SignalData(energyLevel: energy)
+            )
+        }
+        
+        return nil
+    }
     
     /// Calculates distance to a point
     func distance(to point: CGPoint) -> Double {

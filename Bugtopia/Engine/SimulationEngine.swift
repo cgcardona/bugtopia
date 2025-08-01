@@ -17,6 +17,8 @@ class SimulationEngine {
     
     var bugs: [Bug] = []
     var foods: [CGPoint] = []
+    var signals: [Signal] = []     // Active signals in the world
+    var groups: [BugGroup] = []    // Active bug groups
     var isRunning = false
     var currentGeneration = 0
     var tickCount = 0
@@ -90,10 +92,25 @@ class SimulationEngine {
     private func tick() {
         tickCount += 1
         
-        // Update all bugs with arena awareness
+        // Update all bugs with arena awareness and communication
+        var newSignals: [Signal] = []
         for bug in bugs {
             bug.update(in: arena, foods: foods, otherBugs: bugs)
+            
+            // Let bug generate signals
+            if let signal = bug.generateSignals(in: arena, foods: foods, otherBugs: bugs) {
+                newSignals.append(signal)
+            }
         }
+        
+        // Add new signals to the world
+        signals.append(contentsOf: newSignals)
+        
+        // Distribute signals to nearby bugs
+        distributeSignals()
+        
+        // Clean up expired signals
+        cleanupSignals()
         
         // Handle reproduction
         handleReproduction()
@@ -368,6 +385,36 @@ class SimulationEngine {
                 let distance = sqrt(dx * dx + dy * dy)
                 return distance < bug.visualRadius
             }
+        }
+    }
+    
+    // MARK: - Communication Management
+    
+    /// Distributes signals to bugs within range
+    private func distributeSignals() {
+        let currentTime = Date().timeIntervalSince1970
+        
+        for signal in signals {
+            guard signal.isActive(at: currentTime) else { continue }
+            
+            // Find bugs within signal range
+            for bug in bugs {
+                if signal.emitterId != bug.id, // Don't send signal back to sender
+                   signal.canReach(position: bug.position, at: currentTime) {
+                    bug.receiveSignal(signal)
+                }
+            }
+        }
+    }
+    
+    /// Removes expired signals from the world
+    private func cleanupSignals() {
+        let currentTime = Date().timeIntervalSince1970
+        signals.removeAll { !$0.isActive(at: currentTime) }
+        
+        // Limit total signals to prevent memory issues
+        if signals.count > 200 {
+            signals = Array(signals.suffix(200))
         }
     }
     
