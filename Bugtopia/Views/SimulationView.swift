@@ -669,6 +669,49 @@ struct SimulationView: View {
                             StatRow(label: "Flocking", value: String(format: "%.2f", defensive.flockingTendency))
                         }
                         
+                        // Engineering & Tool Traits
+                        Text("🔧 Engineering Traits")
+                            .font(.subheadline)
+                            .foregroundColor(.orange)
+                            .padding(.top, 8)
+                        
+                        StatRow(label: "Tool Crafting", value: String(format: "%.2f", selected.dna.toolDNA.toolCrafting))
+                        StatRow(label: "Tool Proficiency", value: String(format: "%.2f", selected.dna.toolDNA.toolProficiency))
+                        StatRow(label: "Tool Vision", value: String(format: "%.2f", selected.dna.toolDNA.toolVision))
+                        StatRow(label: "Construction Drive", value: String(format: "%.2f", selected.dna.toolDNA.constructionDrive))
+                        StatRow(label: "Carrying Capacity", value: String(format: "%.1f", selected.dna.toolDNA.carryingCapacity))
+                        StatRow(label: "Resource Gathering", value: String(format: "%.2f", selected.dna.toolDNA.resourceGathering))
+                        StatRow(label: "Engineering IQ", value: String(format: "%.2f", selected.dna.toolDNA.engineeringIntelligence))
+                        StatRow(label: "Collaboration", value: String(format: "%.2f", selected.dna.toolDNA.collaborationTendency))
+                        
+                        // Current Construction Project
+                        if let project = selected.currentProject {
+                            Text("🏗️ Current Project")
+                                .font(.subheadline)
+                                .foregroundColor(.orange)
+                                .padding(.top, 8)
+                            
+                            StatRow(label: "Building", value: "\(project.type.emoji) \(project.type.rawValue.capitalized)")
+                            StatRow(label: "Progress", value: "\(Int(project.completionPercentage * 100))%")
+                            StatRow(label: "Resources Needed", value: "\(project.requiredResources.count)")
+                            StatRow(label: "Resources Gathered", value: "\(project.gatheredResources.values.reduce(0, +))")
+                        }
+                        
+                        // Carried Resources
+                        if !selected.carriedResources.isEmpty {
+                            Text("📦 Inventory")
+                                .font(.subheadline)
+                                .foregroundColor(.brown)
+                                .padding(.top, 8)
+                            
+                            ForEach(Array(selected.carriedResources.keys.sorted(by: { $0.rawValue < $1.rawValue })), id: \.self) { resourceType in
+                                if let quantity = selected.carriedResources[resourceType], quantity > 0 {
+                                    StatRow(label: "\(resourceType.emoji) \(resourceType.rawValue.capitalized)", value: "\(quantity)")
+                                }
+                            }
+                            StatRow(label: "Capacity Used", value: "\(selected.carriedResources.values.reduce(0, +))/\(selected.maxCarryingCapacity)")
+                        }
+                        
                         if let decision = selected.lastDecision {
                             Text("🎯 Current Decision")
                                 .font(.subheadline)
