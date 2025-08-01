@@ -18,19 +18,19 @@ Unlike traditional fixed architectures, Bugtopia's neural networks can **structu
 ### Network Configuration
 
 ```swift
-static let inputCount = 50      // Comprehensive sensory inputs
-static let outputCount = 8      // Behavioral outputs
+static let inputCount = 71      // Comprehensive 3D sensory inputs
+static let outputCount = 10     // Enhanced behavioral outputs with 3D movement
 static let maxHiddenLayers = 8  // Up to 10 total layers
 static let maxNeuronsPerLayer = 32 // Wide processing capability
 ```
 
 ## Neural Architecture Components
 
-### 1. Input Layer (50 Neurons)
+### 1. Input Layer (71 Neurons)
 
-The input layer processes **comprehensive environmental awareness**:
+The input layer processes **comprehensive 3D environmental awareness**:
 
-#### Basic Sensors (28 inputs)
+#### Basic Sensors (20 inputs)
 - **Energy Status** (1): Current energy / max energy (0-1)
 - **Age Status** (1): Current age / max age (0-1)
 - **Terrain Effects** (3): Speed, vision, energy cost modifiers
@@ -41,12 +41,21 @@ The input layer processes **comprehensive environmental awareness**:
 - **Center Direction** (2): Direction to arena center (X, Y)
 - **Current Velocity** (2): Movement velocity (X, Y)
 
-#### Environmental Awareness (22 inputs)
+#### Environmental Awareness (38 inputs)
 - **Seasonal Inputs** (8): Season indicators + progress + environmental pressures
 - **Weather Inputs** (6): Current weather conditions and effects
 - **Disaster Inputs** (6): Active disasters and threat levels
-- **Ecosystem Inputs** (4): Resource availability and population pressure
-- **Territory Inputs** (4): Territory ownership and quality
+- **Ecosystem Inputs** (6): Resource availability and population pressure
+- **3D Territory Inputs** (12): Multi-layer territory ownership, quality, and contested zones
+
+#### 3D Spatial Intelligence (13 inputs)
+- **Current Layer Info** (4): Underground, surface, canopy, aerial layer indicators
+- **Altitude Level** (1): Normalized height position (0.0-1.0)
+- **Movement Capabilities** (3): Can fly, can swim, can climb boolean indicators
+- **Preferred Layer Match** (1): Whether current layer matches altitude preference
+- **Vertical Movement Cooldown** (1): Cooldown status for layer changes
+- **Layer Movement Speed** (1): Movement speed modifier for current layer
+- **3D Food Detection** (2): 3D distance and vertical direction to nearest food
 
 ### 2. Hidden Layers (Variable)
 
@@ -57,20 +66,25 @@ Hidden layers provide **processing depth** for complex decision-making:
 - **Size Range**: 4-32 neurons per layer
 - **Activation Functions**: Sigmoid, Tanh, ReLU, Linear
 
-### 3. Output Layer (8 Neurons)
+### 3. Output Layer (10 Neurons)
 
-The output layer controls **behavioral responses**:
+The output layer controls **3D behavioral responses**:
 
 ```swift
 struct BugOutputs {
+    // 3D Movement
     let moveX: Double        // Desired X velocity (-1 to 1)
     let moveY: Double        // Desired Y velocity (-1 to 1)
-    let aggression: Double   // Combat intensity (0 to 1)
-    let exploration: Double  // Exploration vs exploitation (0 to 1)
-    let social: Double       // Social seeking behavior (0 to 1)
-    let reproduction: Double // Mating behavior (0 to 1)
+    let moveZ: Double        // NEW: Vertical movement (-1 to 1)
+    let layerChange: Double  // NEW: Layer switching desire (-1 to 1)
+    
+    // Behavioral Actions
     let hunting: Double      // Predatory behavior (0 to 1)
     let fleeing: Double      // Escape behavior (0 to 1)
+    let building: Double     // Construction activity (0 to 1)
+    let signaling: Double    // Communication strength (0 to 1)
+    let exploring: Double    // Exploration drive (0 to 1)
+    let resting: Double      // Energy conservation (0 to 1)
 }
 ```
 

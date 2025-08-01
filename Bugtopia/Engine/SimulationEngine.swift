@@ -34,9 +34,9 @@ class SimulationEngine {
     
     // MARK: - World Configuration
     
-    let arena: Arena
+    let arena3D: Arena3D
     private let maxPopulation = 180  // Tripled for more genetic diversity and faster evolution
-    private let initialPopulation = 90   // Tripled initial population
+    private let initialPopulation = 50   // Reduced population for better performance
     private let maxFoodItems = 800  // Doubled to support much larger population (3x bugs need more food)
     private let baseFoodSpawnRate = 0.8 // Base spawn rate, modified by seasons
     
@@ -58,7 +58,8 @@ class SimulationEngine {
     // MARK: - Initialization
     
     init(worldBounds: CGRect) {
-        self.arena = Arena(bounds: worldBounds)
+        self.arena3D = Arena3D(bounds: worldBounds)
+        ecosystemManager.setWorldBounds(worldBounds)
         setupInitialPopulation()
         spawnInitialFood()
     }
@@ -96,11 +97,12 @@ class SimulationEngine {
         seasonalManager.reset() // Reset seasonal cycle
         weatherManager.reset() // Reset weather patterns
         disasterManager.reset() // Reset disaster system
-        disasterManager.setWorldBounds(arena.bounds) // Set disaster spawn area
+        disasterManager.setWorldBounds(arena3D.bounds) // Set disaster spawn area
         ecosystemManager.reset() // Reset ecosystem state
-        ecosystemManager.initializeResourceZones(from: arena) // Initialize resource tracking
+        ecosystemManager.setWorldBounds(arena3D.bounds) // Set world bounds for population density
+        ecosystemManager.initializeResourceZones(from: arena3D.createTempArena()) // Initialize resource tracking with 2D compatibility
         territoryManager.reset() // Reset territorial data
-        territoryManager.setWorldBounds(arena.bounds) // Set territory boundaries
+        territoryManager.setWorldBounds(arena3D.bounds) // Set territory boundaries
         currentGeneration = 0
         tickCount = 0
         statistics = SimulationStatistics()
@@ -120,7 +122,7 @@ class SimulationEngine {
         var newSignals: [Signal] = []
         for bug in bugs {
             bug.update(
-    in: arena,
+    in: arena3D.createTempArena(),
     foods: foods,
     otherBugs: bugs,
     seasonalManager: seasonalManager,
@@ -130,8 +132,8 @@ class SimulationEngine {
     territoryManager: territoryManager
 )
             
-            // Let bug generate signals
-            if let signal = bug.generateSignals(in: arena, foods: foods, otherBugs: bugs) {
+            // Let bug generate signals (using 2D compatibility for now)
+            if let signal = bug.generateSignals(in: arena3D.createTempArena(), foods: foods, otherBugs: bugs) {
                 newSignals.append(signal)
             }
         }
@@ -177,15 +179,15 @@ class SimulationEngine {
             deltaTime: tickInterval
         )
         
-        // Update territories and migrations
+        // Update territories and migrations (using 2D compatibility)
         territoryManager.update(
             populations: speciationManager.populations,
-            arena: arena,
+            arena: arena3D.createTempArena(),
             ecosystemManager: ecosystemManager
         )
         
-        // Update populations and speciation
-        speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: arena)
+        // Update populations and speciation (using 2D compatibility)
+        speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: arena3D.createTempArena())
         
         // Clean up old speciation events every 50 ticks to prevent memory buildup
         if tickCount % 50 == 0 {
@@ -211,7 +213,7 @@ class SimulationEngine {
     /// Sets up the initial random population using arena spawn points
     private func setupInitialPopulation() {
         bugs = (0..<initialPopulation).map { _ in
-            let spawnPosition = arena.findSpawnPosition()
+            let spawnPosition = arena3D.findSpawnPosition()
             return Bug(dna: BugDNA.random(), position: spawnPosition, generation: 0)
         }
     }
@@ -291,13 +293,13 @@ class SimulationEngine {
                 parent = randomSurvivor
             } else {
                 // If no survivors, create completely new bug
-                let spawnPosition = arena.findSpawnPosition()
+                let spawnPosition = arena3D.findSpawnPosition()
                 bugs.append(Bug(dna: BugDNA.random(), position: spawnPosition, generation: currentGeneration))
                 continue
             }
             
             let mutatedDNA = parent.dna.mutated(mutationRate: 0.3, mutationStrength: 0.2)
-            let spawnPosition = arena.findSpawnPosition()
+            let spawnPosition = arena3D.findSpawnPosition()
             bugs.append(Bug(dna: mutatedDNA, position: spawnPosition, generation: currentGeneration))
         }
     }
@@ -352,7 +354,7 @@ class SimulationEngine {
             // Safe parent selection with fallbacks
             guard let parent1 = survivors.randomElement() else {
                 // If no survivors, create random bug
-                let randomPosition = arena.findSpawnPosition()
+                let randomPosition = arena3D.findSpawnPosition()
                 newPopulation.append(Bug(dna: BugDNA.random(), position: randomPosition, generation: currentGeneration))
                 continue
             }
@@ -360,13 +362,13 @@ class SimulationEngine {
             guard let parent2 = survivors.randomElement() else {
                 // If only one survivor, use asexual reproduction (mutation only)
                 let mutatedDNA = parent1.dna.mutated(mutationRate: 0.2, mutationStrength: 0.3)
-                let childPosition = arena.findSpawnPosition()
+                let childPosition = arena3D.findSpawnPosition()
                 newPopulation.append(Bug(dna: mutatedDNA, position: childPosition, generation: currentGeneration))
                 continue
             }
             
             let childDNA = BugDNA.crossover(parent1.dna, parent2.dna).mutated()
-            let childPosition = arena.findSpawnPosition()
+            let childPosition = arena3D.findSpawnPosition()
             
             newPopulation.append(Bug(dna: childDNA, position: childPosition, generation: currentGeneration))
         }
@@ -387,7 +389,7 @@ class SimulationEngine {
         let geneticBonus = bug.dna.geneticFitness * 10
         
         // Terrain adaptation bonus
-        let currentTerrain = arena.terrainAt(bug.position)
+        let currentTerrain = arena3D.terrainAt(bug.position)
         let terrainBonus = bug.dna.terrainFitness(for: currentTerrain) * 5
         
         // Exploration bonus for bugs that have been in different terrain types
@@ -423,7 +425,7 @@ class SimulationEngine {
         var newFoods: [CGPoint] = []
         
         // Spawn food in designated food zones (limited to prevent oversaturation)
-        let foodTiles = arena.tilesOfType(.food)
+        let foodTiles = arena3D.tilesOfType(.food)
         for tile in foodTiles.prefix(min(20, maxFoodItems / 20)) { // Much more conservative initial food zone spawning
             let randomOffset = CGPoint(
                 x: Double.random(in: -15...15),
@@ -437,8 +439,8 @@ class SimulationEngine {
         }
         
         // Spawn majority of food distributed in open areas AND hills for better distribution
-        let openTiles = arena.tilesOfType(.open)
-        let hillTiles = arena.tilesOfType(.hill)
+        let openTiles = arena3D.tilesOfType(.open)
+        let hillTiles = arena3D.tilesOfType(.hill)
         let availableTiles = openTiles + hillTiles
         for _ in 0..<(maxFoodItems * 4 / 5) { // Most food spawns in distributed areas
             if let tile = availableTiles.randomElement() {
@@ -450,8 +452,8 @@ class SimulationEngine {
                 // Much more liberal food spawning - only avoid very close to edges
                 let minDistanceFromEdge = 30.0
                 let edgeDistance = min(
-                    min(tile.position.x - arena.bounds.minX, arena.bounds.maxX - tile.position.x),
-                    min(tile.position.y - arena.bounds.minY, arena.bounds.maxY - tile.position.y)
+                    min(tile.position.x - arena3D.bounds.minX, arena3D.bounds.maxX - tile.position.x),
+                    min(tile.position.y - arena3D.bounds.minY, arena3D.bounds.maxY - tile.position.y)
                 )
                 
                 // Only skip if extremely close to edge
@@ -483,7 +485,7 @@ class SimulationEngine {
             let foodZoneChance = min(0.3, 1.0 - (Double(foods.count) / Double(seasonalMaxFood))) // Reduce food zone chance as food increases
             
             if Double.random(in: 0...1) < foodZoneChance {
-                let foodTiles = arena.tilesOfType(.food)
+                let foodTiles = arena3D.tilesOfType(.food)
                 
                 // Count existing food near each food zone to prevent oversaturation
                 let availableFoodTiles = foodTiles.filter { tile in
@@ -510,15 +512,15 @@ class SimulationEngine {
                     }
                 }
             } else {
-                let openTiles = arena.tilesOfType(.open)
-                let hillTiles = arena.tilesOfType(.hill)
+                let openTiles = arena3D.tilesOfType(.open)
+                let hillTiles = arena3D.tilesOfType(.hill)
                 let availableTiles = openTiles + hillTiles
                 if let tile = availableTiles.randomElement() {
                     // Much more liberal food spawning
                     let minDistanceFromEdge = 30.0
                     let edgeDistance = min(
-                        min(tile.position.x - arena.bounds.minX, arena.bounds.maxX - tile.position.x),
-                        min(tile.position.y - arena.bounds.minY, arena.bounds.maxY - tile.position.y)
+                        min(tile.position.x - arena3D.bounds.minX, arena3D.bounds.maxX - tile.position.x),
+                        min(tile.position.y - arena3D.bounds.minY, arena3D.bounds.maxY - tile.position.y)
                     )
                     
                     // Only spawn food if far enough from edges
@@ -682,7 +684,7 @@ class SimulationEngine {
             
             for i in 0..<tools.count {
                 if nearbyTools.contains(where: { $0.id == tools[i].id }) {
-                    _ = bug.useTool(&tools[i], in: arena)
+                    _ = bug.useTool(&tools[i], in: arena3D.createTempArena())
                 }
             }
         }
@@ -712,11 +714,11 @@ class SimulationEngine {
     
     /// Spawns initial resource nodes around the arena
     private func spawnInitialResources() {
-        let resourceCount = 90 // Tripled for larger population - more tools and construction
+        let resourceCount = 50 // Adjusted for reduced population - balanced resource availability
         
         for _ in 0..<resourceCount {
             let resourceType = ResourceType.allCases.randomElement() ?? .stick
-            let position = arena.findSpawnPosition()
+            let position = arena3D.findSpawnPosition()
             
             let resource = Resource(
                 type: resourceType,

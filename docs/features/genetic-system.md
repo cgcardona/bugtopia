@@ -536,7 +536,7 @@ if speciesType == .herbivore {
 #### Population Management
 ```swift
 let maxPopulation = 180           // Population cap
-let minPopulation = 90            // Minimum viable population
+let minPopulation = 50            // Minimum viable population
 let survivalRate = 0.3           // 30% survive each generation
 let eliteRate = 0.1              // 10% elite preservation
 let generationLength = 500       // Ticks per generation

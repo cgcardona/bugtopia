@@ -13,10 +13,14 @@ struct SimulationView: View {
     @State private var simulationEngine: SimulationEngine
     @State private var showingStatistics = true
     @State private var selectedBug: Bug?
+    @State private var is3DMode = true  // Default to 3D mode since we've fully migrated to Arena3D  // NEW: Toggle for 3D visualization
+    @State private var arena3D: Arena3D?  // NEW: 3D Arena instance
     
     init(worldSize: CGSize = CGSize(width: 800, height: 600)) {
         let bounds = CGRect(origin: .zero, size: worldSize)
-        _simulationEngine = State(wrappedValue: SimulationEngine(worldBounds: bounds))
+        let engine = SimulationEngine(worldBounds: bounds)
+        _simulationEngine = State(wrappedValue: engine)
+        _arena3D = State(wrappedValue: engine.arena3D)  // Initialize 3D arena by default
     }
     
     var body: some View {
@@ -143,6 +147,28 @@ struct SimulationView: View {
             
             Spacer()
             
+            // 🚀 3D MODE TOGGLE - TO INFINITY AND BEYOND!
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    is3DMode.toggle()
+                    if is3DMode && arena3D == nil {
+                        // Create 3D arena when first switching to 3D mode
+                        arena3D = simulationEngine.arena3D
+                    }
+                }
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: is3DMode ? "cube.fill" : "cube")
+                        .font(.title2)
+                    Text(is3DMode ? "3D" : "2D")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                }
+                .foregroundColor(is3DMode ? .white : .primary)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(is3DMode ? .blue : .gray)
+            
             // Toggle Statistics
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -161,57 +187,88 @@ struct SimulationView: View {
     private var simulationCanvas: some View {
         GeometryReader { geometry in
             ZStack {
-                Canvas { context, size in
-                    // Scale the simulation to fit the canvas
-                    let scaleX = size.width / simulationEngine.arena.bounds.width
-                    let scaleY = size.height / simulationEngine.arena.bounds.height
-                    let scale = min(scaleX, scaleY)
+                if is3DMode {
+                    // 🚀 EPIC 3D VISUALIZATION - TO INFINITY AND BEYOND!
+                    if let arena3D = arena3D {
+                        Arena3DView(
+                            arena3D: arena3D,
+                            bugs: simulationEngine.bugs,
+                            territories3D: simulationEngine.territoryManager.territories3D
+                        )
+                        .transition(.asymmetric(
+                            insertion: .scale.combined(with: .opacity),
+                            removal: .scale.combined(with: .opacity)
+                        ))
+                    } else {
+                        // Loading state for 3D mode
+                        VStack(spacing: 20) {
+                            ProgressView()
+                                .scaleEffect(2.0)
+                            Text("🚀 Generating Epic 3D World...")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                            Text("TO INFINITY AND BEYOND!")
+                                .font(.headline)
+                                .foregroundColor(.blue)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.8))
+                    }
+                } else {
+                    // 📊 CLASSIC 2D VISUALIZATION
+                    Canvas { context, size in
+                        // Scale the simulation to fit the canvas
+                        let scaleX = size.width / simulationEngine.arena3D.bounds.width
+                        let scaleY = size.height / simulationEngine.arena3D.bounds.height
+                        let scale = min(scaleX, scaleY)
+                        
+                        // Transform context to simulation coordinates
+                        context.scaleBy(x: scale, y: scale)
+                        
+                        // Draw arena terrain
+                        drawTerrain(context: context)
                     
-                                // Transform context to simulation coordinates
-                context.scaleBy(x: scale, y: scale)
-                
-                // Draw arena terrain
-                drawTerrain(context: context)
-            
-            // Draw resources
-            drawResources(context: context)
-            
-            // Draw construction sites
-            drawConstructionSites(context: context)
-            
-            // Draw tools
-            drawTools(context: context)
-            
-            // Draw food
-            drawFood(context: context)
-            
-            // Draw bugs
-            drawBugs(context: context)
-                
-                // Draw selected bug info
-                if let selected = selectedBug {
-                    drawBugInfo(context: context, bug: selected)
+                        // Draw resources
+                        drawResources(context: context)
+                        
+                        // Draw construction sites
+                        drawConstructionSites(context: context)
+                        
+                        // Draw tools
+                        drawTools(context: context)
+                        
+                        // Draw food
+                        drawFood(context: context)
+                        
+                        // Draw bugs
+                        drawBugs(context: context)
+                            
+                        // Draw selected bug info
+                        if let selected = selectedBug {
+                            drawBugInfo(context: context, bug: selected)
+                        }
+                    }
+                    .onTapGesture { location in
+                        selectBugNear(location, canvasSize: geometry.size)
+                    }
+                    .transition(.asymmetric(
+                        insertion: .opacity,
+                        removal: .opacity
+                    ))
+                    
+                    // Weather overlay effects
+                    WeatherOverlay(weatherManager: simulationEngine.weatherManager, canvasSize: geometry.size)
+                                    
+                    // Disaster overlay effects
+                    DisasterOverlay(disasterManager: simulationEngine.disasterManager, canvasSize: geometry.size)
+                    
+                    // Ecosystem overlay effects
+                    EcosystemOverlay(ecosystemManager: simulationEngine.ecosystemManager, canvasSize: geometry.size)
+                    
+                    // Territory overlay effects
+                    TerritoryOverlay(territoryManager: simulationEngine.territoryManager, speciationManager: simulationEngine.speciationManager, canvasSize: geometry.size)
                 }
             }
-            .onTapGesture { location in
-                selectBugNear(location, canvasSize: geometry.size)
-            }
-            
-                                            // Weather overlay effects
-                                WeatherOverlay(weatherManager: simulationEngine.weatherManager, canvasSize: geometry.size)
-                                
-                                                // Disaster overlay effects
-                DisasterOverlay(disasterManager: simulationEngine.disasterManager, canvasSize: geometry.size)
-                
-                // Ecosystem overlay effects
-                EcosystemOverlay(ecosystemManager: simulationEngine.ecosystemManager, canvasSize: geometry.size)
-                
-                // Territory overlay effects
-                TerritoryOverlay(territoryManager: simulationEngine.territoryManager, speciationManager: simulationEngine.speciationManager, canvasSize: geometry.size)
-                
-                // Neural Energy overlay effects
-                
-        }
         }
     }
     
@@ -219,7 +276,7 @@ struct SimulationView: View {
     
     private func drawTerrain(context: GraphicsContext) {
         // Draw terrain tiles
-        for row in simulationEngine.arena.tiles {
+        for row in simulationEngine.arena3D.get2DTiles() {
             for tile in row {
                 // Skip open terrain (black background)
                 guard tile.terrain != .open else { continue }
@@ -324,7 +381,7 @@ struct SimulationView: View {
             
             // Selection highlight and info (for selected bug)
             if bug.id == selectedBug?.id {
-                let terrainModifiers = simulationEngine.arena.movementModifiers(at: bug.position, for: bug.dna)
+                let terrainModifiers = simulationEngine.arena3D.movementModifiers(at: bug.position, for: bug.dna)
                 let effectiveVision = bug.dna.visionRadius * terrainModifiers.vision
                 
                 // Selection highlight - centered on bug (bright cyan to distinguish from orange construction sites)
@@ -382,8 +439,8 @@ struct SimulationView: View {
     }
     
     private func drawBugInfo(context: GraphicsContext, bug: Bug) {
-        let currentTerrain = simulationEngine.arena.terrainAt(bug.position)
-        let modifiers = simulationEngine.arena.movementModifiers(at: bug.position, for: bug.dna)
+        let currentTerrain = simulationEngine.arena3D.terrainAt(bug.position)
+        let modifiers = simulationEngine.arena3D.movementModifiers(at: bug.position, for: bug.dna)
         
         let infoText = """
         Gen: \(bug.generation) | Energy: \(String(format: "%.1f", bug.energy))
@@ -406,8 +463,8 @@ struct SimulationView: View {
     }
     
     private func drawTerrainInfo(context: GraphicsContext, bug: Bug, at position: CGPoint) {
-        let currentTerrain = simulationEngine.arena.terrainAt(position)
-        let modifiers = simulationEngine.arena.movementModifiers(at: position, for: bug.dna)
+        let currentTerrain = simulationEngine.arena3D.terrainAt(position)
+        let modifiers = simulationEngine.arena3D.movementModifiers(at: position, for: bug.dna)
         
         // Draw a small indicator showing terrain effects - positioned to the side of the bug
         let indicatorRect = CGRect(
@@ -590,8 +647,8 @@ struct SimulationView: View {
     
     private func selectBugNear(_ location: CGPoint, canvasSize: CGSize) {
         // Convert tap location from view coordinates to simulation coordinates
-        let scaleX = canvasSize.width / simulationEngine.arena.bounds.width
-        let scaleY = canvasSize.height / simulationEngine.arena.bounds.height
+        let scaleX = canvasSize.width / simulationEngine.arena3D.bounds.width
+        let scaleY = canvasSize.height / simulationEngine.arena3D.bounds.height
         let scale = min(scaleX, scaleY)
         
         // Transform tap coordinates to simulation space
@@ -741,13 +798,13 @@ struct SimulationView: View {
                     
                     Divider()
                     
-                    // Territory Information
-                    TerritoryStatusView(territoryManager: simulationEngine.territoryManager, speciationManager: simulationEngine.speciationManager)
+                    // Neural Energy Economics
+                    NeuralEnergyStatusView(bugs: simulationEngine.bugs)
                     
                     Divider()
                     
-                    // Neural Energy Economics
-                    NeuralEnergyStatusView(bugs: simulationEngine.bugs)
+                    // Territory Information
+                    TerritoryStatusView(territoryManager: simulationEngine.territoryManager, speciationManager: simulationEngine.speciationManager)
                 }
                 
                 if let selected = selectedBug {
@@ -1115,8 +1172,8 @@ struct SimulationView: View {
                         StatRow(label: "Age", value: "\(selected.age)")
                         StatRow(label: "Can Reproduce", value: selected.canReproduce(seasonalManager: simulationEngine.seasonalManager) ? "Yes" : "No")
                         
-                        let currentTerrain = simulationEngine.arena.terrainAt(selected.position)
-                        let modifiers = simulationEngine.arena.movementModifiers(at: selected.position, for: selected.dna)
+                        let currentTerrain = simulationEngine.arena3D.terrainAt(selected.position)
+                        let modifiers = simulationEngine.arena3D.movementModifiers(at: selected.position, for: selected.dna)
                         
                         Text("🌍 Current Environment")
                             .font(.subheadline)
@@ -1126,7 +1183,7 @@ struct SimulationView: View {
                         StatRow(label: "Terrain", value: currentTerrain.rawValue.capitalized)
                         StatRow(label: "Speed Modifier", value: String(format: "×%.2f", modifiers.speed))
                         StatRow(label: "Vision Modifier", value: String(format: "×%.2f", modifiers.vision))
-                        StatRow(label: "Energy Cost", value: String(format: "×%.2f", modifiers.energyCost))
+                        StatRow(label: "Energy Cost", value: String(format: "×%.2f", modifiers.energy))
                         StatRow(label: "Terrain Fitness", value: String(format: "%.1f", selected.dna.terrainFitness(for: currentTerrain)))
                     }
                 }

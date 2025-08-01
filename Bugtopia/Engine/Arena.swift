@@ -18,6 +18,10 @@ enum TerrainType: String, CaseIterable, Codable {
     case predator = "predator"   // Aggressive creatures lurk here
     case wind = "wind"           // Affects movement based on size
     case food = "food"           // Rich feeding areas
+    case forest = "forest"       // Dense vegetation, good for hiding
+    case sand = "sand"           // Desert terrain, affects movement
+    case ice = "ice"             // Slippery terrain, cold environment
+    case swamp = "swamp"         // Wet, muddy terrain
     
     /// Visual color for terrain rendering
     var color: Color {
@@ -30,6 +34,10 @@ enum TerrainType: String, CaseIterable, Codable {
         case .predator: return Color.red.opacity(0.3)
         case .wind: return Color.cyan.opacity(0.2)
         case .food: return Color.green.opacity(0.3)
+        case .forest: return Color.green.opacity(0.8)
+        case .sand: return Color.yellow.opacity(0.7)
+        case .ice: return Color.cyan.opacity(0.9)
+        case .swamp: return Color.brown.opacity(0.5)
         }
     }
     
@@ -61,6 +69,21 @@ enum TerrainType: String, CaseIterable, Codable {
             let windResistance = bug.size
             return max(0.4, min(1.2, windResistance.isFinite ? windResistance : 0.4))
         case .food: return 1.1 // Slightly faster in rich areas
+        case .forest:
+            // Camouflaged bugs move better through forests
+            return max(0.6, min(1.0, bug.camouflage.isFinite ? bug.camouflage : 0.6))
+        case .sand:
+            // Size affects movement in sand - medium sizes do best
+            let sandAbility = 1.0 - abs(bug.size - 0.5) * 0.8
+            return max(0.4, min(1.0, sandAbility.isFinite ? sandAbility : 0.4))
+        case .ice:
+            // Careful bugs with good efficiency do better on ice
+            let iceAbility = (bug.energyEfficiency + (2.0 - bug.speed)) / 2.0
+            return max(0.3, min(0.9, iceAbility.isFinite ? iceAbility : 0.3))
+        case .swamp:
+            // Strong bugs with good efficiency can navigate swamps
+            let swampAbility = (bug.strength + bug.energyEfficiency) / 2.0
+            return max(0.4, min(0.8, swampAbility.isFinite ? swampAbility : 0.4))
         }
     }
     
@@ -71,6 +94,10 @@ enum TerrainType: String, CaseIterable, Codable {
         case .hill: return 1.3 // Better view from high ground
         case .water: return 0.8 // Reflection interferes
         case .predator: return 0.9 // Stress reduces awareness
+        case .forest: return 0.6 // Dense vegetation blocks vision
+        case .sand: return 1.2 // Clear desert air improves vision
+        case .ice: return 1.1 // Reflective surface slightly improves vision
+        case .swamp: return 0.7 // Mist and vegetation reduce vision
         default: return 1.0
         }
     }
@@ -87,6 +114,14 @@ enum TerrainType: String, CaseIterable, Codable {
             result = 1.3 - (bug.size * 0.2) // Reduced from 1.5, more manageable
         case .predator:
             result = 1.4 - (bug.camouflage * 0.3) // Reduced from 1.8, less punishing
+        case .forest:
+            result = 1.2 - (bug.camouflage * 0.2) // Camouflaged bugs use less energy
+        case .sand:
+            result = 1.5 - (bug.energyEfficiency * 0.3) // Efficient bugs do better in sand
+        case .ice:
+            result = 1.6 - (bug.energyEfficiency * 0.4) // High energy cost, efficiency helps
+        case .swamp:
+            result = 1.7 - (bug.strength * 0.4) // Strong bugs handle swamps better
         default:
             result = 1.0
         }

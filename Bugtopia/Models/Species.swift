@@ -80,6 +80,28 @@ enum SpeciesType: String, CaseIterable, Codable, Equatable, Hashable {
             return true // Opportunistic
         }
     }
+    
+    /// 3D movement trait ranges for species-specific evolution
+    /// Returns (wingSpan, divingDepth, climbingGrip, altitudePreference) ranges
+    var movement3DRanges: (ClosedRange<Double>, ClosedRange<Double>, ClosedRange<Double>, ClosedRange<Double>) {
+        switch self {
+        case .herbivore:
+            // Ground-dwelling, some climbing for leaves, minimal flight/diving
+            return (0.0...0.4, 0.0...0.2, 0.2...0.8, -0.3...0.5)
+            
+        case .carnivore:
+            // Versatile hunters - good flight for aerial hunting, some diving
+            return (0.3...0.9, 0.1...0.6, 0.1...0.6, -0.2...0.8)
+            
+        case .omnivore:
+            // Most adaptable - moderate in all areas
+            return (0.1...0.7, 0.1...0.7, 0.2...0.7, -0.5...0.7)
+            
+        case .scavenger:
+            // Excellent fliers for finding carrion, good climbers for access
+            return (0.4...1.0, 0.0...0.4, 0.3...0.9, 0.0...1.0)
+        }
+    }
 }
 
 /// What different species can eat

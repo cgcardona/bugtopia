@@ -13,29 +13,32 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 
 ### ✨ What Makes It Revolutionary
 
-- **🧠 Evolvable Neural Networks**: Bugs grow deeper, more complex brains (3-10 layers) through structural evolution
-- **🦁 Predator-Prey Dynamics**: Four species types (herbivores, carnivores, omnivores, scavengers) in dynamic food webs
-- **🔧 Environmental Engineering**: Bugs create tools, modify terrain, and build infrastructure to solve problems
-- **🌍 Organic World Generation**: 7 unique world types with natural terrain patterns - no artificial borders
-- **🗣️ Social Intelligence**: Signal-based communication, pack hunting, and cooperative construction
-- **🧬 Advanced Genetics**: 23+ evolvable traits including AI, tools, communication, species behaviors, and neural energy economics
-- **🧬 Population Speciation**: Automatic species formation through reproductive isolation and genetic divergence
-- **🌦️ Dynamic Weather & Seasons**: Four seasons plus 6 weather types with real-time environmental effects and survival challenges
-- **🌋 Natural Disasters**: 4 catastrophic events (Floods, Earthquakes, Wildfires, Volcanic) that reshape terrain and drive evolutionary pressure
-- **🔄 Environmental Cycles**: Resource depletion, regeneration, carrying capacity, and ecosystem aging with population pressure dynamics
-- **🌍 Migration & Territoriality**: Population-based territory claiming, quality evaluation, migration triggers, and neural territorial awareness
-- **🧠 Neural Energy Economics**: Energy costs for neural networks with adaptive brain scaling, pruning, and growth based on environmental demands
-- **🤖 Emergent Intelligence**: Neural decision-making for movement, hunting, fleeing, building, and social interactions with energy-efficient brain evolution
-- **📊 Real-time Evolution**: Watch genetics, neural architecture, and population dynamics evolve simultaneously
-- **🎨 Beautiful Visualization**: Animated terrain, construction sites, tools, neural networks, and seasonal progress
+- **🌍 Full 3D Ecosystem**: Complete 3D world with procedural terrain generation, multi-layer environments, and realistic height maps
+- **🧠 3D Spatial Intelligence**: Bugs navigate underground caves, surface terrain, forest canopy, and aerial zones with layer-aware neural networks
+- **🕊️ Advanced 3D Movement**: Flying, swimming, climbing, and diving capabilities with species-specific 3D traits and physics
+- **🏔️ Procedural World Generation**: Multi-octave Perlin noise creates realistic biomes, climate zones, rivers, and cave systems
+- **🧠 Evolvable Neural Networks**: 71-input AI brains with 3D spatial awareness, terrain layer detection, and altitude preferences
+- **🦁 Predator-Prey Dynamics**: Four species types (herbivores, carnivores, omnivores, scavengers) in dynamic 3D food webs
+- **🔧 Environmental Engineering**: Bugs create tools, modify terrain, and build infrastructure in full 3D space
+- **🗣️ Social Intelligence**: Signal-based communication, pack hunting, and cooperative construction across multiple terrain layers
+- **🧬 Advanced 3D Genetics**: 28+ evolvable traits including 3D movement (wingSpan, divingDepth, climbingGrip, altitudePreference, pressureTolerance)
+- **🧬 Population Speciation**: Automatic species formation through reproductive isolation and 3D territorial genetic divergence
+- **🌦️ Dynamic Weather & Seasons**: Four seasons plus 6 weather types with real-time 3D environmental effects and survival challenges
+- **🌋 Natural Disasters**: 4 catastrophic events (Floods, Earthquakes, Wildfires, Volcanic) that reshape 3D terrain and drive evolutionary pressure
+- **🔄 Environmental Cycles**: Resource depletion, regeneration, carrying capacity, and ecosystem aging with 3D population pressure dynamics
+- **🌍 3D Migration & Territoriality**: Multi-layer territory claiming, vertical range management, and 3D neural territorial awareness
+- **🧠 Neural Energy Economics**: Energy costs for neural networks with adaptive brain scaling, pruning, and growth based on 3D environmental demands
+- **🤖 Emergent 3D Intelligence**: Neural decision-making for 3D movement, layer changes, altitude management, and spatial interactions
+- **📊 Real-time Evolution**: Watch genetics, neural architecture, and 3D population dynamics evolve simultaneously
+- **🎨 Stunning 3D Visualization**: Real-time SceneKit rendering with energy indicators, species differentiation, and immersive terrain
 
 ## 🎮 Features
 
-### 🧠 Artificial Intelligence Evolution
-- **Evolvable Neural Networks**: 3-10 layer networks with variable topology
-- **Structural Mutations**: Networks grow/shrink layers and change activation functions
-- **Smart Decision Making**: 50 sensory inputs (including seasonal, weather, disaster, ecosystem, and territorial awareness) → 8 behavioral outputs
-- **Emergent Behaviors**: Hunting strategies, fleeing patterns, exploration drives
+### 🧠 3D Artificial Intelligence Evolution
+- **Evolvable Neural Networks**: 3-10 layer networks with variable topology and 3D spatial awareness
+- **Structural Mutations**: Networks grow/shrink layers and change activation functions for 3D navigation
+- **3D Smart Decision Making**: 71 sensory inputs (including 3D spatial, terrain layers, altitude, movement capabilities) → 10 behavioral outputs
+- **3D Emergent Behaviors**: Layer-changing strategies, altitude preferences, 3D hunting patterns, vertical fleeing, spatial exploration
 
 ### 🦁 Predator-Prey Ecosystem
 - **Four Species Types**: Herbivores 🌱, Carnivores 🦁, Omnivores 🐺, Scavengers 🦅
@@ -57,11 +60,14 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Engineering Evolution**: 8 evolvable tool traits including crafting, proficiency, and collaboration
 - **Infrastructure Networks**: Tools persist across generations, creating technological heritage
 
-### 🌍 Organic World Generation
-- **7 World Types**: Continental, Archipelago, Canyon, Wetlands, Volcanic, Plains, Maze
-- **Natural Boundaries**: No forced edge walls - terrain flows organically to boundaries
-- **Spatial Correlation**: Multi-octave noise creates realistic terrain clustering
-- **Unique Experiences**: Different world type selected each app launch for variety
+### 🌍 3D Procedural World Generation
+- **7 3D World Types**: Continental, Archipelago, Canyon, Wetlands, Volcanic, Plains, Maze with full vertical complexity
+- **Multi-Layer Environments**: Underground caves, surface terrain, forest canopy, and aerial zones
+- **Advanced Terrain Generation**: Multi-octave Perlin noise creates realistic height maps, biomes, and climate zones
+- **Dynamic Terrain Features**: Rivers, cave systems, wind corridors, and erosion patterns
+- **Procedural Biomes**: Temperature and moisture-based biome generation with vegetation density
+- **Natural 3D Boundaries**: Terrain flows organically in all three dimensions
+- **Immersive 3D Visualization**: Real-time SceneKit rendering with realistic lighting and shadows
 
 ### 🧬 Population Dynamics & Speciation
 - **Automatic Population Tracking**: Bugs organized into genetically similar populations
@@ -71,15 +77,15 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Extinction & Migration Events**: Realistic population dynamics with bottlenecks and recolonization
 - **Real-time Speciation Monitoring**: Live tracking of active populations and recent evolutionary events
 
-### 🌍 Migration & Territoriality System
-- **Population-Based Territories**: Each population claims and defends its own territory
-- **Territory Quality Evaluation**: Resource abundance, safety, and carrying capacity assessment
-- **Migration Triggers**: Population pressure, resource scarcity, and disaster displacement
-- **Neural Territorial Awareness**: 4 new neural inputs (50 total) for territory-based decision making
-- **Distributed Territory Sizing**: Realistic territory sizes based on population size and arena distribution
-- **Territory Visualization**: Real-time territory overlays showing claimed areas and population boundaries
-- **Migration Patterns**: Seasonal migration, habitat selection, and population redistribution
-- **Territorial Competition**: Population conflicts, territory expansion, and boundary disputes
+### 🌍 3D Migration & Territoriality System
+- **Multi-Layer Territories**: Each population claims 3D territories across underground, surface, canopy, and aerial zones
+- **Vertical Range Management**: Territory bounds include height ranges and layer-specific quality assessments
+- **3D Territory Quality Evaluation**: Resource abundance, safety, carrying capacity, and vertical accessibility assessment
+- **Migration Triggers**: Population pressure, resource scarcity, disaster displacement, and layer-specific challenges
+- **3D Neural Territorial Awareness**: 12 territorial inputs (71 total) for multi-layer territory-based decision making
+- **Layer-Specific Territory Competition**: Population conflicts across different terrain layers with contested zones
+- **3D Migration Patterns**: Seasonal migration, multi-layer habitat selection, and vertical population redistribution
+- **Territorial Visualization**: Real-time 3D territory overlays showing claimed volumes and population boundaries
 
 ### 🌦️ Dynamic Weather & Seasonal System
 - **Four Seasons**: Spring (growth), Summer (abundance), Fall (preparation), Winter (scarcity)
@@ -101,42 +107,45 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Evolutionary Pressure**: Mass casualties drive rapid selection for disaster-resistant traits
 - **Migration Triggers**: Catastrophes force population movement and territorial redistribution
 
-### 🧬 Advanced Genetic System
+### 🧬 Advanced 3D Genetic System
 - **Core Traits**: Speed, Vision, Energy Efficiency, Size, Strength
-- **Neural Traits**: Network topology, weights, biases, activation functions  
-- **Behavioral Traits**: Memory, Stickiness, Camouflage, Curiosity, Aggression
-- **Communication Traits**: Signal strength, sensitivity, frequency, trust, social response
-- **Tool Traits**: Crafting, proficiency, vision, construction drive, carrying capacity, resource gathering
-- **Species Traits**: Hunting/defensive behaviors, metabolic rates, size modifiers
-- **Neural Energy Traits**: Energy efficiency, brain plasticity, pruning tendency
-- **Genetic Operations**: Crossover, mutation, structural evolution, selection pressure
-- **Multi-Modal Fitness**: Survival, reproduction, terrain adaptation, predator success, social cooperation, tool use, neural efficiency
+- **3D Movement Traits**: Wing span, diving depth, climbing grip, altitude preference, pressure tolerance
+- **Neural Traits**: Network topology, weights, biases, activation functions with 3D spatial processing
+- **Behavioral Traits**: Memory, Stickiness, Camouflage, Curiosity, Aggression, layer preferences
+- **Communication Traits**: Signal strength, sensitivity, frequency, trust, social response across terrain layers
+- **Tool Traits**: Crafting, proficiency, vision, construction drive, carrying capacity, resource gathering in 3D space
+- **Species Traits**: Hunting/defensive behaviors, metabolic rates, size modifiers, 3D movement capabilities
+- **Neural Energy Traits**: Energy efficiency, brain plasticity, pruning tendency, 3D processing costs
+- **Genetic Operations**: Crossover, mutation, structural evolution, 3D trait inheritance, selection pressure
+- **Multi-Modal 3D Fitness**: Survival, reproduction, 3D terrain adaptation, predator success, social cooperation, tool use, neural efficiency, layer mastery
 
-### 🌍 Environmental Arena
-| Terrain | Challenge | Adaptation Required |
-|---------|-----------|-------------------|
-| 🪨 **Walls** | Block movement | Memory + pathfinding |
-| 🌊 **Water** | Speed challenge | Fast movement + efficiency |
-| ⛰️ **Hills** | Climbing difficulty | Physical strength |
-| 🌫️ **Shadow** | Limited vision | Enhanced memory |
-| 🦁 **Predator** | Danger zones | Aggression or camouflage |
-| 💨 **Wind** | Movement disruption | Size and stability |
-| 🌱 **Food Zones** | Resource abundance | Exploration skills |
-| ⬛ **Open** | Normal terrain | Baseline traits |
+### 🌍 3D Environmental Arena
+| Terrain Layer | Challenge | 3D Adaptation Required |
+|---------------|-----------|----------------------|
+| 🕳️ **Underground** | Cave navigation | Climbing grip + pressure tolerance |
+| 🌊 **Water/Surface** | Swimming + terrain | Diving depth + efficiency |
+| 🌲 **Canopy** | Tree climbing | Wing span + climbing grip |
+| ☁️ **Aerial** | Flight dynamics | Wing span + altitude preference |
+| 🪨 **Walls** | 3D pathfinding | Memory + 3D navigation |
+| ⛰️ **Hills** | Vertical climbing | Physical strength + climbing grip |
+| 🌫️ **Shadow** | Limited vision | Enhanced memory + layer awareness |
+| 🦁 **Predator** | Multi-layer danger | Aggression + layer-changing ability |
+| 💨 **Wind** | 3D movement disruption | Size + stability + pressure tolerance |
+| 🌱 **Food Zones** | 3D resource abundance | 3D exploration + layer preferences |
 
-### 🎯 Emergent AI Behaviors
-- **Neural Decision Making**: AI-driven movement, hunting, fleeing, and construction decisions
-- **Environmental Engineering**: Analyzing terrain to decide optimal tool placement and construction
-- **Resource Management**: Strategic gathering, storage, and allocation for construction projects
-- **Cooperative Construction**: Multi-bug collaboration on large-scale building projects
-- **Infrastructure Planning**: Creating transportation networks and settlement optimization
-- **Tool Innovation**: Developing new construction techniques and tool usage strategies
-- **Predator-Prey Dynamics**: Stalking, ambushing, pack hunting, and escape strategies
-- **Communication Networks**: Signal-based information sharing about food, danger, and opportunities
-- **Social Hierarchies**: Leadership roles, specialization (scouts, guards, foragers, hunters, builders)
-- **Terrain Adaptation**: Dynamic speed/energy modifiers with species-specific advantages and tool assistance
-- **Technology Heritage**: Maintaining and improving tools across generations
-- **Adaptive Learning**: Neural networks develop specialized strategies over generations
+### 🎯 Emergent 3D AI Behaviors
+- **3D Neural Decision Making**: AI-driven 3D movement, layer changes, altitude management, hunting, fleeing, and construction
+- **Layer-Aware Engineering**: Analyzing 3D terrain to decide optimal tool placement across multiple layers
+- **3D Resource Management**: Strategic gathering, storage, and allocation for construction projects in 3D space
+- **Multi-Layer Construction**: Bug collaboration on large-scale building projects across terrain layers
+- **3D Infrastructure Planning**: Creating transportation networks and settlements optimized for vertical movement
+- **Spatial Tool Innovation**: Developing 3D construction techniques and layer-specific tool usage strategies
+- **3D Predator-Prey Dynamics**: Multi-layer stalking, aerial ambushing, underground hunting, and vertical escape strategies
+- **Layer-Spanning Communication**: Signal-based information sharing across terrain layers about food, danger, and opportunities
+- **3D Social Hierarchies**: Leadership roles with layer specialization (cave scouts, aerial guards, surface foragers, canopy hunters)
+- **Adaptive 3D Navigation**: Dynamic movement strategies with species-specific 3D advantages and layer preferences
+- **Vertical Territory Management**: Claiming and defending multi-layer territories with altitude-based strategies
+- **3D Adaptive Learning**: Neural networks develop specialized strategies for navigating complex 3D environments
 
 ### 📊 Advanced Analytics
 - **Neural Network Visualization**: Live topology, weights, and decision outputs for any bug
@@ -150,7 +159,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 
 ### Prerequisites
 - **Xcode 15.0+** with Swift 6.0 support
-- **macOS 14.0+** or **iOS 17.0+**
+- **macOS 14.0+** (3D visualization requires SceneKit)
 - Git for version control
 
 ### Installation
@@ -167,44 +176,46 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
    ```
 
 3. **Build and Run**
-   - Select your target device (Mac or iOS Simulator)
+   - Select your Mac target (3D mode requires macOS)
    - Press `⌘+R` to build and run
 
 ### Quick Start Guide
 
-1. **Launch the Simulation**: The arena auto-generates with 90 initial bugs across balanced species
-2. **Observe Evolution**: Watch bugs navigate terrain, seek food, and adapt to weather and seasonal changes
-3. **Inspect Individuals**: Click any bug to see its genetic traits, neural network, and environmental adaptations
-4. **Track Environment**: Monitor weather patterns, seasonal cycles, and their effects on population dynamics
-5. **Watch Generations**: Follow the generation progress bar to see evolutionary cycles unfold with weather challenges
-6. **Experiment**: Use pause/reset controls to study how different weather conditions affect evolutionary outcomes
+1. **Launch in 3D**: The app starts in immersive 3D mode with procedurally generated terrain and 50 initial bugs
+2. **Explore 3D World**: Navigate the camera to see underground caves, surface terrain, forest canopy, and aerial zones
+3. **Watch 3D Evolution**: Observe bugs flying, swimming, climbing, and diving as they adapt to multi-layer environments
+4. **Species Identification**: Green spheres (herbivores) vs red cubes (carnivores) with white energy indicators above each bug
+5. **3D Interactions**: Click any bug to see its 3D genetic traits, neural network, and layer preferences
+6. **Environmental Monitoring**: Watch weather patterns, seasonal cycles, and disasters affect 3D population dynamics
+7. **Toggle Views**: Use the "2D Mode" button to switch between immersive 3D and traditional 2D visualization
+8. **Layer Analysis**: Observe how different species dominate different terrain layers over evolutionary time
 
 ## 🏗️ Architecture
 
 ```
-🧬 Bugtopia Architecture
-├── 🌍 Arena System          # Organic world generation and terrain physics
-├── 🧠 AI Engine             # Neural networks and decision making
-├── 🗣️ Communication System  # Signal propagation and social behaviors
-├── 🦁 Species System        # Predator-prey dynamics and behaviors
-├── 🔧 Tool System           # Construction, resources, and environmental modification
-├── 🧬 Genetic Engine        # DNA, traits, and evolution
-├── 🐛 Bug Entities          # Individual organism AI, physics, and construction
-├── 🔄 Simulation Engine     # Population management and evolutionary cycles
-└── 🎨 Visualization Layer   # SwiftUI + Canvas rendering with construction sites
+🧬 Bugtopia 3D Architecture
+├── 🌍 3D Arena System       # Procedural 3D world generation with multi-layer terrain
+├── 🧠 3D AI Engine          # Neural networks with 3D spatial awareness (71 inputs)
+├── 🗣️ Communication System  # Signal propagation across terrain layers
+├── 🦁 Species System        # Predator-prey dynamics with 3D movement capabilities
+├── 🔧 Tool System           # Construction, resources, and 3D environmental modification
+├── 🧬 3D Genetic Engine     # DNA with 3D movement traits and spatial evolution
+├── 🐛 Bug Entities          # Individual organisms with 3D AI, physics, and layer navigation
+├── 🔄 Simulation Engine     # Population management and 3D evolutionary cycles
+└── 🎨 3D Visualization      # Real-time SceneKit rendering with immersive environments
 ```
 
 ### Core Components
 
-- **`Arena`**: Organic world generation with 7 world types and spatial correlation
-- **`NeuralNetwork`**: Evolvable AI brains with structural mutations
-- **`Communication`**: Signal system with 8 types and propagation physics
-- **`Species`**: Predator-prey types with hunting/defensive behaviors
-- **`Tools`**: Construction system with 8 tool types, resources, and blueprints
-- **`BugDNA`**: Genetic blueprint with 20+ traits including neural, communication, and tool genetics
-- **`Bug`**: Individual organism with AI decision-making, construction abilities, and social communication
-- **`SimulationEngine`**: Population dynamics, evolution, ecosystem management, construction, and resource economy
-- **`SimulationView`**: Real-time rendering with neural networks, construction sites, tools, and resource visualization
+- **`Arena3D`**: Advanced 3D world generation with procedural terrain, biomes, climate, and multi-layer environments
+- **`NeuralNetwork`**: Evolvable AI brains with 3D spatial awareness and 71-input sensory processing
+- **`Communication`**: Signal system with 8 types and propagation physics across terrain layers
+- **`Species`**: Predator-prey types with 3D movement capabilities and hunting/defensive behaviors
+- **`Tools`**: Construction system with 8 tool types, resources, and 3D spatial blueprints
+- **`BugDNA`**: Genetic blueprint with 28+ traits including 3D movement, neural, communication, and spatial genetics
+- **`Bug`**: Individual organism with 3D AI decision-making, layer navigation, and altitude management
+- **`SimulationEngine`**: Population dynamics, 3D evolution, ecosystem management, and multi-layer resource economy
+- **`Arena3DView`**: Real-time SceneKit rendering with immersive 3D environments, energy indicators, and species visualization
 
 ## 🧪 The Science
 
@@ -285,15 +296,20 @@ struct BugDNA {
 - [x] **🔄 Environmental Cycles**: Resource depletion, regeneration, and long-term ecosystem changes
 - [x] **🌍 Migration & Territoriality**: Population-based territories, migration patterns, and habitat selection with realistic distributed territory sizing
 
-### 🌟 ACTIVE: Phase 6.6 ⚡
+### ✅ COMPLETED: Phase 7.0 - 3D Revolution ✨
 - [x] **🧠 Neural Energy Economics**: Energy-based neural maintenance costs with intelligence vs efficiency trade-offs
 - [x] **🔬 Adaptive Brain Scaling**: Dynamic neural complexity based on environmental demands and resource availability
+- [x] **🌍 Full 3D Arena**: Complete 3D terrain with procedural generation, multi-layer environments, and realistic physics
+- [x] **🕊️ 3D Movement System**: Flying, swimming, climbing, diving with species-specific 3D capabilities
+- [x] **🧠 3D Neural Intelligence**: 71-input neural networks with spatial awareness and layer-specific decision making
+- [x] **🎨 Immersive 3D Visualization**: Real-time SceneKit rendering with energy indicators and species differentiation
+- [x] **🏔️ Advanced Terrain Generation**: Multi-octave Perlin noise, biomes, climate zones, rivers, caves, and wind corridors
 
 ### 🌟 Future Expansions
-- [ ] **3D Arena**: True 3D terrain with flight and underwater capabilities
 - [ ] **Quantum Behaviors**: Quantum-inspired neural network architectures
-- [ ] **Multiplayer Evolution**: Compete isolated populations across different worlds
-- [ ] **Real-World Integration**: Train on real environmental data
+- [ ] **Multiplayer Evolution**: Compete isolated populations across different 3D worlds
+- [ ] **Real-World Integration**: Train on real environmental data with 3D terrain mapping
+- [ ] **VR/AR Integration**: Immersive virtual reality exploration of evolved 3D ecosystems
 
 ## 🤝 Contributing
 
@@ -318,8 +334,9 @@ git push origin feature/amazing-new-trait
 ## 📚 Documentation
 
 ### System Documentation
-- **[🌍 Terrain System](docs/features/terrain-system.md)**: World generation, terrain types, and environmental challenges
-- **[🧠 Neural Network System](docs/features/neural-network-system.md)**: Evolvable AI brains and decision making
+- **[🌍 3D Arena System](docs/features/3d-arena-system.md)**: **NEW** - Advanced 3D world generation, multi-layer environments, and immersive visualization
+- **[🌍 Terrain System](docs/features/terrain-system.md)**: World generation, terrain types, and environmental challenges  
+- **[🧠 Neural Network System](docs/features/neural-network-system.md)**: Evolvable AI brains with 3D spatial awareness and decision making
 - **[🦁 Predator-Prey System](docs/features/predator-prey-system.md)**: Species interactions and hunting mechanics
 - **[🌦️ Weather & Seasons System](docs/features/weather-seasons-system.md)**: Environmental cycles and survival challenges
 - **[🧬 Genetic System](docs/features/genetic-system.md)**: DNA, mutations, and inheritance

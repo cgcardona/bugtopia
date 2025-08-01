@@ -21,10 +21,20 @@ class Bug: Identifiable, Hashable {
     
     // MARK: - Physical State
     
-    var position: CGPoint
-    var velocity: CGPoint
+    var position: CGPoint  // 2D position (for backward compatibility)
+    var position3D: Position3D  // 3D position (x, y, z coordinates)
+    var velocity: CGPoint  // 2D velocity (for backward compatibility)
+    var velocity3D: Position3D  // 3D velocity including vertical movement
     var energy: Double
     var age: Int
+    
+    // MARK: - 3D Movement Capabilities
+    
+    var currentLayer: TerrainLayer = .surface  // Current terrain layer
+    var canFly: Bool { return dna.wingSpan > 0.5 }  // Flight capability
+    var canSwim: Bool { return dna.divingDepth > 0.3 }  // Swimming capability  
+    var canClimb: Bool { return dna.climbingGrip > 0.4 }  // Climbing capability
+    var verticalMovementCooldown: Int = 0  // Cooldown for layer changes
     
     // MARK: - Neural Intelligence
     
@@ -139,8 +149,10 @@ class Bug: Identifiable, Hashable {
     init(dna: BugDNA, position: CGPoint, generation: Int = 0) {
         self.dna = dna
         self.position = position
+        self.position3D = Position3D(from: position, z: 10.0)  // Start at mid-surface level (surface is 0-20)
         self.generation = generation
         self.velocity = CGPoint.zero
+        self.velocity3D = Position3D(0, 0, 0)
         self.energy = Self.initialEnergy
         self.age = 0
         self.neuralNetwork = NeuralNetwork(dna: dna.neuralDNA)
@@ -148,6 +160,26 @@ class Bug: Identifiable, Hashable {
         self.reproductionCooldown = 0
         self.huntingCooldown = 0
         self.fleeingCooldown = 0
+    }
+    
+    /// Creates a bug with 3D positioning
+    init(dna: BugDNA, position3D: Position3D, generation: Int = 0) {
+        self.dna = dna
+        self.position = position3D.position2D
+        self.position3D = position3D
+        self.generation = generation
+        self.velocity = CGPoint.zero
+        self.velocity3D = Position3D(0, 0, 0)
+        self.energy = Self.initialEnergy
+        self.age = 0
+        self.neuralNetwork = NeuralNetwork(dna: dna.neuralDNA)
+        self.lastMovementTime = 0
+        self.reproductionCooldown = 0
+        self.huntingCooldown = 0
+        self.fleeingCooldown = 0
+        
+        // Set initial layer based on Z coordinate
+        self.currentLayer = TerrainLayer.allCases.first { $0.heightRange.contains(position3D.z) } ?? .surface
     }
     
     /// Creates a bug with random DNA at a random position
@@ -400,6 +432,8 @@ class Bug: Identifiable, Hashable {
         // Check if the proposed position is passable
         if arena.isPassable(proposedPosition, for: dna) {
             position = proposedPosition
+            // Update 3D position to keep in sync
+            updatePosition3D(Position3D(from: position, z: position3D.z))
         } else {
             // Neural network should learn to avoid walls, but provide basic collision
             velocity = CGPoint(x: velocity.x * -0.5, y: velocity.y * -0.5)
@@ -407,7 +441,15 @@ class Bug: Identifiable, Hashable {
         
         // Keep bug within arena bounds with bouncing behavior
         handleBoundaryCollisions(arena: arena)
+        
+        // Handle 3D movement and layer changes based on neural decision
+        handle3DMovement(decision: decision)
+        
+        // Keep bug within 3D terrain bounds (AFTER 3D movement to prevent falling through)
+        handle3DBoundaryCollisions()
     }
+    
+
     
     /// Updates predator and prey targets based on neural network decisions
     private func updatePredatorPreyTargets(otherBugs: [Bug]) {
@@ -676,6 +718,64 @@ class Bug: Identifiable, Hashable {
             let randomSpeed = Double.random(in: 0.3...0.8) * currentSpeed
             velocity.x += cos(randomAngle) * randomSpeed * 0.2 // Reduced randomization
             velocity.y += sin(randomAngle) * randomSpeed * 0.2
+        }
+    }
+    
+    /// Handles 3D boundary collisions to prevent bugs from falling through terrain
+    private func handle3DBoundaryCollisions() {
+        let minZ = -100.0  // Underground limit (matches TerrainLayer.underground.lowerBound)
+        let maxZ = 200.0   // Aerial limit (matches TerrainLayer.aerial.upperBound)
+        let damping = 0.7  // Energy loss on bounce
+        
+        // First, enforce absolute world bounds
+        if position3D.z < minZ {
+            let newPosition = Position3D(position3D.x, position3D.y, minZ + 1.0)  // Slightly above minimum
+            updatePosition3D(newPosition)
+            velocity3D.z = max(0, abs(velocity3D.z) * 0.5)  // Bounce up with reduced speed
+            energy -= 0.1  // Small energy penalty
+        } else if position3D.z > maxZ {
+            let newPosition = Position3D(position3D.x, position3D.y, maxZ - 1.0)  // Slightly below maximum
+            updatePosition3D(newPosition)
+            velocity3D.z = min(0, -abs(velocity3D.z) * 0.5)  // Bounce down with reduced speed
+            energy -= 0.1  // Small energy penalty
+        }
+        
+        // Second, ensure bugs stay within valid terrain layers based on their capabilities
+        let validLayer = TerrainLayer.allCases.first { $0.heightRange.contains(position3D.z) } ?? .surface
+        
+        // If bug is in a layer they can't access, move them to a safe layer
+        var shouldRelocate = false
+        switch validLayer {
+        case .underground:
+            shouldRelocate = !canSwim && !canClimb
+        case .aerial:
+            shouldRelocate = !canFly
+        case .canopy:
+            shouldRelocate = !canClimb && !canFly
+        case .surface:
+            shouldRelocate = false  // All bugs can access surface
+        }
+        
+        if shouldRelocate || validLayer != currentLayer {
+            // Find the best accessible layer for this bug
+            let accessibleLayers = TerrainLayer.allCases.filter { layer in
+                switch layer {
+                case .underground: return canSwim || canClimb
+                case .aerial: return canFly
+                case .canopy: return canClimb || canFly
+                case .surface: return true  // Always accessible
+                }
+            }
+            
+            // Choose the closest accessible layer, preferring surface
+            let targetLayer = accessibleLayers.contains(.surface) ? .surface : (accessibleLayers.first ?? .surface)
+            let targetZ = targetLayer.heightRange.lowerBound + 
+                         (targetLayer.heightRange.upperBound - targetLayer.heightRange.lowerBound) / 2
+            let correctedPosition = Position3D(position3D.x, position3D.y, targetZ)
+            updatePosition3D(correctedPosition)
+            
+            // Reset vertical velocity to prevent immediate re-collision
+            velocity3D.z = 0.0
         }
     }
     
@@ -1393,6 +1493,282 @@ class Bug: Identifiable, Hashable {
     static func == (lhs: Bug, rhs: Bug) -> Bool {
         return lhs.id == rhs.id
     }
+    
+    // MARK: - 3D Movement & Positioning
+    
+    /// Update 3D position maintaining 2D compatibility
+    func updatePosition3D(_ newPosition: Position3D) {
+        position3D = newPosition
+        position = newPosition.position2D  // Keep 2D position in sync
+        
+        // Update current layer based on Z coordinate
+        currentLayer = TerrainLayer.allCases.first { $0.heightRange.contains(newPosition.z) } ?? .surface
+    }
+    
+    /// Attempt to change terrain layer (fly up, dive down, etc.)
+    func attemptLayerChange(to targetLayer: TerrainLayer, in arena3D: Arena3D) -> Bool {
+        guard verticalMovementCooldown <= 0 else { return false }
+        
+        // Check if bug has the capability for this layer
+        switch targetLayer {
+        case .aerial:
+            guard canFly else { return false }
+        case .underground:
+            guard canSwim || canClimb else { return false }  // Swimming for underwater, climbing for caves
+        case .canopy:
+            guard canClimb || canFly else { return false }
+        case .surface:
+            break  // All bugs can access surface
+        }
+        
+        // Calculate energy cost for layer change
+        let layerDistance = abs(currentLayer.heightRange.lowerBound - targetLayer.heightRange.lowerBound)
+        let energyCost = layerDistance * 0.01 * (2.0 - dna.energyEfficiency)
+        
+        guard energy >= energyCost else { return false }
+        
+        // Find valid position in target layer
+        let targetZ = targetLayer.heightRange.lowerBound + 
+                     (targetLayer.heightRange.upperBound - targetLayer.heightRange.lowerBound) / 2
+        let targetPosition = Position3D(position3D.x, position3D.y, targetZ)
+        
+        if arena3D.isValidPosition(targetPosition) {
+            updatePosition3D(targetPosition)
+            energy -= energyCost
+            verticalMovementCooldown = 30  // 1 second cooldown at 30 FPS
+            return true
+        }
+        
+        return false
+    }
+    
+    /// Get preferred layer based on altitude preference and capabilities
+    func getPreferredLayer() -> TerrainLayer {
+        let preference = dna.altitudePreference
+        
+        // Map altitude preference to layers
+        if preference > 0.5 && canFly {
+            return .aerial
+        } else if preference > 0.0 && (canClimb || canFly) {
+            return .canopy
+        } else if preference < -0.5 && (canSwim || canClimb) {
+            return .underground
+        } else {
+            return .surface
+        }
+    }
+    
+    /// Calculate 3D movement speed based on current layer and capabilities
+    func getMovementSpeed3D() -> Double {
+        var baseSpeed = dna.speed
+        
+        // Layer-specific speed modifiers
+        switch currentLayer {
+        case .aerial:
+            if canFly {
+                baseSpeed *= 1.5  // Flying is faster
+            } else {
+                baseSpeed *= 0.1  // Can't really move in air without flight
+            }
+        case .underground:
+            if canSwim {
+                baseSpeed *= 0.8  // Swimming is slower
+            } else if canClimb {
+                baseSpeed *= 0.6  // Cave crawling is slow
+            } else {
+                baseSpeed *= 0.3  // Very difficult without proper adaptation
+            }
+        case .canopy:
+            if canClimb {
+                baseSpeed *= 1.2  // Good at tree movement
+            } else if canFly {
+                baseSpeed *= 1.3  // Flying through trees
+            } else {
+                baseSpeed *= 0.5  // Struggling in trees
+            }
+        case .surface:
+            baseSpeed *= 1.0  // Normal ground movement
+        }
+        
+        return baseSpeed
+    }
+    
+    /// Check if bug can interact with another bug in 3D space
+    func canInteract3D(with otherBug: Bug, maxDistance: Double = 30.0) -> Bool {
+        let distance3D = position3D.distance(to: otherBug.position3D)
+        return distance3D <= maxDistance
+    }
+    
+    /// Get 3D distance to a target position
+    func distance3D(to target: Position3D) -> Double {
+        return position3D.distance(to: target)
+    }
+    
+    /// Handle 3D movement based on neural network decisions
+    private func handle3DMovement(decision: BugOutputs) {
+        // Decrement vertical movement cooldown
+        verticalMovementCooldown = max(0, verticalMovementCooldown - 1)
+        
+        // Handle vertical movement (Z-axis) with capability restrictions
+        if abs(decision.moveZ) > 0.1 {
+            let verticalMovement = decision.moveZ * getMovementSpeed3D() * 0.3  // Much slower vertical movement
+            let proposedZ = position3D.z + verticalMovement
+            
+            // Check if the bug can actually move to this Z level based on capabilities
+            let targetLayer = TerrainLayer.allCases.first { $0.heightRange.contains(proposedZ) } ?? .surface
+            var canMoveToLayer = true
+            
+            switch targetLayer {
+            case .underground:
+                canMoveToLayer = canSwim || canClimb
+            case .aerial:
+                canMoveToLayer = canFly
+            case .canopy:
+                canMoveToLayer = canClimb || canFly
+            case .surface:
+                canMoveToLayer = true  // All bugs can access surface
+            }
+            
+            if canMoveToLayer && energy > 5.0 {  // Require minimum energy for vertical movement
+                // Keep within world bounds and apply the movement
+                let clampedZ = max(-99.0, min(199.0, proposedZ))  // Stay slightly within bounds
+                let newPosition3D = Position3D(position3D.x, position3D.y, clampedZ)
+                
+                // Update position and layer
+                updatePosition3D(newPosition3D)
+                
+                // Higher energy cost for vertical movement
+                energy -= abs(verticalMovement) * 0.05 * (2.0 - dna.energyEfficiency)
+            } else {
+                // Can't move vertically - reset vertical velocity to prevent accumulation
+                velocity3D.z = 0.0
+            }
+        }
+        
+        // Handle layer change desires
+        if decision.layerChange > 0.7 && verticalMovementCooldown <= 0 {
+            // Determine target layer based on neural preference and capabilities
+            let targetLayer = determineTargetLayer(decision: decision)
+            
+            if targetLayer != currentLayer {
+                // Create a 3D arena for layer change (this will need to be passed in later)
+                // For now, we'll simulate the layer change logic
+                attemptLayerChangeBasedOnNeural(to: targetLayer, decision: decision)
+            }
+        }
+    }
+    
+    /// Determine target layer based on neural decision and capabilities
+    private func determineTargetLayer(decision: BugOutputs) -> TerrainLayer {
+        // If bug wants to move up and can fly
+        if decision.moveZ > 0.5 && canFly {
+            return currentLayer == .surface ? .canopy : 
+                   currentLayer == .canopy ? .aerial : currentLayer
+        }
+        // If bug wants to move down and can swim/climb
+        else if decision.moveZ < -0.5 && (canSwim || canClimb) {
+            return currentLayer == .aerial ? .canopy :
+                   currentLayer == .canopy ? .surface :
+                   currentLayer == .surface ? .underground : currentLayer
+        }
+        // If bug prefers its genetically preferred layer
+        else if decision.layerChange > 0.5 {
+            return getPreferredLayer()
+        }
+        
+        return currentLayer  // Stay in current layer
+    }
+    
+    /// Attempt layer change based on neural decision (simplified version without Arena3D)
+    private func attemptLayerChangeBasedOnNeural(to targetLayer: TerrainLayer, decision: BugOutputs) {
+        // Check if bug has the capability for this layer
+        let canAccessLayer: Bool
+        switch targetLayer {
+        case .aerial:
+            canAccessLayer = canFly
+        case .underground:
+            canAccessLayer = canSwim || canClimb
+        case .canopy:
+            canAccessLayer = canClimb || canFly
+        case .surface:
+            canAccessLayer = true  // All bugs can access surface
+        }
+        
+        guard canAccessLayer else { return }
+        
+        // Calculate energy cost for layer change
+        let layerDistance = abs(currentLayer.heightRange.lowerBound - targetLayer.heightRange.lowerBound)
+        let energyCost = layerDistance * 0.01 * (2.0 - dna.energyEfficiency)
+        
+        guard energy >= energyCost else { return }
+        
+        // Move to target layer
+        let targetZ = targetLayer.heightRange.lowerBound + 
+                     (targetLayer.heightRange.upperBound - targetLayer.heightRange.lowerBound) / 2
+        let targetPosition = Position3D(position3D.x, position3D.y, targetZ)
+        
+        updatePosition3D(targetPosition)
+        energy -= energyCost
+        verticalMovementCooldown = 30  // 1 second cooldown at 30 FPS
+    }
+    
+    /// 3D boundary collision handling for Arena3D
+    private func handleBoundaryCollisions3D(arena3D: Arena3D) {
+        let buffer = visualRadius
+        let damping = 0.7
+        var bounced = false
+        
+        // Handle X boundaries
+        if position.x <= arena3D.bounds.minX + buffer {
+            position.x = arena3D.bounds.minX + buffer
+            if velocity.x < 0 {
+                velocity.x *= -damping
+                bounced = true
+            }
+        } else if position.x >= arena3D.bounds.maxX - buffer {
+            position.x = arena3D.bounds.maxX - buffer
+            if velocity.x > 0 {
+                velocity.x *= -damping
+                bounced = true
+            }
+        }
+        
+        // Handle Y boundaries
+        if position.y <= arena3D.bounds.minY + buffer {
+            position.y = arena3D.bounds.minY + buffer
+            if velocity.y < 0 {
+                velocity.y *= -damping
+                bounced = true
+            }
+        } else if position.y >= arena3D.bounds.maxY - buffer {
+            position.y = arena3D.bounds.maxY - buffer
+            if velocity.y > 0 {
+                velocity.y *= -damping
+                bounced = true
+            }
+        }
+        
+        if bounced {
+            energy -= 0.2
+            // Sync 3D position
+            updatePosition3D(Position3D(from: position, z: position3D.z))
+        }
+    }
+    
+    /// 3D edge proximity penalty
+    private func applyEdgeProximityPenalty3D(arena3D: Arena3D) {
+        let edgeDistance = min(
+            min(position.x - arena3D.bounds.minX, arena3D.bounds.maxX - position.x),
+            min(position.y - arena3D.bounds.minY, arena3D.bounds.maxY - position.y)
+        )
+        
+        if edgeDistance < 50.0 {
+            let proximityFactor = (50.0 - edgeDistance) / 50.0
+            energy -= proximityFactor * 0.05
+        }
+    }
+    
+
 }
 
 // MARK: - Extensions

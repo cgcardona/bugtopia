@@ -82,6 +82,7 @@ class EcosystemManager {
     private let baseCarryingCapacity: Int = 200
     private let depletionThreshold: Double = 0.7
     private let regenerationBoostFactor: Double = 2.0
+    private var worldBounds: CGRect?
     
     // MARK: - Initialization
     
@@ -92,6 +93,11 @@ class EcosystemManager {
     // MARK: - Core Functionality
     
     /// Reset ecosystem to initial state
+    /// Sets the world bounds for population density calculations
+    func setWorldBounds(_ bounds: CGRect) {
+        worldBounds = bounds
+    }
+    
     func reset() {
         resourceZones.removeAll()
         populationDensityGrid = Array(repeating: Array(repeating: 0.0, count: gridResolution), count: gridResolution)
@@ -155,10 +161,14 @@ class EcosystemManager {
         // Reset density grid
         populationDensityGrid = Array(repeating: Array(repeating: 0.0, count: gridResolution), count: gridResolution)
         
-        // Count bugs in each grid cell
+        // Count bugs in each grid cell - use actual world bounds instead of hardcoded values
+        guard let worldBounds = worldBounds else { return }
+        
         for bug in bugs {
-            let gridX = max(0, min(gridResolution - 1, Int(bug.position.x / 800.0 * Double(gridResolution))))
-            let gridY = max(0, min(gridResolution - 1, Int(bug.position.y / 600.0 * Double(gridResolution))))
+            let normalizedX = (bug.position.x - worldBounds.minX) / worldBounds.width
+            let normalizedY = (bug.position.y - worldBounds.minY) / worldBounds.height
+            let gridX = max(0, min(gridResolution - 1, Int(normalizedX * Double(gridResolution))))
+            let gridY = max(0, min(gridResolution - 1, Int(normalizedY * Double(gridResolution))))
             populationDensityGrid[gridY][gridX] += 1.0
         }
         

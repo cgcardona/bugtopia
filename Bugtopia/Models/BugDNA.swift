@@ -39,6 +39,23 @@ struct BugDNA: Codable, Hashable {
     /// Camouflage ability to avoid predators and threats (0.0 to 1.0)
     let camouflage: Double
     
+    // MARK: - 3D Movement Traits
+    
+    /// Wing span for flight capability (0.0 to 1.0, >0.5 enables flight)
+    let wingSpan: Double
+    
+    /// Diving depth tolerance for underwater movement (0.0 to 1.0, >0.3 enables swimming)
+    let divingDepth: Double
+    
+    /// Climbing grip for vertical surfaces (0.0 to 1.0, >0.4 enables climbing)
+    let climbingGrip: Double
+    
+    /// Altitude preference for layer selection (-1.0 to 1.0: underground to aerial)
+    let altitudePreference: Double
+    
+    /// Pressure tolerance for extreme depths/heights (0.0 to 1.0)
+    let pressureTolerance: Double
+    
     // MARK: - Behavioral Traits
     
     /// Aggression level affecting interactions (0.0 to 1.0)
@@ -150,6 +167,14 @@ struct BugDNA: Codable, Hashable {
             return (visionRadius * 0.01 + speed * 0.3 + curiosity * 0.4)
         case .open:
             return geneticFitness
+        case .forest:
+            return (camouflage * 0.5 + memory * 0.3 + curiosity * 0.2)
+        case .sand:
+            return (energyEfficiency * 0.4 + size * 0.3 + strength * 0.3)
+        case .ice:
+            return (energyEfficiency * 0.5 + (2.0 - speed) * 0.3 + stickiness * 0.2)
+        case .swamp:
+            return (strength * 0.4 + energyEfficiency * 0.4 + stickiness * 0.2)
         }
     }
     
@@ -158,7 +183,9 @@ struct BugDNA: Codable, Hashable {
     /// Creates DNA with specific trait values
     init(speed: Double, visionRadius: Double, energyEfficiency: Double, 
          size: Double, strength: Double, memory: Double, stickiness: Double,
-         camouflage: Double, aggression: Double, curiosity: Double,
+         camouflage: Double, wingSpan: Double, divingDepth: Double, climbingGrip: Double,
+         altitudePreference: Double, pressureTolerance: Double,
+         aggression: Double, curiosity: Double,
          neuralDNA: NeuralDNA, neuralEnergyEfficiency: Double, brainPlasticity: Double, neuralPruningTendency: Double,
          speciesTraits: SpeciesTraits, communicationDNA: CommunicationDNA, toolDNA: ToolDNA,
          colorHue: Double, colorSaturation: Double, colorBrightness: Double) {
@@ -170,6 +197,11 @@ struct BugDNA: Codable, Hashable {
         self.memory = max(0.1, min(1.2, memory))
         self.stickiness = max(0.3, min(1.3, stickiness))
         self.camouflage = max(0.0, min(1.0, camouflage))
+        self.wingSpan = max(0.0, min(1.0, wingSpan))
+        self.divingDepth = max(0.0, min(1.0, divingDepth))
+        self.climbingGrip = max(0.0, min(1.0, climbingGrip))
+        self.altitudePreference = max(-1.0, min(1.0, altitudePreference))
+        self.pressureTolerance = max(0.0, min(1.0, pressureTolerance))
         self.aggression = max(0.0, min(1.0, aggression))
         self.curiosity = max(0.0, min(1.0, curiosity))
         self.neuralDNA = neuralDNA
@@ -214,6 +246,11 @@ struct BugDNA: Codable, Hashable {
             memory: Double.random(in: 0.3...1.0),
             stickiness: Double.random(in: 0.5...1.1),
             camouflage: Double.random(in: 0.1...0.9),
+            wingSpan: Double.random(in: 0.0...1.0),
+            divingDepth: Double.random(in: 0.0...1.0),
+            climbingGrip: Double.random(in: 0.0...1.0),
+            altitudePreference: Double.random(in: -1.0...1.0),
+            pressureTolerance: Double.random(in: 0.0...1.0),
             aggression: Double.random(in: 0.2...0.8),
             curiosity: Double.random(in: 0.3...0.8),
             neuralDNA: NeuralDNA.random(),
@@ -231,6 +268,9 @@ struct BugDNA: Codable, Hashable {
     
     /// Creates random DNA for a specific species
     static func random(species: SpeciesType) -> BugDNA {
+        // Species-specific 3D trait tendencies
+        let (wingRange, divingRange, climbingRange, altitudeRange) = species.movement3DRanges
+        
         return BugDNA(
             speed: Double.random(in: 0.5...1.5),
             visionRadius: Double.random(in: 20...80),
@@ -240,6 +280,11 @@ struct BugDNA: Codable, Hashable {
             memory: Double.random(in: 0.3...1.0),
             stickiness: Double.random(in: 0.5...1.1),
             camouflage: Double.random(in: 0.1...0.9),
+            wingSpan: Double.random(in: wingRange),
+            divingDepth: Double.random(in: divingRange),
+            climbingGrip: Double.random(in: climbingRange),
+            altitudePreference: Double.random(in: altitudeRange),
+            pressureTolerance: Double.random(in: 0.0...1.0),
             aggression: Double.random(in: 0.2...0.8),
             curiosity: Double.random(in: 0.3...0.8),
             neuralDNA: NeuralDNA.random(),
@@ -269,6 +314,11 @@ struct BugDNA: Codable, Hashable {
             memory: Bool.random() ? parent1.memory : parent2.memory,
             stickiness: Bool.random() ? parent1.stickiness : parent2.stickiness,
             camouflage: Bool.random() ? parent1.camouflage : parent2.camouflage,
+            wingSpan: Bool.random() ? parent1.wingSpan : parent2.wingSpan,
+            divingDepth: Bool.random() ? parent1.divingDepth : parent2.divingDepth,
+            climbingGrip: Bool.random() ? parent1.climbingGrip : parent2.climbingGrip,
+            altitudePreference: Bool.random() ? parent1.altitudePreference : parent2.altitudePreference,
+            pressureTolerance: Bool.random() ? parent1.pressureTolerance : parent2.pressureTolerance,
             aggression: Bool.random() ? parent1.aggression : parent2.aggression,
             curiosity: Bool.random() ? parent1.curiosity : parent2.curiosity,
             neuralDNA: NeuralDNA.crossover(parent1.neuralDNA, parent2.neuralDNA),
@@ -303,6 +353,11 @@ struct BugDNA: Codable, Hashable {
             memory: mutate(memory, range: 0.1...1.2),
             stickiness: mutate(stickiness, range: 0.3...1.3),
             camouflage: mutate(camouflage, range: 0.0...1.0),
+            wingSpan: mutate(wingSpan, range: 0.0...2.0),
+            divingDepth: mutate(divingDepth, range: 0.0...2.0),
+            climbingGrip: mutate(climbingGrip, range: 0.0...2.0),
+            altitudePreference: mutate(altitudePreference, range: -1.0...1.0),
+            pressureTolerance: mutate(pressureTolerance, range: 0.0...2.0),
             aggression: mutate(aggression, range: 0.0...1.0),
             curiosity: mutate(curiosity, range: 0.0...1.0),
             neuralDNA: neuralDNA.mutated(mutationRate: mutationRate, mutationStrength: mutationStrength),

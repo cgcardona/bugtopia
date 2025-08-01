@@ -62,8 +62,8 @@ struct NeuralDNA: Codable, Hashable {
     
     // MARK: - Network Configuration
     
-    static let inputCount = 50  // 28 base + 6 weather + 6 disaster + 6 ecosystem + 4 territory inputs  // Sensory inputs (expanded for predator/prey + edge detection + seasonal + weather + disaster awareness)
-    static let outputCount = 8   // Motor outputs (expanded for hunting/fleeing)
+    static let inputCount = 71  // 20 base + 8 seasonal + 6 weather + 6 disaster + 6 ecosystem + 12 territory + 13 3D inputser awareness + 3D spatial awareness)
+    static let outputCount = 10  // Motor outputs (expanded for hunting/fleeing + 3D movement)
     static let maxHiddenLayers = 8    // Allow much deeper networks (up to 10 total layers!)
     static let maxNeuronsPerLayer = 32 // Allow wider networks for complex processing
     
@@ -445,10 +445,60 @@ struct BugSensors {
         let ecosystemInputs = ecosystemManager.ecosystemInputs
         inputs.append(contentsOf: ecosystemInputs)
         
-        // Territory awareness (4 inputs)
-        let territoryInputs = territoryManager.getTerritoryInputs(at: bug.position, for: bug.populationId)
+        // Territory awareness (12 inputs for 3D)
+        let territoryInputs = territoryManager.get3DTerritoryInputs(at: bug.position3D, for: bug.populationId)
         inputs.append(contentsOf: territoryInputs)
+        
+        // 3D SPATIAL AWARENESS - Critical for 3D navigation and layer selection
+        
+        // Current layer information (4 inputs - one-hot encoding)
+        inputs.append(bug.currentLayer == .underground ? 1.0 : 0.0)
+        inputs.append(bug.currentLayer == .surface ? 1.0 : 0.0)
+        inputs.append(bug.currentLayer == .canopy ? 1.0 : 0.0)
+        inputs.append(bug.currentLayer == .aerial ? 1.0 : 0.0)
+        
+        // Current altitude (normalized -1 to 1)
+        let normalizedAltitude = (bug.position3D.z - (-100.0)) / (200.0 - (-100.0)) * 2.0 - 1.0
+        inputs.append(max(-1.0, min(1.0, normalizedAltitude)))
+        
+        // 3D movement capabilities (3 inputs)
+        inputs.append(bug.canFly ? 1.0 : 0.0)
+        inputs.append(bug.canSwim ? 1.0 : 0.0)
+        inputs.append(bug.canClimb ? 1.0 : 0.0)
+        
+        // Preferred layer vs current layer match
+        let preferredLayer = bug.getPreferredLayer()
+        inputs.append(preferredLayer == bug.currentLayer ? 1.0 : 0.0)
+        
+        // Vertical movement cooldown (normalized)
+        let normalizedCooldown = Double(bug.verticalMovementCooldown) / 30.0  // 30 ticks max cooldown
+        inputs.append(max(0.0, min(1.0, normalizedCooldown)))
+        
+        // Layer-specific movement speed
+        let layerSpeed = bug.getMovementSpeed3D() / 2.0  // Normalize by max expected speed
+        inputs.append(max(0.0, min(1.0, layerSpeed)))
+        
+        // 3D food detection (if food exists in 3D space)
+        if let nearestFood = foods.min(by: { bug.distance(to: $0) < bug.distance(to: $1) }) {
+            // Vertical distance to food (assuming food is at surface level)
+            let foodPosition3D = Position3D(from: nearestFood, z: 0.0)  // Food at surface
+            let verticalDistance = abs(bug.position3D.z - foodPosition3D.z)
+            let normalizedVerticalDistance = min(1.0, verticalDistance / 200.0)  // Max height difference
+            inputs.append(normalizedVerticalDistance)
+            
+            // 3D distance vs 2D distance ratio (helps understand vertical relationships)
+            let distance3D = bug.distance3D(to: foodPosition3D)
+            let distance2D = bug.distance(to: nearestFood)
+            let distanceRatio = distance2D > 0 ? min(2.0, distance3D / distance2D) : 1.0
+            inputs.append(max(0.0, min(1.0, (distanceRatio - 1.0))))  // Normalize to 0-1
+        } else {
+            inputs.append(1.0)  // No food
+            inputs.append(0.0)  // No ratio
+        }
 
+        // Debug: Print actual input count
+        print("🧠 DEBUG: Generated \(inputs.count) inputs, expected 71")
+        
         return inputs
     }
 }
@@ -456,6 +506,8 @@ struct BugSensors {
 struct BugOutputs {
     let moveX: Double        // Desired X velocity (-1 to 1)
     let moveY: Double        // Desired Y velocity (-1 to 1)
+    let moveZ: Double        // Desired Z velocity (-1 to 1) - NEW 3D movement
+    let layerChange: Double  // Desire to change layers (0 to 1) - NEW 3D behavior
     let aggression: Double   // Aggressive behavior intensity (0 to 1)
     let exploration: Double  // Exploration vs exploitation (0 to 1)
     let social: Double       // Social seeking behavior (0 to 1)
@@ -466,12 +518,14 @@ struct BugOutputs {
     init(from outputs: [Double]) {
         moveX = outputs.count > 0 ? max(-1.0, min(1.0, outputs[0])) : 0.0
         moveY = outputs.count > 1 ? max(-1.0, min(1.0, outputs[1])) : 0.0
-        aggression = outputs.count > 2 ? max(0.0, min(1.0, outputs[2])) : 0.0
-        exploration = outputs.count > 3 ? max(0.0, min(1.0, outputs[3])) : 0.0
-        social = outputs.count > 4 ? max(0.0, min(1.0, outputs[4])) : 0.0
-        reproduction = outputs.count > 5 ? max(0.0, min(1.0, outputs[5])) : 0.0
-        hunting = outputs.count > 6 ? max(0.0, min(1.0, outputs[6])) : 0.0
-        fleeing = outputs.count > 7 ? max(0.0, min(1.0, outputs[7])) : 0.0
+        moveZ = outputs.count > 2 ? max(-1.0, min(1.0, outputs[2])) : 0.0
+        layerChange = outputs.count > 3 ? max(0.0, min(1.0, outputs[3])) : 0.0
+        aggression = outputs.count > 4 ? max(0.0, min(1.0, outputs[4])) : 0.0
+        exploration = outputs.count > 5 ? max(0.0, min(1.0, outputs[5])) : 0.0
+        social = outputs.count > 6 ? max(0.0, min(1.0, outputs[6])) : 0.0
+        reproduction = outputs.count > 7 ? max(0.0, min(1.0, outputs[7])) : 0.0
+        hunting = outputs.count > 8 ? max(0.0, min(1.0, outputs[8])) : 0.0
+        fleeing = outputs.count > 9 ? max(0.0, min(1.0, outputs[9])) : 0.0
     }
 }
 
