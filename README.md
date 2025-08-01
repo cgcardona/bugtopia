@@ -258,7 +258,7 @@ struct BugDNA {
 
 ## 🗺️ Roadmap
 
-### ✅ COMPLETED: Phase 1-6.3
+### ✅ COMPLETED: Phase 1-6.3 ✨
 - [x] **Evolvable Neural Networks**: Deep AI brains (3-10 layers) with structural evolution
 - [x] **Predator-Prey Ecosystem**: Four species with hunting/defensive behaviors
 - [x] **Advanced Genetics**: Neural + behavioral + physical trait evolution
@@ -267,9 +267,9 @@ struct BugDNA {
 - [x] **Speciation Events**: Population splitting, reproductive isolation, and dynamic species formation
 - [x] **🌦️ Seasonal System**: Dynamic four-season cycle with environmental effects and neural awareness
 - [x] **⛈️ Weather Patterns**: Six weather types with animated effects, survival challenges, and AI adaptation
-- [x] **🌋 Natural Disasters**: Floods, earthquakes, wildfires, volcanic eruptions reshaping terrain and driving evolution
+- [x] **🌋 Natural Disasters**: Floods, earthquakes, wildfires, volcanic eruptions with terrain reshaping and evolutionary pressure
 
-### 🚀 NEXT: Phase 6.4-7 (Current Development)
+### 🚀 ACTIVE: Phase 6.4 - Environmental Cycles (Current Development)
 - [ ] **🔄 Environmental Cycles**: Resource depletion, regeneration, and long-term ecosystem changes
 - [ ] **🌍 Migration Patterns**: Seasonal migration, territorial behaviors, and habitat selection
 - [ ] **🏛️ Civilization**: Cultural knowledge, technology, and multi-generational progress

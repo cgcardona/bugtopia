@@ -140,9 +140,8 @@ class Arena {
     init(bounds: CGRect, tileSize: CGSize = CGSize(width: 40, height: 40)) {
         self.bounds = bounds
         self.tileSize = tileSize
-        // Ensure tiles fit entirely within bounds - reduce by 1 to prevent clipping
-        self.gridWidth = max(1, Int(bounds.width / tileSize.width) - 1)
-        self.gridHeight = max(1, Int(bounds.height / tileSize.height) - 1)
+        self.gridWidth = Int(bounds.width / tileSize.width)
+        self.gridHeight = Int(bounds.height / tileSize.height)
         self.tiles = []
         
         // Seed random number generator with current time for unique worlds
@@ -159,9 +158,12 @@ class Arena {
         
         for row in 0..<gridHeight {
             for col in 0..<gridWidth {
+                // Position tiles to fit entirely within bounds
+                let cellWidth = bounds.width / Double(gridWidth)
+                let cellHeight = bounds.height / Double(gridHeight)
                 let position = CGPoint(
-                    x: bounds.minX + (Double(col) + 0.5) * tileSize.width,
-                    y: bounds.minY + (Double(row) + 0.5) * tileSize.height
+                    x: bounds.minX + Double(col) * cellWidth + cellWidth / 2,
+                    y: bounds.minY + Double(row) * cellHeight + cellHeight / 2
                 )
                 
                 let terrain = generateTerrainForPosition(row: row, col: col)
