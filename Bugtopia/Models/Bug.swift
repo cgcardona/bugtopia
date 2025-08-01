@@ -33,6 +33,7 @@ class Bug: Identifiable, Hashable {
     // MARK: - Behavioral State
     
     var targetFood: CGPoint?
+    var consumedFood: CGPoint?     // Food consumed this tick (for removal)
     var targetPrey: Bug?
     var predatorThreat: Bug?
     var lastMovementTime: TimeInterval
@@ -60,8 +61,8 @@ class Bug: Identifiable, Hashable {
     
     static let maxEnergy: Double = 100.0
     static let initialEnergy: Double = 80.0  // Increased from 50 to give more survival time
-    static let energyLossPerTick: Double = 0.15  // Reduced from 0.5 to 0.15 (4.5/sec instead of 15/sec)
-    static let reproductionThreshold: Double = 70.0
+    static let energyLossPerTick: Double = 0.12  // Further reduced to 0.12 (3.6/sec)
+    static let reproductionThreshold: Double = 55.0  // Reduced to make reproduction easier
     static let reproductionCost: Double = 20.0  // Reduced from 30 to encourage reproduction
     static let maxAge: Int = 1000
     static let huntingCooldownTime: Int = 30     // Ticks between hunting attempts
@@ -78,7 +79,7 @@ class Bug: Identifiable, Hashable {
     
     /// Whether the bug can reproduce
     var canReproduce: Bool {
-        return energy >= Self.reproductionThreshold && reproductionCooldown <= 0 && age > 50
+        return energy >= Self.reproductionThreshold && reproductionCooldown <= 0 && age > 30 // Reduced age requirement
     }
     
     /// Current movement speed based on DNA and energy
@@ -159,6 +160,9 @@ class Bug: Identifiable, Hashable {
         signalCooldown = max(0, signalCooldown - 1)
         constructionCooldown = max(0, constructionCooldown - 1)
         
+        // Clear consumed food marker from previous tick
+        consumedFood = nil
+        
         // Get terrain modifiers for current position
         let modifiers = arena.movementModifiers(at: position, for: dna)
         
@@ -177,8 +181,7 @@ class Bug: Identifiable, Hashable {
             )
             position.x += velocity.x
             position.y += velocity.y
-            position.x = max(arena.bounds.minX, min(arena.bounds.maxX, position.x))
-            position.y = max(arena.bounds.minY, min(arena.bounds.maxY, position.y))
+            handleBoundaryCollisions(arena: arena)
             energy = max(0, min(Self.maxEnergy, energy))
             return
         }
@@ -209,6 +212,9 @@ class Bug: Identifiable, Hashable {
         if dna.toolDNA.constructionDrive > 0.3 && constructionCooldown <= 0 {
             considerConstruction(in: arena, otherBugs: otherBugs)
         }
+        
+        // Edge proximity penalty - discourages clustering near boundaries
+        applyEdgeProximityPenalty(arena: arena)
         
         // Clamp energy
         energy = max(0, min(Self.maxEnergy, energy))
@@ -314,9 +320,8 @@ class Bug: Identifiable, Hashable {
             velocity = CGPoint(x: velocity.x * -0.5, y: velocity.y * -0.5)
         }
         
-        // Keep bug within arena bounds
-        position.x = max(arena.bounds.minX, min(arena.bounds.maxX, position.x))
-        position.y = max(arena.bounds.minY, min(arena.bounds.maxY, position.y))
+        // Keep bug within arena bounds with bouncing behavior
+        handleBoundaryCollisions(arena: arena)
     }
     
     /// Updates predator and prey targets based on neural network decisions
@@ -382,12 +387,14 @@ class Bug: Identifiable, Hashable {
                 let huntSuccess = calculateHuntSuccess(prey: closestPrey, huntingBehavior: huntingBehavior)
                 
                 if Double.random(in: 0...1) < huntSuccess {
-                    // Successful hunt!
+                    // Successful hunt! - FIXED: Energy conservation
                     let energyGained = min(dna.speciesTraits.huntEnergyGain, 50.0) // Cap energy gain
-                    energy += energyGained
+                    let actualEnergyTransfer = min(energyGained, closestPrey.energy) // Can't drain more than prey has
                     
-                    // Prey loses significant energy or dies
-                    closestPrey.energy -= energyGained * 0.8
+                    energy += actualEnergyTransfer
+                    
+                    // Prey loses EXACTLY what predator gains (no energy creation)
+                    closestPrey.energy -= actualEnergyTransfer
                     
                     huntingCooldown = Self.huntingCooldownTime
                 } else {
@@ -535,9 +542,97 @@ class Bug: Identifiable, Hashable {
             }
         }
         
-        // Keep bug within arena bounds
-        position.x = max(arena.bounds.minX, min(arena.bounds.maxX, position.x))
-        position.y = max(arena.bounds.minY, min(arena.bounds.maxY, position.y))
+        // Keep bug within arena bounds with bouncing behavior
+        handleBoundaryCollisions(arena: arena)
+    }
+    
+    /// Handles boundary collisions with proper bouncing physics
+    private func handleBoundaryCollisions(arena: Arena) {
+        let buffer = visualRadius // Small buffer to prevent edge sticking
+        let damping = 0.7 // Energy loss on bounce
+        var bounced = false
+        
+        // Handle X boundaries
+        if position.x <= arena.bounds.minX + buffer {
+            position.x = arena.bounds.minX + buffer
+            if velocity.x < 0 {
+                velocity.x *= -damping // Bounce with energy loss
+                bounced = true
+            }
+        } else if position.x >= arena.bounds.maxX - buffer {
+            position.x = arena.bounds.maxX - buffer
+            if velocity.x > 0 {
+                velocity.x *= -damping // Bounce with energy loss
+                bounced = true
+            }
+        }
+        
+        // Handle Y boundaries
+        if position.y <= arena.bounds.minY + buffer {
+            position.y = arena.bounds.minY + buffer
+            if velocity.y < 0 {
+                velocity.y *= -damping // Bounce with energy loss
+                bounced = true
+            }
+        } else if position.y >= arena.bounds.maxY - buffer {
+            position.y = arena.bounds.maxY - buffer
+            if velocity.y > 0 {
+                velocity.y *= -damping // Bounce with energy loss
+                bounced = true
+            }
+        }
+        
+        // Moderate energy penalty for hitting boundaries (discourages edge clustering)
+        if bounced {
+            energy -= 0.2 // Reduced energy cost for hitting walls
+            
+            // Add randomization to prevent getting stuck in corners
+            let randomAngle = Double.random(in: 0...(2 * Double.pi))
+            let randomSpeed = Double.random(in: 0.3...0.8) * currentSpeed
+            velocity.x += cos(randomAngle) * randomSpeed * 0.2 // Reduced randomization
+            velocity.y += sin(randomAngle) * randomSpeed * 0.2
+        }
+    }
+    
+    /// Applies energy penalty for being too close to world boundaries
+    private func applyEdgeProximityPenalty(arena: Arena) {
+        // Calculate distance to nearest edge
+        let edgeDistance = min(
+            min(position.x - arena.bounds.minX, arena.bounds.maxX - position.x),
+            min(position.y - arena.bounds.minY, arena.bounds.maxY - position.y)
+        )
+        
+        // Apply moderate penalties based on proximity to edges
+        if edgeDistance < 100.0 { // Within 100 pixels of edge (reduced range)
+            let proximityFactor = (100.0 - edgeDistance) / 100.0 // 0.0 to 1.0
+            let basePenalty = proximityFactor * 0.08 // Reduced to 0.08 energy loss per tick
+            energy -= basePenalty
+            
+            // Moderate penalty for bugs very close to edges
+            if edgeDistance < 30.0 {
+                energy -= 0.15 * proximityFactor // Reduced additional penalty
+                
+                // Gentle movement encouragement away from edges
+                if edgeDistance < 15.0 { // Only for bugs very close to edge
+                    let pushStrength = 0.3 // Reduced push strength
+                    let centerX = arena.bounds.midX
+                    let centerY = arena.bounds.midY
+                    
+                    // Safer division by zero check
+                    let deltaX = centerX - position.x
+                    let deltaY = centerY - position.y
+                    
+                    if abs(deltaX) > 0.1 {
+                        let pushX = (deltaX / abs(deltaX)) * pushStrength
+                        velocity.x += pushX * 0.05 // Gentler push
+                    }
+                    if abs(deltaY) > 0.1 {
+                        let pushY = (deltaY / abs(deltaY)) * pushStrength
+                        velocity.y += pushY * 0.05 // Gentler push
+                    }
+                }
+            }
+        }
     }
     
     /// Checks if bug is close enough to consume food
@@ -546,6 +641,9 @@ class Bug: Identifiable, Hashable {
               dna.speciesTraits.speciesType.canEatPlants else { return }
         
         if distance(to: target) < visualRadius {
+            // Mark this food as consumed so other bugs can't also eat it
+            consumedFood = target
+            
             // Consume food based on species
             let energyGain = dna.speciesTraits.plantEnergyGain
             energy += energyGain
@@ -555,12 +653,24 @@ class Bug: Identifiable, Hashable {
     
     /// Handles interactions with other bugs using neural network decisions
     private func handleBugInteractions(otherBugs: [Bug]) {
-        // Population pressure: too many bugs in small area causes stress
-        let nearbyBugs = otherBugs.filter { distance(to: $0.position) < 40.0 }
-        let crowdingStress = min(Double(nearbyBugs.count) * 0.1, 2.0) // Max 2.0 stress per tick
+        // Anti-clustering system: prevent energy-farming clusters
+        let nearbyBugs = otherBugs.filter { distance(to: $0.position) < 60.0 } // Slightly increased detection
         
-        if nearbyBugs.count > 8 { // Overcrowding threshold
-            energy -= crowdingStress
+        if nearbyBugs.count > 4 { // Lower threshold - start penalties earlier
+            // Progressive clustering penalty - gets severe with large clusters
+            let baseStress = Double(nearbyBugs.count - 4) * 0.15 // Increased penalty per bug
+            let clusterSize = nearbyBugs.count
+            
+            // Exponential penalty for large clusters to break them up
+            let exponentialMultiplier = clusterSize > 8 ? Double(clusterSize - 8) * 0.5 : 0.0
+            let totalStress = min(baseStress + exponentialMultiplier, 3.0) // Higher max penalty
+            
+            energy -= totalStress
+            
+            // Reproduction penalty for clustered bugs
+            if clusterSize > 8 { 
+                reproductionCooldown = max(reproductionCooldown, 40) // Longer penalty for clusters
+            }
         }
         guard let decision = lastDecision else { return }
         
@@ -617,9 +727,9 @@ class Bug: Identifiable, Hashable {
         energy -= Self.reproductionCost
         partner.energy -= Self.reproductionCost
         
-        // Set cooldown
-        reproductionCooldown = 100
-        partner.reproductionCooldown = 100
+        // Set shorter cooldown to encourage more reproduction
+        reproductionCooldown = 60  // Reduced from 100
+        partner.reproductionCooldown = 60
         
         return Bug(dna: childDNA, position: childPosition, generation: max(generation, partner.generation) + 1)
     }
@@ -633,20 +743,20 @@ class Bug: Identifiable, Hashable {
             // Predator zones are dangerous - lose energy unless well-adapted
             let survivalAbility = max(dna.aggression, dna.camouflage)
             if survivalAbility < 0.4 {
-                energy -= 0.5 // Reduced from 2.0 to 0.5
+                energy -= 0.3 // Further reduced to prevent excessive drain
             }
             
         case .shadow:
             // Shadow zones make bugs "lost" and consume extra energy unless they have good memory
             if dna.memory < 0.5 {
-                energy -= 0.2 // Reduced from 0.5 to 0.2
+                energy -= 0.1 // Further reduced
             }
             
         case .water:
             // Water is difficult to cross without proper adaptations
             let waterAbility = (dna.speed + (2.0 - dna.energyEfficiency)) / 2.0
             if waterAbility < 0.5 {
-                energy -= 0.5 // Reduced from 1.5 to 0.5
+                energy -= 0.3 // Further reduced
             }
             
         case .wind:
@@ -660,9 +770,9 @@ class Bug: Identifiable, Hashable {
             }
             
         case .food:
-            // Food-rich areas provide small, occasional energy bonuses
-            if Double.random(in: 0...1) < 0.05 { // Reduced from 30% to 5% chance per tick
-                energy += 1.0 // Reduced from 3.0 to 1.0 - more realistic bonus
+            // Food-rich areas provide generous, frequent energy bonuses
+            if Double.random(in: 0...1) < 0.12 { // Increased chance more
+                energy += 2.0 // Higher bonus to help sustain populations
             }
             
         default:

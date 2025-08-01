@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 /// Represents different types of terrain in the simulation arena
-enum TerrainType: String, CaseIterable {
+enum TerrainType: String, CaseIterable, Codable {
     case open = "open"           // Easy movement, no penalties
     case wall = "wall"           // Blocks movement completely
     case water = "water"         // Requires speed/efficiency to cross

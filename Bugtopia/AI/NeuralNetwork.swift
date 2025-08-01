@@ -62,7 +62,7 @@ struct NeuralDNA: Codable, Hashable {
     
     // MARK: - Network Configuration
     
-    static let inputCount = 16  // Sensory inputs (expanded for predator/prey)
+    static let inputCount = 20  // Sensory inputs (expanded for predator/prey + edge detection)
     static let outputCount = 8   // Motor outputs (expanded for hunting/fleeing)
     static let maxHiddenLayers = 8    // Allow much deeper networks (up to 10 total layers!)
     static let maxNeuronsPerLayer = 32 // Allow wider networks for complex processing
@@ -393,6 +393,23 @@ struct BugSensors {
             inputs.append(0.0)
             inputs.append(0.0)
         }
+        
+        // Edge proximity detection (helps neural networks learn edge avoidance)
+        let edgeDistanceX = min(bug.position.x - arena.bounds.minX, arena.bounds.maxX - bug.position.x)
+        let edgeDistanceY = min(bug.position.y - arena.bounds.minY, arena.bounds.maxY - bug.position.y)
+        let maxEdgeDistance = min(arena.bounds.width, arena.bounds.height) / 2.0
+        
+        // Normalized edge distances (0 = at edge, 1 = far from edge)
+        inputs.append(min(1.0, edgeDistanceX / maxEdgeDistance))
+        inputs.append(min(1.0, edgeDistanceY / maxEdgeDistance))
+        
+        // Direction to arena center (helps bugs navigate toward safer areas)
+        let centerX = arena.bounds.midX
+        let centerY = arena.bounds.midY
+        let centerDx = (centerX - bug.position.x) / arena.bounds.width
+        let centerDy = (centerY - bug.position.y) / arena.bounds.height
+        inputs.append(max(-1.0, min(1.0, centerDx)))
+        inputs.append(max(-1.0, min(1.0, centerDy)))
         
         // Current velocity (normalized)
         inputs.append(max(-1.0, min(1.0, bug.velocity.x / 10.0)))

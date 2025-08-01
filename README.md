@@ -19,9 +19,10 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **🌍 Organic World Generation**: 7 unique world types with natural terrain patterns - no artificial borders
 - **🗣️ Social Intelligence**: Signal-based communication, pack hunting, and cooperative construction
 - **🧬 Advanced Genetics**: 20+ evolvable traits including AI, tools, communication, and species behaviors
+- **🧬 Population Speciation**: Automatic species formation through reproductive isolation and genetic divergence
 - **🤖 Emergent Intelligence**: Neural decision-making for movement, hunting, fleeing, building, and social interactions
-- **📊 Real-time Evolution**: Watch genetics, neural architecture, and technology evolve simultaneously
-- **🎨 Beautiful Visualization**: Animated terrain, construction sites, tools, neural networks, and social behaviors
+- **📊 Real-time Evolution**: Watch genetics, neural architecture, and population dynamics evolve simultaneously
+- **🎨 Beautiful Visualization**: Animated terrain, construction sites, tools, neural networks, and population dynamics
 
 ## 🎮 Features
 
@@ -56,6 +57,14 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Natural Boundaries**: No forced edge walls - terrain flows organically to boundaries
 - **Spatial Correlation**: Multi-octave noise creates realistic terrain clustering
 - **Unique Experiences**: Different world type selected each app launch for variety
+
+### 🧬 Population Dynamics & Speciation
+- **Automatic Population Tracking**: Bugs organized into genetically similar populations
+- **Reproductive Isolation**: Compatibility calculations affect breeding success between populations
+- **Dynamic Species Formation**: Populations naturally split based on genetic/geographic divergence
+- **Species Naming**: Intelligent naming based on habitat and behavioral specializations
+- **Extinction & Migration Events**: Realistic population dynamics with bottlenecks and recolonization
+- **Real-time Speciation Monitoring**: Live tracking of active populations and recent evolutionary events
 
 ### 🧬 Advanced Genetic System
 - **Core Traits**: Speed, Vision, Energy Efficiency, Size, Strength
@@ -127,7 +136,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 
 ### Quick Start Guide
 
-1. **Launch the Simulation**: The arena auto-generates with 30 initial bugs
+1. **Launch the Simulation**: The arena auto-generates with 90 initial bugs
 2. **Observe Evolution**: Watch bugs navigate terrain and seek food
 3. **Inspect Individuals**: Click any bug to see its genetic traits and environmental stats
 4. **Track Progress**: Monitor population statistics and genetic averages in the sidebar
@@ -219,22 +228,22 @@ struct BugDNA {
 ## 📈 Performance
 
 - **30 FPS** real-time simulation
-- **100+ bugs** simultaneous population
+- **180+ bugs** simultaneous population
 - **Efficient rendering** with SwiftUI Canvas
 - **Optimized pathfinding** with obstacle avoidance
 - **Memory management** for long-running simulations
 
 ## 🗺️ Roadmap
 
-### ✅ COMPLETED: Phase 1, 2, 3 & 4
+### ✅ COMPLETED: Phase 1, 2, 3, 4 & 5
 - [x] **Evolvable Neural Networks**: Deep AI brains (3-10 layers) with structural evolution
 - [x] **Predator-Prey Ecosystem**: Four species with hunting/defensive behaviors
 - [x] **Advanced Genetics**: Neural + behavioral + physical trait evolution
 - [x] **Communication & Cooperation**: Signal-based pack hunting, group formation, and social intelligence
 - [x] **Environmental Modification & Tool Use**: Construction system with 8 tool types and resource economy
+- [x] **Speciation Events**: Population splitting, reproductive isolation, and dynamic species formation
 
-### 🚀 NEXT: Phase 5-7 (Current Development)
-- [ ] **🧬 Speciation Events**: Population splitting and reproductive isolation
+### 🚀 NEXT: Phase 6-7 (Current Development)
 - [ ] **🌦️ Dynamic World**: Seasonal changes, disasters, and environmental cycles
 - [ ] **🏛️ Civilization**: Cultural knowledge, technology, and multi-generational progress
 

@@ -270,7 +270,7 @@ struct SimulationView: View {
                 let terrainModifiers = simulationEngine.arena.movementModifiers(at: bug.position, for: bug.dna)
                 let effectiveVision = bug.dna.visionRadius * terrainModifiers.vision
                 
-                // Selection highlight - centered on bug
+                // Selection highlight - centered on bug (bright cyan to distinguish from orange construction sites)
                 let selectionSize = max(radius * 2.5, 20.0) // Minimum 20 pixels
                 let selectionRect = CGRect(
                     x: bug.position.x - selectionSize/2,
@@ -280,8 +280,8 @@ struct SimulationView: View {
                 )
                 context.stroke(
                     Path(roundedRect: selectionRect, cornerRadius: 4),
-                    with: .color(.yellow),
-                    lineWidth: 2.5
+                    with: .color(.cyan),
+                    style: StrokeStyle(lineWidth: 3.0, dash: [8, 4]) // Distinctive dashed pattern
                 )
                 
                 // Vision range circle
@@ -297,8 +297,7 @@ struct SimulationView: View {
                     lineWidth: 1.5
                 )
                 
-                // Show current terrain effect - positioned to the side
-                drawTerrainInfo(context: context, bug: bug, at: bug.position)
+                // Removed terrain info indicator - user requested only single selection square
             }
         }
     }
@@ -366,8 +365,8 @@ struct SimulationView: View {
             with: .color(currentTerrain.color.opacity(0.8))
         )
         
-        // Show speed modifier with color coding
-        let speedColor: Color = modifiers.speed > 1.0 ? .green : (modifiers.speed < 0.8 ? .red : .yellow)
+        // Show speed modifier with color coding (avoid yellow/orange to prevent confusion)
+        let speedColor: Color = modifiers.speed > 1.0 ? .green : (modifiers.speed < 0.8 ? .red : .white)
         context.stroke(
             Path(roundedRect: indicatorRect, cornerRadius: 3),
             with: .color(speedColor),
@@ -605,6 +604,38 @@ struct SimulationView: View {
                     
                     StatRow(label: "Energy", value: String(format: "%.1f", simulationEngine.statistics.averageEnergy))
                     StatRow(label: "Age", value: String(format: "%.0f", simulationEngine.statistics.averageAge))
+                    
+                    Divider()
+                    
+                    Text("🧬 Population Dynamics")
+                        .font(.headline)
+                        .padding(.bottom, 4)
+                    
+                    StatRow(label: "Active Populations", value: "\(simulationEngine.speciationManager.populations.count)")
+                    StatRow(label: "Viable Species", value: "\(simulationEngine.speciationManager.populations.filter { $0.isViableSpecies }.count)")
+                    
+                    if let largestPop = simulationEngine.speciationManager.populations.max(by: { $0.size < $1.size }) {
+                        StatRow(label: "Largest Pop Size", value: "\(largestPop.size)")
+                        StatRow(label: "Dominant Species", value: String(largestPop.name.prefix(25)))
+                        StatRow(label: "Species Age", value: "\(largestPop.age) gen")
+                    }
+                    
+                    // Recent speciation events
+                    let recentEvents = simulationEngine.speciationManager.getRecentEvents(limit: 2)
+                    if !recentEvents.isEmpty {
+                        Text("Recent Speciation Events:")
+                            .font(.subheadline)
+                            .foregroundColor(.purple)
+                            .padding(.top, 8)
+                        
+                        ForEach(recentEvents.indices, id: \.self) { index in
+                            Text("• \(recentEvents[index].description)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                                .padding(.leading, 8)
+                        }
+                    }
                 }
                 
                 if let selected = selectedBug {
@@ -618,7 +649,28 @@ struct SimulationView: View {
                         Text("\(selected.dna.speciesTraits.speciesType.emoji) \(selected.dna.speciesTraits.speciesType.rawValue.capitalized)")
                             .font(.subheadline)
                             .foregroundColor(selected.dna.speciesTraits.speciesType.baseColor)
-                            .fontWeight(.bold)
+                        
+                        // Population information
+                        if let population = simulationEngine.speciationManager.getPopulation(for: selected.id) {
+                            HStack {
+                                Text("🧬")
+                                    .font(.caption)
+                                Text("Population: \(String(population.name.prefix(20)))")
+                                    .font(.caption)
+                                    .foregroundColor(.purple)
+                            }
+                            StatRow(label: "Population Size", value: "\(population.size)")
+                            StatRow(label: "Population Age", value: "\(population.age) generations")
+                            if population.isViableSpecies {
+                                Text("✅ Viable Species")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                            } else {
+                                Text("⚠️ Small Population")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
                         
                         Text("🧬 Physical DNA")
                             .font(.subheadline)

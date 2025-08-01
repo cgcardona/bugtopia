@@ -30,10 +30,10 @@ class SimulationEngine {
     // MARK: - World Configuration
     
     let arena: Arena
-    private let maxPopulation = 60  // Reduced from 100 to prevent overcrowding
-    private let initialPopulation = 30
-    private let maxFoodItems = 200  // Increased from 150
-    private let foodSpawnRate = 0.3 // Reduced back to balanced rate
+    private let maxPopulation = 180  // Tripled for more genetic diversity and faster evolution
+    private let initialPopulation = 90   // Tripled initial population
+    private let maxFoodItems = 800  // Doubled to support much larger population (3x bugs need more food)
+    private let foodSpawnRate = 0.8 // Even higher spawn rate to sustain large population
     
     // MARK: - Evolution Parameters
     
@@ -141,6 +141,11 @@ class SimulationEngine {
         // Update populations and speciation
         speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: arena)
         
+        // Clean up old speciation events every 50 ticks to prevent memory buildup
+        if tickCount % 50 == 0 {
+            speciationManager.cleanupOldEvents()
+        }
+        
         // Update statistics
         updateStatistics()
         
@@ -149,8 +154,8 @@ class SimulationEngine {
             evolvePopulation()
         }
         
-        // Ensure minimum population
-        if bugs.count < 5 {
+        // Only repopulate if population is extremely critically low
+        if bugs.count < 2 { // Almost never repopulate - let natural selection work
             repopulateFromSurvivors()
         }
     }
@@ -231,7 +236,7 @@ class SimulationEngine {
         }
         
         let survivors = bugs.sorted { $0.energy > $1.energy }
-        let neededBugs = max(15, initialPopulation - bugs.count)
+        let neededBugs = max(10, (initialPopulation - bugs.count) / 2) // Less aggressive repopulation
         
         for _ in 0..<neededBugs {
             // Safe random parent selection with fallback to random DNA
@@ -255,7 +260,7 @@ class SimulationEngine {
     
     /// Determines if the current generation should end
     private func shouldEndGeneration() -> Bool {
-        return tickCount % generationLength == 0 || bugs.count < 3
+        return tickCount % generationLength == 0 || bugs.count < 2 // Allow much more natural population decline
     }
     
     /// Evolves the population to the next generation
@@ -360,9 +365,9 @@ class SimulationEngine {
     private func spawnInitialFood() {
         var newFoods: [CGPoint] = []
         
-        // Spawn food in designated food zones
+        // Spawn food in designated food zones (more generous)
         let foodTiles = arena.tilesOfType(.food)
-        for tile in foodTiles.prefix(maxFoodItems / 3) {
+        for tile in foodTiles.prefix(maxFoodItems / 2) { // Increased from 1/3 to 1/2
             let randomOffset = CGPoint(
                 x: Double.random(in: -15...15),
                 y: Double.random(in: -15...15)
@@ -374,14 +379,28 @@ class SimulationEngine {
             newFoods.append(foodPosition)
         }
         
-        // Spawn additional food in open areas
+        // Spawn additional food in open areas AND hills (hills can have scattered food)
         let openTiles = arena.tilesOfType(.open)
-        for _ in 0..<(maxFoodItems / 2) {
-            if let tile = openTiles.randomElement() {
+        let hillTiles = arena.tilesOfType(.hill)
+        let availableTiles = openTiles + hillTiles
+        for _ in 0..<(maxFoodItems * 2 / 3) { // Increased food spawning
+            if let tile = availableTiles.randomElement() {
                 let randomOffset = CGPoint(
                     x: Double.random(in: -20...20),
                     y: Double.random(in: -20...20)
                 )
+                
+                // Much more liberal food spawning - only avoid very close to edges
+                let minDistanceFromEdge = 30.0
+                let edgeDistance = min(
+                    min(tile.position.x - arena.bounds.minX, arena.bounds.maxX - tile.position.x),
+                    min(tile.position.y - arena.bounds.minY, arena.bounds.maxY - tile.position.y)
+                )
+                
+                // Only skip if extremely close to edge
+                if edgeDistance < minDistanceFromEdge {
+                    continue
+                }
                 let foodPosition = CGPoint(
                     x: tile.position.x + randomOffset.x,
                     y: tile.position.y + randomOffset.y
@@ -396,8 +415,8 @@ class SimulationEngine {
     /// Strategically spawns new food in appropriate areas
     private func spawnFood() {
         if foods.count < maxFoodItems && Double.random(in: 0...1) < foodSpawnRate {
-            // 60% chance to spawn in food zones, 40% chance in open areas
-            if Double.random(in: 0...1) < 0.6 {
+            // 50% chance to spawn in food zones, 50% chance in open/hill areas
+            if Double.random(in: 0...1) < 0.5 {
                 let foodTiles = arena.tilesOfType(.food)
                 if let tile = foodTiles.randomElement() {
                     let randomOffset = CGPoint(
@@ -412,30 +431,40 @@ class SimulationEngine {
                 }
             } else {
                 let openTiles = arena.tilesOfType(.open)
-                if let tile = openTiles.randomElement() {
-                    let randomOffset = CGPoint(
-                        x: Double.random(in: -20...20),
-                        y: Double.random(in: -20...20)
+                let hillTiles = arena.tilesOfType(.hill)
+                let availableTiles = openTiles + hillTiles
+                if let tile = availableTiles.randomElement() {
+                    // Much more liberal food spawning
+                    let minDistanceFromEdge = 30.0
+                    let edgeDistance = min(
+                        min(tile.position.x - arena.bounds.minX, arena.bounds.maxX - tile.position.x),
+                        min(tile.position.y - arena.bounds.minY, arena.bounds.maxY - tile.position.y)
                     )
-                    let newFood = CGPoint(
-                        x: tile.position.x + randomOffset.x,
-                        y: tile.position.y + randomOffset.y
-                    )
-                    foods.append(newFood)
+                    
+                    // Only spawn food if far enough from edges
+                    if edgeDistance >= minDistanceFromEdge {
+                        let randomOffset = CGPoint(
+                            x: Double.random(in: -20...20),
+                            y: Double.random(in: -20...20)
+                        )
+                        let newFood = CGPoint(
+                            x: tile.position.x + randomOffset.x,
+                            y: tile.position.y + randomOffset.y
+                        )
+                        foods.append(newFood)
+                    }
                 }
             }
         }
     }
     
-    /// Removes food that has been consumed
+    /// Removes food that has been consumed - FIXED: Only remove food that was actually consumed
     private func removeConsumedFood() {
+        let consumedFoodItems = Set(bugs.compactMap { $0.consumedFood })
+        
         foods.removeAll { food in
-            bugs.contains { bug in
-                let dx = bug.position.x - food.x
-                let dy = bug.position.y - food.y
-                let distance = sqrt(dx * dx + dy * dy)
-                return distance < bug.visualRadius
-            }
+            // Only remove if this specific food item was consumed by a bug
+            consumedFoodItems.contains(food)
         }
     }
     
@@ -587,7 +616,7 @@ class SimulationEngine {
     
     /// Spawns initial resource nodes around the arena
     private func spawnInitialResources() {
-        let resourceCount = 30 // Base number of resource nodes
+        let resourceCount = 90 // Tripled for larger population - more tools and construction
         
         for _ in 0..<resourceCount {
             let resourceType = ResourceType.allCases.randomElement() ?? .stick

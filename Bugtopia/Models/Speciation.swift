@@ -40,7 +40,7 @@ struct Population: Identifiable, Codable, Equatable, Hashable {
     
     /// Whether this population is large enough to be considered a stable species
     var isViableSpecies: Bool {
-        return size >= 8 && age >= 5 // Need sufficient size and time to establish
+        return size >= 5 && age >= 2 // Much more reasonable requirements
     }
     
     /// Add a bug to this population
@@ -190,7 +190,7 @@ struct BehavioralProfile: Codable, Equatable, Hashable {
         
         // These would be tracked over time in a full implementation
         // For now, estimate from genetic traits
-        huntingFrequency = bugs.filter { $0.dna.speciesTraits.speciesType.canHunt }.count / count
+        huntingFrequency = Double(bugs.filter { $0.dna.speciesTraits.speciesType.canHunt }.count) / count
         constructionActivity = bugs.map { $0.dna.toolDNA.constructionDrive }.reduce(0, +) / count
         socialCohesion = bugs.map { $0.dna.communicationDNA.socialResponseRate }.reduce(0, +) / count
         explorationDrive = bugs.map { $0.dna.curiosity }.reduce(0, +) / count
