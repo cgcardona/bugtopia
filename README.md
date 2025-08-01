@@ -315,6 +315,17 @@ git commit -m "Add heat resistance trait for lava terrain"
 git push origin feature/amazing-new-trait
 ```
 
+## 📚 Documentation
+
+### System Documentation
+- **[🌍 Terrain System](docs/features/terrain-system.md)**: World generation, terrain types, and environmental challenges
+- **[🧠 Neural Network System](docs/features/neural-network-system.md)**: Evolvable AI brains and decision making
+- **[🦁 Predator-Prey System](docs/features/predator-prey-system.md)**: Species interactions and hunting mechanics
+- **[🌦️ Weather & Seasons System](docs/features/weather-seasons-system.md)**: Environmental cycles and survival challenges
+- **[🧬 Genetic System](docs/features/genetic-system.md)**: DNA, mutations, and inheritance
+- **[🔨 Tool System](docs/features/tool-system.md)**: Construction, resources, and environmental modification
+- **[📊 GUI Interface System](docs/features/gui-interface-system.md)**: User interface, statistics panels, and visual indicators
+
 ## 📚 Technical Details
 
 ### Dependencies
