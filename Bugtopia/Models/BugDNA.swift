@@ -192,6 +192,12 @@ struct BugDNA: Codable, Hashable {
         )
     }
     
+    /// Creates completely random DNA (picks random species)
+    static func random() -> BugDNA {
+        let randomSpecies = SpeciesType.allCases.randomElement() ?? .herbivore
+        return random(species: randomSpecies)
+    }
+    
     /// Creates random DNA for a specific species
     static func random(species: SpeciesType) -> BugDNA {
         return BugDNA(
