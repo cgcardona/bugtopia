@@ -9,7 +9,7 @@
 
 ## 🌟 Overview
 
-Bugtopia is a cutting-edge evolutionary simulation where digital organisms with **evolvable neural networks** compete in complex predator-prey ecosystems. Watch as bugs develop artificial intelligence, hunt each other, and evolve increasingly sophisticated brains over generations—all through natural selection and genetic algorithms.
+Bugtopia is a cutting-edge evolutionary simulation where digital organisms with **evolvable neural networks** compete in complex predator-prey ecosystems. Watch as bugs develop artificial intelligence, hunt each other, and evolve increasingly sophisticated brains over generations—all while adapting to dynamic weather patterns and seasonal cycles through natural selection and genetic algorithms.
 
 ### ✨ What Makes It Revolutionary
 
@@ -20,7 +20,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **🗣️ Social Intelligence**: Signal-based communication, pack hunting, and cooperative construction
 - **🧬 Advanced Genetics**: 20+ evolvable traits including AI, tools, communication, and species behaviors
 - **🧬 Population Speciation**: Automatic species formation through reproductive isolation and genetic divergence
-- **🌦️ Dynamic Seasonal System**: Four seasons with environmental effects on food, energy, movement, and reproduction
+- **🌦️ Dynamic Weather & Seasons**: Four seasons plus 6 weather types with real-time environmental effects and survival challenges
 - **🤖 Emergent Intelligence**: Neural decision-making for movement, hunting, fleeing, building, and social interactions
 - **📊 Real-time Evolution**: Watch genetics, neural architecture, and population dynamics evolve simultaneously
 - **🎨 Beautiful Visualization**: Animated terrain, construction sites, tools, neural networks, and seasonal progress
@@ -30,7 +30,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 ### 🧠 Artificial Intelligence Evolution
 - **Evolvable Neural Networks**: 3-10 layer networks with variable topology
 - **Structural Mutations**: Networks grow/shrink layers and change activation functions
-- **Smart Decision Making**: 28 sensory inputs (including seasonal awareness) → 8 behavioral outputs
+- **Smart Decision Making**: 34 sensory inputs (including seasonal and weather awareness) → 8 behavioral outputs
 - **Emergent Behaviors**: Hunting strategies, fleeing patterns, exploration drives
 
 ### 🦁 Predator-Prey Ecosystem
@@ -67,13 +67,15 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Extinction & Migration Events**: Realistic population dynamics with bottlenecks and recolonization
 - **Real-time Speciation Monitoring**: Live tracking of active populations and recent evolutionary events
 
-### 🌦️ Dynamic Seasonal System
+### 🌦️ Dynamic Weather & Seasonal System
 - **Four Seasons**: Spring (growth), Summer (abundance), Fall (preparation), Winter (scarcity)
-- **Environmental Effects**: Seasonal modifiers for food spawn rates, energy drain, movement speed
+- **Six Weather Types**: Clear ☀️, Rain 🌧️, Drought 🏜️, Blizzard ❄️, Storm ⛈️, Fog 🌫️
+- **Environmental Effects**: Weather and seasonal modifiers for movement, vision, energy, food spawning, construction
+- **Survival Challenges**: Heat damage, cold damage, reduced visibility, movement penalties
 - **Reproductive Cycles**: Seasonal breeding patterns with temperature-based reproduction thresholds
-- **Construction Seasons**: Weather affects building efficiency and resource gathering rates
-- **Neural Seasonal Awareness**: 8 new neural inputs for seasonal decision-making
-- **Beautiful Progress Tracking**: Live seasonal progress bars and environmental effect displays
+- **Neural Weather Awareness**: 14 new neural inputs (8 seasonal + 6 weather) for environmental decision-making  
+- **Visual Weather Effects**: Animated rain, snow, fog overlays with lightning during storms
+- **Beautiful Progress Tracking**: Live seasonal and weather progress bars with survival advice
 
 ### 🧬 Advanced Genetic System
 - **Core Traits**: Speed, Vision, Energy Efficiency, Size, Strength
@@ -146,11 +148,11 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 ### Quick Start Guide
 
 1. **Launch the Simulation**: The arena auto-generates with 90 initial bugs across balanced species
-2. **Observe Evolution**: Watch bugs navigate terrain, seek food, and adapt to seasonal changes
-3. **Inspect Individuals**: Click any bug to see its genetic traits, neural network, and seasonal adaptations
-4. **Track Progress**: Monitor population statistics, genetic averages, and seasonal cycles in the sidebar
-5. **Watch Generations**: Follow the generation progress bar to see evolutionary cycles unfold
-6. **Experiment**: Use pause/reset controls to study different evolutionary outcomes
+2. **Observe Evolution**: Watch bugs navigate terrain, seek food, and adapt to weather and seasonal changes
+3. **Inspect Individuals**: Click any bug to see its genetic traits, neural network, and environmental adaptations
+4. **Track Environment**: Monitor weather patterns, seasonal cycles, and their effects on population dynamics
+5. **Watch Generations**: Follow the generation progress bar to see evolutionary cycles unfold with weather challenges
+6. **Experiment**: Use pause/reset controls to study how different weather conditions affect evolutionary outcomes
 
 ## 🏗️ Architecture
 
@@ -245,7 +247,7 @@ struct BugDNA {
 
 ## 🗺️ Roadmap
 
-### ✅ COMPLETED: Phase 1-5 & Phase 6.1
+### ✅ COMPLETED: Phase 1-6.2
 - [x] **Evolvable Neural Networks**: Deep AI brains (3-10 layers) with structural evolution
 - [x] **Predator-Prey Ecosystem**: Four species with hunting/defensive behaviors
 - [x] **Advanced Genetics**: Neural + behavioral + physical trait evolution
@@ -253,9 +255,9 @@ struct BugDNA {
 - [x] **Environmental Modification & Tool Use**: Construction system with 8 tool types and resource economy
 - [x] **Speciation Events**: Population splitting, reproductive isolation, and dynamic species formation
 - [x] **🌦️ Seasonal System**: Dynamic four-season cycle with environmental effects and neural awareness
+- [x] **⛈️ Weather Patterns**: Six weather types with animated effects, survival challenges, and AI adaptation
 
-### 🚀 NEXT: Phase 6.2-7 (Current Development)
-- [ ] **⛈️ Weather Patterns**: Rain storms, droughts, blizzards affecting survival and behavior
+### 🚀 NEXT: Phase 6.3-7 (Current Development)
 - [ ] **🌋 Natural Disasters**: Floods, earthquakes, fires that reshape terrain and population dynamics
 - [ ] **🔄 Environmental Cycles**: Resource depletion, regeneration, and long-term ecosystem changes
 - [ ] **🏛️ Civilization**: Cultural knowledge, technology, and multi-generational progress
