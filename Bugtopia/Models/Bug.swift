@@ -128,7 +128,23 @@ class Bug: Identifiable, Hashable {
         let terrainLoss = baseLoss * modifiers.energyCost
         energy -= terrainLoss
         
-        // Neural network decision making
+        // Performance optimization: Skip complex behaviors for very young bugs
+        if age < 10 {
+            // Simple movement for newborns
+            let safeSpeed = max(0.1, currentSpeed) // Ensure positive speed
+            velocity = CGPoint(
+                x: Double.random(in: -safeSpeed...safeSpeed),
+                y: Double.random(in: -safeSpeed...safeSpeed)
+            )
+            position.x += velocity.x
+            position.y += velocity.y
+            position.x = max(arena.bounds.minX, min(arena.bounds.maxX, position.x))
+            position.y = max(arena.bounds.minY, min(arena.bounds.maxY, position.y))
+            energy = max(0, min(Self.maxEnergy, energy))
+            return
+        }
+        
+        // Neural network decision making (with timeout protection)
         makeNeuralDecision(in: arena, foods: foods, otherBugs: otherBugs)
         
         // Execute decisions based on species and neural outputs
@@ -140,7 +156,7 @@ class Bug: Identifiable, Hashable {
             checkFoodConsumption(foods: foods)
         }
         
-        if dna.speciesTraits.speciesType.canHunt {
+        if dna.speciesTraits.speciesType.canHunt && huntingCooldown == 0 {
             handleHuntingBehavior(otherBugs: otherBugs)
         }
         
@@ -296,37 +312,40 @@ class Bug: Identifiable, Hashable {
     private func handleHuntingBehavior(otherBugs: [Bug]) {
         guard let huntingBehavior = dna.speciesTraits.huntingBehavior,
               let decision = lastDecision,
-              huntingCooldown == 0,
               decision.hunting > 0.5 else { return }
         
-        // Find nearby prey
-        let nearbyPrey = otherBugs.filter { other in
+        // Performance limit: Only check first 10 nearby bugs
+        let nearbyBugs = Array(otherBugs.prefix(10))
+        
+        // Find nearby prey with distance pre-filtering for performance
+        let nearbyPrey = nearbyBugs.filter { other in
             other.id != self.id &&
             other.isAlive &&
-            other.dna.speciesTraits.speciesType != self.dna.speciesTraits.speciesType &&
-            distance(to: other.position) < huntingBehavior.preyDetectionRange
+            other.dna.speciesTraits.speciesType != self.dna.speciesTraits.speciesType
+        }.filter { other in
+            distance(to: other.position) < min(huntingBehavior.preyDetectionRange, 100.0) // Cap detection range
         }
         
-        for prey in nearbyPrey {
-            let huntDistance = distance(to: prey.position)
+        // Only attempt hunting on closest prey
+        if let closestPrey = nearbyPrey.min(by: { distance(to: $0.position) < distance(to: $1.position) }) {
+            let huntDistance = distance(to: closestPrey.position)
             
             // Successful hunt if close enough and conditions are met
             if huntDistance < visualRadius * 0.5 {
-                let huntSuccess = calculateHuntSuccess(prey: prey, huntingBehavior: huntingBehavior)
+                let huntSuccess = calculateHuntSuccess(prey: closestPrey, huntingBehavior: huntingBehavior)
                 
                 if Double.random(in: 0...1) < huntSuccess {
                     // Successful hunt!
-                    let energyGained = dna.speciesTraits.huntEnergyGain
+                    let energyGained = min(dna.speciesTraits.huntEnergyGain, 50.0) // Cap energy gain
                     energy += energyGained
                     
                     // Prey loses significant energy or dies
-                    prey.energy -= energyGained * 0.8
+                    closestPrey.energy -= energyGained * 0.8
                     
                     huntingCooldown = Self.huntingCooldownTime
-                    break
                 } else {
                     // Failed hunt - energy cost
-                    energy -= huntingBehavior.huntingEnergyCost
+                    energy -= min(huntingBehavior.huntingEnergyCost, 10.0) // Cap energy loss
                     huntingCooldown = Self.huntingCooldownTime / 2
                 }
             }
@@ -581,8 +600,9 @@ class Bug: Identifiable, Hashable {
             if dna.size < 0.8 {
                 // Small bugs get blown around, affecting their movement
                 let windEffect = (1.0 - dna.size) * 0.3
-                velocity.x += Double.random(in: -windEffect...windEffect)
-                velocity.y += Double.random(in: -windEffect...windEffect)
+                            let safeWindEffect = max(0.1, abs(windEffect)) // Ensure positive wind effect
+            velocity.x += Double.random(in: -safeWindEffect...safeWindEffect)
+            velocity.y += Double.random(in: -safeWindEffect...safeWindEffect)
             }
             
         case .food:

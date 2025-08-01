@@ -354,9 +354,22 @@ class Arena {
         let maxAttempts = 50
         
         for _ in 0..<maxAttempts {
+            // Ensure valid spawn area bounds
+            let margin = min(50.0, min(bounds.width, bounds.height) / 4.0) // Adaptive margin
+            let minX = bounds.minX + margin
+            let maxX = bounds.maxX - margin
+            let minY = bounds.minY + margin
+            let maxY = bounds.maxY - margin
+            
+            // Ensure valid range (prevent lowerBound > upperBound)
+            let safeMinX = min(minX, maxX - 1)
+            let safeMaxX = max(maxX, minX + 1)
+            let safeMinY = min(minY, maxY - 1)
+            let safeMaxY = max(maxY, minY + 1)
+            
             let position = CGPoint(
-                x: Double.random(in: bounds.minX + 50...bounds.maxX - 50),
-                y: Double.random(in: bounds.minY + 50...bounds.maxY - 50)
+                x: Double.random(in: safeMinX...safeMaxX),
+                y: Double.random(in: safeMinY...safeMaxY)
             )
             
             let terrain = terrainAt(position)

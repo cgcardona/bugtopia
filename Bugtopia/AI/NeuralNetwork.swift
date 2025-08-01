@@ -64,8 +64,8 @@ struct NeuralDNA: Codable, Hashable {
     
     static let inputCount = 16  // Sensory inputs (expanded for predator/prey)
     static let outputCount = 8   // Motor outputs (expanded for hunting/fleeing)
-    static let maxHiddenLayers = 3
-    static let maxNeuronsPerLayer = 16
+    static let maxHiddenLayers = 8    // Allow much deeper networks (up to 10 total layers!)
+    static let maxNeuronsPerLayer = 32 // Allow wider networks for complex processing
     
     // MARK: - Initialization
     
@@ -83,8 +83,20 @@ struct NeuralDNA: Codable, Hashable {
         let hiddenLayerCount = Int.random(in: 1...maxHiddenLayers)
         var topology = [inputCount]
         
-        for _ in 0..<hiddenLayerCount {
-            topology.append(Int.random(in: 2...maxNeuronsPerLayer))
+        for i in 0..<hiddenLayerCount {
+            // Create more varied layer sizes - some narrow, some wide
+            let layerSize: Int
+            if i == 0 {
+                // First hidden layer can be wide for feature detection
+                layerSize = Int.random(in: 8...maxNeuronsPerLayer)
+            } else if i == hiddenLayerCount - 1 {
+                // Last hidden layer typically narrower before output
+                layerSize = Int.random(in: 4...16)
+            } else {
+                // Middle layers vary widely
+                layerSize = Int.random(in: 3...maxNeuronsPerLayer)
+            }
+            topology.append(layerSize)
         }
         topology.append(outputCount)
         
@@ -197,11 +209,37 @@ struct NeuralDNA: Codable, Hashable {
             }
         }
         
-        // Structural mutations (rare)
-        if Double.random(in: 0...1) < mutationRate * 0.1 {
-            // Potentially add/remove neurons or change activation functions
+        // Structural mutations (rare but powerful)
+        if Double.random(in: 0...1) < mutationRate * 0.05 { // 5% of mutation rate
+            // Major structural changes
+            
+            // Chance to add a hidden layer (network growth!)
+            if Double.random(in: 0...1) < 0.3 && newTopology.count < (Self.maxHiddenLayers + 2) {
+                let insertPosition = Int.random(in: 1..<(newTopology.count - 1)) // Don't insert before input or after output
+                let newLayerSize = Int.random(in: 3...16)
+                newTopology.insert(newLayerSize, at: insertPosition)
+                
+                // Add corresponding activation
+                let newActivation = ActivationType.allCases.randomElement() ?? .sigmoid
+                newActivations.insert(newActivation, at: insertPosition)
+                
+                // Recalculate weights and biases for new structure
+                return NeuralDNA.random() // For now, regenerate (in future could preserve some weights)
+            }
+            
+            // Chance to remove a hidden layer (network pruning)
+            if Double.random(in: 0...1) < 0.2 && newTopology.count > 3 { // Keep at least 1 hidden layer
+                let removePosition = Int.random(in: 1..<(newTopology.count - 1))
+                newTopology.remove(at: removePosition)
+                newActivations.remove(at: removePosition)
+                
+                // Recalculate weights and biases for new structure
+                return NeuralDNA.random() // For now, regenerate
+            }
+            
+            // Change activation functions
             for i in 1..<(newActivations.count - 1) { // Don't change input/output layers
-                if Double.random(in: 0...1) < 0.1 {
+                if Double.random(in: 0...1) < 0.2 {
                     newActivations[i] = ActivationType.allCases.randomElement() ?? newActivations[i]
                 }
             }
