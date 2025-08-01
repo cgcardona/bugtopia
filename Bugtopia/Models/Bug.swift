@@ -508,6 +508,13 @@ class Bug: Identifiable, Hashable {
     
     /// Handles interactions with other bugs using neural network decisions
     private func handleBugInteractions(otherBugs: [Bug]) {
+        // Population pressure: too many bugs in small area causes stress
+        let nearbyBugs = otherBugs.filter { distance(to: $0.position) < 40.0 }
+        let crowdingStress = min(Double(nearbyBugs.count) * 0.1, 2.0) // Max 2.0 stress per tick
+        
+        if nearbyBugs.count > 8 { // Overcrowding threshold
+            energy -= crowdingStress
+        }
         guard let decision = lastDecision else { return }
         
         for other in otherBugs {
@@ -606,9 +613,9 @@ class Bug: Identifiable, Hashable {
             }
             
         case .food:
-            // Food-rich areas provide small energy bonuses
-            if Double.random(in: 0...1) < 0.3 { // Increased from 10% to 30% chance per tick
-                energy += 3.0 // Increased from 2.0 to 3.0
+            // Food-rich areas provide small, occasional energy bonuses
+            if Double.random(in: 0...1) < 0.05 { // Reduced from 30% to 5% chance per tick
+                energy += 1.0 // Reduced from 3.0 to 1.0 - more realistic bonus
             }
             
         default:

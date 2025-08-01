@@ -24,10 +24,10 @@ class SimulationEngine {
     // MARK: - World Configuration
     
     let arena: Arena
-    private let maxPopulation = 100
+    private let maxPopulation = 60  // Reduced from 100 to prevent overcrowding
     private let initialPopulation = 30
     private let maxFoodItems = 200  // Increased from 150
-    private let foodSpawnRate = 0.5 // Increased from 0.3 to 0.5 (15 food/sec instead of 9)
+    private let foodSpawnRate = 0.3 // Reduced back to balanced rate
     
     // MARK: - Evolution Parameters
     
