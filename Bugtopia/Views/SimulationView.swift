@@ -29,16 +29,23 @@ struct SimulationView: View {
                     .background(Color(NSColor.controlBackgroundColor))
                 
                 HStack(spacing: 0) {
+                    // Left Statistics Panel (if shown)
+                    if showingStatistics {
+                        leftStatisticsPanel
+                            .frame(width: 280)
+                            .background(Color(NSColor.controlBackgroundColor))
+                    }
+                    
                     // Main Simulation Canvas
                     simulationCanvas
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(Color.black)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     
-                    // Statistics Panel (if shown)
+                    // Right Environmental Panel (if shown)
                     if showingStatistics {
-                        statisticsPanel
-                            .frame(width: 300)
+                        rightEnvironmentalPanel
+                            .frame(width: 280)
                             .background(Color(NSColor.controlBackgroundColor))
                     }
                 }
@@ -140,7 +147,7 @@ struct SimulationView: View {
                     showingStatistics.toggle()
                 }
             }) {
-                Image(systemName: showingStatistics ? "sidebar.right" : "sidebar.left")
+                Image(systemName: showingStatistics ? "sidebar.left.and.sidebar.right" : "rectangle.center.inset.filled")
                     .font(.title2)
             }
             .buttonStyle(.bordered)
@@ -600,7 +607,220 @@ struct SimulationView: View {
         }
     }
     
-    // MARK: - Statistics Panel
+    // MARK: - Statistics Panels
+    
+    private var leftStatisticsPanel: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Group {
+                    Text("📊 Population Statistics")
+                        .font(.headline)
+                        .padding(.bottom, 4)
+                    
+                    StatRow(label: "🐛 Total Bugs", value: "\(simulationEngine.statistics.totalBugs)")
+                    StatRow(label: "💚 Alive", value: "\(simulationEngine.statistics.aliveBugs)")
+                    StatRow(label: "🧬 Generation", value: "\(simulationEngine.statistics.currentGeneration)")
+                    StatRow(label: "🍎 Food Items", value: "\(simulationEngine.statistics.totalFood)")
+                    
+                    // Generation Progress Bar
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Generation Progress")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        let generationProgress = Double(simulationEngine.tickCount % simulationEngine.generationLength) / Double(simulationEngine.generationLength)
+                        ProgressView(value: generationProgress)
+                            .accentColor(.blue)
+                            .frame(height: 6)
+                        
+                        let ticksRemaining = simulationEngine.generationLength - (simulationEngine.tickCount % simulationEngine.generationLength)
+                        Text("\(ticksRemaining) ticks until generation \(simulationEngine.currentGeneration + 1)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 4)
+                    
+                    Divider()
+                    
+                    Text("🧬 Genetic Averages")
+                        .font(.headline)
+                        .padding(.bottom, 4)
+                    
+                    StatRow(label: "🏃 Speed", value: String(format: "%.2f", simulationEngine.statistics.averageSpeed))
+                    StatRow(label: "👁️ Vision", value: String(format: "%.1f", simulationEngine.statistics.averageVision))
+                    StatRow(label: "⚡ Efficiency", value: String(format: "%.2f", simulationEngine.statistics.averageEfficiency))
+                    StatRow(label: "⚔️ Aggression", value: String(format: "%.2f", simulationEngine.statistics.averageAggression))
+                    
+                    Divider()
+                    
+                    Text("🌍 Environmental Adaptations")
+                        .font(.headline)
+                        .padding(.bottom, 4)
+                    
+                    StatRow(label: "💪 Strength", value: String(format: "%.2f", simulationEngine.statistics.averageStrength))
+                    StatRow(label: "🧠 Memory", value: String(format: "%.2f", simulationEngine.statistics.averageMemory))
+                    StatRow(label: "🕷️ Stickiness", value: String(format: "%.2f", simulationEngine.statistics.averageStickiness))
+                    StatRow(label: "🫥 Camouflage", value: String(format: "%.2f", simulationEngine.statistics.averageCamouflage))
+                    StatRow(label: "🔍 Curiosity", value: String(format: "%.2f", simulationEngine.statistics.averageCuriosity))
+                    
+                    Divider()
+                    
+                    Text("📈 Current Averages")
+                        .font(.headline)
+                        .padding(.bottom, 4)
+                    
+                    StatRow(label: "⚡ Energy", value: String(format: "%.1f", simulationEngine.statistics.averageEnergy))
+                    StatRow(label: "📅 Age", value: String(format: "%.0f", simulationEngine.statistics.averageAge))
+                    
+                    Divider()
+                    
+                    Text("🧬 Population Dynamics")
+                        .font(.headline)
+                        .padding(.bottom, 4)
+                    
+                    StatRow(label: "Active Populations", value: "\(simulationEngine.speciationManager.populations.count)")
+                    StatRow(label: "Viable Species", value: "\(simulationEngine.speciationManager.populations.filter { $0.isViableSpecies }.count)")
+                    
+                    if let largestPop = simulationEngine.speciationManager.populations.max(by: { $0.size < $1.size }) {
+                        StatRow(label: "Largest Pop Size", value: "\(largestPop.size)")
+                        StatRow(label: "Dominant Species", value: String(largestPop.name.prefix(25)))
+                        StatRow(label: "Species Age", value: "\(largestPop.age) gen")
+                    }
+                    
+                    // Recent speciation events
+                    let recentEvents = simulationEngine.speciationManager.getRecentEvents(limit: 2)
+                    if !recentEvents.isEmpty {
+                        Text("Recent Speciation Events:")
+                            .font(.subheadline)
+                            .foregroundColor(.purple)
+                            .padding(.top, 8)
+                        
+                        ForEach(recentEvents.indices, id: \.self) { index in
+                            Text("• \(recentEvents[index].description)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                                .padding(.leading, 8)
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
+    }
+    
+    private var rightEnvironmentalPanel: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Group {
+                    // Seasonal Information
+                    SeasonalStatusView(seasonalManager: simulationEngine.seasonalManager)
+                    
+                    Divider()
+                    
+                    // Weather Information
+                    WeatherStatusView(weatherManager: simulationEngine.weatherManager)
+                    
+                    Divider()
+                    
+                    // Disaster Information
+                    DisasterStatusView(disasterManager: simulationEngine.disasterManager)
+                    
+                    Divider()
+                    
+                    // Ecosystem Health Information
+                    EcosystemStatusView(ecosystemManager: simulationEngine.ecosystemManager)
+                }
+                
+                if let selected = selectedBug {
+                    Divider()
+                    
+                    Text("Selected Bug")
+                        .font(.headline)
+                        .padding(.bottom, 4)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("\(selected.dna.speciesTraits.speciesType.emoji) \(selected.dna.speciesTraits.speciesType.rawValue.capitalized)")
+                            .font(.subheadline)
+                            .foregroundColor(selected.dna.speciesTraits.speciesType.baseColor)
+                        
+                        // Population information
+                        if let population = simulationEngine.speciationManager.getPopulation(for: selected.id) {
+                            HStack {
+                                Text("🧬")
+                                    .font(.caption)
+                                Text("Population: \(String(population.name.prefix(20)))")
+                                    .font(.caption)
+                                    .foregroundColor(.purple)
+                            }
+                            StatRow(label: "Population Size", value: "\(population.size)")
+                            StatRow(label: "Population Age", value: "\(population.age) generations")
+                            if population.isViableSpecies {
+                                Text("✅ Viable Species")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                            } else {
+                                Text("⚠️ Small Population")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        
+                        Text("🧬 Physical DNA")
+                            .font(.subheadline)
+                            .padding(.top, 4)
+                        
+                        StatRow(label: "🏃 Speed", value: String(format: "%.2f", selected.dna.speed))
+                        StatRow(label: "👁️ Vision", value: String(format: "%.1f", selected.dna.visionRadius))
+                        StatRow(label: "⚡ Efficiency", value: String(format: "%.2f", selected.dna.energyEfficiency))
+                        StatRow(label: "📏 Size", value: String(format: "%.2f", selected.dna.size))
+                        StatRow(label: "💪 Strength", value: String(format: "%.2f", selected.dna.strength))
+                        StatRow(label: "🧠 Memory", value: String(format: "%.2f", selected.dna.memory))
+                        StatRow(label: "🕷️ Stickiness", value: String(format: "%.2f", selected.dna.stickiness))
+                        StatRow(label: "⚔️ Aggression", value: String(format: "%.2f", selected.dna.aggression))
+                        StatRow(label: "🫥 Camouflage", value: String(format: "%.2f", selected.dna.camouflage))
+                        StatRow(label: "🔍 Curiosity", value: String(format: "%.2f", selected.dna.curiosity))
+                        StatRow(label: "Can Reproduce", value: selected.canReproduce(seasonalManager: simulationEngine.seasonalManager) ? "Yes" : "No")
+                        
+                        Text("⚡ Current Status")
+                            .font(.subheadline)
+                            .padding(.top, 4)
+                        
+                        StatRow(label: "💚 Energy", value: String(format: "%.1f", selected.energy))
+                        StatRow(label: "📅 Age", value: "\(selected.age)")
+                        StatRow(label: "📍 Position", value: "(\(Int(selected.position.x)), \(Int(selected.position.y)))")
+                        
+                        Text("🧠 Neural Intelligence")
+                            .font(.subheadline)
+                            .padding(.top, 4)
+                        
+                        StatRow(label: "Intelligence", value: String(format: "%.1f", selected.dna.geneticFitness * 100))
+                        StatRow(label: "Generation", value: "\(selected.generation)")
+                        StatRow(label: "Bug ID", value: String(selected.id.uuidString.prefix(8)))
+                        
+                        // Recent neural outputs
+                        if let lastDecision = selected.lastDecision {
+                            Text("🎯 Last Decision")
+                                .font(.subheadline)
+                                .padding(.top, 4)
+                            
+                            StatRow(label: "Move X", value: String(format: "%.2f", lastDecision.moveX))
+                            StatRow(label: "Move Y", value: String(format: "%.2f", lastDecision.moveY))
+                            StatRow(label: "Aggression", value: String(format: "%.2f", lastDecision.aggression))
+                            StatRow(label: "Exploration", value: String(format: "%.2f", lastDecision.exploration))
+                            StatRow(label: "Social", value: String(format: "%.2f", lastDecision.social))
+                            StatRow(label: "Reproduction", value: String(format: "%.2f", lastDecision.reproduction))
+                            StatRow(label: "Hunting", value: String(format: "%.2f", lastDecision.hunting))
+                            StatRow(label: "Fleeing", value: String(format: "%.2f", lastDecision.fleeing))
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
+    }
+    
+    // MARK: - Legacy Statistics Panel (kept for reference)
     
     private var statisticsPanel: some View {
         ScrollView {

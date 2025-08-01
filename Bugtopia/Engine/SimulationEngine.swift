@@ -41,7 +41,7 @@ class SimulationEngine {
     
     // MARK: - Evolution Parameters
     
-    let generationLength = 2000 // Ticks per generation (public for UI)
+    let generationLength = 500 // Ticks per generation (public for UI)
     private let survivalRate = 0.3 // Fraction that survives to next generation
     private let eliteRate = 0.1 // Fraction of best bugs that survive automatically
     

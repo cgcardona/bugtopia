@@ -8,40 +8,13 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var columnVisibility = NavigationSplitViewVisibility.detailOnly
+    
     var body: some View {
-        NavigationSplitView {
-            // Sidebar for future features like saved simulations, presets, etc.
-            VStack(alignment: .leading, spacing: 16) {
-                Text("🧬 Bugtopia")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .padding(.bottom)
-                
-                Text("Evolutionary Simulation")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Features:")
-                        .font(.headline)
-                        .padding(.top)
-                    
-                    Label("Genetic Algorithm", systemImage: "dna")
-                    Label("Real-time Evolution", systemImage: "timer")
-                    Label("Interactive Controls", systemImage: "gamecontroller")
-                    Label("Performance Statistics", systemImage: "chart.line.uptrend.xyaxis")
-                }
-                .font(.subheadline)
-                
-                Spacer()
-                
-                Text("Click bugs to inspect their DNA and watch evolution in action!")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.leading)
-            }
-            .padding()
-            .frame(minWidth: 250)
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            // Sidebar is intentionally left blank to be hidden by default.
+            // All statistics and controls are now part of the SimulationView.
+            Text("")
         } detail: {
             SimulationView()
         }
