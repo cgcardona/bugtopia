@@ -123,7 +123,7 @@ struct NeuralDNA: Codable, Hashable {
             if i == 0 {
                 return ActivationType.linear // Input layer
             } else if i == topology.count - 1 {
-                return ActivationType.sigmoid // Output layer
+                return ActivationType.hyperbolicTangent // Output layer (-1 to 1 range)
             } else {
                 return ActivationType.allCases.randomElement() ?? .sigmoid
             }

@@ -9,23 +9,39 @@
 
 ## 🌟 Overview
 
-Bugtopia is a real-time evolutionary simulation where digital "bugs" with unique genetic traits must survive in a dynamic, obstacle-filled arena. Watch as populations evolve sophisticated adaptations to overcome environmental challenges like water crossings, hill climbing, predator avoidance, and maze navigation.
+Bugtopia is a cutting-edge evolutionary simulation where digital organisms with **evolvable neural networks** compete in complex predator-prey ecosystems. Watch as bugs develop artificial intelligence, hunt each other, and evolve increasingly sophisticated brains over generations—all through natural selection and genetic algorithms.
 
-### ✨ What Makes It Special
+### ✨ What Makes It Revolutionary
 
-- **🧬 Advanced Genetics**: 10 evolvable traits including speed, vision, strength, memory, camouflage, and curiosity
+- **🧠 Evolvable Neural Networks**: Bugs grow deeper, more complex brains (3-10 layers) through structural evolution
+- **🦁 Predator-Prey Dynamics**: Four species types (herbivores, carnivores, omnivores, scavengers) in dynamic food webs
+- **🧬 Advanced Genetics**: 10+ evolvable traits including AI parameters, hunting behaviors, and defensive strategies
 - **🌍 Environmental Pressure**: 8 distinct terrain types each requiring different survival strategies  
-- **🤖 Intelligent Behavior**: Bugs exhibit pathfinding, line-of-sight vision, and terrain-aware movement
-- **📊 Real-time Evolution**: Watch traits adapt across generations with live statistics
-- **🎨 Beautiful Visualization**: Animated terrain, terrain effects, and detailed bug inspection
+- **🤖 Emergent Intelligence**: Neural decision-making for movement, hunting, fleeing, and social interactions
+- **📊 Real-time Evolution**: Watch both genetics AND neural architecture evolve simultaneously
+- **🎨 Beautiful Visualization**: Animated terrain, species indicators, neural network displays, and hunting behaviors
 
 ## 🎮 Features
 
-### 🧬 Genetic System
-- **Core Traits**: Speed, Vision, Energy Efficiency, Size
-- **Environmental Adaptations**: Strength, Memory, Stickiness, Camouflage, Curiosity
-- **Genetic Operations**: Crossover, mutation, selection pressure
-- **Fitness Tracking**: Multi-factor fitness including terrain adaptation
+### 🧠 Artificial Intelligence Evolution
+- **Evolvable Neural Networks**: 3-10 layer networks with variable topology
+- **Structural Mutations**: Networks grow/shrink layers and change activation functions
+- **Smart Decision Making**: 16 sensory inputs → 8 behavioral outputs
+- **Emergent Behaviors**: Hunting strategies, fleeing patterns, exploration drives
+
+### 🦁 Predator-Prey Ecosystem
+- **Four Species Types**: Herbivores 🌱, Carnivores 🦁, Omnivores 🐺, Scavengers 🦅
+- **Dynamic Food Web**: Hunting, energy transfer, and predator avoidance
+- **Species-Specific Traits**: Hunt intensity, prey detection, flee speed, stealth
+- **Evolutionary Arms Race**: Predators vs prey intelligence co-evolution
+
+### 🧬 Advanced Genetic System
+- **Core Traits**: Speed, Vision, Energy Efficiency, Size, Strength
+- **Neural Traits**: Network topology, weights, biases, activation functions  
+- **Behavioral Traits**: Memory, Stickiness, Camouflage, Curiosity, Aggression
+- **Species Traits**: Hunting/defensive behaviors, metabolic rates, size modifiers
+- **Genetic Operations**: Crossover, mutation, structural evolution, selection pressure
+- **Multi-Modal Fitness**: Survival, reproduction, terrain adaptation, predator success
 
 ### 🌍 Environmental Arena
 | Terrain | Challenge | Adaptation Required |
@@ -39,18 +55,22 @@ Bugtopia is a real-time evolutionary simulation where digital "bugs" with unique
 | 🌱 **Food Zones** | Resource abundance | Exploration skills |
 | ⬛ **Open** | Normal terrain | Baseline traits |
 
-### 🎯 Smart Behaviors
-- **Intelligent Food Seeking**: Line-of-sight vision with wall detection
-- **Obstacle Navigation**: Memory-based pathfinding around barriers
-- **Terrain Adaptation**: Dynamic speed/energy modifiers based on environment
-- **Social Interactions**: Reproduction, competition, and cooperation
-- **Exploration vs Exploitation**: Curiosity-driven discovery
+### 🎯 Emergent AI Behaviors
+- **Neural Decision Making**: AI-driven movement, hunting, and fleeing decisions
+- **Predator-Prey Dynamics**: Stalking, ambushing, pack hunting, and escape strategies
+- **Intelligent Food Seeking**: Line-of-sight vision with wall detection and neural exploration
+- **Obstacle Navigation**: Memory-based pathfinding around barriers with AI route optimization
+- **Terrain Adaptation**: Dynamic speed/energy modifiers with species-specific advantages
+- **Social Interactions**: Neural-influenced reproduction, competition, and pack formation
+- **Adaptive Learning**: Neural networks develop specialized strategies over generations
 
 ### 📊 Advanced Analytics
-- **Population Statistics**: Real-time tracking of genetic averages
-- **Individual Inspection**: Detailed trait analysis and environmental effects
-- **Evolution Tracking**: Cross-generational adaptation patterns
-- **Terrain Analytics**: Habitat preference and adaptation success
+- **Neural Network Visualization**: Live topology, weights, and decision outputs for any bug
+- **Species Demographics**: Population ratios, predator success rates, extinction events
+- **Population Statistics**: Real-time tracking of genetic and neural evolution
+- **Individual Inspection**: Detailed DNA, neural architecture, and hunting/defensive behaviors
+- **Evolution Tracking**: Cross-generational adaptation in both genetics and AI
+- **Ecosystem Analytics**: Food web dynamics, energy flow, and species interactions
 
 ## 🚀 Getting Started
 
@@ -89,35 +109,42 @@ Bugtopia is a real-time evolutionary simulation where digital "bugs" with unique
 ```
 🧬 Bugtopia Architecture
 ├── 🌍 Arena System          # Terrain generation and physics
+├── 🧠 AI Engine             # Neural networks and decision making
+├── 🦁 Species System        # Predator-prey dynamics and behaviors
 ├── 🧬 Genetic Engine        # DNA, traits, and evolution
-├── 🐛 Bug Entities          # Individual organism behavior
-├── 🔄 Simulation Engine     # Population management and ticks
+├── 🐛 Bug Entities          # Individual organism AI and physics
+├── 🔄 Simulation Engine     # Population management and evolutionary cycles
 └── 🎨 Visualization Layer   # SwiftUI + Canvas rendering
 ```
 
 ### Core Components
 
 - **`Arena`**: Tile-based terrain system with procedural generation
-- **`BugDNA`**: Genetic blueprint with 10 evolvable traits
-- **`Bug`**: Individual organism with AI behavior and physics
-- **`SimulationEngine`**: Population dynamics and evolutionary cycles
-- **`SimulationView`**: Real-time rendering and user interaction
+- **`NeuralNetwork`**: Evolvable AI brains with structural mutations
+- **`Species`**: Predator-prey types with hunting/defensive behaviors
+- **`BugDNA`**: Genetic blueprint with 10+ traits + neural architecture
+- **`Bug`**: Individual organism with AI decision-making and species behaviors
+- **`SimulationEngine`**: Population dynamics, evolution, and ecosystem management
+- **`SimulationView`**: Real-time rendering with neural network visualization
 
 ## 🧪 The Science
 
-### Evolutionary Algorithm
-1. **Initialization**: Random population with diverse genetic traits
-2. **Selection Pressure**: Environmental challenges eliminate unfit individuals
-3. **Reproduction**: Successful bugs mate using genetic crossover
-4. **Mutation**: Random trait variations introduce genetic diversity
-5. **Iteration**: Process repeats creating increasingly adapted populations
+### Neuroevolution Algorithm
+1. **Initialization**: Random population with diverse genetics AND neural architectures
+2. **Neural Decision Making**: AI brains process sensory input → behavioral output
+3. **Ecosystem Pressure**: Predator-prey dynamics create complex survival challenges
+4. **Selection Pressure**: Environmental + predation eliminate unfit individuals
+5. **Reproduction**: Successful bugs mate using genetic + neural crossover
+6. **Dual Mutation**: Both genetic traits AND neural structure mutate
+7. **Structural Evolution**: Neural networks grow deeper and more complex
+8. **Iteration**: Process creates increasingly intelligent populations
 
-### Terrain-Based Selection
-- **Water Crossings**: Favor speed and energy efficiency
-- **Hill Climbing**: Select for physical strength
-- **Maze Navigation**: Reward memory and intelligence
-- **Predator Zones**: Advantage to aggressive or camouflaged bugs
-- **Wind Resistance**: Size and stability matter
+### Multi-Modal Selection Pressures
+- **Predator-Prey Arms Race**: Hunters evolve better hunting AI, prey evolve better escape AI
+- **Terrain-Based Selection**: Environmental challenges favor specific neural strategies
+- **Energy Economics**: Efficient neural decision-making favored over wasteful behaviors
+- **Social Dynamics**: Cooperation and competition create complex behavioral evolution
+- **Cognitive Complexity**: More sophisticated problems require deeper neural networks
 
 ## 🎯 Use Cases
 
@@ -166,17 +193,23 @@ struct BugDNA {
 
 ## 🗺️ Roadmap
 
-### Version 2.0
-- [ ] **Advanced Neural Networks**: Evolvable bug "brains"
-- [ ] **Seasonal Changes**: Dynamic terrain modification
-- [ ] **Species Divergence**: Population splitting and speciation
-- [ ] **Cooperative Behavior**: Group hunting and colony formation
+### ✅ COMPLETED: Phase 1 & 2
+- [x] **Evolvable Neural Networks**: Deep AI brains (3-10 layers) with structural evolution
+- [x] **Predator-Prey Ecosystem**: Four species with hunting/defensive behaviors
+- [x] **Advanced Genetics**: Neural + behavioral + physical trait evolution
 
-### Version 3.0
-- [ ] **3D Arena**: True 3D terrain with flight capabilities
-- [ ] **Ecosystem Complexity**: Predator-prey food chains
-- [ ] **Tool Usage**: Bugs evolve to modify their environment
-- [ ] **Multiplayer Mode**: Compete different populations
+### 🚀 NEXT: Phase 3-7 (Current Development)
+- [ ] **🗣️ Communication & Cooperation**: Signal-based pack hunting and colony formation
+- [ ] **🔧 Environmental Modification**: Tool creation and world-shaping abilities
+- [ ] **🧬 Speciation Events**: Population splitting and reproductive isolation
+- [ ] **🌦️ Dynamic World**: Seasonal changes, disasters, and environmental cycles
+- [ ] **🏛️ Civilization**: Cultural knowledge, technology, and multi-generational progress
+
+### 🌟 Future Expansions
+- [ ] **3D Arena**: True 3D terrain with flight and underwater capabilities
+- [ ] **Quantum Behaviors**: Quantum-inspired neural network architectures
+- [ ] **Multiplayer Evolution**: Compete isolated populations across different worlds
+- [ ] **Real-World Integration**: Train on real environmental data
 
 ## 🤝 Contributing
 
