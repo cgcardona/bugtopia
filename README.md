@@ -157,7 +157,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/bugtopia.git
+   git clone https://github.com/cgcardona/bugtopia.git
    cd bugtopia
    ```
 
@@ -302,7 +302,7 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 ### Development Setup
 ```bash
 # Fork the repo and clone your fork
-git clone https://github.com/yourusername/bugtopia.git
+git clone https://github.com/cgcardona/bugtopia.git
 
 # Create a feature branch
 git checkout -b feature/amazing-new-trait
@@ -354,9 +354,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/bugtopia/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/bugtopia/discussions)
-- **Email**: your.email@example.com
+- **Issues**: [GitHub Issues](https://github.com/cgcardona/bugtopia/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/cgcardona/bugtopia/discussions)
 
 ---
 
@@ -364,6 +363,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **🧬 Made with ❤️ in Swift • Watch Evolution in Action • Contribute to Science! 🧬**
 
-[⭐ Star this repo](https://github.com/yourusername/bugtopia) • [🐛 Report Bug](https://github.com/yourusername/bugtopia/issues) • [💡 Request Feature](https://github.com/yourusername/bugtopia/issues)
+[⭐ Star this repo](https://github.com/cgcardona/bugtopia) • [🐛 Report Bug](https://github.com/cgcardona/bugtopia/issues) • [💡 Request Feature](https://github.com/cgcardona/bugtopia/issues)
 
 </div>
