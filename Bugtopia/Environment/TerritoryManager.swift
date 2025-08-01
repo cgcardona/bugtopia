@@ -87,9 +87,34 @@ class TerritoryManager {
     }
     
     private func calculatePopulationArea(bugs: [UUID], in arena: Arena) -> CGRect {
-        // This is a placeholder; a more robust solution would be needed to get bug positions
-        // For now, we'll return a default rect
-        return CGRect(x: 100, y: 100, width: 200, height: 200)
+        // Get actual bug positions from the simulation engine
+        // For now, we'll create a more realistic territory based on population size
+        let populationSize = bugs.count
+        
+        if populationSize == 0 {
+            return CGRect.zero
+        }
+        
+        // Calculate territory size based on population size
+        let baseRadius = 40.0 // Smaller base territory radius
+        let sizeMultiplier = min(2.5, Double(populationSize) / 8.0) // Scale with population size
+        let territoryRadius = baseRadius * sizeMultiplier
+        
+        // Create territories in different areas of the arena based on population ID
+        // This creates more realistic, distributed territories
+        let populationHash = bugs.first?.hashValue ?? 0
+        let seedX = Double(populationHash % 1000) / 1000.0
+        let seedY = Double((populationHash * 7) % 1000) / 1000.0
+        
+        let centerX = arena.bounds.minX + (arena.bounds.width * seedX)
+        let centerY = arena.bounds.minY + (arena.bounds.height * seedY)
+        
+        return CGRect(
+            x: centerX - territoryRadius,
+            y: centerY - territoryRadius,
+            width: territoryRadius * 2,
+            height: territoryRadius * 2
+        )
     }
     
     private func evaluateTerritoryQuality(
