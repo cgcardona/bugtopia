@@ -1128,7 +1128,7 @@ struct Arena3DView: NSViewRepresentable {
         material.normal.contents = getVanGoghTexture(type: "grass_swirl")
         
         // Add subtle magical glow like Van Gogh's luminous greens
-        material.emission.contents = NSColor(red: 0.1, green: 0.25, blue: 0.08, alpha: 1.0)
+        material.emission.contents = NSColor(red: 0.05, green: 0.12, blue: 0.03, alpha: 1.0)
         
         return material
     }
