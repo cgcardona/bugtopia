@@ -18,6 +18,11 @@ enum NavigationMode {
 /// Epic 3D visualization of the Bugtopia simulation
 struct Arena3DView: NSViewRepresentable {
     let simulationEngine: SimulationEngine
+    
+    init(simulationEngine: SimulationEngine) {
+        print("🔍 DEBUG: Arena3DView.init() called")
+        self.simulationEngine = simulationEngine
+    }
     @State private var sceneView: SCNView?
     @State private var cameraNode: SCNNode?
     @State private var isAnimating = true
@@ -87,6 +92,33 @@ struct Arena3DView: NSViewRepresentable {
         }
     }
     
+    // MARK: - 🌍 Dynamic Biome Detection
+    
+    /// Analyzes the voxel world to determine the primary biome for lighting
+    private func detectPrimaryBiome() -> BiomeType {
+        // Sample surface layer voxels to determine biome distribution
+        var biomeCounts: [BiomeType: Int] = [:]
+        let surfaceVoxels = simulationEngine.voxelWorld.getVoxelsInLayer(.surface)
+        let sampleSize = min(100, surfaceVoxels.count) // Sample up to 100 voxels
+        let sampleVoxels = Array(surfaceVoxels.prefix(sampleSize))
+        
+        for voxel in sampleVoxels {
+            biomeCounts[voxel.biome, default: 0] += 1
+        }
+        
+        // Find the most common biome
+        let primaryBiome = biomeCounts.max(by: { $0.value < $1.value })?.key ?? .temperateForest
+        
+        // Log biome distribution for development insight
+        print("🌿 Biome distribution in world:")
+        for (biome, count) in biomeCounts.sorted(by: { $0.value > $1.value }) {
+            let percentage = Double(count) / Double(sampleSize) * 100
+            print("   \(biome.rawValue): \(String(format: "%.1f", percentage))%")
+        }
+        
+        return primaryBiome
+    }
+    
     // MARK: - Scene Setup
     
     private func setupScene(scene: SCNScene) {
@@ -144,8 +176,9 @@ struct Arena3DView: NSViewRepresentable {
         // 🎨 ENHANCED BIOME-AWARE LIGHTING SYSTEM
         // Apply our style guide lighting principles with biome-specific presets
         
-        // Determine primary biome for lighting (simplified for now - could be enhanced later)
-        let primaryBiome: BiomeType = .temperateForest  // Default, will be enhanced to detect actual biome
+        // 🌍 DYNAMIC BIOME DETECTION: Analyze actual world biomes for adaptive lighting
+        let primaryBiome = detectPrimaryBiome()
+        print("🎨 Detected primary biome for lighting: \(primaryBiome.rawValue)")
         
         // Apply biome lighting preset
         setupBiomeLighting(scene: scene, biome: primaryBiome)
@@ -280,45 +313,643 @@ struct Arena3DView: NSViewRepresentable {
     
     private func setupBiomeSpecialtyLighting(scene: SCNScene, biome: BiomeType) {
         switch biome {
-        case .tropicalRainforest, .temperateForest, .borealForest:
-            // 🌳 CANOPY FILTER: Dappled forest lighting
-            let canopyLight = SCNLight()
-            canopyLight.type = .spot
-            canopyLight.color = NSColor(red: 0.6, green: 0.9, blue: 0.4, alpha: 1.0)
-            canopyLight.intensity = 1000
-            canopyLight.spotInnerAngle = 30
-            canopyLight.spotOuterAngle = 60
+        case .tundra:
+            // ❄️ TUNDRA: "Crystalline Aurora Majesty"
+            createAuroraEffect(scene: scene)
+            createBreathFogEffect(scene: scene)
+            createCrystallineFormations(scene: scene)
             
-            let canopyNode = SCNNode()
-            canopyNode.light = canopyLight
-            canopyNode.position = SCNVector3(50, 100, 50)
-            canopyNode.look(at: SCNVector3(0, 30, 0))
-            scene.rootNode.addChildNode(canopyNode)
+        case .borealForest:
+            // 🌲 BOREAL FOREST: "Ancient Pine Cathedral"
+            createMorningMistEffect(scene: scene)
+            createDappled_PineCanopyLighting(scene: scene)
+            createPineDustMotes(scene: scene)
             
-        case .tundra, .alpine:
-            // 🕳️ UNDERGROUND CRYSTAL: Mystical cave lighting for cold biomes
-            let caveLight = SCNLight()
-            caveLight.type = .omni
-            caveLight.color = NSColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0)
-            caveLight.intensity = 1200
-            caveLight.attenuationStartDistance = 50
-            caveLight.attenuationEndDistance = 150
+        case .temperateForest:
+            // 🌳 TEMPERATE FOREST: "Living Light Symphony" 
+            createCanopyLightFiltering(scene: scene)
+            createForestFloorIllumination(scene: scene)
+            createSeasonalLeafEffects(scene: scene)
             
-            let caveNode = SCNNode()
-            caveNode.light = caveLight
-            caveNode.position = SCNVector3(0, -40, 0)
+        case .temperateGrassland:
+            // 🌾 GRASSLANDS: "Golden Wind Dance"
+            createGoldenHourLighting(scene: scene)
+            createWindSweptGrassEffects(scene: scene)
+            createWildflowerGlow(scene: scene)
             
-            let crystalGeometry = SCNSphere(radius: 5)
-            crystalGeometry.firstMaterial?.diffuse.contents = NSColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 0.8)
-            crystalGeometry.firstMaterial?.emission.contents = NSColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0)
-            crystalGeometry.firstMaterial?.transparency = 0.7
-            caveNode.geometry = crystalGeometry
-            scene.rootNode.addChildNode(caveNode)
+        case .desert:
+            // 🏜️ DESERT: "Timeless Heat Dreams"
+            createHeatShimmerEffect(scene: scene)
+            createDesertMirageEffect(scene: scene)
+            createSandDuneShadows(scene: scene)
             
-        default:
-            // Basic lighting for other biomes
-            break
+        case .savanna:
+            // 🦒 SAVANNA: "Endless Horizon Drama"
+            createDramaticSunsetLighting(scene: scene)
+            createAcaciaTreeSilhouettes(scene: scene)
+            createSavannaDustEffects(scene: scene)
+            
+        case .tropicalRainforest:
+            // 🌴 RAINFOREST: "Emerald Cathedral Life"
+            createLayeredCanopyLighting(scene: scene)
+            createWaterDrippingEffects(scene: scene)
+            createDenseUndergrowthAtmosphere(scene: scene)
+            
+        case .wetlands:
+            // 🐸 WETLANDS: "Mystical Water Mirror"
+            createReflectiveWaterEffects(scene: scene)
+            createFireflyLighting(scene: scene)
+            createCattailSwayingEffects(scene: scene)
+            
+        case .alpine:
+            // ⛰️ ALPINE: "Majestic Peak Glory"
+            createSnowCapPeakEffects(scene: scene)
+            createAlpineGlowLighting(scene: scene)
+            createRockyTextureHighlights(scene: scene)
+            
+        case .coastal:
+            // 🏖️ COASTAL: "Ocean's Breath"
+            createWaveFoamEffects(scene: scene)
+            createSeaMistAtmosphere(scene: scene)
+            createSeashellGlimmerEffects(scene: scene)
         }
+    }
+    
+    // MARK: - 🌟 Signature Biome Atmospheric Effects
+    
+    // ❄️ TUNDRA EFFECTS: "Crystalline Aurora Majesty"
+    
+    private func createAuroraEffect(scene: SCNScene) {
+        // 🌌 AURORA BOREALIS: Dancing northern lights
+        for i in 0..<5 {
+            let auroraLight = SCNLight()
+            auroraLight.type = .spot
+            auroraLight.color = NSColor(red: 0.2, green: 0.8, blue: 0.4, alpha: 1.0)
+            auroraLight.intensity = 800 + Double(i) * 200
+            auroraLight.spotInnerAngle = 45
+            auroraLight.spotOuterAngle = 90
+            
+            let auroraNode = SCNNode()
+            auroraNode.light = auroraLight
+            auroraNode.position = SCNVector3(-100 + Float(i) * 50, 200, -200)
+            auroraNode.look(at: SCNVector3(0, 50, 0))
+            
+            // Add aurora geometry for visual effect
+            let auroraGeometry = SCNPlane(width: 200, height: 100)
+            auroraGeometry.firstMaterial?.diffuse.contents = NSColor(red: 0.1, green: 0.6, blue: 0.3, alpha: 0.3)
+            auroraGeometry.firstMaterial?.emission.contents = NSColor(red: 0.2, green: 0.8, blue: 0.4, alpha: 1.0)
+            auroraGeometry.firstMaterial?.transparency = 0.7
+            auroraGeometry.firstMaterial?.isDoubleSided = true
+            auroraNode.geometry = auroraGeometry
+            
+            scene.rootNode.addChildNode(auroraNode)
+            
+            // Animate aurora dancing
+            let animation = SCNAction.sequence([
+                SCNAction.rotateBy(x: 0, y: 0.2, z: 0.1, duration: 3.0 + Double(i)),
+                SCNAction.rotateBy(x: 0, y: -0.4, z: -0.2, duration: 4.0 + Double(i))
+            ])
+            auroraNode.runAction(SCNAction.repeatForever(animation))
+        }
+    }
+    
+    private func createBreathFogEffect(scene: SCNScene) {
+        // 💨 BREATH FOG: Cold air visibility
+        for _ in 0..<8 {
+            let fogLight = SCNLight()
+            fogLight.type = .omni
+            fogLight.color = NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0)
+            fogLight.intensity = 300
+            fogLight.attenuationStartDistance = 10
+            fogLight.attenuationEndDistance = 30
+            
+            let fogNode = SCNNode()
+            fogNode.light = fogLight
+            fogNode.position = SCNVector3(
+                Float.random(in: -50...50),
+                Float.random(in: 10...25),
+                Float.random(in: -50...50)
+            )
+            
+            // Fog particle effect
+            let fogGeometry = SCNSphere(radius: 3)
+            fogGeometry.firstMaterial?.diffuse.contents = NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 0.2)
+            fogGeometry.firstMaterial?.transparency = 0.8
+            fogNode.geometry = fogGeometry
+            
+            scene.rootNode.addChildNode(fogNode)
+            
+            // Animate fog drifting
+            let driftAnimation = SCNAction.moveBy(x: CGFloat(Float.random(in: -5...5)), y: CGFloat(Float.random(in: -2...2)), z: CGFloat(Float.random(in: -5...5)), duration: 6.0)
+            fogNode.runAction(SCNAction.repeatForever(SCNAction.sequence([driftAnimation, driftAnimation.reversed()])))
+        }
+    }
+    
+    private func createCrystallineFormations(scene: SCNScene) {
+        // 💎 CRYSTALLINE ICE: Sparkling formations
+        for _ in 0..<6 {
+            let crystalLight = SCNLight()
+            crystalLight.type = .omni
+            crystalLight.color = NSColor(red: 0.7, green: 0.9, blue: 1.0, alpha: 1.0)
+            crystalLight.intensity = 600
+            crystalLight.attenuationStartDistance = 15
+            crystalLight.attenuationEndDistance = 40
+            
+            let crystalNode = SCNNode()
+            crystalNode.light = crystalLight
+            crystalNode.position = SCNVector3(
+                Float.random(in: -60...60),
+                Float.random(in: 5...15),
+                Float.random(in: -60...60)
+            )
+            
+            // Crystal geometry
+            let crystalGeometry = SCNBox(width: 4, height: 8, length: 4, chamferRadius: 0.5)
+            crystalGeometry.firstMaterial?.diffuse.contents = NSColor(red: 0.8, green: 0.95, blue: 1.0, alpha: 0.9)
+            crystalGeometry.firstMaterial?.emission.contents = NSColor(red: 0.3, green: 0.5, blue: 0.8, alpha: 1.0)
+            crystalGeometry.firstMaterial?.transparency = 0.3
+            crystalGeometry.firstMaterial?.roughness.contents = 0.1
+            crystalGeometry.firstMaterial?.metalness.contents = 0.9
+            crystalNode.geometry = crystalGeometry
+            
+            scene.rootNode.addChildNode(crystalNode)
+            
+            // Animate crystal sparkling
+            let sparkleAnimation = SCNAction.sequence([
+                SCNAction.scale(to: 1.2, duration: 2.0),
+                SCNAction.scale(to: 1.0, duration: 1.5)
+            ])
+            crystalNode.runAction(SCNAction.repeatForever(sparkleAnimation))
+        }
+    }
+    
+    // 🏜️ DESERT EFFECTS: "Timeless Heat Dreams"
+    
+    private func createHeatShimmerEffect(scene: SCNScene) {
+        // 🌡️ HEAT SHIMMER: Distortion effect from desert heat
+        for _ in 0..<12 {
+            let shimmerLight = SCNLight()
+            shimmerLight.type = .spot
+            shimmerLight.color = NSColor(red: 1.0, green: 0.9, blue: 0.6, alpha: 1.0)
+            shimmerLight.intensity = 400
+            shimmerLight.spotInnerAngle = 60
+            shimmerLight.spotOuterAngle = 120
+            
+            let shimmerNode = SCNNode()
+            shimmerNode.light = shimmerLight
+            shimmerNode.position = SCNVector3(
+                Float.random(in: -80...80),
+                Float.random(in: 2...8),
+                Float.random(in: -80...80)
+            )
+            shimmerNode.look(at: SCNVector3(0, 0, 0))
+            
+            // Heat distortion geometry
+            let shimmerGeometry = SCNPlane(width: 20, height: 5)
+            shimmerGeometry.firstMaterial?.diffuse.contents = NSColor(red: 1.0, green: 0.8, blue: 0.4, alpha: 0.1)
+            shimmerGeometry.firstMaterial?.transparency = 0.9
+            shimmerGeometry.firstMaterial?.isDoubleSided = true
+            shimmerNode.geometry = shimmerGeometry
+            
+            scene.rootNode.addChildNode(shimmerNode)
+            
+            // Animate heat waves
+            let waveAnimation = SCNAction.sequence([
+                SCNAction.scale(by: 1.3, duration: 1.0),
+                SCNAction.scale(by: 0.7, duration: 0.8)
+            ])
+            shimmerNode.runAction(SCNAction.repeatForever(waveAnimation))
+        }
+    }
+    
+    private func createDesertMirageEffect(scene: SCNScene) {
+        // 🏜️ MIRAGE: Ethereal desert illusions
+        let mirageLight = SCNLight()
+        mirageLight.type = .directional
+        mirageLight.color = NSColor(red: 0.9, green: 0.8, blue: 1.0, alpha: 1.0)
+        mirageLight.intensity = 800
+        
+        let mirageNode = SCNNode()
+        mirageNode.light = mirageLight
+        mirageNode.position = SCNVector3(100, 30, 100)
+        mirageNode.look(at: SCNVector3(0, 10, 0))
+        
+        // Mirage geometry - distant oasis illusion
+        let mirageGeometry = SCNPlane(width: 40, height: 20)
+        mirageGeometry.firstMaterial?.diffuse.contents = NSColor(red: 0.3, green: 0.7, blue: 0.9, alpha: 0.2)
+        mirageGeometry.firstMaterial?.emission.contents = NSColor(red: 0.2, green: 0.5, blue: 0.8, alpha: 1.0)
+        mirageGeometry.firstMaterial?.transparency = 0.8
+        mirageNode.geometry = mirageGeometry
+        
+        scene.rootNode.addChildNode(mirageNode)
+        
+        // Animate mirage wavering
+        let mirageAnimation = SCNAction.sequence([
+            SCNAction.fadeOpacity(to: 0.8, duration: 3.0),
+            SCNAction.fadeOpacity(to: 0.2, duration: 2.0)
+        ])
+        mirageNode.runAction(SCNAction.repeatForever(mirageAnimation))
+    }
+    
+    private func createSandDuneShadows(scene: SCNScene) {
+        // 🏜️ DRAMATIC SHADOWS: Deep dune shadow contrast
+        for i in 0..<4 {
+            let shadowLight = SCNLight()
+            shadowLight.type = .spot
+            shadowLight.color = NSColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 1.0)
+            shadowLight.intensity = 1200
+            shadowLight.spotInnerAngle = 30
+            shadowLight.spotOuterAngle = 90
+            shadowLight.castsShadow = true
+            shadowLight.shadowRadius = 8.0
+            
+            let shadowNode = SCNNode()
+            shadowNode.light = shadowLight
+            shadowNode.position = SCNVector3(
+                Float(i) * 40 - 60,
+                50,
+                Float(i) * 30 - 45
+            )
+            shadowNode.look(at: SCNVector3(Float(i) * 20, 0, Float(i) * 15))
+            
+            scene.rootNode.addChildNode(shadowNode)
+        }
+    }
+    
+    // 🐸 WETLANDS EFFECTS: "Mystical Water Mirror"
+    
+    private func createFireflyLighting(scene: SCNScene) {
+        // ✨ FIREFLIES: Magical dancing lights
+        for i in 0..<15 {
+            let fireflyLight = SCNLight()
+            fireflyLight.type = .omni
+            fireflyLight.color = NSColor(red: 1.0, green: 0.9, blue: 0.3, alpha: 1.0)
+            fireflyLight.intensity = 200
+            fireflyLight.attenuationStartDistance = 5
+            fireflyLight.attenuationEndDistance = 15
+            
+            let fireflyNode = SCNNode()
+            fireflyNode.light = fireflyLight
+            fireflyNode.position = SCNVector3(
+                Float.random(in: -40...40),
+                Float.random(in: 8...20),
+                Float.random(in: -40...40)
+            )
+            
+            // Firefly glow geometry
+            let fireflyGeometry = SCNSphere(radius: 0.5)
+            fireflyGeometry.firstMaterial?.diffuse.contents = NSColor(red: 1.0, green: 0.9, blue: 0.3, alpha: 0.8)
+            fireflyGeometry.firstMaterial?.emission.contents = NSColor(red: 1.0, green: 0.8, blue: 0.2, alpha: 1.0)
+            fireflyNode.geometry = fireflyGeometry
+            
+            scene.rootNode.addChildNode(fireflyNode)
+            
+            // Animate firefly dancing with simple circular motion
+            let radius = Float.random(in: 8...20)
+            let height = Float.random(in: -3...5)
+            let duration = 8.0 + Double(i) * 0.5
+            
+            let circleAnimation = SCNAction.sequence([
+                SCNAction.moveBy(x: CGFloat(radius), y: CGFloat(height), z: 0, duration: duration / 4),
+                SCNAction.moveBy(x: 0, y: CGFloat(-height), z: CGFloat(radius), duration: duration / 4),
+                SCNAction.moveBy(x: CGFloat(-radius), y: CGFloat(height), z: 0, duration: duration / 4),
+                SCNAction.moveBy(x: 0, y: CGFloat(-height), z: CGFloat(-radius), duration: duration / 4)
+            ])
+            fireflyNode.runAction(SCNAction.repeatForever(circleAnimation))
+            
+            // Firefly blinking
+            let blinkAnimation = SCNAction.sequence([
+                SCNAction.fadeOpacity(to: 1.0, duration: 0.2),
+                SCNAction.fadeOpacity(to: 0.3, duration: 0.8)
+            ])
+            fireflyNode.runAction(SCNAction.repeatForever(blinkAnimation))
+        }
+    }
+    
+    // 🌲 BOREAL FOREST EFFECTS: "Ancient Pine Cathedral"
+    
+    private func createMorningMistEffect(scene: SCNScene) {
+        // 🌫️ MORNING MIST: Ethereal forest atmosphere
+        for _ in 0..<10 {
+            let mistLight = SCNLight()
+            mistLight.type = .omni
+            mistLight.color = NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0)
+            mistLight.intensity = 400
+            mistLight.attenuationStartDistance = 20
+            mistLight.attenuationEndDistance = 60
+            
+            let mistNode = SCNNode()
+            mistNode.light = mistLight
+            mistNode.position = SCNVector3(
+                Float.random(in: -60...60),
+                Float.random(in: 5...15),
+                Float.random(in: -60...60)
+            )
+            
+            // Mist particle geometry
+            let mistGeometry = SCNSphere(radius: 8)
+            mistGeometry.firstMaterial?.diffuse.contents = NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 0.1)
+            mistGeometry.firstMaterial?.transparency = 0.9
+            mistNode.geometry = mistGeometry
+            
+            scene.rootNode.addChildNode(mistNode)
+            
+            // Animate mist drifting
+            let driftAnimation = SCNAction.moveBy(x: CGFloat(Float.random(in: -10...10)), y: CGFloat(Float.random(in: -2...3)), z: CGFloat(Float.random(in: -10...10)), duration: 12.0)
+            mistNode.runAction(SCNAction.repeatForever(SCNAction.sequence([driftAnimation, driftAnimation.reversed()])))
+        }
+    }
+    
+    // MARK: - 🌿 Stub Functions (to be implemented)
+    
+    private func createDappled_PineCanopyLighting(scene: SCNScene) {
+        // TODO: Implement dappled pine canopy lighting
+    }
+    
+    private func createPineDustMotes(scene: SCNScene) {
+        // TODO: Implement floating pine dust motes
+    }
+    
+    private func createCanopyLightFiltering(scene: SCNScene) {
+        // TODO: Implement temperate forest canopy filtering
+    }
+    
+    private func createForestFloorIllumination(scene: SCNScene) {
+        // TODO: Implement forest floor lighting
+    }
+    
+    private func createSeasonalLeafEffects(scene: SCNScene) {
+        // TODO: Implement seasonal leaf variations
+    }
+    
+    private func createGoldenHourLighting(scene: SCNScene) {
+        // 🌾 GRASSLANDS: "Golden Wind Dance" - Warm golden hour atmosphere
+        
+        // Main golden hour sun effect
+        let goldenSun = SCNLight()
+        goldenSun.type = .directional
+        goldenSun.color = NSColor(red: 1.0, green: 0.8, blue: 0.4, alpha: 1.0)
+        goldenSun.intensity = 1800
+        goldenSun.castsShadow = true
+        goldenSun.shadowRadius = 8.0
+        
+        let goldenSunNode = SCNNode()
+        goldenSunNode.light = goldenSun
+        goldenSunNode.position = SCNVector3(150, 80, 100) // Low angle like sunset
+        goldenSunNode.look(at: SCNVector3(0, 5, 0))
+        scene.rootNode.addChildNode(goldenSunNode)
+        
+        // Atmospheric golden glow particles
+        for _ in 0..<20 {
+            let goldenGlow = SCNLight()
+            goldenGlow.type = .omni
+            goldenGlow.color = NSColor(red: 1.0, green: 0.7, blue: 0.3, alpha: 1.0)
+            goldenGlow.intensity = 150
+            goldenGlow.attenuationStartDistance = 20
+            goldenGlow.attenuationEndDistance = 60
+            
+            let glowNode = SCNNode()
+            glowNode.light = goldenGlow
+            glowNode.position = SCNVector3(
+                Float.random(in: -80...80),
+                Float.random(in: 10...30),
+                Float.random(in: -80...80)
+            )
+            scene.rootNode.addChildNode(glowNode)
+            
+            // Add visible golden particles
+            let particleGeometry = SCNSphere(radius: 1.5)
+            particleGeometry.firstMaterial?.diffuse.contents = NSColor(red: 1.0, green: 0.8, blue: 0.4, alpha: 0.3)
+            particleGeometry.firstMaterial?.emission.contents = NSColor(red: 1.0, green: 0.6, blue: 0.2, alpha: 1.0)
+            particleGeometry.firstMaterial?.transparency = 0.7
+            glowNode.geometry = particleGeometry
+            
+            // Animate floating golden particles
+            let floatAnimation = SCNAction.sequence([
+                SCNAction.moveBy(x: CGFloat(Float.random(in: -8...8)), y: CGFloat(Float.random(in: -3...5)), z: CGFloat(Float.random(in: -8...8)), duration: 6.0),
+                SCNAction.moveBy(x: CGFloat(Float.random(in: -8...8)), y: CGFloat(Float.random(in: -3...5)), z: CGFloat(Float.random(in: -8...8)), duration: 5.5)
+            ])
+            glowNode.runAction(SCNAction.repeatForever(floatAnimation))
+        }
+        
+        // Warm ambient enhancement for golden hour
+        let warmAmbient = SCNLight()
+        warmAmbient.type = .ambient
+        warmAmbient.color = NSColor(red: 0.8, green: 0.6, blue: 0.4, alpha: 1.0)
+        warmAmbient.intensity = 300
+        
+        let ambientNode = SCNNode()
+        ambientNode.light = warmAmbient
+        scene.rootNode.addChildNode(ambientNode)
+    }
+    
+    private func createWindSweptGrassEffects(scene: SCNScene) {
+        // TODO: Implement wind-swept grass animations
+    }
+    
+    private func createWildflowerGlow(scene: SCNScene) {
+        // TODO: Implement wildflower glow effects
+    }
+    
+    private func createDramaticSunsetLighting(scene: SCNScene) {
+        // TODO: Implement savanna sunset lighting
+    }
+    
+    private func createAcaciaTreeSilhouettes(scene: SCNScene) {
+        // TODO: Implement acacia tree silhouettes
+    }
+    
+    private func createSavannaDustEffects(scene: SCNScene) {
+        // TODO: Implement savanna dust particle effects
+    }
+    
+    private func createLayeredCanopyLighting(scene: SCNScene) {
+        // 🌴 RAINFOREST: "Emerald Cathedral" - Multi-layer canopy lighting
+        
+        // Upper canopy - bright green filtering
+        for _ in 0..<8 {
+            let upperLight = SCNLight()
+            upperLight.type = .spot
+            upperLight.color = NSColor(red: 0.6, green: 0.9, blue: 0.4, alpha: 1.0)
+            upperLight.intensity = 600
+            upperLight.spotInnerAngle = 30
+            upperLight.spotOuterAngle = 60
+            
+            let upperNode = SCNNode()
+            upperNode.light = upperLight
+            upperNode.position = SCNVector3(
+                Float.random(in: -80...80),
+                Float.random(in: 40...60),
+                Float.random(in: -80...80)
+            )
+            upperNode.look(at: SCNVector3(0, 20, 0))
+            scene.rootNode.addChildNode(upperNode)
+        }
+        
+        // Mid canopy - dappled light filtering
+        for _ in 0..<12 {
+            let midLight = SCNLight()
+            midLight.type = .omni
+            midLight.color = NSColor(red: 0.4, green: 0.8, blue: 0.3, alpha: 1.0)
+            midLight.intensity = 300
+            midLight.attenuationStartDistance = 15
+            midLight.attenuationEndDistance = 35
+            
+            let midNode = SCNNode()
+            midNode.light = midLight
+            midNode.position = SCNVector3(
+                Float.random(in: -60...60),
+                Float.random(in: 20...35),
+                Float.random(in: -60...60)
+            )
+            scene.rootNode.addChildNode(midNode)
+            
+            // Animate dappled light movement
+            let swayAnimation = SCNAction.sequence([
+                SCNAction.moveBy(x: CGFloat(Float.random(in: -3...3)), y: CGFloat(Float.random(in: -1...1)), z: CGFloat(Float.random(in: -3...3)), duration: 4.0),
+                SCNAction.moveBy(x: CGFloat(Float.random(in: -3...3)), y: CGFloat(Float.random(in: -1...1)), z: CGFloat(Float.random(in: -3...3)), duration: 3.5)
+            ])
+            midNode.runAction(SCNAction.repeatForever(swayAnimation))
+        }
+        
+        // Ground level - filtered green glow
+        for _ in 0..<6 {
+            let groundLight = SCNLight()
+            groundLight.type = .directional
+            groundLight.color = NSColor(red: 0.2, green: 0.6, blue: 0.1, alpha: 1.0)
+            groundLight.intensity = 200
+            
+            let groundNode = SCNNode()
+            groundNode.light = groundLight
+            groundNode.position = SCNVector3(
+                Float.random(in: -40...40),
+                Float.random(in: 10...20),
+                Float.random(in: -40...40)
+            )
+            groundNode.look(at: SCNVector3(0, 0, 0))
+            scene.rootNode.addChildNode(groundNode)
+        }
+    }
+    
+    private func createWaterDrippingEffects(scene: SCNScene) {
+        // TODO: Implement water dripping effects
+    }
+    
+    private func createDenseUndergrowthAtmosphere(scene: SCNScene) {
+        // TODO: Implement dense undergrowth atmosphere
+    }
+    
+    private func createReflectiveWaterEffects(scene: SCNScene) {
+        // 🐸 WETLANDS: "Mirror of Life" - Reflective water surfaces with ethereal beauty
+        
+        // Main water reflection lighting
+        for _ in 0..<6 {
+            let reflectionLight = SCNLight()
+            reflectionLight.type = .directional
+            reflectionLight.color = NSColor(red: 0.6, green: 0.8, blue: 0.9, alpha: 1.0)
+            reflectionLight.intensity = 400
+            
+            let reflectionNode = SCNNode()
+            reflectionNode.light = reflectionLight
+            reflectionNode.position = SCNVector3(
+                Float.random(in: -40...40),
+                Float.random(in: -5...5), // Near water level
+                Float.random(in: -40...40)
+            )
+            reflectionNode.look(at: SCNVector3(0, 10, 0)) // Look upward for reflection effect
+            scene.rootNode.addChildNode(reflectionNode)
+            
+            // Animate gentle water movement
+            let rippleAnimation = SCNAction.sequence([
+                SCNAction.rotateBy(x: 0.1, y: 0, z: 0.05, duration: 2.5),
+                SCNAction.rotateBy(x: -0.2, y: 0, z: -0.1, duration: 3.0),
+                SCNAction.rotateBy(x: 0.1, y: 0, z: 0.05, duration: 2.0)
+            ])
+            reflectionNode.runAction(SCNAction.repeatForever(rippleAnimation))
+        }
+        
+        // Underwater caustic lighting effects
+        for _ in 0..<8 {
+            let causticLight = SCNLight()
+            causticLight.type = .spot
+            causticLight.color = NSColor(red: 0.4, green: 0.7, blue: 0.8, alpha: 1.0)
+            causticLight.intensity = 300
+            causticLight.spotInnerAngle = 20
+            causticLight.spotOuterAngle = 45
+            
+            let causticNode = SCNNode()
+            causticNode.light = causticLight
+            causticNode.position = SCNVector3(
+                Float.random(in: -60...60),
+                Float.random(in: 8...15), // Above water level
+                Float.random(in: -60...60)
+            )
+            causticNode.look(at: SCNVector3(0, 0, 0)) // Down toward water
+            scene.rootNode.addChildNode(causticNode)
+            
+            // Animate caustic patterns
+            let causticAnimation = SCNAction.sequence([
+                SCNAction.scale(to: 1.4, duration: 1.8),
+                SCNAction.scale(to: 0.8, duration: 2.2),
+                SCNAction.scale(to: 1.0, duration: 1.5)
+            ])
+            causticNode.runAction(SCNAction.repeatForever(causticAnimation))
+        }
+        
+        // Surface glimmer points
+        for _ in 0..<15 {
+            let glimmerLight = SCNLight()
+            glimmerLight.type = .omni
+            glimmerLight.color = NSColor(red: 1.0, green: 1.0, blue: 0.9, alpha: 1.0)
+            glimmerLight.intensity = 200
+            glimmerLight.attenuationStartDistance = 5
+            glimmerLight.attenuationEndDistance = 15
+            
+            let glimmerNode = SCNNode()
+            glimmerNode.light = glimmerLight
+            glimmerNode.position = SCNVector3(
+                Float.random(in: -50...50),
+                Float.random(in: 2...8),
+                Float.random(in: -50...50)
+            )
+            scene.rootNode.addChildNode(glimmerNode)
+            
+            // Animate twinkling glimmers
+            let twinkleAnimation = SCNAction.sequence([
+                SCNAction.fadeOpacity(to: 1.0, duration: 0.8),
+                SCNAction.fadeOpacity(to: 0.2, duration: 1.2),
+                SCNAction.wait(duration: Double.random(in: 0.5...2.0))
+            ])
+            glimmerNode.runAction(SCNAction.repeatForever(twinkleAnimation))
+        }
+    }
+    
+    private func createCattailSwayingEffects(scene: SCNScene) {
+        // TODO: Implement cattail swaying animations
+    }
+    
+    private func createSnowCapPeakEffects(scene: SCNScene) {
+        // TODO: Implement snow-capped peak effects
+    }
+    
+    private func createAlpineGlowLighting(scene: SCNScene) {
+        // TODO: Implement alpine glow lighting
+    }
+    
+    private func createRockyTextureHighlights(scene: SCNScene) {
+        // TODO: Implement rocky texture highlights
+    }
+    
+    private func createWaveFoamEffects(scene: SCNScene) {
+        // TODO: Implement wave foam effects
+    }
+    
+    private func createSeaMistAtmosphere(scene: SCNScene) {
+        // TODO: Implement sea mist atmosphere
+    }
+    
+    private func createSeashellGlimmerEffects(scene: SCNScene) {
+        // TODO: Implement seashell glimmer effects
     }
     
     private func createBiomeHDREnvironment(biome: BiomeType) -> NSImage {
@@ -609,10 +1240,14 @@ struct Arena3DView: NSViewRepresentable {
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         
-        // SURFACE LAYER POSITION: Fixed coordinate mapping!
-        // Surface layer: Voxel Z = -30 to +10 → SCN Y = -30 to +10
-        cameraNode.position = SCNVector3(50, -10, 50)     // SCN Y=-10 = Voxel Z=-10 (surface)
-        cameraNode.look(at: SCNVector3(25, -15, 25))      // Look at surface terrain
+        // 🌍 DYNAMIC CAMERA POSITIONING: Showcase each world type's unique features!
+        let worldType = simulationEngine.voxelWorld.worldType
+        let (cameraPos, lookAtPos) = calculateOptimalCameraPosition(for: worldType)
+        
+        cameraNode.position = cameraPos
+        cameraNode.look(at: lookAtPos)
+        
+        print("📷 Camera positioned for \(worldType.rawValue): \(cameraPos) → \(lookAtPos)")
         
         scene.rootNode.addChildNode(cameraNode)
         // ✅ FIX: Avoid state modification during view creation
@@ -621,12 +1256,58 @@ struct Arena3DView: NSViewRepresentable {
         }
         
         // Camera node created and assigned
-        // Camera position set
+        // Camera position dynamically set based on world type
+    }
+    
+    /// Calculate optimal camera position to showcase each world type's unique features
+    private func calculateOptimalCameraPosition(for worldType: WorldType3D) -> (SCNVector3, SCNVector3) {
+        let bounds = simulationEngine.voxelWorld.worldBounds
+        let centerX = Float(bounds.midX)
+        let centerY = Float(bounds.midY)
         
-        // ADD CAMERA CONSTRAINTS for better navigation
-        addCameraConstraints(cameraNode: cameraNode, scene: scene)
-        
-        // Enhanced camera: HDR + Bloom active
+        switch worldType {
+        case .continental3D:
+            // Overview of rolling hills and varied terrain
+            let cameraPos = SCNVector3(centerX + 30, 20, centerY + 40)
+            let lookAt = SCNVector3(centerX, -5, centerY)
+            return (cameraPos, lookAt)
+            
+        case .archipelago3D:
+            // High angle to show island chains and water
+            let cameraPos = SCNVector3(centerX + 50, 40, centerY + 60)
+            let lookAt = SCNVector3(centerX, -10, centerY)
+            return (cameraPos, lookAt)
+            
+        case .canyon3D:
+            // Side view to showcase dramatic elevation changes
+            let cameraPos = SCNVector3(centerX + 80, 30, centerY)
+            let lookAt = SCNVector3(centerX, 0, centerY)
+            return (cameraPos, lookAt)
+            
+        case .cavern3D:
+            // Lower angle to show cave entrances and underground features
+            let cameraPos = SCNVector3(centerX + 25, -5, centerY + 35)
+            let lookAt = SCNVector3(centerX, -20, centerY)
+            return (cameraPos, lookAt)
+            
+        case .skylands3D:
+            // High altitude to show floating islands
+            let cameraPos = SCNVector3(centerX + 40, 60, centerY + 50)
+            let lookAt = SCNVector3(centerX, 20, centerY)
+            return (cameraPos, lookAt)
+            
+        case .abyss3D:
+            // Deep perspective to show underwater trenches
+            let cameraPos = SCNVector3(centerX + 35, 0, centerY + 45)
+            let lookAt = SCNVector3(centerX, -40, centerY)
+            return (cameraPos, lookAt)
+            
+        case .volcano3D:
+            // Angled view to show volcanic peaks and dangerous terrain
+            let cameraPos = SCNVector3(centerX + 60, 35, centerY + 30)
+            let lookAt = SCNVector3(centerX, 5, centerY)
+            return (cameraPos, lookAt)
+        }
     }
     
     private func addCameraConstraints(cameraNode: SCNNode, scene: SCNScene) {
@@ -1250,9 +1931,9 @@ struct Arena3DView: NSViewRepresentable {
         
         // Style Guide: Coral #FF6B6B for danger
         material.diffuse.contents = NSColor(red: 1.0, green: 0.42, blue: 0.42, alpha: 0.4)
-        material.transparency = 0.6
-        material.roughness.contents = 0.8
-        material.metalness.contents = 0.02
+            material.transparency = 0.6
+            material.roughness.contents = 0.8
+            material.metalness.contents = 0.02
         
         // Pulsing red emission for warning
         material.emission.contents = NSColor(red: 0.2, green: 0.02, blue: 0.02, alpha: 1.0)

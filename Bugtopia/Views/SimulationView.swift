@@ -7,20 +7,34 @@
 
 import SwiftUI
 
+/// Wrapper class to manage SimulationEngine lifecycle properly with SwiftUI
+class SimulationEngineManager: ObservableObject {
+    @Published var engine: SimulationEngine
+    
+    // Lazy initialization ensures Arena3DView is created only once when first accessed
+    lazy var arena3DView: Arena3DView = {
+        print("🔍 DEBUG: Creating single Arena3DView instance (lazy)")
+        return Arena3DView(simulationEngine: engine)
+    }()
+    
+    init(worldSize: CGSize = CGSize(width: 800, height: 600)) {
+        print("🔍 DEBUG: SimulationEngineManager.init() called - creating SimulationEngine")
+        let bounds = CGRect(origin: .zero, size: worldSize)
+        self.engine = SimulationEngine(worldBounds: bounds)
+        print("🔍 DEBUG: SimulationEngineManager.init() completed")
+    }
+}
+
 /// Main view for displaying and controlling the evolutionary simulation
 struct SimulationView: View {
     
-    @State private var simulationEngine: SimulationEngine
+    @StateObject private var engineManager = SimulationEngineManager()
     @State private var showingStatistics = true
     @State private var selectedBug: Bug?
-    @State private var is3DMode = true  // Default to 3D mode since we've fully migrated to Arena3D  // NEW: Toggle for 3D visualization
-    // Removed old arena3D - now using voxelWorld from SimulationEngine
+    // Only VoxelWorld rendering - 2D and Arena3D rendering paths removed
     
-    init(worldSize: CGSize = CGSize(width: 800, height: 600)) {
-        let bounds = CGRect(origin: .zero, size: worldSize)
-        let engine = SimulationEngine(worldBounds: bounds)
-        _simulationEngine = State(wrappedValue: engine)
-        // VoxelWorld is now initialized and managed by SimulationEngine
+    private var simulationEngine: SimulationEngine {
+        engineManager.engine
     }
     
     var body: some View {
@@ -114,25 +128,6 @@ struct SimulationView: View {
             
             Spacer()
             
-            // 🚀 3D MODE TOGGLE - TO INFINITY AND BEYOND!
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.5)) {
-                    is3DMode.toggle()
-                    // VoxelWorld is always available from SimulationEngine
-                }
-            }) {
-                HStack(spacing: 4) {
-                    Image(systemName: is3DMode ? "cube.fill" : "cube")
-                        .font(.title2)
-                    Text(is3DMode ? "3D" : "2D")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                }
-                .foregroundColor(is3DMode ? .white : .primary)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(is3DMode ? .blue : .gray)
-            
             // Toggle Statistics
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -151,76 +146,18 @@ struct SimulationView: View {
     private var simulationCanvas: some View {
         GeometryReader { geometry in
             ZStack {
-                if is3DMode {
-                    // 🚀 EPIC 3D VOXEL VISUALIZATION - TO INFINITY AND BEYOND!
-                    Arena3DView(
-                        simulationEngine: simulationEngine
-                    )
-                        .transition(.asymmetric(
-                            insertion: .scale.combined(with: .opacity),
-                            removal: .scale.combined(with: .opacity)
-                        ))
-                    } else {
-                        // 2D Canvas with 3D compatibility
-               Canvas { context, size in
-                            // Clear the canvas
-                            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(.black))
-                            
-                            // Scale factor for 2D display
-                            let scaleX = size.width / simulationEngine.voxelWorld.worldBounds.width
-                            let scaleY = size.height / simulationEngine.voxelWorld.worldBounds.height
-                            
-                            // Apply scaling transform
-                            var scaledContext = context
-                            scaledContext.scaleBy(x: scaleX, y: scaleY)
-                            
-                            // Draw terrain
-                            drawTerrain(context: scaledContext)
-            
-            // Draw resources
-                            drawResources(context: scaledContext)
-            
-            // Draw bugs
-                            drawBugs(context: scaledContext)
-                
-                // Draw selected bug info
-                            if let selectedBug = selectedBug {
-                                drawBugInfo(context: scaledContext, bug: selectedBug)
-                }
-            }
-            .onTapGesture { location in
-                selectBugNear(location, canvasSize: geometry.size)
-            }
-                        .transition(.asymmetric(
-                            insertion: .scale.combined(with: .opacity),
-                            removal: .scale.combined(with: .opacity)
-                        ))
-                    }
+                // 🚀 EPIC 3D VOXEL VISUALIZATION - TO INFINITY AND BEYOND!
+                // Use the single Arena3DView instance to prevent multiple 3D scene creation
+                engineManager.arena3DView
+                    .transition(.asymmetric(
+                        insertion: .scale.combined(with: .opacity),
+                        removal: .scale.combined(with: .opacity)
+                    ))
             }
         }
     }
     
-    // MARK: - Missing Function Stubs
-    
-    private func drawTerrain(context: GraphicsContext) {
-        // TODO: Implement terrain drawing
-    }
-    
-    private func drawResources(context: GraphicsContext) {
-        // TODO: Implement resource drawing
-    }
-    
-    private func drawBugs(context: GraphicsContext) {
-        // TODO: Implement bug drawing
-    }
-    
-    private func drawBugInfo(context: GraphicsContext, bug: Bug) {
-        // TODO: Implement bug info drawing
-    }
-    
-    private func selectBugNear(_ location: CGPoint, canvasSize: CGSize) {
-        // TODO: Implement bug selection
-    }
+
     
     // MARK: - Statistics Panel
     

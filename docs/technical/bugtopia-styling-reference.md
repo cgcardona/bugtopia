@@ -185,13 +185,23 @@ Procedurally generated world layouts:
 
 | World Type | Primary Features | Visual Theme |
 |------------|------------------|--------------|
-| **Continental** | Large landmasses | Realistic geography |
-| **Archipelago** | Island chains | Tropical, oceanic |
-| **Canyon** | Deep valleys, mesas | Desert, rocky formations |
-| **Wetlands** | Marshes, waterways | Lush, water-rich |
-| **Volcanic** | Harsh volcanic landscape | Dark, molten, dangerous |
-| **Plains** | Open grasslands | Wide, rolling landscapes |
-| **Maze** | Complex wall systems | Geometric, puzzle-like |
+| **Continental 3D** | Rolling hills and plains | Realistic geography, varied terrain |
+| **Archipelago 3D** | Island chains with water | Tropical, oceanic, scattered landmasses |
+| **Canyon 3D** | Deep valleys and high mesas | Desert, dramatic elevation changes |
+| **Cavern 3D** | Underground cave systems | Dark, mysterious, subterranean |
+| **Skylands 3D** | Floating islands | Ethereal, sky-high terrain |
+| **Abyss 3D** | Deep underwater trenches | Dark depths, oceanic, mysterious |
+| **Volcano 3D** | Volcanic peaks and lava flows | Molten, dangerous, rocky formations |
+
+### 🚧 **TODO: Potential Additional World Types**
+
+Future world types to consider implementing:
+
+| Proposed World Type | Primary Features | Visual Theme | Implementation Notes |
+|-------------------|------------------|--------------|---------------------|
+| **Wetlands 3D** | Marshes, swamps, waterways | Lush, water-rich, misty | High water coverage, unique biome distributions |
+| **Plains 3D** | Open grasslands, gentle hills | Wide, rolling landscapes | Minimal elevation variance, grass-focused |
+| **Maze 3D** | Complex wall systems | Geometric, puzzle-like | Algorithmic wall generation, navigation challenges |
 
 ## 📊 **STYLING COMPLEXITY ANALYSIS**
 
@@ -695,3 +705,15 @@ struct PerformanceTargets {
 **🎯 ULTIMATE GOAL**: Create a visual masterpiece that demonstrates the beauty of evolution, the complexity of ecosystems, and the wonder of life itself - making Bugtopia not just a game, but a visual experience that inspires and amazes players while advancing the art of procedural world rendering.
 
 **📝 Agent Handoff Note**: This roadmap provides a complete blueprint for transforming Bugtopia into a visually stunning masterpiece. Each phase builds upon the previous, with clear deliverables and success metrics. Future agents can pick up at any phase and understand both the technical requirements and artistic vision needed to achieve visual excellence.
+
+
+## Miscellanuous
+
+Each time I load the app the terrain seems exacty the same. Is it deterministic? I would expect the breakdown to work something like this.
+
+1. There are always 4 terrain layers
+2. Each time we load the app it choses from one of the 7 world types
+3. Depending on the world type different terrain types and biomes would be created
+4. Depending on the world type bugs would evolve certain traits
+5. In the future I want to have different food types
+6. Each time Bugtopia loads the world type and terrain types and biomes are randomly generated and not deterministic

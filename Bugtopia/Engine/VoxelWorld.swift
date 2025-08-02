@@ -8,6 +8,204 @@
 import Foundation
 import CoreGraphics
 
+// MARK: - Essential 3D Types
+
+/// Minimal Arena3D class for compatibility (legacy code support)
+class Arena3D {
+    let bounds: CGRect
+    
+    init(bounds: CGRect) {
+        self.bounds = bounds
+    }
+    
+    /// Check if position is valid within arena bounds
+    func isValidPosition(_ position: Position3D) -> Bool {
+        return bounds.contains(CGPoint(x: position.x, y: position.y))
+    }
+}
+
+/// Minimal ArenaTile3D struct for compatibility
+struct ArenaTile3D {
+    let terrain: TerrainType
+    let position: Position3D
+    let layer: TerrainLayer
+    
+    init(terrain: TerrainType, position: Position3D, layer: TerrainLayer) {
+        self.terrain = terrain
+        self.position = position
+        self.layer = layer
+    }
+}
+
+/// 3D coordinate system for bugs and objects  
+struct Position3D: Codable, Equatable {
+    var x: Double
+    var y: Double
+    var z: Double  // Height/depth coordinate
+    
+    init(_ x: Double, _ y: Double, _ z: Double) {
+        self.x = x
+        self.y = y
+        self.z = z
+    }
+    
+    init(from position2D: CGPoint, z: Double = 0.0) {
+        self.x = position2D.x
+        self.y = position2D.y
+        self.z = z
+    }
+    
+    /// Convert to 2D position (for backward compatibility)
+    var position2D: CGPoint {
+        return CGPoint(x: x, y: y)
+    }
+    
+    /// Calculate 3D distance to another position
+    func distance(to other: Position3D) -> Double {
+        let dx = x - other.x
+        let dy = y - other.y
+        let dz = z - other.z
+        return sqrt(dx*dx + dy*dy + dz*dz)
+    }
+    
+    /// Calculate 2D distance (ignoring height)
+    func distance2D(to other: Position3D) -> Double {
+        let dx = x - other.x
+        let dy = y - other.y
+        return sqrt(dx*dx + dy*dy)
+    }
+}
+
+/// 3D terrain layers for multi-level environments
+enum TerrainLayer: String, CaseIterable, Codable {
+    case underground = "underground"  // Caves, tunnels (-50 to -30)
+    case surface = "surface"          // Ground level (-30 to 10)
+    case canopy = "canopy"           // Tree tops, elevated (10 to 30)
+    case aerial = "aerial"           // Open sky (30+)
+    
+    /// Vertical range for each layer (approximate)
+    var zRange: ClosedRange<Double> {
+        switch self {
+        case .underground: return -50.0...(-30.0)
+        case .surface: return -30.0...10.0
+        case .canopy: return 10.0...30.0
+        case .aerial: return 30.0...200.0
+        }
+    }
+    
+    /// Center Z coordinate for each layer
+    var centerZ: Double {
+        switch self {
+        case .underground: return -40.0
+        case .surface: return -10.0
+        case .canopy: return 20.0
+        case .aerial: return 60.0
+        }
+    }
+    
+    /// Height range for each layer (same as zRange, for compatibility)
+    var heightRange: ClosedRange<Double> {
+        return zRange
+    }
+}
+
+/// Biome types for environmental classification
+enum BiomeType: String, CaseIterable, Codable {
+    case tundra = "tundra"
+    case borealForest = "boreal_forest"
+    case temperateForest = "temperate_forest"
+    case temperateGrassland = "temperate_grassland"
+    case desert = "desert"
+    case savanna = "savanna"
+    case tropicalRainforest = "tropical_rainforest"
+    case wetlands = "wetlands"
+    case alpine = "alpine"
+    case coastal = "coastal"
+    
+    /// Display name for UI
+    var displayName: String {
+        switch self {
+        case .tundra: return "Tundra"
+        case .borealForest: return "Boreal Forest"
+        case .temperateForest: return "Temperate Forest"
+        case .temperateGrassland: return "Temperate Grassland"
+        case .desert: return "Desert"
+        case .savanna: return "Savanna"
+        case .tropicalRainforest: return "Tropical Rainforest"
+        case .wetlands: return "Wetlands"
+        case .alpine: return "Alpine"
+        case .coastal: return "Coastal"
+        }
+    }
+    
+    /// Vegetation density for terrain generation (0.0 to 1.0)
+    var vegetationDensity: Double {
+        switch self {
+        case .tundra: return 0.1
+        case .borealForest: return 0.7
+        case .temperateForest: return 0.9
+        case .temperateGrassland: return 0.4
+        case .desert: return 0.05
+        case .savanna: return 0.3
+        case .tropicalRainforest: return 1.0
+        case .wetlands: return 0.8
+        case .alpine: return 0.2
+        case .coastal: return 0.5
+        }
+    }
+}
+
+/// 3D world generation types for procedural terrain
+enum WorldType3D: String, CaseIterable, Codable {
+    case continental3D = "Continental 3D"
+    case archipelago3D = "Archipelago 3D"
+    case canyon3D = "Canyon 3D"
+    case cavern3D = "Cavern 3D"
+    case skylands3D = "Skylands 3D"
+    case abyss3D = "Abyss 3D"
+    case volcano3D = "Volcano 3D"
+    
+    /// Generate height for this world type at normalized coordinates
+    func generateHeight(at x: Double, y: Double) -> Double {
+        switch self {
+        case .continental3D:
+            // Rolling hills and plains
+            let baseHeight = sin(x * 3.14159) * cos(y * 3.14159) * 15.0
+            return baseHeight + 5.0
+            
+        case .archipelago3D:
+            // Island chains with water
+            let islandDistance = sqrt(pow(x - 0.5, 2) + pow(y - 0.5, 2))
+            let islandHeight = max(0, (0.3 - islandDistance) * 50.0)
+            return islandHeight - 10.0
+            
+        case .canyon3D:
+            // Deep valleys and high mesas
+            let valleyDepth = abs(x - 0.5) < 0.2 ? -25.0 : 20.0
+            return valleyDepth
+            
+        case .cavern3D:
+            // Underground cave systems - mostly low terrain
+            return -30.0 + sin(x * 6.28) * cos(y * 6.28) * 8.0
+            
+        case .skylands3D:
+            // Floating islands - elevated terrain
+            let elevation = sin(x * 4.0) * cos(y * 4.0) * 20.0
+            return elevation + 25.0
+            
+        case .abyss3D:
+            // Deep underwater trenches
+            return -40.0 + sin(x * 2.0) * cos(y * 2.0) * 15.0
+            
+        case .volcano3D:
+            // Volcanic peaks and lava flows
+            let distanceFromCenter = sqrt(pow(x - 0.5, 2) + pow(y - 0.5, 2))
+            let volcanoHeight = max(-5, 40.0 - distanceFromCenter * 60.0)
+            return volcanoHeight
+        }
+    }
+}
+
 // MARK: - 3D Direction System
 
 enum Direction3D: CaseIterable {
@@ -230,6 +428,7 @@ class VoxelWorld {
     
     // World generation parameters
     let worldType: WorldType3D
+    let noiseSeed: Double  // Random seed for terrain generation
     var heightMap: [[Double]] = []
     var biomeMap: [[BiomeType]] = []
     var temperatureMap: [[Double]] = []
@@ -238,6 +437,10 @@ class VoxelWorld {
     init(bounds: CGRect, worldType: WorldType3D = .continental3D, resolution: Int = 32) {
         self.worldBounds = bounds
         self.worldType = worldType
+        
+        // 🎲 RANDOM SEED for truly unique worlds each time
+        self.noiseSeed = Double.random(in: 0...10000)
+        print("🌍 Using random seed: \(String(format: "%.2f", noiseSeed)) for \(worldType.rawValue)")
         
         // Calculate dimensions - higher resolution for true voxel detail
         self.dimensions = (width: resolution, height: resolution, depth: resolution)
@@ -280,17 +483,23 @@ class VoxelWorld {
     private func generateHeightMap() {
         heightMap = Array(repeating: Array(repeating: 0.0, count: dimensions.height), count: dimensions.width)
         
+        // 🌍 WORLD TYPE-SPECIFIC HEIGHT GENERATION
+        print("🏔️ Generating heightmap for \(worldType.rawValue)")
+        
         for x in 0..<dimensions.width {
             for y in 0..<dimensions.height {
                 let normalizedX = Double(x) / Double(dimensions.width)
                 let normalizedY = Double(y) / Double(dimensions.height)
                 
-                // Multi-octave noise for realistic terrain
-                let baseHeight = noise2D(normalizedX * 4.0, normalizedY * 4.0) * 30.0
-                let detailHeight = noise2D(normalizedX * 12.0, normalizedY * 12.0) * 8.0
-                let fineDetail = noise2D(normalizedX * 24.0, normalizedY * 24.0) * 2.0
+                // 🎯 USE WORLD TYPE-SPECIFIC HEIGHT GENERATION
+                // This will create dramatically different terrain patterns for each world type
+                let worldTypeHeight = worldType.generateHeight(at: normalizedX, y: normalizedY)
                 
-                heightMap[x][y] = baseHeight + detailHeight + fineDetail
+                // Add detail layers for texture and realism
+                let detailHeight = noise2D(normalizedX * 12.0, normalizedY * 12.0) * 4.0
+                let fineDetail = noise2D(normalizedX * 24.0, normalizedY * 24.0) * 1.0
+                
+                heightMap[x][y] = worldTypeHeight + detailHeight + fineDetail
             }
         }
     }
@@ -507,7 +716,17 @@ class VoxelWorld {
     }
     
     private func generateSurfaceTerrain(biome: BiomeType, height: Double, noise: Double) -> TerrainType {
-        // Surface terrain based on biome characteristics
+        // 🌍 WORLD TYPE-SPECIFIC TERRAIN MODULATION
+        // First determine base terrain from biome, then modify based on world type
+        
+        let baseTerrain = generateBiomeBasedTerrain(biome: biome, height: height, noise: noise)
+        
+        // 🎯 Apply world type modifications
+        return applyWorldTypeModifications(baseTerrain: baseTerrain, height: height, noise: noise)
+    }
+    
+    private func generateBiomeBasedTerrain(biome: BiomeType, height: Double, noise: Double) -> TerrainType {
+        // Base biome terrain generation
         switch biome {
         case .desert:
             if noise > 0.6 { return .hill }
@@ -539,6 +758,54 @@ class VoxelWorld {
             if noise > 0.2 { return .food }       // Abundant grassland resources
             if noise < -0.6 { return .water }
             return .open  // Note: .open renders as grass in default material case
+        }
+    }
+    
+    private func applyWorldTypeModifications(baseTerrain: TerrainType, height: Double, noise: Double) -> TerrainType {
+        // 🌍 Modify terrain based on world type characteristics
+        switch worldType {
+        case .archipelago3D:
+            // More water and islands
+            if height < -10 && noise > -0.2 { return .water }
+            if baseTerrain == .open && noise < -0.3 { return .water }
+            return baseTerrain
+            
+        case .canyon3D:
+            // More dramatic elevation changes
+            if height > 20 && noise > 0.3 { return .wall }
+            if height < -20 && baseTerrain != .water { return .hill }
+            return baseTerrain
+            
+        case .cavern3D:
+            // More underground-accessible terrain
+            if noise > 0.5 && baseTerrain == .open { return .wall }
+            if noise < -0.4 { return .shadow }  // Cave entrance areas
+            return baseTerrain
+            
+        case .skylands3D:
+            // Floating island characteristics
+            if height > 40 && noise > 0.2 { return .wind }  // Wind currents around floating islands
+            if height < 0 && baseTerrain != .water { return .open }  // Open air below islands
+            return baseTerrain
+            
+        case .abyss3D:
+            // Deep underwater/underground theme
+            if height < -30 { return .water }
+            if baseTerrain == .hill && noise < 0 { return .shadow }
+            return baseTerrain
+            
+        case .volcano3D:
+            // Volcanic and dangerous terrain
+            if height > 30 && noise > 0.4 { return .predator }  // Dangerous volcanic areas
+            if baseTerrain == .water && noise > 0.2 { return .hill }  // Less water, more rocky
+            return baseTerrain
+            
+        case .continental3D:
+            // Standard continental terrain - no modifications
+            return baseTerrain
+        default:
+            // Standard continental terrain - no modifications
+            return baseTerrain
         }
     }
     
@@ -1004,8 +1271,9 @@ class VoxelWorld {
     }
     
     private func noise2D(_ x: Double, _ y: Double) -> Double {
-        // Simple noise function for terrain generation
-        let n = sin(x * 12.9898 + y * 78.233) * 43758.5453
+        // Seeded noise function for truly random terrain generation
+        // Uses noiseSeed to ensure different worlds each time
+        let n = sin((x + noiseSeed) * 12.9898 + (y + noiseSeed * 0.7) * 78.233) * 43758.5453
         return n - floor(n)
     }
     
@@ -1176,5 +1444,75 @@ extension BiomeType {
         case .alpine: return .hill
         case .coastal: return .open
         }
+    }
+}
+
+// MARK: - VoxelWorld Arena Adapter
+
+/// Lightweight adapter that implements Arena interface using VoxelWorld
+/// This eliminates duplicate terrain generation while maintaining Bug API compatibility
+class VoxelWorldArenaAdapter: Arena {
+    private let voxelWorld: VoxelWorld
+    
+    init(voxelWorld: VoxelWorld) {
+        self.voxelWorld = voxelWorld
+        // Use VoxelWorld bounds and a standard tile size
+        super.init(bounds: voxelWorld.worldBounds, tileSize: CGSize(width: 20, height: 20))
+    }
+    
+    // MARK: - Arena Interface Implementation using VoxelWorld
+    
+    override func terrainAt(_ position: CGPoint) -> TerrainType {
+        let position3D = Position3D(position.x, position.y, 0.0) // Surface level
+        return voxelWorld.getVoxel(at: position3D)?.terrainType ?? .open
+    }
+    
+    override func isPassable(_ position: CGPoint, for dna: BugDNA) -> Bool {
+        let terrain = terrainAt(position)
+        return terrain.isPassable
+    }
+    
+    override func movementModifiers(at position: CGPoint, for dna: BugDNA) -> (speed: Double, vision: Double, energyCost: Double) {
+        let terrain = terrainAt(position)
+        return (
+            speed: terrain.speedMultiplier(for: dna),
+            vision: 1.0, // Default vision
+            energyCost: terrain.energyCostMultiplier(for: dna)
+        )
+    }
+    
+    override func tilesOfType(_ terrainType: TerrainType) -> [ArenaTile] {
+        // Convert VoxelWorld surface voxels to ArenaTiles for compatibility
+        let surfaceVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == terrainType }
+        return surfaceVoxels.map { voxel in
+            ArenaTile(
+                terrain: voxel.terrainType,
+                position: CGPoint(x: voxel.position.x, y: voxel.position.y),
+                size: CGSize(width: 20, height: 20)
+            )
+        }
+    }
+    
+    override func findPath(from start: CGPoint, to end: CGPoint, for dna: BugDNA) -> [CGPoint] {
+        // Use VoxelWorld pathfinding if available, otherwise return direct path
+        // Note: Could be enhanced with proper 3D pathfinding later
+        
+        // Simple direct path for now - could be enhanced with proper 3D pathfinding
+        let distance = sqrt(pow(end.x - start.x, 2) + pow(end.y - start.y, 2))
+        let steps = max(1, Int(distance / 10)) // 10-unit steps
+        
+        var path: [CGPoint] = []
+        for i in 0...steps {
+            let t = Double(i) / Double(steps)
+            let x = start.x + (end.x - start.x) * t
+            let y = start.y + (end.y - start.y) * t
+            let pathPoint = CGPoint(x: x, y: y)
+            
+            if isPassable(pathPoint, for: dna) {
+                path.append(pathPoint)
+            }
+        }
+        
+        return path.isEmpty ? [end] : path
     }
 }

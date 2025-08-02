@@ -59,7 +59,12 @@ class SimulationEngine {
     // MARK: - Initialization
     
     init(worldBounds: CGRect) {
-        self.voxelWorld = VoxelWorld(bounds: worldBounds, worldType: .continental3D, resolution: 32)
+        // 🎲 DYNAMIC WORLD GENERATION: Random world type selection for unique experiences each launch
+        let randomWorldType = WorldType3D.allCases.randomElement() ?? .continental3D
+        print("🔍 DEBUG: SimulationEngine.init() called - creating world type: \(randomWorldType.rawValue)")
+        print("🌍 Generating world type: \(randomWorldType.rawValue)")
+        
+        self.voxelWorld = VoxelWorld(bounds: worldBounds, worldType: randomWorldType, resolution: 32)
         self.pathfinding = VoxelPathfinding(voxelWorld: voxelWorld)
         ecosystemManager.setWorldBounds(worldBounds)
         setupInitialPopulation()
@@ -102,7 +107,7 @@ class SimulationEngine {
         disasterManager.setWorldBounds(voxelWorld.worldBounds) // Set disaster spawn area
         ecosystemManager.reset() // Reset ecosystem state
         ecosystemManager.setWorldBounds(voxelWorld.worldBounds) // Set world bounds for population density
-        ecosystemManager.initializeResourceZones(from: createTempArena()) // Initialize resource tracking with 2D compatibility
+        // Ecosystem now uses VoxelWorld directly - no legacy Arena needed
         territoryManager.reset() // Reset territorial data
         // Set territory boundaries using voxel world bounds
         let minPos = Position3D(voxelWorld.worldBounds.minX, voxelWorld.worldBounds.minY, -50.0)
@@ -141,7 +146,7 @@ class SimulationEngine {
             
             // Traditional update for other behaviors
             bug.update(
-    in: createTempArena(),
+    in: createVoxelArenaAdapter(),
     foods: foods,
     otherBugs: bugs,
     seasonalManager: seasonalManager,
@@ -152,7 +157,7 @@ class SimulationEngine {
 )
             
             // Let bug generate signals
-            if let signal = bug.generateSignals(in: createTempArena(), foods: foods, otherBugs: bugs) {
+            if let signal = bug.generateSignals(in: createVoxelArenaAdapter(), foods: foods, otherBugs: bugs) {
                 newSignals.append(signal)
             }
         }
@@ -201,12 +206,12 @@ class SimulationEngine {
         // Update territories and migrations (using 2D compatibility)
         territoryManager.update(
             populations: speciationManager.populations,
-            arena: createTempArena(),
+            arena: createVoxelArenaAdapter(),
             ecosystemManager: ecosystemManager
         )
         
         // Update populations and speciation (using 2D compatibility)
-        speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: createTempArena())
+        speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: createVoxelArenaAdapter())
         
         // Clean up old speciation events every 50 ticks to prevent memory buildup
         if tickCount % 50 == 0 {
@@ -439,7 +444,9 @@ class SimulationEngine {
         let geneticBonus = bug.dna.geneticFitness * 10
         
         // Terrain adaptation bonus
-        let currentTerrain = createTempArena().terrainAt(bug.position)
+        // Get terrain at bug position using VoxelWorld
+        let position3D = Position3D(bug.position.x, bug.position.y, 0.0) // Surface level
+        let currentTerrain = voxelWorld.getVoxel(at: position3D)?.terrainType ?? .open
         let terrainBonus = bug.dna.terrainFitness(for: currentTerrain) * 5
         
         // Exploration bonus for bugs that have been in different terrain types
@@ -470,9 +477,10 @@ class SimulationEngine {
     
     // MARK: - Compatibility Methods
     
-    /// Create a temporary Arena object for backward compatibility with existing systems
-    private func createTempArena() -> Arena {
-        return Arena(bounds: voxelWorld.worldBounds)
+    /// Creates a lightweight Arena adapter that uses VoxelWorld internally
+    /// This eliminates duplicate terrain generation while maintaining Bug API compatibility
+    private func createVoxelArenaAdapter() -> Arena {
+        return VoxelWorldArenaAdapter(voxelWorld: voxelWorld)
     }
     
     // MARK: - Food Management
@@ -482,25 +490,25 @@ class SimulationEngine {
         var newFoods: [CGPoint] = []
         
         // Spawn food in designated food zones (limited to prevent oversaturation)
-        let foodTiles = createTempArena().tilesOfType(.food)
-        for tile in foodTiles.prefix(min(20, maxFoodItems / 20)) { // Much more conservative initial food zone spawning
+        let foodVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .food }
+        for voxel in foodVoxels.prefix(min(20, maxFoodItems / 20)) { // Much more conservative initial food zone spawning
             let randomOffset = CGPoint(
                 x: Double.random(in: -15...15),
                 y: Double.random(in: -15...15)
             )
             let foodPosition = CGPoint(
-                x: tile.position.x + randomOffset.x,
-                y: tile.position.y + randomOffset.y
+                x: voxel.position.x + randomOffset.x,
+                y: voxel.position.y + randomOffset.y
             )
             newFoods.append(foodPosition)
         }
         
         // Spawn majority of food distributed in open areas AND hills for better distribution
-        let openTiles = createTempArena().tilesOfType(.open)
-        let hillTiles = createTempArena().tilesOfType(.hill)
-        let availableTiles = openTiles + hillTiles
+        let openVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .open }
+        let hillVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .hill }
+        let availableVoxels = openVoxels + hillVoxels
         for _ in 0..<(maxFoodItems * 4 / 5) { // Most food spawns in distributed areas
-            if let tile = availableTiles.randomElement() {
+            if let voxel = availableVoxels.randomElement() {
                 let randomOffset = CGPoint(
                     x: Double.random(in: -20...20),
                     y: Double.random(in: -20...20)
@@ -509,8 +517,8 @@ class SimulationEngine {
                 // Much more liberal food spawning - only avoid very close to edges
                 let minDistanceFromEdge = 30.0
                 let bounds = voxelWorld.worldBounds
-                let xDistance = min(tile.position.x - bounds.minX, bounds.maxX - tile.position.x)
-                let yDistance = min(tile.position.y - bounds.minY, bounds.maxY - tile.position.y)
+                let xDistance = min(voxel.position.x - bounds.minX, bounds.maxX - voxel.position.x)
+                let yDistance = min(voxel.position.y - bounds.minY, bounds.maxY - voxel.position.y)
                 let edgeDistance = min(xDistance, yDistance)
                 
                 // Only skip if extremely close to edge
@@ -518,8 +526,8 @@ class SimulationEngine {
                     continue
                 }
                 let foodPosition = CGPoint(
-                    x: tile.position.x + randomOffset.x,
-                    y: tile.position.y + randomOffset.y
+                    x: voxel.position.x + randomOffset.x,
+                    y: voxel.position.y + randomOffset.y
                 )
                 newFoods.append(foodPosition)
             }
@@ -542,26 +550,26 @@ class SimulationEngine {
             let foodZoneChance = min(0.3, 1.0 - (Double(foods.count) / Double(seasonalMaxFood))) // Reduce food zone chance as food increases
             
             if Double.random(in: 0...1) < foodZoneChance {
-                let foodTiles = createTempArena().tilesOfType(.food)
+                let foodVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .food }
                 
                 // Count existing food near each food zone to prevent oversaturation
-                let availableFoodTiles = foodTiles.filter { tile in
+                let availableFoodVoxels = foodVoxels.filter { voxel in
                     let nearbyFood = foods.filter { food in
-                        let dx = food.x - tile.position.x
-                        let dy = food.y - tile.position.y
+                        let dx = food.x - voxel.position.x
+                        let dy = food.y - voxel.position.y
                         return sqrt(dx * dx + dy * dy) < 60.0  // 60 pixel radius
                     }
                     return nearbyFood.count < 8  // Max 8 food items per zone
                 }
                 
-                if let tile = availableFoodTiles.randomElement() {
+                if let voxel = availableFoodVoxels.randomElement() {
                     let randomOffset = CGPoint(
                         x: Double.random(in: -15...15),
                         y: Double.random(in: -15...15)
                     )
                     let newFood = CGPoint(
-                        x: tile.position.x + randomOffset.x,
-                        y: tile.position.y + randomOffset.y
+                        x: voxel.position.x + randomOffset.x,
+                        y: voxel.position.y + randomOffset.y
                     )
                     // Check if disasters would destroy this food immediately
                     if !disasterManager.shouldDestroyFood(at: newFood) {
@@ -569,15 +577,15 @@ class SimulationEngine {
                     }
                 }
             } else {
-                let openTiles = createTempArena().tilesOfType(.open)
-                let hillTiles = createTempArena().tilesOfType(.hill)
-                let availableTiles = openTiles + hillTiles
-                if let tile = availableTiles.randomElement() {
+                let openVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .open }
+                let hillVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .hill }
+                let availableVoxels = openVoxels + hillVoxels
+                if let voxel = availableVoxels.randomElement() {
                     // Much more liberal food spawning
                     let minDistanceFromEdge = 30.0
                     let bounds = voxelWorld.worldBounds
-                    let xDistance = min(tile.position.x - bounds.minX, bounds.maxX - tile.position.x)
-                    let yDistance = min(tile.position.y - bounds.minY, bounds.maxY - tile.position.y)
+                    let xDistance = min(voxel.position.x - bounds.minX, bounds.maxX - voxel.position.x)
+                    let yDistance = min(voxel.position.y - bounds.minY, bounds.maxY - voxel.position.y)
                     let edgeDistance = min(xDistance, yDistance)
                     
                     // Only spawn food if far enough from edges
@@ -587,8 +595,8 @@ class SimulationEngine {
                             y: Double.random(in: -20...20)
                         )
                         let newFood = CGPoint(
-                            x: tile.position.x + randomOffset.x,
-                            y: tile.position.y + randomOffset.y
+                            x: voxel.position.x + randomOffset.x,
+                            y: voxel.position.y + randomOffset.y
                         )
                         // Check if disasters would destroy this food immediately
                         if !disasterManager.shouldDestroyFood(at: newFood) {
@@ -741,7 +749,7 @@ class SimulationEngine {
             
             for i in 0..<tools.count {
                 if nearbyTools.contains(where: { $0.id == tools[i].id }) {
-                    _ = bug.useTool(&tools[i], in: createTempArena())
+                    _ = bug.useTool(&tools[i], in: createVoxelArenaAdapter())
                 }
             }
         }
