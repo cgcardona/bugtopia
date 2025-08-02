@@ -9,6 +9,12 @@ import SwiftUI
 import SceneKit
 import ModelIO
 
+// 🎮 NAVIGATION MODES for dual camera system
+enum NavigationMode {
+    case walking  // First person ground-level with terrain following
+    case god      // Free flight mode
+}
+
 /// Epic 3D visualization of the Bugtopia simulation
 struct Arena3DView: NSViewRepresentable {
     let simulationEngine: SimulationEngine
@@ -20,6 +26,12 @@ struct Arena3DView: NSViewRepresentable {
     @State private var cameraPosition: SCNVector3 = SCNVector3(0, 200, 300)
     @State private var cameraRotation: SCNVector4 = SCNVector4(1, 0, 0, -0.3)
     
+    // 🎮 DUAL NAVIGATION SYSTEM
+    @State private var navigationMode: NavigationMode = .god
+    @State private var walkingHeight: Float = 10.0  // Height above ground for walking mode
+    @State private var movementSpeed: Float = 50.0  // Movement speed
+    @State private var rotationSpeed: Float = 1.0   // Rotation speed
+    
     func makeNSView(context: Context) -> SCNView {
         let sceneView = SCNView()
         self.sceneView = sceneView
@@ -30,7 +42,7 @@ struct Arena3DView: NSViewRepresentable {
         
         // Configure scene view
         sceneView.backgroundColor = NSColor.black
-        sceneView.allowsCameraControl = true
+        sceneView.allowsCameraControl = false  // Disable built-in - we'll handle navigation
         sceneView.antialiasingMode = .multisampling4X
         sceneView.autoenablesDefaultLighting = false
         
@@ -49,8 +61,10 @@ struct Arena3DView: NSViewRepresentable {
         renderBugs(scene: scene)
         renderTerritories(scene: scene)
         
-        // Set up automatic camera animation
-        setupCameraAnimation(scene: scene)
+        // 🎮 SET UP PROPER DUAL NAVIGATION SYSTEM
+        setupDualNavigationSystem(sceneView: sceneView, scene: scene)
+        
+        print("🎮 Dual Navigation: Walking Mode + God Mode ready! Press SPACE to toggle!")
         
         return sceneView
     }
@@ -445,12 +459,15 @@ struct Arena3DView: NSViewRepresentable {
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         
-        // IMPROVED STARTING POSITION: Better overview of terrain
-        cameraNode.position = SCNVector3(200, 150, 200)  // Elevated overview
+        // GOOD STARTING POSITION: Nice overview of terrain
+        cameraNode.position = SCNVector3(100, 100, 100)  // Closer elevated overview
         cameraNode.look(at: SCNVector3(0, 0, 0))  // Look at terrain center
         
         scene.rootNode.addChildNode(cameraNode)
         self.cameraNode = cameraNode
+        
+        print("🔍 Camera node created and assigned: \(self.cameraNode != nil)")
+        print("🔍 Camera position: \(cameraNode.position)")
         
         // ADD CAMERA CONSTRAINTS for better navigation
         addCameraConstraints(cameraNode: cameraNode, scene: scene)
@@ -1904,26 +1921,8 @@ struct Arena3DView: NSViewRepresentable {
     // MARK: - Animation and Updates
     
     private func setupCameraAnimation(scene: SCNScene) {
-        guard let cameraNode = cameraNode else { return }
-        
-        // Create smooth camera orbit animation using SceneKit actions
-        let radius: Float = 400
-        let height: Float = 200
-        let duration: TimeInterval = 60.0 // Complete orbit in 60 seconds
-        
-        // Create circular path for camera
-        let orbitAction = SCNAction.customAction(duration: duration) { node, elapsedTime in
-            let angle = Float(elapsedTime / duration * 2 * Double.pi)
-            let x = cos(angle) * radius
-            let z = sin(angle) * radius
-            
-            node.position = SCNVector3(x, height, z)
-            node.look(at: SCNVector3(0, 0, 0))
-        }
-        
-        // Repeat the orbit forever
-        let repeatOrbit = SCNAction.repeatForever(orbitAction)
-        cameraNode.runAction(repeatOrbit)
+        // DISABLED: Let user control camera manually with built-in SceneKit controls
+        print("📸 Camera animation disabled - manual control active")
     }
     
     private func updateBugPositions(scene: SCNScene) {
@@ -2002,5 +2001,448 @@ struct Arena3DView: NSViewRepresentable {
                 }
             }
         }
+    }
+    
+    // MARK: - 🎮 DUAL NAVIGATION SYSTEM
+    
+    private func setupDualNavigationSystem(sceneView: SCNView, scene: SCNScene) {
+        print("🎮 Setting up advanced dual navigation system...")
+        print("🔍 Camera node available: \(cameraNode != nil)")
+        
+        // Create and configure navigation controller
+        let navController = NavigationController()
+        navController.cameraNode = cameraNode
+        navController.sceneView = sceneView
+        navController.navigationMode = navigationMode
+        navController.walkingHeight = walkingHeight
+        navController.movementSpeed = movementSpeed
+        navController.rotationSpeed = rotationSpeed
+        
+        print("🔍 Navigation controller camera set: \(navController.cameraNode != nil)")
+        
+        // Create navigation responder that fills the entire scene view
+        let navigationResponder = NavigationResponderView()
+        navigationResponder.navigationController = navController
+        navigationResponder.directCameraReference = cameraNode  // Direct backup reference
+        navigationResponder.frame = sceneView.bounds
+        navigationResponder.autoresizingMask = [.width, .height]
+        
+        // CRITICAL: Make sure the responder can receive events
+        navigationResponder.wantsLayer = true
+        navigationResponder.canDrawConcurrently = true
+        
+        // Add to scene view
+        sceneView.addSubview(navigationResponder)
+        
+        // FORCE it to become first responder and update camera reference
+        DispatchQueue.main.async { [weak sceneView] in
+            navigationResponder.window?.makeFirstResponder(navigationResponder)
+            
+            // RETRY camera assignment in case of timing issues
+            if let camera = sceneView?.scene?.rootNode.childNodes.first(where: { $0.camera != nil }) {
+                navController.cameraNode = camera
+                print("🔧 Fixed camera reference: \(navController.cameraNode != nil)")
+            }
+            
+            print("🎯 Made NavigationResponder first responder")
+        }
+        
+        // Initial setup
+        updateCameraForNavigationMode(navController.navigationMode)
+        
+        print("✅ Dual Navigation ready: WASD=Move, Mouse=Look, Space=Toggle Mode")
+        print("🔍 Debug: Navigation responder frame: \(navigationResponder.frame)")
+    }
+    
+    private func updateCameraForNavigationMode(_ mode: NavigationMode) {
+        guard let cameraNode = cameraNode, let sceneView = sceneView else { return }
+        
+        switch mode {
+        case .walking:
+            // First person walking mode: Lower height, ground following
+            cameraNode.removeAllActions()
+            let groundHeight = getTerrainHeight(at: cameraNode.position, sceneView: sceneView)
+            cameraNode.position = SCNVector3(
+                cameraNode.position.x,
+                CGFloat(groundHeight + walkingHeight),
+                cameraNode.position.z
+            )
+            print("🚶 Walking Mode: First person at ground level")
+            
+        case .god:
+            // God mode: Free flight, start with overview
+            cameraNode.removeAllActions()
+            if cameraNode.position.y < 100 {
+                cameraNode.position.y = 200  // Lift up for overview
+            }
+            print("👁️ God Mode: Free flight navigation")
+        }
+    }
+    
+    private func getTerrainHeight(at position: SCNVector3, sceneView: SCNView) -> Float {
+        guard let scene = sceneView.scene else { return 0 }
+        
+        // Raycast from high above to ground to find terrain height
+        let rayStart = SCNVector3(position.x, 1000, position.z)
+        let rayEnd = SCNVector3(position.x, -1000, position.z)
+        
+        let raycastResults = scene.physicsWorld.rayTestWithSegment(from: rayStart, to: rayEnd, options: [
+            .searchMode: SCNPhysicsWorld.TestSearchMode.closest.rawValue
+        ])
+        
+        if let firstHit = raycastResults.first {
+            return Float(firstHit.worldCoordinates.y)
+        }
+        
+        // Fallback to default ground level
+        return 0
+    }
+    
+    // Old duplicate functions removed - logic moved to NavigationController
+}
+
+enum MovementDirection {
+    case forward, backward, left, right, up, down
+}
+
+// 🎮 Navigation Controller - Handles navigation logic
+class NavigationController {
+    weak var cameraNode: SCNNode?
+    weak var sceneView: SCNView?
+    var navigationMode: NavigationMode = .god
+    var walkingHeight: Float = 10.0
+    var movementSpeed: Float = 50.0
+    var rotationSpeed: Float = 1.0
+    
+    var onModeToggle: (() -> Void)?
+    
+    func toggleMode() {
+        navigationMode = navigationMode == .walking ? .god : .walking
+        updateCameraForMode()
+        
+        let modeText = navigationMode == .walking ? "🚶 Walking Mode" : "👁️ God Mode"
+        print("🔄 Switched to: \(modeText)")
+        print("🔍 NavigationController mode is now: \(navigationMode)")
+    }
+    
+    private func updateCameraForMode() {
+        guard let cameraNode = cameraNode else { return }
+        
+        switch navigationMode {
+        case .walking:
+            cameraNode.removeAllActions()
+            let groundHeight = getTerrainHeight(at: cameraNode.position)
+            cameraNode.position = SCNVector3(
+                cameraNode.position.x,
+                CGFloat(groundHeight + walkingHeight),
+                cameraNode.position.z
+            )
+            // Set horizontal viewing angle for walking mode
+            cameraNode.eulerAngles = SCNVector3(-0.1, cameraNode.eulerAngles.y, 0)  // Slight downward tilt
+            print("🚶 Walking Mode: First person at ground level with horizontal view")
+            
+        case .god:
+            cameraNode.removeAllActions()
+            if cameraNode.position.y < 100 {
+                cameraNode.position.y = 200
+            }
+            print("👁️ God Mode: Free flight navigation")
+        }
+    }
+    
+    func moveCamera(direction: MovementDirection, deltaTime: Float) {
+        // Try multiple ways to get camera reference
+        var activeCamera: SCNNode?
+        
+        if let camera = cameraNode {
+            activeCamera = camera
+        } else if let scene = sceneView?.scene {
+            activeCamera = scene.rootNode.childNodes.first(where: { $0.camera != nil })
+            if let found = activeCamera {
+                print("🔧 Found camera in scene, updating reference")
+                cameraNode = found
+            }
+        }
+        
+        guard let cameraNode = activeCamera else { 
+            print("🔍 NavigationController: No camera node available!")
+            return 
+        }
+        
+        let distance = CGFloat(movementSpeed * deltaTime)
+        var translation = SCNVector3(0, 0, 0)
+        
+        // Get camera's forward, right vectors
+        let transform = cameraNode.transform
+        let forward = SCNVector3(-transform.m31, -transform.m32, -transform.m33)
+        let right = SCNVector3(transform.m11, transform.m12, transform.m13)
+        
+        switch direction {
+        case .forward:
+            translation = SCNVector3(
+                forward.x * distance,
+                navigationMode == .walking ? 0 : forward.y * distance,
+                forward.z * distance
+            )
+        case .backward:
+            translation = SCNVector3(
+                -forward.x * distance,
+                navigationMode == .walking ? 0 : -forward.y * distance,
+                -forward.z * distance
+            )
+        case .left:
+            translation = SCNVector3(-right.x * distance, 0, -right.z * distance)
+        case .right:
+            translation = SCNVector3(right.x * distance, 0, right.z * distance)
+        case .up:
+            if navigationMode == .god {
+                translation = SCNVector3(0, distance, 0)
+            }
+        case .down:
+            if navigationMode == .god {
+                translation = SCNVector3(0, -distance, 0)
+            }
+        }
+        
+        // Apply movement
+        cameraNode.position = SCNVector3(
+            cameraNode.position.x + translation.x,
+            cameraNode.position.y + translation.y,
+            cameraNode.position.z + translation.z
+        )
+        
+        // Only log significant movements to reduce noise
+        let movementMagnitude = sqrt(translation.x * translation.x + translation.y * translation.y + translation.z * translation.z)
+        if movementMagnitude > 1.0 {
+            print("🔍 \(navigationMode) movement: \(direction)")
+        }
+        
+        // Terrain following for walking mode
+        if navigationMode == .walking {
+            let groundHeight = getTerrainHeight(at: cameraNode.position)
+            cameraNode.position.y = CGFloat(groundHeight + walkingHeight)
+        }
+    }
+    
+    func rotateCamera(yaw: Float, pitch: Float) {
+        // Try multiple ways to get camera reference (same as moveCamera)
+        var activeCamera: SCNNode?
+        
+        if let camera = cameraNode {
+            activeCamera = camera
+        } else if let scene = sceneView?.scene {
+            activeCamera = scene.rootNode.childNodes.first(where: { $0.camera != nil })
+            if let found = activeCamera {
+                print("🔧 Found camera in scene for rotation, updating reference")
+                cameraNode = found
+            }
+        }
+        
+        guard let cameraNode = activeCamera else { 
+            print("🔍 NavigationController: No camera node for rotation!")
+            return 
+        }
+        
+        let currentRotation = cameraNode.eulerAngles
+        let newYaw = currentRotation.y + CGFloat(yaw * rotationSpeed)
+        let pitchAdjustment = CGFloat(pitch * rotationSpeed)
+        let newPitch = max(CGFloat(-Float.pi/2 + 0.1), min(CGFloat(Float.pi/2 - 0.1), currentRotation.x + pitchAdjustment))
+        
+        cameraNode.eulerAngles = SCNVector3(newPitch, newYaw, 0)
+        
+        // Only log significant rotations
+        if abs(yaw) > 0.01 || abs(pitch) > 0.01 {
+            print("🔍 Camera rotation: yaw=\(yaw), pitch=\(pitch)")
+        }
+    }
+    
+    private func getTerrainHeight(at position: SCNVector3) -> Float {
+        guard let sceneView = sceneView, let scene = sceneView.scene else { return 0 }
+        
+        let rayStart = SCNVector3(position.x, 1000, position.z)
+        let rayEnd = SCNVector3(position.x, -1000, position.z)
+        
+        let raycastResults = scene.physicsWorld.rayTestWithSegment(from: rayStart, to: rayEnd, options: [
+            .searchMode: SCNPhysicsWorld.TestSearchMode.closest.rawValue
+        ])
+        
+        if let firstHit = raycastResults.first {
+            return Float(firstHit.worldCoordinates.y)
+        }
+        
+        return 0
+    }
+}
+
+// 🎮 Navigation Responder View - Handles input events
+class NavigationResponderView: NSView {
+    var navigationController: NavigationController?
+    weak var directCameraReference: SCNNode?  // Direct backup reference
+    
+    private var pressedKeys: Set<UInt16> = []
+    private var lastUpdateTime: TimeInterval = 0
+    private var updateTimer: Timer?
+    
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setupView()
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupView()
+    }
+    
+    private func setupView() {
+        self.wantsLayer = true
+        self.layer?.backgroundColor = NSColor.clear.cgColor
+        
+        // Enable mouse tracking
+        let trackingArea = NSTrackingArea(
+            rect: self.bounds,
+            options: [.activeInKeyWindow, .mouseMoved, .mouseEnteredAndExited, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        self.addTrackingArea(trackingArea)
+        
+        // Start update timer
+        lastUpdateTime = CACurrentMediaTime()
+        startUpdateTimer()
+    }
+    
+    override var acceptsFirstResponder: Bool { return true }
+    
+    override func awakeFromNib() {
+        super.awakeFromNib()
+        self.window?.makeFirstResponder(self)
+    }
+    
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        self.window?.makeFirstResponder(self)
+    }
+    
+    override func keyDown(with event: NSEvent) {
+        print("🔍 Key down: \(event.keyCode)")
+        pressedKeys.insert(event.keyCode)
+        
+        // Handle mode toggle (Space key)
+        if event.keyCode == 49 { // Space
+            print("🔄 Space pressed - toggling mode")
+            navigationController?.toggleMode()
+        }
+    }
+    
+    override func keyUp(with event: NSEvent) {
+        print("🔍 Key up: \(event.keyCode)")
+        pressedKeys.remove(event.keyCode)
+    }
+    
+    override func mouseDragged(with event: NSEvent) {
+        print("🔍 Mouse dragged: deltaX=\(event.deltaX), deltaY=\(event.deltaY)")
+        let sensitivity: Float = 0.005
+        let yaw = -Float(event.deltaX) * sensitivity
+        let pitch = -Float(event.deltaY) * sensitivity
+        
+        navigationController?.rotateCamera(yaw: yaw, pitch: pitch)
+    }
+    
+    override func rightMouseDragged(with event: NSEvent) {
+        print("🔍 Right mouse dragged: deltaX=\(event.deltaX), deltaY=\(event.deltaY)")
+        // Same as left mouse drag for camera rotation
+        mouseDragged(with: event)
+    }
+    
+    override func otherMouseDragged(with event: NSEvent) {
+        print("🔍 Other mouse dragged: deltaX=\(event.deltaX), deltaY=\(event.deltaY)")
+        // Same as left mouse drag for camera rotation
+        mouseDragged(with: event)
+    }
+    
+    override func mouseDown(with event: NSEvent) {
+        print("🔍 Mouse down - making first responder")
+        self.window?.makeFirstResponder(self)
+    }
+    
+    override func rightMouseDown(with event: NSEvent) {
+        print("🔍 Right mouse down - making first responder")
+        self.window?.makeFirstResponder(self)
+    }
+    
+    override func scrollWheel(with event: NSEvent) {
+        print("🔍 Scroll wheel: deltaX=\(event.deltaX), deltaY=\(event.deltaY)")
+        // Use scroll for camera rotation as backup
+        let sensitivity: Float = 0.01
+        let yaw = -Float(event.deltaX) * sensitivity
+        let pitch = -Float(event.deltaY) * sensitivity
+        
+        if abs(event.deltaX) > 0.1 || abs(event.deltaY) > 0.1 {
+            navigationController?.rotateCamera(yaw: yaw, pitch: pitch)
+        }
+    }
+    
+    override func mouseMoved(with event: NSEvent) {
+        // Track mouse movement even without dragging
+        print("🔍 Mouse moved in view")
+    }
+    
+    override func mouseEntered(with event: NSEvent) {
+        print("🔍 Mouse entered navigation view")
+        self.window?.makeFirstResponder(self)
+    }
+    
+    override func mouseExited(with event: NSEvent) {
+        print("🔍 Mouse exited navigation view")
+    }
+    
+    private func startUpdateTimer() {
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { [weak self] _ in
+            self?.updateMovement()
+        }
+    }
+    
+    private func updateMovement() {
+        let currentTime = CACurrentMediaTime()
+        let deltaTime = Float(currentTime - lastUpdateTime)
+        lastUpdateTime = currentTime
+        
+        guard let navigationController = navigationController else { 
+            print("🔍 No navigation controller!")
+            return 
+        }
+        
+        // Ensure navigation controller has camera reference
+        if navigationController.cameraNode == nil && directCameraReference != nil {
+            navigationController.cameraNode = directCameraReference
+            print("🔧 Restored camera reference from backup")
+        }
+        
+        // Debug: Show pressed keys only when they change
+        // (removed periodic logging to reduce noise)
+        
+        // Handle continuous movement
+        for keyCode in pressedKeys {
+            switch keyCode {
+            case 13, 126: // W or Up Arrow
+                navigationController.moveCamera(direction: .forward, deltaTime: deltaTime)
+            case 1, 125:  // S or Down Arrow  
+                navigationController.moveCamera(direction: .backward, deltaTime: deltaTime)
+            case 0, 123:  // A or Left Arrow
+                navigationController.moveCamera(direction: .left, deltaTime: deltaTime)
+            case 2, 124:  // D or Right Arrow
+                navigationController.moveCamera(direction: .right, deltaTime: deltaTime)
+            case 14:      // E - Up (God mode only)
+                navigationController.moveCamera(direction: .up, deltaTime: deltaTime)
+            case 12:      // Q - Down (God mode only)
+                navigationController.moveCamera(direction: .down, deltaTime: deltaTime)
+            default:
+                break
+            }
+        }
+    }
+    
+    deinit {
+        updateTimer?.invalidate()
     }
 }
