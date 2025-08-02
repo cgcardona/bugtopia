@@ -854,8 +854,6 @@ struct Arena3DView: NSViewRepresentable {
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
         // 🎨 VAN GOGH MATERIALS
         
-        // Debug logging removed for clean console
-        
         // Create new material
         let material: SCNMaterial
         switch voxel.terrainType {
