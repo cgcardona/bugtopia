@@ -33,8 +33,17 @@ struct Arena3DView: NSViewRepresentable {
     @State private var rotationSpeed: Float = 1.0   // Rotation speed
     
     func makeNSView(context: Context) -> SCNView {
+        // 🕵️ SWIFTUI INTEGRATION DETECTOR
+        print("🔍 makeNSView called - checking for violations")
+        let stack = Thread.callStackSymbols
+        print("📍 makeNSView stack: \(stack.prefix(3).joined(separator: "\n"))")
+        
         let sceneView = SCNView()
-        self.sceneView = sceneView
+        // ✅ FIX: Avoid state modification during view creation
+        // Store sceneView reference after SwiftUI cycle completes
+        DispatchQueue.main.async {
+            self.sceneView = sceneView
+        }
         
         // Create the 3D scene
         let scene = SCNScene()
@@ -73,9 +82,19 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
-        // Update bug positions and territories
-        updateBugPositions(scene: nsView.scene!)
-        updateTerritoryVisualizations(scene: nsView.scene!)
+        // 🕵️ SWIFTUI UPDATE DETECTOR
+        print("🔍 updateNSView called - dispatching async updates")
+        let stack = Thread.callStackSymbols
+        print("📍 updateNSView stack: \(stack.prefix(3).joined(separator: "\n"))")
+        
+        // ✅ FIX: Move scene updates out of SwiftUI update cycle to prevent violations
+        guard let scene = nsView.scene else { return }
+        
+        // Dispatch scene updates asynchronously to avoid SwiftUI violations
+        DispatchQueue.main.async {
+            self.updateBugPositions(scene: scene)
+            self.updateTerritoryVisualizations(scene: scene)
+        }
     }
     
     // MARK: - Scene Setup
@@ -468,7 +487,10 @@ struct Arena3DView: NSViewRepresentable {
         cameraNode.look(at: SCNVector3(25, -15, 25))      // Look at surface terrain
         
         scene.rootNode.addChildNode(cameraNode)
-        self.cameraNode = cameraNode
+        // ✅ FIX: Avoid state modification during view creation
+        DispatchQueue.main.async {
+            self.cameraNode = cameraNode
+        }
         
         // Camera node created and assigned
         // Camera position set
@@ -608,6 +630,11 @@ struct Arena3DView: NSViewRepresentable {
         
         // Render voxels with spectacular visuals
         renderVoxelTerrain(container: terrainContainer)
+        
+        // ✅ FIX: Apply Van Gogh materials asynchronously after initial render
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.applyVanGoghMaterialsAsync(container: terrainContainer)
+        }
         
         // Add particle effects for atmosphere
         addAtmosphericEffects(scene: scene)
@@ -850,37 +877,183 @@ struct Arena3DView: NSViewRepresentable {
     // Materials and textures are generated fresh each time for SwiftUI compliance
     // Performance traded for stability and Van Gogh effect visibility
     
-    // 🕵️ SWIFTUI VIOLATION DETECTOR (REMOVED - was causing violations itself)
-    
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
-        // 🎨 VAN GOGH MATERIALS
+        // ✅ FIX: Simplified material creation to avoid blocking during view updates
+        // Heavy Van Gogh textures will be applied asynchronously after initial render
         
-        // Create new material
-        let material: SCNMaterial
+        // Create lightweight base material immediately
+        let material = SCNMaterial()
+        
+        // Set basic properties without heavy texture generation
         switch voxel.terrainType {
         case .wall:
-            material = createSimpleRockMaterial(voxel: voxel)
+            material.diffuse.contents = NSColor(red: 0.4, green: 0.35, blue: 0.3, alpha: 1.0)
+            material.roughness.contents = 0.8
+            material.metalness.contents = 0.02
         case .water:
-            material = createOptimizedWaterMaterial(voxel: voxel)
+            material.diffuse.contents = NSColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 0.7)
+            material.roughness.contents = 0.1
+            material.metalness.contents = 0.9
+            material.transparency = 0.6
         case .forest:
-            material = createOptimizedWoodMaterial(voxel: voxel)
+            material.diffuse.contents = NSColor(red: 0.3, green: 0.6, blue: 0.2, alpha: 1.0)
+            material.roughness.contents = 0.7
+            material.metalness.contents = 0.0
         case .sand:
-            material = createOptimizedSandMaterial(voxel: voxel)
+            material.diffuse.contents = NSColor(red: 0.9, green: 0.8, blue: 0.6, alpha: 1.0)
+            material.roughness.contents = 0.9
+            material.metalness.contents = 0.0
         case .ice:
-            material = createOptimizedIceMaterial(voxel: voxel)
+            material.diffuse.contents = NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.9)
+            material.roughness.contents = 0.05
+            material.metalness.contents = 0.1
+            material.transparency = 0.1
         case .hill:
-            material = createOptimizedStoneMaterial(voxel: voxel)
+            material.diffuse.contents = NSColor(red: 0.5, green: 0.45, blue: 0.4, alpha: 1.0)
+            material.roughness.contents = 0.7
+            material.metalness.contents = 0.05
         case .food:
-            material = createOptimizedVegetationMaterial(voxel: voxel)
+            material.diffuse.contents = NSColor(red: 0.4, green: 0.8, blue: 0.3, alpha: 1.0)
+            material.roughness.contents = 0.5
+            material.metalness.contents = 0.0
+            material.emission.contents = NSColor(red: 0.15, green: 0.6, blue: 0.15, alpha: 1.0)
         case .swamp:
-            material = createOptimizedMudMaterial(voxel: voxel)
+            material.diffuse.contents = NSColor(red: 0.3, green: 0.25, blue: 0.15, alpha: 1.0)
+            material.roughness.contents = 0.9
+            material.metalness.contents = 0.0
         case .open:
-            material = createOptimizedGrassMaterial(voxel: voxel)
+            material.diffuse.contents = getLayerAwareColor(
+                baseColor: NSColor(red: 0.3, green: 0.7, blue: 0.3, alpha: 1.0),
+                voxel: voxel
+            )
+            material.roughness.contents = 0.6
+            material.metalness.contents = 0.0
         default:
-            material = createOptimizedGrassMaterial(voxel: voxel)
+            material.diffuse.contents = getLayerAwareColor(
+                baseColor: NSColor(red: 0.3, green: 0.7, blue: 0.3, alpha: 1.0),
+                voxel: voxel
+            )
+            material.roughness.contents = 0.6
+            material.metalness.contents = 0.0
         }
         
-        return material.copy() as! SCNMaterial
+        // TODO: Apply Van Gogh textures asynchronously after scene loads
+        // This prevents blocking during initial voxel creation
+        
+        return material
+    }
+    
+    // MARK: - ✨ Async Van Gogh Material Enhancement System
+    
+    private func applyVanGoghMaterialsAsync(container: SCNNode) {
+        // Apply beautiful Van Gogh materials asynchronously to avoid blocking UI
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            // Process materials in background
+            var materialUpdates: [(SCNNode, SCNMaterial)] = []
+            
+            // Collect all voxel nodes that need Van Gogh materials
+            self.traverseVoxelNodes(container: container) { voxelNode, voxel in
+                let vanGoghMaterial = self.createVanGoghMaterial(for: voxel)
+                materialUpdates.append((voxelNode, vanGoghMaterial))
+            }
+            
+            // Apply materials on main thread in batches to avoid blocking UI
+            DispatchQueue.main.async {
+                self.applyMaterialUpdatesInBatches(updates: materialUpdates)
+            }
+        }
+    }
+    
+    private func traverseVoxelNodes(container: SCNNode, process: (SCNNode, Voxel) -> Void) {
+        // Traverse all voxel nodes and process them efficiently
+        var totalVoxelsFound = 0
+        var totalNodesTraversed = 0
+        
+        for layerContainer in container.childNodes {
+            for voxelNode in layerContainer.childNodes {
+                totalNodesTraversed += 1
+                // Extract voxel data from node position using fixed coordinate conversion
+                if let voxel = getVoxelFromNode(node: voxelNode) {
+                    process(voxelNode, voxel)
+                    totalVoxelsFound += 1
+                }
+            }
+        }
+        
+        print("✨ Van Gogh enhancement: \(totalVoxelsFound)/\(totalNodesTraversed) voxels processed successfully")
+    }
+    
+    private func getVoxelFromNode(node: SCNNode) -> Voxel? {
+        // ✅ FIX: Proper coordinate transformation using existing VoxelWorld methods
+        
+        // Step 1: Convert SCN coordinates back to world coordinates (reverse axis swapping)
+        let worldPosition = Position3D(
+            Double(node.position.x),    // SCN X → World X
+            Double(node.position.z),    // SCN Z → World Y  
+            Double(node.position.y)     // SCN Y → World Z
+        )
+        
+        // Step 2: Use VoxelWorld's worldToGrid method for proper conversion
+        let voxelWorld = simulationEngine.voxelWorld
+        let gridPos = voxelWorld.worldToGrid(worldPosition)
+        
+        // ✅ COORDINATE CONVERSION SUCCESS: SCN → World → Grid
+        let voxel = voxelWorld.voxels[gridPos.x][gridPos.y][gridPos.z]
+        return voxel
+    }
+    
+    private func applyMaterialUpdatesInBatches(updates: [(SCNNode, SCNMaterial)]) {
+        let batchSize = 10 // Process 10 materials per frame to avoid blocking
+        var index = 0
+        
+        func processBatch() {
+            let endIndex = min(index + batchSize, updates.count)
+            
+            for i in index..<endIndex {
+                let (node, material) = updates[i]
+                node.geometry?.firstMaterial = material
+            }
+            
+            index = endIndex
+            
+            if index < updates.count {
+                // Schedule next batch for next frame
+                DispatchQueue.main.async {
+                    processBatch()
+                }
+            } else {
+                print("✨ Van Gogh materials applied to \(updates.count) voxels")
+            }
+        }
+        
+        processBatch()
+    }
+    
+    private func createVanGoghMaterial(for voxel: Voxel) -> SCNMaterial {
+        // Create the full Van Gogh material (background thread safe)
+        switch voxel.terrainType {
+        case .wall:
+            return createOptimizedRockMaterial(voxel: voxel)
+        case .water:
+            return createOptimizedWaterMaterial(voxel: voxel)
+        case .forest:
+            return createOptimizedWoodMaterial(voxel: voxel)
+        case .sand:
+            return createOptimizedSandMaterial(voxel: voxel)
+        case .ice:
+            return createOptimizedIceMaterial(voxel: voxel)
+        case .hill:
+            return createOptimizedStoneMaterial(voxel: voxel)
+        case .food:
+            return createOptimizedVegetationMaterial(voxel: voxel)
+        case .swamp:
+            return createOptimizedMudMaterial(voxel: voxel)
+        case .open:
+            return createOptimizedGrassMaterial(voxel: voxel)
+        default:
+            return createOptimizedGrassMaterial(voxel: voxel)
+        }
     }
     
     private func createSimpleRockMaterial(voxel: Voxel) -> SCNMaterial {
@@ -2349,11 +2522,11 @@ struct Arena3DView: NSViewRepresentable {
         sceneView.addSubview(navigationResponder)
         
         // FORCE it to become first responder and update camera reference
-        DispatchQueue.main.async { [weak sceneView] in
+        DispatchQueue.main.async {
             navigationResponder.window?.makeFirstResponder(navigationResponder)
             
             // RETRY camera assignment in case of timing issues
-            if let camera = sceneView?.scene?.rootNode.childNodes.first(where: { $0.camera != nil }) {
+            if let camera = sceneView.scene?.rootNode.childNodes.first(where: { $0.camera != nil }) {
                 navController.cameraNode = camera
                 // Fixed camera reference
             }
