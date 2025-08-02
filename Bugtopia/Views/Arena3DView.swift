@@ -251,47 +251,118 @@ struct Arena3DView: NSViewRepresentable {
         // 2️⃣ GROUND PLANE: Anchor the terrain with infinite ground
         createGroundPlane(scene: scene)
         
-        // 3️⃣ HORIZON MARKERS: Add distant landmarks for navigation reference
+        // 3️⃣ OPTIMIZED ATMOSPHERIC CLOUDS: Beautiful DALL-E clouds
+        createOptimizedAtmosphericClouds(scene: scene)
+        
+        // 4️⃣ HORIZON MARKERS: Add distant landmarks for navigation reference
         createHorizonMarkers(scene: scene)
         
-        // 4️⃣ COORDINATE GRID: Optional spatial reference system
+        // 5️⃣ COORDINATE GRID: Optional spatial reference system
         createCoordinateGrid(scene: scene)
         
         print("🗺️ Environmental context: Skybox + Ground + Navigation aids active")
     }
     
     private func createSkybox(scene: SCNScene) {
-        // Create realistic skybox instead of black void
-        let skybox = MDLSkyCubeTexture(name: nil,
-                                      channelEncoding: .uInt8,
-                                      textureDimensions: vector_int2(Int32(256), Int32(256)),
-                                      turbidity: 0.28,
-                                      sunElevation: 0.6,
-                                      upperAtmosphereScattering: 0.4,
-                                      groundAlbedo: 0.3)
+        print("🌌 Loading stunning DALL-E skybox...")
         
-        scene.background.contents = skybox.imageFromTexture()?.takeUnretainedValue()
-        scene.lightingEnvironment.contents = skybox.imageFromTexture()?.takeUnretainedValue()
-        scene.lightingEnvironment.intensity = 1.0
+        // INSTANT LOADING: Use gorgeous pre-generated DALL-E skybox
+        if let skyboxImage = NSImage(named: "epic-skybox-panorama") {
+            scene.background.contents = skyboxImage
+            scene.lightingEnvironment.contents = skyboxImage
+            scene.lightingEnvironment.intensity = 2.5  // Enhanced lighting
+            print("✅ Epic DALL-E skybox loaded instantly!")
+        } else {
+            print("⚠️ Skybox asset not found, using fallback")
+            // Fallback to procedural skybox
+            let skybox = MDLSkyCubeTexture(name: nil,
+                                          channelEncoding: .uInt8,
+                                          textureDimensions: vector_int2(Int32(256), Int32(256)),
+                                          turbidity: 0.28,
+                                          sunElevation: 0.6,
+                                          upperAtmosphereScattering: 0.4,
+                                          groundAlbedo: 0.3)
+            
+            scene.background.contents = skybox.imageFromTexture()?.takeUnretainedValue()
+            scene.lightingEnvironment.contents = skybox.imageFromTexture()?.takeUnretainedValue()
+            scene.lightingEnvironment.intensity = 1.0
+        }
     }
     
     private func createGroundPlane(scene: SCNScene) {
-        // Infinite ground plane to anchor the terrain
-        let groundGeometry = SCNPlane(width: 2000, height: 2000)
+        print("🌍 Loading stunning DALL-E ground texture...")
         
-        // Subtle ground material
+        // MASSIVE GROUND PLANE for epic infinite horizon
+        let groundGeometry = SCNPlane(width: 4000, height: 4000)
+        
+        // GORGEOUS GROUND MATERIAL with DALL-E texture
         let groundMaterial = SCNMaterial()
-        groundMaterial.diffuse.contents = NSColor(red: 0.15, green: 0.25, blue: 0.1, alpha: 1.0)
-        groundMaterial.roughness.contents = 0.9
-        groundMaterial.metalness.contents = 0.0
+        
+        // INSTANT LOADING: Use gorgeous pre-generated DALL-E ground texture
+        if let groundTexture = NSImage(named: "fantasy-ground-diffuse") {
+            groundMaterial.diffuse.contents = groundTexture
+            groundMaterial.lightingModel = .physicallyBased  // PBR for realism
+            print("✅ Epic DALL-E ground texture loaded instantly!")
+        } else {
+            print("⚠️ Ground texture not found, using fallback")
+            groundMaterial.diffuse.contents = NSColor(red: 0.15, green: 0.25, blue: 0.1, alpha: 1.0)
+        }
+        
+        // Enhanced PBR properties
+        groundMaterial.roughness.contents = NSColor(white: 0.8, alpha: 1.0)
+        groundMaterial.metalness.contents = NSColor(white: 0.0, alpha: 1.0)
         
         groundGeometry.firstMaterial = groundMaterial
         
         let groundNode = SCNNode(geometry: groundGeometry)
-        groundNode.position = SCNVector3(0, -100, 0)  // Below the terrain
+        groundNode.position = SCNVector3(0, -120, 0)  // Lower for more drama
         groundNode.eulerAngles = SCNVector3(-Float.pi/2, 0, 0)  // Horizontal
         
         scene.rootNode.addChildNode(groundNode)
+    }
+    
+    private func createOptimizedAtmosphericClouds(scene: SCNScene) {
+        print("☁️ Adding optimized atmospheric clouds with DALL-E texture...")
+        
+        // LIGHTWEIGHT CLOUDS: Just a few for atmosphere, not performance-heavy
+        guard let cloudTexture = NSImage(named: "volumetric-cloud-texture") else {
+            print("⚠️ Cloud texture not found")
+            return
+        }
+        
+        // Only 4 clouds for great performance
+        for i in 0..<4 {
+            let cloudGeometry = SCNSphere(radius: CGFloat(150 + i * 30))
+            
+            let cloudMaterial = SCNMaterial()
+            cloudMaterial.diffuse.contents = cloudTexture
+            cloudMaterial.transparency = 0.3
+            cloudMaterial.isDoubleSided = true
+            cloudMaterial.writesToDepthBuffer = false
+            
+            cloudGeometry.firstMaterial = cloudMaterial
+            
+            let cloudNode = SCNNode(geometry: cloudGeometry)
+            
+            // Position around the horizon
+            let angle = Float(i) * (Float.pi * 2 / 4)
+            cloudNode.position = SCNVector3(
+                cos(angle) * 800,
+                300 + Float(i * 50),
+                sin(angle) * 800
+            )
+            
+            // Gentle animation
+            let floatAction = SCNAction.sequence([
+                SCNAction.moveBy(x: 0, y: 15, z: 0, duration: 25.0),
+                SCNAction.moveBy(x: 0, y: -15, z: 0, duration: 25.0)
+            ])
+            cloudNode.runAction(SCNAction.repeatForever(floatAction))
+            
+            scene.rootNode.addChildNode(cloudNode)
+        }
+        
+        print("✅ Optimized atmospheric clouds added!")
     }
     
     private func createHorizonMarkers(scene: SCNScene) {
