@@ -58,9 +58,10 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🎨 FORCE VAN GOGH MATERIAL INITIALIZATION
         // Clear cache immediately to ensure Van Gogh materials are used
-        forceVanGoghMaterialUpdate()
+        Self.clearMaterialCache()
+        Self.hasInitializedVanGoghMaterials = false
         
-        // Render the world
+        // Render the world with fresh Van Gogh materials
         renderTerrain(scene: scene)
         renderBugs(scene: scene)
         renderTerritories(scene: scene)
@@ -74,12 +75,6 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
-        // 🎨 CHECK FOR VAN GOGH MATERIAL REGENERATION
-        // Regenerate terrain if materials need updating
-        if Self.needsSceneRegeneration {
-            renderTerrain(scene: nsView.scene!)
-        }
-        
         // Update bug positions and territories
         updateBugPositions(scene: nsView.scene!)
         updateTerritoryVisualizations(scene: nsView.scene!)
@@ -602,18 +597,10 @@ struct Arena3DView: NSViewRepresentable {
     private func renderTerrain(scene: SCNScene) {
         // Rendering 3D Voxel Terrain
         
-        // 🎨 VAN GOGH SCENE REGENERATION CHECK
-        // Remove existing terrain if regeneration needed for new materials
-        if Self.needsSceneRegeneration {
-            scene.rootNode.childNode(withName: "VoxelTerrainContainer", recursively: false)?.removeFromParentNode()
-            Self.needsSceneRegeneration = false
-            // Scene cleared for Van Gogh material regeneration
-        }
-        
-        // Check if terrain container already exists (avoid duplicate rendering)
-        if scene.rootNode.childNode(withName: "VoxelTerrainContainer", recursively: false) != nil {
-            return // Terrain already rendered
-        }
+        // 🎨 VAN GOGH MATERIAL REFRESH
+        // Always ensure fresh Van Gogh materials by removing existing terrain
+        scene.rootNode.childNode(withName: "VoxelTerrainContainer", recursively: false)?.removeFromParentNode()
+        // Scene cleared for Van Gogh material application - will rebuild with new materials
         
         // Create terrain container
         let terrainContainer = SCNNode()
@@ -875,12 +862,10 @@ struct Arena3DView: NSViewRepresentable {
     func forceVanGoghMaterialUpdate() {
         Self.clearMaterialCache()
         Self.hasInitializedVanGoghMaterials = false
-        // Trigger scene regeneration on next update
-        Self.needsSceneRegeneration = true
+        // No state modification - materials will be applied immediately
     }
     
-    // Track when scene needs full regeneration for new materials (static to avoid mutating issues)
-    private static var needsSceneRegeneration = false
+    // Van Gogh materials are applied immediately without state tracking
     
     // Force cache refresh on first Van Gogh render
     private static var hasInitializedVanGoghMaterials = false
