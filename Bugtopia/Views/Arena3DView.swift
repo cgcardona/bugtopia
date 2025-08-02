@@ -59,7 +59,6 @@ struct Arena3DView: NSViewRepresentable {
         // 🎨 FORCE VAN GOGH MATERIAL INITIALIZATION
         // Clear cache immediately to ensure Van Gogh materials are used
         Self.clearMaterialCache()
-        Self.hasInitializedVanGoghMaterials = false
         
         // Render the world with fresh Van Gogh materials
         renderTerrain(scene: scene)
@@ -861,23 +860,14 @@ struct Arena3DView: NSViewRepresentable {
     // Force immediate Van Gogh material regeneration
     func forceVanGoghMaterialUpdate() {
         Self.clearMaterialCache()
-        Self.hasInitializedVanGoghMaterials = false
         // No state modification - materials will be applied immediately
     }
     
     // Van Gogh materials are applied immediately without state tracking
     
-    // Force cache refresh on first Van Gogh render
-    private static var hasInitializedVanGoghMaterials = false
-    
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
-        // 🎨 VAN GOGH CACHE INVALIDATION
-        // Clear cache on first Van Gogh render to force regeneration
-        if !Self.hasInitializedVanGoghMaterials {
-            Self.clearMaterialCache()
-            Self.hasInitializedVanGoghMaterials = true
-            // Van Gogh materials now active - cache cleared
-        }
+        // 🎨 VAN GOGH MATERIALS
+        // Cache is pre-cleared in makeNSView for fresh Van Gogh materials
         
         // Create cache key for material reuse
         let cacheKey = "\(voxel.terrainType.rawValue)_\(voxel.biome.rawValue)_\(voxel.layer.rawValue)"
