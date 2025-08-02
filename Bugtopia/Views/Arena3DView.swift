@@ -854,38 +854,30 @@ struct Arena3DView: NSViewRepresentable {
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
         // 🎨 VAN GOGH MATERIALS
         
-        // 🔍 TERRAIN TYPE DEBUGGING (reduced logging)
-        print("🎨 \(voxel.terrainType) (\(voxel.layer))")
+        // Debug logging removed for clean console
         
         // Create new material
         let material: SCNMaterial
         switch voxel.terrainType {
         case .wall:
-            print("  → Simple rock material (underground only - no Van Gogh needed)")
             material = createSimpleRockMaterial(voxel: voxel)
         case .water:
-            print("  → 🌊 VAN GOGH WATER")
             material = createOptimizedWaterMaterial(voxel: voxel)
         case .forest:
-            print("  → 🌳 VAN GOGH FOREST")
             material = createOptimizedWoodMaterial(voxel: voxel)
         case .sand:
             material = createOptimizedSandMaterial(voxel: voxel)
         case .ice:
             material = createOptimizedIceMaterial(voxel: voxel)
         case .hill:
-            print("  → 🏔️ Brown hill/stone material")
             material = createOptimizedStoneMaterial(voxel: voxel)
         case .food:
-            print("  → 🍎 VAN GOGH FOOD")
             material = createOptimizedVegetationMaterial(voxel: voxel)
         case .swamp:
             material = createOptimizedMudMaterial(voxel: voxel)
         case .open:
-            print("  → 🌱 VAN GOGH GRASS (default case)")
             material = createOptimizedGrassMaterial(voxel: voxel)
         default:
-            print("  → 🌱 VAN GOGH GRASS (fallback default)")
             material = createOptimizedGrassMaterial(voxel: voxel)
         }
         
