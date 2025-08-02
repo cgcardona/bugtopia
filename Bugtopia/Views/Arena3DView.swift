@@ -58,7 +58,9 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🎨 FORCE VAN GOGH MATERIAL INITIALIZATION
         // Clear cache immediately to ensure Van Gogh materials are used
+        print("🔧 DEBUG: makeNSView - About to clear material cache")
         Self.clearMaterialCache()
+        print("🔧 DEBUG: makeNSView - Material cache cleared, about to render terrain")
         
         // Render the world with fresh Van Gogh materials
         renderTerrain(scene: scene)
@@ -74,9 +76,11 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
+        print("🔄 DEBUG: updateNSView called - this should NOT trigger material generation")
         // Update bug positions and territories
         updateBugPositions(scene: nsView.scene!)
         updateTerritoryVisualizations(scene: nsView.scene!)
+        print("🔄 DEBUG: updateNSView completed")
     }
     
     // MARK: - Scene Setup
@@ -852,9 +856,10 @@ struct Arena3DView: NSViewRepresentable {
     // 🎨 VAN GOGH CACHE MANAGEMENT
     // Clear material cache to force regeneration with new Van Gogh materials
     static func clearMaterialCache() {
+        print("🔧 DEBUG: clearMaterialCache - Clearing \(materialCache.count) materials and \(sharedTextures.count) textures")
         materialCache.removeAll()
         sharedTextures.removeAll()
-        // Material cache cleared for Van Gogh transformation
+        print("🔧 DEBUG: clearMaterialCache - Cache cleared")
     }
     
     // Force immediate Van Gogh material regeneration
@@ -865,26 +870,38 @@ struct Arena3DView: NSViewRepresentable {
     
     // Van Gogh materials are applied immediately without state tracking
     
+    // 🕵️ SWIFTUI VIOLATION DETECTOR
+    private static func detectSwiftUIViolation(_ message: String) {
+        print("⚠️ SWIFTUI VIOLATION: \(message)")
+        print("📍 STACK TRACE:")
+        for symbol in Thread.callStackSymbols {
+            print("   \(symbol)")
+        }
+    }
+    
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
         // 🎨 VAN GOGH MATERIALS
         // Cache is pre-cleared in makeNSView for fresh Van Gogh materials
+        print("🎨 DEBUG: createPBRMaterial called for \(voxel.terrainType.rawValue) at \(voxel.position)")
         
         // Create cache key for material reuse
         let cacheKey = "\(voxel.terrainType.rawValue)_\(voxel.biome.rawValue)_\(voxel.layer.rawValue)"
         
-        // Return cached material if available
-        if let cachedMaterial = Self.materialCache[cacheKey] {
-            return cachedMaterial.copy() as! SCNMaterial
-        }
+        // Skip cache lookup to avoid SwiftUI violations during view updates
+        // Cache is cleared in makeNSView, so always create fresh materials
+        print("🔧 DEBUG: Skipping cache lookup to avoid SwiftUI violations")
         
         // Create new material and cache it
+        print("🎨 DEBUG: Creating \(voxel.terrainType.rawValue) material")
         let material: SCNMaterial
         switch voxel.terrainType {
         case .wall:
             material = createOptimizedRockMaterial(voxel: voxel)
         case .water:
+            print("🌊 DEBUG: Creating Van Gogh water material")
             material = createOptimizedWaterMaterial(voxel: voxel)
         case .forest:
+            print("🌳 DEBUG: Creating Van Gogh tree material")
             material = createOptimizedWoodMaterial(voxel: voxel)
         case .sand:
             material = createOptimizedSandMaterial(voxel: voxel)
@@ -893,15 +910,21 @@ struct Arena3DView: NSViewRepresentable {
         case .hill:
             material = createOptimizedStoneMaterial(voxel: voxel)
         case .food:
+            print("🍎 DEBUG: Creating Van Gogh food material")
             material = createOptimizedVegetationMaterial(voxel: voxel)
         case .swamp:
             material = createOptimizedMudMaterial(voxel: voxel)
         default:
+            print("🌱 DEBUG: Creating Van Gogh grass material")
             material = createOptimizedGrassMaterial(voxel: voxel)
         }
         
-        // Cache the material for reuse
-        Self.materialCache[cacheKey] = material
+        // ⚠️  SWIFTUI VIOLATION: Don't cache during view updates
+        print("🔧 DEBUG: About to cache material with key: \(cacheKey)")
+        Self.detectSwiftUIViolation("Attempting to modify materialCache during view rendering in createPBRMaterial")
+        // Commenting out caching to prevent SwiftUI violations
+        // Self.materialCache[cacheKey] = material
+        print("🔧 DEBUG: Skipping cache to avoid SwiftUI violation")
         return material.copy() as! SCNMaterial
     }
     
@@ -932,7 +955,9 @@ struct Arena3DView: NSViewRepresentable {
         let material = SCNMaterial()
         
         // 🎨 VAN GOGH WATER: Swirling, mesmerizing like Starry Night
+        print("🌊 DEBUG: About to create Van Gogh water color")
         let vanGoghWaterColor = createVanGoghWaterColor(voxel: voxel)
+        print("🌊 DEBUG: Van Gogh water color created: \(vanGoghWaterColor)")
         material.diffuse.contents = vanGoghWaterColor
         material.metalness.contents = 0.9       // Highly reflective
         material.roughness.contents = 0.1       // Smooth but with character
@@ -1100,7 +1125,9 @@ struct Arena3DView: NSViewRepresentable {
         let material = SCNMaterial()
         
         // 🎨 VAN GOGH GRASS: Swirling, expressive grass with painterly feel
+        print("🌱 DEBUG: About to create Van Gogh grass color")
         let vanGoghGrassColor = createVanGoghGrassColor(voxel: voxel)
+        print("🌱 DEBUG: Van Gogh grass color created: \(vanGoghGrassColor)")
         material.diffuse.contents = getLayerAwareColor(
             baseColor: vanGoghGrassColor,
             voxel: voxel
