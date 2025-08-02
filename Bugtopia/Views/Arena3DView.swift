@@ -7,12 +7,11 @@
 
 import SwiftUI
 import SceneKit
+import ModelIO
 
 /// Epic 3D visualization of the Bugtopia simulation
 struct Arena3DView: NSViewRepresentable {
-    let arena3D: Arena3D
-    let bugs: [Bug]
-    let territories3D: [Territory3D]
+    let simulationEngine: SimulationEngine
     @State private var sceneView: SCNView?
     @State private var cameraNode: SCNNode?
     @State private var isAnimating = true
@@ -35,10 +34,15 @@ struct Arena3DView: NSViewRepresentable {
         sceneView.antialiasingMode = .multisampling4X
         sceneView.autoenablesDefaultLighting = false
         
+        // Clean visual appearance (no debug overlays)
+        sceneView.debugOptions = []
+        
         // Set up the epic 3D world
         setupScene(scene: scene)
         setupLighting(scene: scene)
         setupCamera(scene: scene)
+        setupEnvironmentalContext(scene: scene)
+        addNavigationAids(scene: scene)
         
         // Render the world
         renderTerrain(scene: scene)
@@ -66,99 +70,1048 @@ struct Arena3DView: NSViewRepresentable {
         scene.fogColor = NSColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 1.0)
         scene.fogDensityExponent = 1.5
         
-        // Add physics world
-        scene.physicsWorld.gravity = SCNVector3(0, -9.8, 0)
-        scene.physicsWorld.speed = 0.5 // Slower for better visibility
+        // Add physics world with enhanced settings for stability
+        scene.physicsWorld.gravity = SCNVector3(0, -2.0, 0)  // Reduced gravity to prevent fast falling
+        scene.physicsWorld.speed = 0.3 // Slower for better collision detection
+        scene.physicsWorld.contactDelegate = nil // For now, no contact delegate
+        
+        // Force physics world to process all static bodies immediately
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            scene.physicsWorld.timeStep = 1.0 / 60.0  // Ensure consistent timestep
+            print("🔄 Physics world synchronized and ready")
+        }
+        
+        // Debug physics world setup
+        print("⚙️ Physics world configured: gravity=\(scene.physicsWorld.gravity), speed=\(scene.physicsWorld.speed)")
+        
+        // Add invisible safety floor to catch anything that falls through
+        createSafetyFloor(scene: scene)
+    }
+    
+    private func createSafetyFloor(scene: SCNScene) {
+        // Create a large invisible floor far below the terrain to catch falling objects
+        let floorGeometry = SCNBox(width: 1000, height: 1, length: 1000, chamferRadius: 0)
+        let floorNode = SCNNode(geometry: floorGeometry)
+        
+        // Position it well below the lowest terrain (terrain is around Z=-50)
+        floorNode.position = SCNVector3(0, -100, 0)  // Far below terrain
+        
+        // Make it invisible but with physics
+        floorNode.geometry?.firstMaterial?.diffuse.contents = NSColor.clear
+        floorNode.geometry?.firstMaterial?.transparency = 0.0
+        
+        // Add physics body that catches everything
+        let floorShape = SCNPhysicsShape(geometry: floorGeometry, options: nil)
+        floorNode.physicsBody = SCNPhysicsBody(type: .static, shape: floorShape)
+        floorNode.physicsBody?.categoryBitMask = 4         // Safety floor category
+        floorNode.physicsBody?.collisionBitMask = 2        // Collides with bugs
+        floorNode.physicsBody?.contactTestBitMask = 2      // Detects bug contact
+        floorNode.physicsBody?.restitution = 0.8          // Bouncy to launch back up
+        
+        scene.rootNode.addChildNode(floorNode)
+        print("🛡️ Safety floor created at Y=-100 to catch falling objects")
+        
+        // Position validation will be handled through better physics and positioning
     }
     
     private func setupLighting(scene: SCNScene) {
-        // 🌞 EPIC SUN LIGHTING
+        print("🌅 Initializing AAA PBR lighting pipeline...")
+        
+        // 🌞 OPTIMIZED SUN: Balanced quality and performance
         let sunLight = SCNLight()
         sunLight.type = .directional
         sunLight.color = NSColor(red: 1.0, green: 0.95, blue: 0.8, alpha: 1.0)
-        sunLight.intensity = 1500
+        sunLight.intensity = 2500  // Balanced for PBR materials
         sunLight.castsShadow = true
-        sunLight.shadowRadius = 3.0
-        sunLight.shadowMapSize = CGSize(width: 2048, height: 2048)
+        sunLight.shadowRadius = 4.0  // Balanced shadows
+        sunLight.shadowMapSize = CGSize(width: 1024, height: 1024)  // Optimized resolution
         sunLight.shadowMode = .deferred
+        sunLight.shadowSampleCount = 8  // Balanced soft shadows
+        sunLight.shadowColor = NSColor.black.withAlphaComponent(0.6)
         
         let sunNode = SCNNode()
         sunNode.light = sunLight
-        sunNode.position = SCNVector3(200, 400, 200)
+        sunNode.position = SCNVector3(300, 500, 300)
         sunNode.look(at: SCNVector3(0, 0, 0))
+        
+        // ADD VISIBLE SUN: Make the light source visible
+        let sunGeometry = SCNSphere(radius: 20)
+        sunGeometry.firstMaterial?.diffuse.contents = NSColor.yellow
+        sunGeometry.firstMaterial?.emission.contents = NSColor(red: 1.0, green: 0.9, blue: 0.6, alpha: 1.0)
+        sunNode.geometry = sunGeometry
+        
         scene.rootNode.addChildNode(sunNode)
         
-        // 🌙 AMBIENT MOONLIGHT
+        // 🌙 ENHANCED AMBIENT: Realistic sky illumination
         let ambientLight = SCNLight()
         ambientLight.type = .ambient
-        ambientLight.color = NSColor(red: 0.3, green: 0.4, blue: 0.6, alpha: 1.0)
-        ambientLight.intensity = 200
+        ambientLight.color = NSColor(red: 0.4, green: 0.5, blue: 0.7, alpha: 1.0)
+        ambientLight.intensity = 400  // Increased for PBR
         
         let ambientNode = SCNNode()
         ambientNode.light = ambientLight
         scene.rootNode.addChildNode(ambientNode)
         
-        // ✨ ATMOSPHERIC SCATTER
-        let skyLight = SCNLight()
-        skyLight.type = .omni
-        skyLight.color = NSColor(red: 0.5, green: 0.7, blue: 1.0, alpha: 1.0)
-        skyLight.intensity = 300
+        // 💎 FILL LIGHT: Subtle rim lighting for 3D depth
+        let fillLight = SCNLight()
+        fillLight.type = .directional
+        fillLight.color = NSColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 1.0)
+        fillLight.intensity = 800
         
-        let skyNode = SCNNode()
-        skyNode.light = skyLight
-        skyNode.position = SCNVector3(0, 500, 0)
-        scene.rootNode.addChildNode(skyNode)
+        let fillNode = SCNNode()
+        fillNode.light = fillLight
+        fillNode.position = SCNVector3(-200, 300, -200)
+        fillNode.look(at: SCNVector3(0, 0, 0))
+        scene.rootNode.addChildNode(fillNode)
+        
+        // 🕳️ UNDERGROUND MYSTIQUE: Atmospheric cave lighting
+        let caveLight = SCNLight()
+        caveLight.type = .omni
+        caveLight.color = NSColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0)
+        caveLight.intensity = 1200
+        caveLight.attenuationStartDistance = 50
+        caveLight.attenuationEndDistance = 150
+        
+        let caveNode = SCNNode()
+        caveNode.light = caveLight
+        caveNode.position = SCNVector3(0, -40, 0)  // Underground level
+        
+        // ADD VISIBLE CAVE CRYSTAL: Mystical underground light source
+        let crystalGeometry = SCNSphere(radius: 5)
+        crystalGeometry.firstMaterial?.diffuse.contents = NSColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 0.8)
+        crystalGeometry.firstMaterial?.emission.contents = NSColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0)
+        crystalGeometry.firstMaterial?.transparency = 0.7
+        caveNode.geometry = crystalGeometry
+        
+        scene.rootNode.addChildNode(caveNode)
+        
+        // 🌳 CANOPY FILTER: Dappled forest lighting
+        let canopyLight = SCNLight()
+        canopyLight.type = .spot
+        canopyLight.color = NSColor(red: 0.6, green: 0.9, blue: 0.4, alpha: 1.0)
+        canopyLight.intensity = 1000
+        canopyLight.spotInnerAngle = 30
+        canopyLight.spotOuterAngle = 60
+        
+        let canopyNode = SCNNode()
+        canopyNode.light = canopyLight
+        canopyNode.position = SCNVector3(50, 100, 50)
+        canopyNode.look(at: SCNVector3(0, 30, 0))  // Point at canopy level
+        scene.rootNode.addChildNode(canopyNode)
+        
+        // 🌈 HDR ENVIRONMENT: Realistic reflections and global illumination
+        scene.lightingEnvironment.intensity = 2.0
+        scene.lightingEnvironment.contents = createAdvancedHDREnvironment()
+        
+        print("✨ AAA lighting system: 5 dynamic lights + HDR environment active")
+    }
+    
+    private func createAdvancedHDREnvironment() -> NSImage {
+        let size = 128  // Optimized resolution for good performance
+        let image = NSImage(size: NSSize(width: size, height: size))
+        
+        image.lockFocus()
+        
+        // Create realistic sky gradient with atmospheric perspective
+        let colors = [
+            NSColor(red: 0.1, green: 0.3, blue: 0.8, alpha: 1.0),  // Deep sky
+            NSColor(red: 0.4, green: 0.6, blue: 0.9, alpha: 1.0),  // Mid sky
+            NSColor(red: 0.9, green: 0.8, blue: 0.7, alpha: 1.0),  // Horizon
+            NSColor(red: 0.5, green: 0.7, blue: 0.3, alpha: 1.0),  // Vegetation
+            NSColor(red: 0.2, green: 0.3, blue: 0.1, alpha: 1.0)   // Ground
+        ]
+        
+        let gradient = NSGradient(colors: colors)
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), angle: 90)
+        
+        // Add subtle cloud patterns for more realistic reflections
+        for _ in 0..<20 {
+            let cloudX = Double.random(in: 0...Double(size))
+            let cloudY = Double.random(in: Double(size) * 0.6...Double(size) * 0.9)
+            let cloudSize = Double.random(in: 20...60)
+            
+            let cloudColor = NSColor.white.withAlphaComponent(0.3)
+            cloudColor.setFill()
+            
+            let cloudRect = NSRect(x: cloudX, y: cloudY, width: cloudSize, height: cloudSize * 0.5)
+            let cloudPath = NSBezierPath(ovalIn: cloudRect)
+            cloudPath.fill()
+        }
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func setupEnvironmentalContext(scene: SCNScene) {
+        print("🌍 Creating immersive environmental context...")
+        
+        // 1️⃣ SKYBOX: Replace black void with realistic environment
+        createSkybox(scene: scene)
+        
+        // 2️⃣ GROUND PLANE: Anchor the terrain with infinite ground
+        createGroundPlane(scene: scene)
+        
+        // 3️⃣ HORIZON MARKERS: Add distant landmarks for navigation reference
+        createHorizonMarkers(scene: scene)
+        
+        // 4️⃣ COORDINATE GRID: Optional spatial reference system
+        createCoordinateGrid(scene: scene)
+        
+        print("🗺️ Environmental context: Skybox + Ground + Navigation aids active")
+    }
+    
+    private func createSkybox(scene: SCNScene) {
+        // Create realistic skybox instead of black void
+        let skybox = MDLSkyCubeTexture(name: nil,
+                                      channelEncoding: .uInt8,
+                                      textureDimensions: vector_int2(Int32(256), Int32(256)),
+                                      turbidity: 0.28,
+                                      sunElevation: 0.6,
+                                      upperAtmosphereScattering: 0.4,
+                                      groundAlbedo: 0.3)
+        
+        scene.background.contents = skybox.imageFromTexture()?.takeUnretainedValue()
+        scene.lightingEnvironment.contents = skybox.imageFromTexture()?.takeUnretainedValue()
+        scene.lightingEnvironment.intensity = 1.0
+    }
+    
+    private func createGroundPlane(scene: SCNScene) {
+        // Infinite ground plane to anchor the terrain
+        let groundGeometry = SCNPlane(width: 2000, height: 2000)
+        
+        // Subtle ground material
+        let groundMaterial = SCNMaterial()
+        groundMaterial.diffuse.contents = NSColor(red: 0.15, green: 0.25, blue: 0.1, alpha: 1.0)
+        groundMaterial.roughness.contents = 0.9
+        groundMaterial.metalness.contents = 0.0
+        
+        groundGeometry.firstMaterial = groundMaterial
+        
+        let groundNode = SCNNode(geometry: groundGeometry)
+        groundNode.position = SCNVector3(0, -100, 0)  // Below the terrain
+        groundNode.eulerAngles = SCNVector3(-Float.pi/2, 0, 0)  // Horizontal
+        
+        scene.rootNode.addChildNode(groundNode)
+    }
+    
+    private func createHorizonMarkers(scene: SCNScene) {
+        // Distant landmarks for navigation reference
+        let markerPositions = [
+            SCNVector3(400, 50, 0),      // East
+            SCNVector3(-400, 50, 0),     // West  
+            SCNVector3(0, 50, 400),      // North
+            SCNVector3(0, 50, -400),     // South
+        ]
+        
+        let markerColors = [
+            NSColor.red,    // East - Red
+            NSColor.blue,   // West - Blue
+            NSColor.green,  // North - Green  
+            NSColor.orange  // South - Orange
+        ]
+        
+        for (index, position) in markerPositions.enumerated() {
+            let markerGeometry = SCNBox(width: 10, height: 50, length: 10, chamferRadius: 2)
+            let markerMaterial = SCNMaterial()
+            markerMaterial.diffuse.contents = markerColors[index]
+            markerMaterial.emission.contents = markerColors[index].withAlphaComponent(0.3)
+            markerGeometry.firstMaterial = markerMaterial
+            
+            let markerNode = SCNNode(geometry: markerGeometry)
+            markerNode.position = position
+            
+            scene.rootNode.addChildNode(markerNode)
+        }
+    }
+    
+    private func createCoordinateGrid(scene: SCNScene) {
+        // Optional grid lines for spatial reference (subtle)
+        let gridSpacing: Float = 50
+        let gridSize: Float = 500
+        let gridAlpha: CGFloat = 0.1
+        
+        // Create X-axis lines
+        let lineCount = Int(gridSize / gridSpacing)
+        for i in -lineCount...lineCount {
+            let lineGeometry = SCNBox(width: CGFloat(gridSize * 2), height: 0.5, length: 0.5, chamferRadius: 0)
+            let lineMaterial = SCNMaterial()
+            lineMaterial.diffuse.contents = NSColor.white.withAlphaComponent(gridAlpha)
+            lineGeometry.firstMaterial = lineMaterial
+            
+            let lineNode = SCNNode(geometry: lineGeometry)
+            lineNode.position = SCNVector3(0, -95, Float(i) * gridSpacing)
+            
+            scene.rootNode.addChildNode(lineNode)
+        }
+        
+        // Create Z-axis lines
+        for i in -lineCount...lineCount {
+            let lineGeometry = SCNBox(width: 0.5, height: 0.5, length: CGFloat(gridSize * 2), chamferRadius: 0)
+            let lineMaterial = SCNMaterial()
+            lineMaterial.diffuse.contents = NSColor.white.withAlphaComponent(gridAlpha)
+            lineGeometry.firstMaterial = lineMaterial
+            
+            let lineNode = SCNNode(geometry: lineGeometry)
+            lineNode.position = SCNVector3(Float(i) * gridSpacing, -95, 0)
+            
+            scene.rootNode.addChildNode(lineNode)
+        }
     }
     
     private func setupCamera(scene: SCNScene) {
+        print("📸 Setting up enhanced navigation camera...")
+        
         let camera = SCNCamera()
         camera.fieldOfView = 75
         camera.zNear = 1.0
-        camera.zFar = 2000.0
+        camera.zFar = 3000.0  // Increased for better distant viewing
+        
+        // Enhanced camera settings for better navigation
+        camera.wantsHDR = true
+        camera.bloomThreshold = 0.8
+        camera.bloomIntensity = 0.3
         
         let cameraNode = SCNNode()
         cameraNode.camera = camera
-        cameraNode.position = cameraPosition
-        cameraNode.rotation = cameraRotation
+        
+        // IMPROVED STARTING POSITION: Better overview of terrain
+        cameraNode.position = SCNVector3(200, 150, 200)  // Elevated overview
+        cameraNode.look(at: SCNVector3(0, 0, 0))  // Look at terrain center
         
         scene.rootNode.addChildNode(cameraNode)
         self.cameraNode = cameraNode
+        
+        // ADD CAMERA CONSTRAINTS for better navigation
+        addCameraConstraints(cameraNode: cameraNode, scene: scene)
+        
+        print("🎮 Enhanced camera: HDR + Bloom + Optimized positioning active")
+    }
+    
+    private func addCameraConstraints(cameraNode: SCNNode, scene: SCNScene) {
+        // Add terrain center reference node first
+        let centerNode = SCNNode()
+        centerNode.name = "terrainCenter"
+        centerNode.position = SCNVector3(0, 0, 0)
+        scene.rootNode.addChildNode(centerNode)
+        
+        // Distance constraint to prevent getting too close/far
+        let distanceConstraint = SCNDistanceConstraint(target: centerNode)
+        distanceConstraint.minimumDistance = 50
+        distanceConstraint.maximumDistance = 800
+        
+        cameraNode.constraints = [distanceConstraint]
+    }
+    
+    private func addNavigationAids(scene: SCNScene) {
+        print("🧭 Adding navigation aids...")
+        
+        // 🎯 TERRAIN CENTER MARKER: Clear reference point
+        addTerrainCenterMarker(scene: scene)
+        
+        // 📏 SCALE REFERENCE: Help understand distances
+        addScaleReference(scene: scene)
+        
+        // 🔺 LAYER INDICATORS: Show the 4 terrain layers visually
+        addLayerIndicators(scene: scene)
+        
+        print("🗺️ Navigation aids: Center marker + Scale + Layer indicators active")
+    }
+    
+    private func addTerrainCenterMarker(scene: SCNScene) {
+        // Glowing center marker to show terrain origin
+        let markerGeometry = SCNSphere(radius: 3)
+        let markerMaterial = SCNMaterial()
+        markerMaterial.diffuse.contents = NSColor.white
+        markerMaterial.emission.contents = NSColor.white.withAlphaComponent(0.8)
+        markerGeometry.firstMaterial = markerMaterial
+        
+        let markerNode = SCNNode(geometry: markerGeometry)
+        markerNode.position = SCNVector3(0, 0, 0)
+        
+        // Add pulsing animation
+        let pulseAction = SCNAction.sequence([
+            SCNAction.scale(to: 1.5, duration: 1.0),
+            SCNAction.scale(to: 1.0, duration: 1.0)
+        ])
+        markerNode.runAction(SCNAction.repeatForever(pulseAction))
+        
+        scene.rootNode.addChildNode(markerNode)
+    }
+    
+    private func addScaleReference(scene: SCNScene) {
+        // Scale bars to help understand distances
+        let scalePositions = [
+            SCNVector3(100, 10, 0),   // 100-unit reference East
+            SCNVector3(0, 10, 100),   // 100-unit reference North
+        ]
+        
+        for (index, position) in scalePositions.enumerated() {
+            let scaleGeometry = SCNBox(width: index == 0 ? 100 : 5, 
+                                     height: 2, 
+                                     length: index == 0 ? 5 : 100, 
+                                     chamferRadius: 1)
+            let scaleMaterial = SCNMaterial()
+            scaleMaterial.diffuse.contents = NSColor.yellow.withAlphaComponent(0.6)
+            scaleMaterial.emission.contents = NSColor.yellow.withAlphaComponent(0.2)
+            scaleGeometry.firstMaterial = scaleMaterial
+            
+            let scaleNode = SCNNode(geometry: scaleGeometry)
+            scaleNode.position = position
+            
+            scene.rootNode.addChildNode(scaleNode)
+        }
+    }
+    
+    private func addLayerIndicators(scene: SCNScene) {
+        // Visual indicators for the 4 terrain layers
+        let layerInfo = [
+            (name: "Aerial", y: Float(60), color: NSColor.cyan),
+            (name: "Canopy", y: Float(30), color: NSColor.green),
+            (name: "Surface", y: Float(0), color: NSColor.brown),
+            (name: "Underground", y: Float(-30), color: NSColor.purple)
+        ]
+        
+        for layer in layerInfo {
+            // Create subtle layer indication plane
+            let layerGeometry = SCNPlane(width: 200, height: 200)
+            let layerMaterial = SCNMaterial()
+            layerMaterial.diffuse.contents = layer.color.withAlphaComponent(0.05)
+            layerMaterial.isDoubleSided = true
+            layerGeometry.firstMaterial = layerMaterial
+            
+            let layerNode = SCNNode(geometry: layerGeometry)
+            layerNode.position = SCNVector3(0, layer.y, 0)
+            layerNode.eulerAngles = SCNVector3(-Float.pi/2, 0, 0)  // Horizontal
+            
+            scene.rootNode.addChildNode(layerNode)
+            
+            // Add layer label marker at edge
+            let labelGeometry = SCNBox(width: 5, height: 5, length: 15, chamferRadius: 1)
+            let labelMaterial = SCNMaterial()
+            labelMaterial.diffuse.contents = layer.color
+            labelMaterial.emission.contents = layer.color.withAlphaComponent(0.5)
+            labelGeometry.firstMaterial = labelMaterial
+            
+            let labelNode = SCNNode(geometry: labelGeometry)
+            labelNode.position = SCNVector3(90, layer.y + 2, 0)
+            
+            scene.rootNode.addChildNode(labelNode)
+        }
     }
     
     // MARK: - Epic Terrain Rendering
     
     private func renderTerrain(scene: SCNScene) {
-        print("🎨 Rendering EPIC 3D Terrain...")
+        print("🎨 Rendering EPIC 3D Voxel Terrain...")
         
         // Create terrain container
         let terrainContainer = SCNNode()
-        terrainContainer.name = "TerrainContainer"
+        terrainContainer.name = "VoxelTerrainContainer"
         scene.rootNode.addChildNode(terrainContainer)
         
-        // Render each layer with spectacular visuals
-        for layer in TerrainLayer.allCases {
-            renderTerrainLayer(layer: layer, container: terrainContainer)
-        }
+        // Render voxels with spectacular visuals
+        renderVoxelTerrain(container: terrainContainer)
         
         // Add particle effects for atmosphere
         addAtmosphericEffects(scene: scene)
     }
     
-    private func renderTerrainLayer(layer: TerrainLayer, container: SCNNode) {
-        guard let layerTiles = arena3D.tiles[layer] else { return }
+    private func renderVoxelTerrain(container: SCNNode) {
+        print("🧊 Rendering voxel world with \(simulationEngine.voxelWorld.getTotalVoxelCount()) voxels...")
         
-        let layerContainer = SCNNode()
-        layerContainer.name = "Layer_\(layer.rawValue)"
-        container.addChildNode(layerContainer)
+        // Create layer containers for organization
+        var layerContainers: [TerrainLayer: SCNNode] = [:]
+        for layer in TerrainLayer.allCases {
+            let layerContainer = SCNNode()
+            layerContainer.name = "VoxelLayer_\(layer.rawValue)"
+            container.addChildNode(layerContainer)
+            layerContainers[layer] = layerContainer
+        }
         
-        print("🏔️ Rendering \(layer.rawValue) layer with \(layerTiles.count * (layerTiles.first?.count ?? 0)) tiles")
-        
-        for (rowIndex, tileRow) in layerTiles.enumerated() {
-            for (colIndex, tile) in tileRow.enumerated() {
-                let tileNode = createTileNode(tile: tile, row: rowIndex, col: colIndex)
-                layerContainer.addChildNode(tileNode)
+        // Render voxels efficiently (only render visible/solid voxels)
+        for x in 0..<simulationEngine.voxelWorld.dimensions.width {
+            for y in 0..<simulationEngine.voxelWorld.dimensions.height {
+                for z in 0..<simulationEngine.voxelWorld.dimensions.depth {
+                    let voxel = simulationEngine.voxelWorld.voxels[x][y][z]
+                    
+                    // Only render solid/interesting voxels
+                    if shouldRenderVoxel(voxel) {
+                        let voxelNode = createVoxelNode(voxel: voxel)
+                        layerContainers[voxel.layer]?.addChildNode(voxelNode)
+                    }
+                }
             }
         }
+    }
+    
+    private func shouldRenderVoxel(_ voxel: Voxel) -> Bool {
+        // Render voxels that are not just empty air
+        switch voxel.transitionType {
+        case .air:
+            return false  // Don't render empty air voxels
+        default:
+            return true   // Render everything else (solid, water, climbable, etc.)
+        }
+    }
+    
+    private func createVoxelNode(voxel: Voxel) -> SCNNode {
+        let voxelNode = SCNNode()
+        
+        // Create geometry based on voxel properties
+        let geometry = createVoxelGeometry(for: voxel)
+        voxelNode.geometry = geometry
+        
+        // Position the voxel in 3D space
+        let scnPosition = SCNVector3(
+            Float(voxel.position.x),
+            Float(voxel.position.z), // Use Z as height
+            Float(voxel.position.y)
+        )
+        voxelNode.position = scnPosition
+        
+        // Debug positioning for first few voxels
+        if voxel.gridPosition.x < 3 && voxel.gridPosition.y < 3 && voxel.gridPosition.z < 3 {
+            print("🧊 Voxel[\(voxel.gridPosition.x),\(voxel.gridPosition.y),\(voxel.gridPosition.z)] at Position3D(\(voxel.position.x), \(voxel.position.y), \(voxel.position.z)) → SCN(\(scnPosition.x), \(scnPosition.y), \(scnPosition.z)) [\(voxel.transitionType)]")
+        }
+        
+        // Add physics body for collision detection if solid
+        if !voxel.transitionType.isPassable {
+            // Create physics body with enhanced collision reliability
+            let physicsOptions: [SCNPhysicsShape.Option: Any] = [
+                .type: SCNPhysicsShape.ShapeType.boundingBox,  // Use bounding box for reliable collision
+                .keepAsCompound: false,                         // Simplify to single shape
+                .collisionMargin: 1.0                          // Larger collision margin for reliability
+            ]
+            let physicsShape = SCNPhysicsShape(geometry: geometry, options: physicsOptions)
+            voxelNode.physicsBody = SCNPhysicsBody(type: .static, shape: physicsShape)
+            voxelNode.physicsBody?.categoryBitMask = 1     // Terrain category
+            voxelNode.physicsBody?.collisionBitMask = 2    // Collides with bugs
+            voxelNode.physicsBody?.contactTestBitMask = 2  // Detect contact with bugs
+            
+            // Enhance physics properties for more solid collision
+            voxelNode.physicsBody?.friction = 2.0         // Extra high friction
+            voxelNode.physicsBody?.restitution = 0.0      // No bounce to keep bugs grounded
+            
+            // Force physics body to be immediately active (read-only property, handled automatically)
+            
+            // Debug physics body creation
+            if voxel.gridPosition.x < 3 && voxel.gridPosition.y < 3 && voxel.gridPosition.z < 3 {
+                print("🔧 Physics body created for voxel[\(voxel.gridPosition.x),\(voxel.gridPosition.y),\(voxel.gridPosition.z)] with shape: \(type(of: geometry))")
+            }
+        }
+        
+        return voxelNode
+    }
+    
+    private func createVoxelGeometry(for voxel: Voxel) -> SCNGeometry {
+        let voxelSize = Float(simulationEngine.voxelWorld.voxelSize)
+        
+        // Create appropriate geometry based on voxel properties
+        switch voxel.transitionType {
+        case .solid:
+            return createSolidVoxel(size: voxelSize, voxel: voxel)
+        case .swim(let depth):
+            return createWaterVoxel(size: voxelSize, voxel: voxel, depth: depth)
+        case .climb(let difficulty):
+            return createClimbVoxel(size: voxelSize, voxel: voxel, difficulty: difficulty)
+        case .tunnel(let width):
+            return createTunnelVoxel(size: voxelSize, voxel: voxel, width: width)
+        case .ramp(let angle):
+            return createRampVoxel(size: voxelSize, voxel: voxel, angle: angle)
+        case .flight(let clearance):
+            return createFlightVoxel(size: voxelSize, voxel: voxel, clearance: clearance)
+        case .bridge(let stability):
+            return createBridgeVoxel(size: voxelSize, voxel: voxel, stability: stability)
+        case .air:
+            return createAirVoxel(size: voxelSize, voxel: voxel)
+        }
+    }
+    
+    private func createSolidVoxel(size: Float, voxel: Voxel) -> SCNGeometry {
+        let box = SCNBox(width: CGFloat(size), height: CGFloat(size), length: CGFloat(size), chamferRadius: 0.02)
+        
+        // AAA-Quality PBR Material System
+        let material = createPBRMaterial(for: voxel)
+        box.firstMaterial = material
+        
+        return box
+    }
+    
+    private func createWaterVoxel(size: Float, voxel: Voxel, depth: Double) -> SCNGeometry {
+        let waterHeight = Float(1.0 - depth) * size * 0.9  // Deeper water = lower height
+        let box = SCNBox(width: CGFloat(size), height: CGFloat(waterHeight), length: CGFloat(size), chamferRadius: 0.05)
+        
+        // Advanced water material with realistic properties
+        let material = createAdvancedWaterMaterial(depth: depth, voxel: voxel)
+        box.firstMaterial = material
+        
+        return box
+    }
+    
+    private func createAdvancedWaterMaterial(depth: Double, voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Depth-based water coloring
+        let deepBlue = NSColor(red: 0.05, green: 0.2, blue: 0.4, alpha: 0.8)
+        let shallowBlue = NSColor(red: 0.2, green: 0.5, blue: 0.8, alpha: 0.6)
+        let waterColor = blendColors(deepBlue, shallowBlue, ratio: depth)
+        
+        material.diffuse.contents = waterColor
+        material.metalness.contents = 0.98      // Water is highly reflective
+        material.roughness.contents = 0.02      // Ultra-smooth surface
+        material.transparency = 0.3 + (depth * 0.4)  // Deeper water is more opaque
+        
+        // Add caustic-like patterns
+        material.normal.contents = createWaterNormalMap(voxel: voxel)
+        
+        // Enable environmental reflections
+        material.transparencyMode = .aOne
+        
+        return material
+    }
+    
+    private func createWaterNormalMap(voxel: Voxel) -> NSImage {
+        let size = 32
+        let image = NSImage(size: NSSize(width: size, height: size))
+        
+        image.lockFocus()
+        
+        // Create ripple patterns
+        for x in 0..<size {
+            for y in 0..<size {
+                let ripple1 = sin(Double(x + voxel.gridPosition.x) * 0.8) * cos(Double(y + voxel.gridPosition.y) * 0.8)
+                let ripple2 = sin(Double(x + voxel.gridPosition.z) * 1.2) * cos(Double(y + voxel.gridPosition.z) * 1.2)
+                let combined = (ripple1 + ripple2) * 0.3 + 0.5
+                
+                let color = NSColor(red: 0.5, green: 0.5, blue: combined, alpha: 1.0)
+                let rect = NSRect(x: x, y: y, width: 1, height: 1)
+                color.setFill()
+                rect.fill()
+            }
+        }
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createClimbVoxel(size: Float, voxel: Voxel, difficulty: Double) -> SCNGeometry {
+        let roughness = Float(difficulty)  // Higher difficulty = rougher surface
+        let box = SCNBox(width: CGFloat(size), height: CGFloat(size), length: CGFloat(size), chamferRadius: 0.05)
+        box.firstMaterial?.diffuse.contents = NSColor.brown.withAlphaComponent(0.8)
+        box.firstMaterial?.roughness.contents = roughness
+        return box
+    }
+    
+    private func createTunnelVoxel(size: Float, voxel: Voxel, width: Double) -> SCNGeometry {
+        let tunnelRadius = Float(width) * size * 0.4  // Width affects tunnel radius
+        let cylinder = SCNCylinder(radius: CGFloat(tunnelRadius), height: CGFloat(size))
+        cylinder.firstMaterial?.diffuse.contents = NSColor.darkGray.withAlphaComponent(0.7)
+        return cylinder
+    }
+    
+    private func createRampVoxel(size: Float, voxel: Voxel, angle: Double) -> SCNGeometry {
+        // Create a sloped voxel for ramps
+        let box = SCNBox(width: CGFloat(size), height: CGFloat(size * Float(angle)), length: CGFloat(size), chamferRadius: 0.1)
+        box.firstMaterial?.diffuse.contents = getVoxelColor(voxel: voxel)
+        box.firstMaterial?.roughness.contents = 0.5
+        return box
+    }
+    
+    private func createFlightVoxel(size: Float, voxel: Voxel, clearance: Double) -> SCNGeometry {
+        // Create a partially transparent voxel for flight zones
+        let sphere = SCNSphere(radius: CGFloat(size * Float(clearance) * 0.5))
+        sphere.firstMaterial?.diffuse.contents = NSColor.cyan.withAlphaComponent(0.2)
+        sphere.firstMaterial?.transparency = 0.8
+        return sphere
+    }
+    
+    private func createBridgeVoxel(size: Float, voxel: Voxel, stability: Double) -> SCNGeometry {
+        // Create a bridge-like structure
+        let box = SCNBox(width: CGFloat(size), height: CGFloat(size * 0.3), length: CGFloat(size), chamferRadius: 0.05)
+        let stabilityAlpha = CGFloat(stability)
+        box.firstMaterial?.diffuse.contents = NSColor.orange.withAlphaComponent(stabilityAlpha)
+        box.firstMaterial?.metalness.contents = 0.7
+        return box
+    }
+    
+    private func createAirVoxel(size: Float, voxel: Voxel) -> SCNGeometry {
+        // For air voxels that have resources, create small resource indicators
+        if voxel.hasFood {
+            let sphere = SCNSphere(radius: CGFloat(size * 0.2))
+            sphere.firstMaterial?.diffuse.contents = NSColor.green
+            sphere.firstMaterial?.emission.contents = NSColor.green.withAlphaComponent(0.3)
+            return sphere
+        }
+        
+        // Empty air - shouldn't render but just in case
+        let box = SCNBox(width: CGFloat(size * 0.1), height: CGFloat(size * 0.1), length: CGFloat(size * 0.1), chamferRadius: 0)
+        box.firstMaterial?.diffuse.contents = NSColor.clear
+        return box
+    }
+    
+    // MARK: - High-Performance Material Caching System
+    
+    private static var materialCache: [String: SCNMaterial] = [:]
+    private static var sharedTextures: [String: NSImage] = [:]
+    
+    private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
+        // Create cache key for material reuse
+        let cacheKey = "\(voxel.terrainType.rawValue)_\(voxel.biome.rawValue)_\(voxel.layer.rawValue)"
+        
+        // Return cached material if available
+        if let cachedMaterial = Self.materialCache[cacheKey] {
+            return cachedMaterial.copy() as! SCNMaterial
+        }
+        
+        // Create new material and cache it
+        let material: SCNMaterial
+        switch voxel.terrainType {
+        case .wall:
+            material = createOptimizedRockMaterial(voxel: voxel)
+        case .water:
+            material = createOptimizedWaterMaterial(voxel: voxel)
+        case .forest:
+            material = createOptimizedWoodMaterial(voxel: voxel)
+        case .sand:
+            material = createOptimizedSandMaterial(voxel: voxel)
+        case .ice:
+            material = createOptimizedIceMaterial(voxel: voxel)
+        case .hill:
+            material = createOptimizedStoneMaterial(voxel: voxel)
+        case .food:
+            material = createOptimizedVegetationMaterial(voxel: voxel)
+        case .swamp:
+            material = createOptimizedMudMaterial(voxel: voxel)
+        default:
+            material = createOptimizedGrassMaterial(voxel: voxel)
+        }
+        
+        // Cache the material for reuse
+        Self.materialCache[cacheKey] = material
+        return material.copy() as! SCNMaterial
+    }
+    
+    private func createOptimizedRockMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Realistic rock properties with optimized shared textures
+        material.diffuse.contents = getLayerAwareColor(
+            baseColor: NSColor(red: 0.4, green: 0.35, blue: 0.3, alpha: 1.0),
+            voxel: voxel
+        )
+        material.metalness.contents = 0.02      // Rocks are not metallic
+        material.roughness.contents = 0.8       // Rough surface
+        
+        // Use shared normal map instead of generating per voxel
+        material.normal.contents = getSharedTexture(type: "rock_normal")
+        
+        // Add subtle color variation based on biome
+        material.diffuse.contents = modulateColorByBiome(
+            baseColor: material.diffuse.contents as! NSColor,
+            biome: voxel.biome
+        )
+        
+        return material
+    }
+    
+    private func createOptimizedWaterMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Advanced water rendering with shared textures
+        material.diffuse.contents = NSColor(red: 0.1, green: 0.3, blue: 0.7, alpha: 0.7)
+        material.metalness.contents = 0.95      // Water is highly reflective
+        material.roughness.contents = 0.05      // Very smooth surface
+        material.transparency = 0.7
+        
+        // Use shared water normal map
+        material.normal.contents = getSharedTexture(type: "water_normal")
+        material.transparencyMode = .aOne
+        
+        return material
+    }
+    
+    private func createOptimizedWoodMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Realistic wood properties with shared textures
+        material.diffuse.contents = NSColor(red: 0.4, green: 0.25, blue: 0.15, alpha: 1.0)
+        material.metalness.contents = 0.0       // Wood is not metallic
+        material.roughness.contents = 0.6       // Medium roughness
+        
+        // Use shared wood grain normal map
+        material.normal.contents = getSharedTexture(type: "wood_normal")
+        
+        return material
+    }
+    
+    private func createOptimizedSandMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Sand properties
+        material.diffuse.contents = NSColor(red: 0.9, green: 0.8, blue: 0.6, alpha: 1.0)
+        material.metalness.contents = 0.0       // Sand is not metallic
+        material.roughness.contents = 0.9       // Very rough surface
+        
+        return material
+    }
+    
+    private func createOptimizedIceMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Ice properties - highly reflective and smooth
+        material.diffuse.contents = NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.9)
+        material.metalness.contents = 0.1       // Slight metallic quality
+        material.roughness.contents = 0.05      // Very smooth
+        material.transparency = 0.1
+        
+        return material
+    }
+    
+    private func createOptimizedStoneMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Stone/hill material
+        material.diffuse.contents = NSColor(red: 0.5, green: 0.45, blue: 0.4, alpha: 1.0)
+        material.metalness.contents = 0.05      // Slight metallic quality from minerals
+        material.roughness.contents = 0.7       // Rough surface
+        
+        return material
+    }
+    
+    private func createOptimizedVegetationMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Vegetation/food material
+        material.diffuse.contents = NSColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1.0)
+        material.metalness.contents = 0.0       // Organic materials are not metallic
+        material.roughness.contents = 0.8       // Rough organic surface
+        
+        // Add slight emission for "fresh" vegetation
+        material.emission.contents = NSColor(red: 0.05, green: 0.1, blue: 0.05, alpha: 1.0)
+        
+        return material
+    }
+    
+    private func createOptimizedMudMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Swamp/mud material
+        material.diffuse.contents = NSColor(red: 0.3, green: 0.25, blue: 0.15, alpha: 1.0)
+        material.metalness.contents = 0.0       // Mud is not metallic
+        material.roughness.contents = 0.9       // Very rough surface
+        
+        return material
+    }
+    
+    private func createOptimizedGrassMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Default grass/open terrain
+        material.diffuse.contents = getLayerAwareColor(
+            baseColor: NSColor(red: 0.3, green: 0.6, blue: 0.2, alpha: 1.0),
+            voxel: voxel
+        )
+        material.metalness.contents = 0.0       // Grass is not metallic
+        material.roughness.contents = 0.8       // Rough organic surface
+        
+        return material
+    }
+    
+    // MARK: - Shared Texture System (Performance Optimized)
+    
+    private func getSharedTexture(type: String) -> NSImage {
+        // Return cached texture if available
+        if let cachedTexture = Self.sharedTextures[type] {
+            return cachedTexture
+        }
+        
+        // Generate texture once and cache it
+        let texture: NSImage
+        switch type {
+        case "rock_normal":
+            texture = createOptimizedRockNormalMap()
+        case "water_normal":
+            texture = createOptimizedWaterNormalMap()
+        case "wood_normal":
+            texture = createOptimizedWoodNormalMap()
+        default:
+            texture = createDefaultNormalMap()
+        }
+        
+        // Cache for future use
+        Self.sharedTextures[type] = texture
+        return texture
+    }
+    
+    private func createOptimizedRockNormalMap() -> NSImage {
+        let size = 32  // Reduced from 64 for performance
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        // Simplified noise pattern
+        for x in 0..<size {
+            for y in 0..<size {
+                let noise = sin(Double(x) * 0.5) * cos(Double(y) * 0.5)
+                let intensity = (noise + 1.0) / 2.0
+                let color = NSColor(red: 0.5, green: 0.5, blue: intensity, alpha: 1.0)
+                
+                let rect = NSRect(x: x, y: y, width: 1, height: 1)
+                color.setFill()
+                rect.fill()
+            }
+        }
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createOptimizedWaterNormalMap() -> NSImage {
+        let size = 24  // Smaller for better performance
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        // Simple ripple pattern
+        for x in 0..<size {
+            for y in 0..<size {
+                let ripple = sin(Double(x) * 0.8) * cos(Double(y) * 0.8) * 0.3 + 0.5
+                let color = NSColor(red: 0.5, green: 0.5, blue: ripple, alpha: 1.0)
+                
+                let rect = NSRect(x: x, y: y, width: 1, height: 1)
+                color.setFill()
+                rect.fill()
+            }
+        }
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createOptimizedWoodNormalMap() -> NSImage {
+        let size = 24
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        // Simple wood grain
+        for x in 0..<size {
+            for y in 0..<size {
+                let grain = sin(Double(y) * 0.6) * 0.3 + 0.7
+                let color = NSColor(red: 0.5, green: 0.5, blue: grain, alpha: 1.0)
+                
+                let rect = NSRect(x: x, y: y, width: 1, height: 1)
+                color.setFill()
+                rect.fill()
+            }
+        }
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createDefaultNormalMap() -> NSImage {
+        let size = 16
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        // Flat normal map
+        NSColor(red: 0.5, green: 0.5, blue: 1.0, alpha: 1.0).setFill()
+        NSRect(x: 0, y: 0, width: size, height: size).fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    // MARK: - Advanced Material Helpers
+    
+    private func getLayerAwareColor(baseColor: NSColor, voxel: Voxel) -> NSColor {
+        // Modify colors based on terrain layer for depth perception
+        switch voxel.layer {
+        case .underground:
+            // Darker, more muted colors underground
+            return baseColor.withAlphaComponent(0.8).blended(withFraction: 0.3, of: NSColor.black) ?? baseColor
+        case .surface:
+            // Natural colors at surface
+            return baseColor
+        case .canopy:
+            // Slightly lighter, more vibrant in canopy
+            return baseColor.blended(withFraction: 0.1, of: NSColor.white) ?? baseColor
+        case .aerial:
+            // Lighter, more ethereal in aerial zones
+            return baseColor.blended(withFraction: 0.2, of: NSColor.white) ?? baseColor
+        }
+    }
+    
+    private func modulateColorByBiome(baseColor: NSColor, biome: BiomeType) -> NSColor {
+        // Add biome-specific color tinting
+        switch biome {
+        case .desert:
+            return baseColor.blended(withFraction: 0.2, of: NSColor.orange) ?? baseColor
+        case .tundra:
+            return baseColor.blended(withFraction: 0.3, of: NSColor.cyan) ?? baseColor
+        case .tropicalRainforest:
+            return baseColor.blended(withFraction: 0.2, of: NSColor.green) ?? baseColor
+        case .wetlands:
+            return baseColor.blended(withFraction: 0.2, of: NSColor.blue) ?? baseColor
+        case .alpine:
+            return baseColor.blended(withFraction: 0.1, of: NSColor.white) ?? baseColor
+        default:
+            return baseColor
+        }
+    }
+    
+    // NOTE: Old per-voxel texture generation functions removed for performance
+    // Now using shared texture system for optimal startup times
+    
+    private func getVoxelColor(voxel: Voxel) -> NSColor {
+        // Legacy color system - kept for compatibility
+        let biomeColor = getBiomeColor(biome: voxel.biome)
+        let terrainColor = getTerrainTypeColor(terrain: voxel.terrainType)
+        
+        // Blend biome and terrain colors
+        return blendColors(biomeColor, terrainColor, ratio: 0.6)
+    }
+    
+    private func getBiomeColor(biome: BiomeType) -> NSColor {
+        switch biome {
+        case .tundra: return NSColor.white
+        case .borealForest: return NSColor(red: 0.0, green: 0.5, blue: 0.0, alpha: 1.0)
+        case .temperateForest: return NSColor.green
+        case .temperateGrassland: return NSColor.yellow
+        case .desert: return NSColor.orange
+        case .savanna: return NSColor.brown
+        case .tropicalRainforest: return NSColor(red: 0.0, green: 0.4, blue: 0.0, alpha: 1.0)
+        case .wetlands: return NSColor.cyan
+        case .alpine: return NSColor.lightGray
+        case .coastal: return NSColor.blue
+        }
+    }
+    
+    private func getTerrainTypeColor(terrain: TerrainType) -> NSColor {
+        switch terrain {
+        case .open: return NSColor.green
+        case .wall: return NSColor.gray
+        case .water: return NSColor.blue
+        case .food: return NSColor.yellow
+        case .forest: return NSColor(red: 0.0, green: 0.6, blue: 0.0, alpha: 1.0)
+        case .hill: return NSColor.brown
+        case .sand: return NSColor.orange
+        case .ice: return NSColor.white
+        case .swamp: return NSColor(red: 0.0, green: 0.3, blue: 0.0, alpha: 1.0)
+        case .wind: return NSColor.lightGray
+        case .predator: return NSColor.red
+        case .shadow: return NSColor.black
+        }
+    }
+    
+    private func blendColors(_ color1: NSColor, _ color2: NSColor, ratio: CGFloat) -> NSColor {
+        let c1 = color1.usingColorSpace(.deviceRGB) ?? color1
+        let c2 = color2.usingColorSpace(.deviceRGB) ?? color2
+        
+        return NSColor(
+            red: c1.redComponent * ratio + c2.redComponent * (1 - ratio),
+            green: c1.greenComponent * ratio + c2.greenComponent * (1 - ratio),
+            blue: c1.blueComponent * ratio + c2.blueComponent * (1 - ratio),
+            alpha: c1.alphaComponent * ratio + c2.alphaComponent * (1 - ratio)
+        )
     }
     
     private func createTileNode(tile: ArenaTile3D, row: Int, col: Int) -> SCNNode {
@@ -343,7 +1296,12 @@ struct Arena3DView: NSViewRepresentable {
     // MARK: - Bug Rendering
     
     private func renderBugs(scene: SCNScene) {
+        let bugs = simulationEngine.bugs
         print("🐛 Rendering \(bugs.count) EPIC 3D Bugs...")
+        print("🐛 Arena3DView renderBugs called - Bug array contents:")
+        for (index, bug) in bugs.prefix(5).enumerated() {
+            print("   Bug \(index): ID=\(bug.id.uuidString.prefix(8)), position3D=\(bug.position3D), energy=\(bug.energy)")
+        }
         
         let bugContainer = SCNNode()
         bugContainer.name = "BugContainer"
@@ -352,7 +1310,9 @@ struct Arena3DView: NSViewRepresentable {
         for bug in bugs {
             let bugNode = createBugNode(bug: bug)
             bugContainer.addChildNode(bugNode)
+            print("   ✅ Created 3D node for bug at position \(bug.position3D)")
         }
+        print("🐛 BugContainer added to scene with \(bugContainer.childNodes.count) bug nodes")
     }
     
     private func createBugNode(bug: Bug) -> SCNNode {
@@ -377,18 +1337,58 @@ struct Arena3DView: NSViewRepresentable {
             addClimbingGear(to: bugNode, bug: bug)
         }
         
-        // Position bug in 3D space
-        bugNode.position = SCNVector3(
+        // Position bug in 3D space with surface correction
+        var scnPosition = SCNVector3(
             Float(bug.position3D.x),
             Float(bug.position3D.z),
             Float(bug.position3D.y)
         )
         
-        // Add physics body
-        bugNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+        // Ensure bug is positioned above any solid terrain at this location
+        if let scene = sceneView?.scene {
+            let rayStart = SCNVector3(scnPosition.x, scnPosition.y + 50, scnPosition.z)
+            let rayEnd = SCNVector3(scnPosition.x, scnPosition.y - 50, scnPosition.z)
+            
+            let raycastResults = scene.physicsWorld.rayTestWithSegment(from: rayStart, to: rayEnd, options: [:])
+            
+            if let firstHit = raycastResults.first {
+                // Position bug slightly above the terrain surface
+                scnPosition.y = firstHit.worldCoordinates.y + 2.0  // 2 units above surface
+                print("🎯 Bug positioned on terrain surface at Y=\(scnPosition.y)")
+            }
+        }
+        
+        bugNode.position = scnPosition
+        
+        // Debug positioning
+        print("🐛 Bug positioned at: Position3D(\(bug.position3D.x), \(bug.position3D.y), \(bug.position3D.z)) → SCN(\(scnPosition.x), \(scnPosition.y), \(scnPosition.z))")
+        
+        // Add physics body with enhanced shape and margin for reliable collision
+        let physicsOptions: [SCNPhysicsShape.Option: Any] = [
+            .type: SCNPhysicsShape.ShapeType.convexHull,    // More accurate than bounding box
+            .collisionMargin: 0.5                          // Add collision margin for reliability
+        ]
+        let physicsShape = SCNPhysicsShape(geometry: bodyGeometry, options: physicsOptions)
+        bugNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: physicsShape)
         bugNode.physicsBody?.mass = 0.1
-        bugNode.physicsBody?.categoryBitMask = 2
-        bugNode.physicsBody?.collisionBitMask = 1
+        bugNode.physicsBody?.categoryBitMask = 2       // Bug category  
+        bugNode.physicsBody?.collisionBitMask = 1      // Collides with terrain
+        bugNode.physicsBody?.contactTestBitMask = 1    // Detect contact with terrain
+        
+        // Configure physics properties to prevent falling through
+        bugNode.physicsBody?.restitution = 0.1        // Minimal bounce
+        bugNode.physicsBody?.friction = 1.0           // Maximum grip on terrain
+        bugNode.physicsBody?.damping = 0.8            // High damping for stability
+        
+        // CRITICAL: Enable continuous collision detection to prevent tunneling
+        bugNode.physicsBody?.usesDefaultMomentOfInertia = true
+        bugNode.physicsBody?.continuousCollisionDetectionThreshold = 0.01  // Very sensitive
+        
+        // Limit velocity to prevent physics engine breaking
+        bugNode.physicsBody?.velocityFactor = SCNVector3(0.3, 0.3, 0.3)  // Further reduced max velocity
+        
+        // Debug physics body creation
+        print("🔧 Physics body created for bug \(bug.dna.speciesTraits.speciesType) with shape: \(type(of: bodyGeometry))")
         
         // Add energy indicator
         addEnergyIndicator(to: bugNode, energy: bug.energy)
@@ -398,7 +1398,7 @@ struct Arena3DView: NSViewRepresentable {
     
     private func createBugGeometry(for bug: Bug) -> SCNGeometry {
         let species = bug.dna.speciesTraits.speciesType
-        let size = Float(bug.dna.size * 2.0) // Scale for visibility
+        let size = Float(bug.dna.size * 10.0) // Scale for visibility in voxel world
         
         switch species {
         case .herbivore:
@@ -498,6 +1498,7 @@ struct Arena3DView: NSViewRepresentable {
     // MARK: - Territory Rendering
     
     private func renderTerritories(scene: SCNScene) {
+        let territories3D = simulationEngine.territoryManager.territories3D
         print("🏰 Rendering \(territories3D.count) EPIC 3D Territories...")
         
         let territoryContainer = SCNNode()
@@ -637,38 +1638,196 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func addAtmosphericEffects(scene: SCNScene) {
-        // Add floating particles for atmosphere
-        let atmosphereSystem = SCNParticleSystem()
-        // Create a simple sparkle image
-        let image = NSImage(size: NSSize(width: 6, height: 6))
+        print("🌟 Creating cinematic atmospheric effects...")
+        
+        // 🌫️ ENHANCED FOG: Layer-specific atmospheric density
+        createLayeredFog(scene: scene)
+        
+        // ✨ MAGICAL PARTICLES: Multi-layer atmospheric systems
+        createMagicalParticles(scene: scene)
+        
+        // 🌊 UNDERWATER CAUSTICS: Dynamic water light patterns
+        createUnderwaterCaustics(scene: scene)
+        
+        // 🍃 AERIAL CURRENTS: Wind visualization in aerial zones
+        createAerialWindCurrents(scene: scene)
+        
+        // 🔮 MYSTICAL AURA: Underground energy emanations
+        createUndergroundMysticAura(scene: scene)
+        
+        print("🎆 Cinematic atmosphere: 5 particle systems creating immersive metaverse")
+    }
+    
+    private func createLayeredFog(scene: SCNScene) {
+        // Sophisticated fog system with depth layers
+        scene.fogStartDistance = 100
+        scene.fogEndDistance = 600
+        scene.fogColor = NSColor(red: 0.85, green: 0.9, blue: 0.95, alpha: 1.0)
+        scene.fogDensityExponent = 1.8  // Realistic atmospheric falloff
+    }
+    
+    private func createMagicalParticles(scene: SCNScene) {
+        // Create the star particle image once
+        let sparkleImage = createSparkleParticleImage()
+        
+        // SURFACE PARTICLES: Optimized dust motes and pollen
+        let surfaceSystem = SCNParticleSystem()
+        surfaceSystem.particleImage = sparkleImage
+        surfaceSystem.birthRate = 30  // Reduced for performance
+        surfaceSystem.particleLifeSpan = 8.0  // Shorter lifespan
+        surfaceSystem.particleLifeSpanVariation = 2.0
+        surfaceSystem.particleSize = 2.0
+        surfaceSystem.particleSizeVariation = 0.5
+        surfaceSystem.particleColor = NSColor(red: 0.9, green: 0.8, blue: 0.6, alpha: 0.3)
+        surfaceSystem.particleColorVariation = SCNVector4(0.1, 0.1, 0.05, 0.05)  // Reduced variation
+        surfaceSystem.particleVelocity = 2.0
+        surfaceSystem.particleVelocityVariation = 1.0
+        
+        let surfaceNode = SCNNode()
+        surfaceNode.addParticleSystem(surfaceSystem)
+        surfaceNode.position = SCNVector3(0, 30, 0)
+        scene.rootNode.addChildNode(surfaceNode)
+        
+        // CANOPY PARTICLES: Optimized leaf fragments and light specks
+        let canopySystem = SCNParticleSystem()
+        canopySystem.particleImage = sparkleImage
+        canopySystem.birthRate = 20  // Reduced for performance
+        canopySystem.particleLifeSpan = 10.0  // Shorter lifespan
+        canopySystem.particleSize = 1.5
+        canopySystem.particleColor = NSColor(red: 0.4, green: 0.8, blue: 0.3, alpha: 0.4)
+        canopySystem.particleVelocity = 1.0
+        canopySystem.particleVelocityVariation = 0.5
+        
+        let canopyNode = SCNNode()
+        canopyNode.addParticleSystem(canopySystem)
+        canopyNode.position = SCNVector3(0, 60, 0)
+        scene.rootNode.addChildNode(canopyNode)
+    }
+    
+    private func createUnderwaterCaustics(scene: SCNScene) {
+        let causticsSystem = SCNParticleSystem()
+        causticsSystem.particleImage = createCausticParticleImage()
+        causticsSystem.birthRate = 25
+        causticsSystem.particleLifeSpan = 8.0
+        causticsSystem.particleSize = 5.0
+        causticsSystem.particleSizeVariation = 2.0
+        causticsSystem.particleColor = NSColor(red: 0.2, green: 0.5, blue: 0.9, alpha: 0.4)
+        causticsSystem.particleVelocity = 0.8
+        causticsSystem.particleVelocityVariation = 0.5
+        
+        let causticsNode = SCNNode()
+        causticsNode.addParticleSystem(causticsSystem)
+        causticsNode.position = SCNVector3(0, 20, 0)
+        scene.rootNode.addChildNode(causticsNode)
+    }
+    
+    private func createAerialWindCurrents(scene: SCNScene) {
+        let windSystem = SCNParticleSystem()
+        windSystem.particleImage = createWindParticleImage()
+        windSystem.birthRate = 30
+        windSystem.particleLifeSpan = 10.0
+        windSystem.particleSize = 4.0
+        windSystem.particleColor = NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.2)
+        windSystem.particleVelocity = 6.0
+        windSystem.particleVelocityVariation = 3.0
+        
+        let windNode = SCNNode()
+        windNode.addParticleSystem(windSystem)
+        windNode.position = SCNVector3(0, 100, 0)
+        scene.rootNode.addChildNode(windNode)
+    }
+    
+    private func createUndergroundMysticAura(scene: SCNScene) {
+        let auraSystem = SCNParticleSystem()
+        auraSystem.particleImage = createAuraParticleImage()
+        auraSystem.birthRate = 20
+        auraSystem.particleLifeSpan = 18.0
+        auraSystem.particleSize = 3.5
+        auraSystem.particleSizeVariation = 1.5
+        auraSystem.particleColor = NSColor(red: 0.5, green: 0.2, blue: 0.9, alpha: 0.5)
+        auraSystem.particleColorVariation = SCNVector4(0.3, 0.1, 0.2, 0.2)
+        auraSystem.particleVelocity = 0.5
+        auraSystem.particleVelocityVariation = 0.4
+        
+        let auraNode = SCNNode()
+        auraNode.addParticleSystem(auraSystem)
+        auraNode.position = SCNVector3(0, -20, 0)
+        scene.rootNode.addChildNode(auraNode)
+    }
+    
+    // MARK: - Particle Image Generators
+    
+    private func createSparkleParticleImage() -> NSImage {
+        let size = 8
+        let image = NSImage(size: NSSize(width: size, height: size))
         image.lockFocus()
+        
+        // Create star shape
         NSColor.white.setFill()
+        let center = CGFloat(size) / 2
         let star = NSBezierPath()
-        star.move(to: NSPoint(x: 3, y: 6))
-        star.line(to: NSPoint(x: 2, y: 2))
-        star.line(to: NSPoint(x: 0, y: 2))
-        star.line(to: NSPoint(x: 2, y: 1))
-        star.line(to: NSPoint(x: 1, y: 0))
-        star.line(to: NSPoint(x: 3, y: 1))
-        star.line(to: NSPoint(x: 5, y: 0))
-        star.line(to: NSPoint(x: 4, y: 1))
-        star.line(to: NSPoint(x: 6, y: 2))
-        star.line(to: NSPoint(x: 4, y: 2))
+        star.move(to: NSPoint(x: center, y: CGFloat(size)))
+        star.line(to: NSPoint(x: center - 1, y: center))
+        star.line(to: NSPoint(x: 0, y: center))
+        star.line(to: NSPoint(x: center - 1, y: center - 1))
+        star.line(to: NSPoint(x: center, y: 0))
+        star.line(to: NSPoint(x: center + 1, y: center - 1))
+        star.line(to: NSPoint(x: CGFloat(size), y: center))
+        star.line(to: NSPoint(x: center + 1, y: center))
         star.close()
         star.fill()
-        image.unlockFocus()
-        atmosphereSystem.particleImage = image
-        atmosphereSystem.birthRate = 20
-        atmosphereSystem.particleLifeSpan = 10.0
-        atmosphereSystem.particleVelocity = 5
-        atmosphereSystem.particleSize = 1.0
-        atmosphereSystem.particleColor = NSColor(white: 1.0, alpha: 0.2)
-        // Note: emissionShape is not available on macOS, particles will emit from point
         
-        let atmosphereNode = SCNNode()
-        atmosphereNode.addParticleSystem(atmosphereSystem)
-        atmosphereNode.position = SCNVector3(0, 100, 0)
-        scene.rootNode.addChildNode(atmosphereNode)
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createCausticParticleImage() -> NSImage {
+        let size = 12
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        // Create ripple pattern
+        NSColor(red: 0.3, green: 0.7, blue: 1.0, alpha: 0.6).setFill()
+        let circle = NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: size-2, height: size-2))
+        circle.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createWindParticleImage() -> NSImage {
+        let size = 16
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        // Create wind streak
+        NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 0.3).setFill()
+        let streak = NSBezierPath()
+        streak.move(to: NSPoint(x: 0, y: size/2))
+        streak.line(to: NSPoint(x: size, y: size/2 + 1))
+        streak.line(to: NSPoint(x: size, y: size/2 - 1))
+        streak.close()
+        streak.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createAuraParticleImage() -> NSImage {
+        let size = 10
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        // Create glowing orb
+        let gradient = NSGradient(colors: [
+            NSColor(red: 0.6, green: 0.3, blue: 1.0, alpha: 0.8),
+            NSColor(red: 0.6, green: 0.3, blue: 1.0, alpha: 0.0)
+        ])
+        
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), relativeCenterPosition: NSPoint.zero)
+        
+        image.unlockFocus()
+        return image
     }
     
     // MARK: - Animation and Updates
@@ -699,7 +1858,7 @@ struct Arena3DView: NSViewRepresentable {
     private func updateBugPositions(scene: SCNScene) {
         guard let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else { return }
         
-        for bug in bugs {
+        for bug in simulationEngine.bugs {
             if let bugNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false) {
                 // Smooth position interpolation
                 let targetPosition = SCNVector3(
@@ -738,7 +1897,7 @@ struct Arena3DView: NSViewRepresentable {
         guard let territoryContainer = scene.rootNode.childNode(withName: "TerritoryContainer", recursively: false) else { return }
         
         // Update territory boundaries and contested areas
-        for territory in territories3D {
+        for territory in simulationEngine.territoryManager.territories3D {
             if let territoryNode = territoryContainer.childNode(withName: "Territory_\(territory.id.uuidString)", recursively: false) {
                 // Update contested layer indicators
                 updateContestedLayers(territoryNode: territoryNode, territory: territory)

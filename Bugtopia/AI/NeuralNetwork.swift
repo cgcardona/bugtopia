@@ -496,9 +496,6 @@ struct BugSensors {
             inputs.append(0.0)  // No ratio
         }
 
-        // Debug: Print actual input count
-        print("🧠 DEBUG: Generated \(inputs.count) inputs, expected 71")
-        
         return inputs
     }
 }
@@ -527,6 +524,8 @@ struct BugOutputs {
         hunting = outputs.count > 8 ? max(0.0, min(1.0, outputs[8])) : 0.0
         fleeing = outputs.count > 9 ? max(0.0, min(1.0, outputs[9])) : 0.0
     }
+    
+    static let zero = BugOutputs(from: [])
 }
 
 // MARK: - Extensions

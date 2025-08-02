@@ -34,7 +34,8 @@ class SimulationEngine {
     
     // MARK: - World Configuration
     
-    let arena3D: Arena3D
+    let voxelWorld: VoxelWorld
+    let pathfinding: VoxelPathfinding
     private let maxPopulation = 180  // Tripled for more genetic diversity and faster evolution
     private let initialPopulation = 50   // Reduced population for better performance
     private let maxFoodItems = 800  // Doubled to support much larger population (3x bugs need more food)
@@ -58,7 +59,8 @@ class SimulationEngine {
     // MARK: - Initialization
     
     init(worldBounds: CGRect) {
-        self.arena3D = Arena3D(bounds: worldBounds)
+        self.voxelWorld = VoxelWorld(bounds: worldBounds, worldType: .continental3D, resolution: 32)
+        self.pathfinding = VoxelPathfinding(voxelWorld: voxelWorld)
         ecosystemManager.setWorldBounds(worldBounds)
         setupInitialPopulation()
         spawnInitialFood()
@@ -97,12 +99,15 @@ class SimulationEngine {
         seasonalManager.reset() // Reset seasonal cycle
         weatherManager.reset() // Reset weather patterns
         disasterManager.reset() // Reset disaster system
-        disasterManager.setWorldBounds(arena3D.bounds) // Set disaster spawn area
+        disasterManager.setWorldBounds(voxelWorld.worldBounds) // Set disaster spawn area
         ecosystemManager.reset() // Reset ecosystem state
-        ecosystemManager.setWorldBounds(arena3D.bounds) // Set world bounds for population density
-        ecosystemManager.initializeResourceZones(from: arena3D.createTempArena()) // Initialize resource tracking with 2D compatibility
+        ecosystemManager.setWorldBounds(voxelWorld.worldBounds) // Set world bounds for population density
+        ecosystemManager.initializeResourceZones(from: createTempArena()) // Initialize resource tracking with 2D compatibility
         territoryManager.reset() // Reset territorial data
-        territoryManager.setWorldBounds(arena3D.bounds) // Set territory boundaries
+        // Set territory boundaries using voxel world bounds
+        let minPos = Position3D(voxelWorld.worldBounds.minX, voxelWorld.worldBounds.minY, -50.0)
+        let maxPos = Position3D(voxelWorld.worldBounds.maxX, voxelWorld.worldBounds.maxY, 50.0)
+        territoryManager.setWorldBounds3D(min: minPos, max: maxPos)
         currentGeneration = 0
         tickCount = 0
         statistics = SimulationStatistics()
@@ -112,17 +117,31 @@ class SimulationEngine {
         spawnInitialResources()
     }
     
+    /// Advances the simulation by one tick
+    func step() {
+        tick()
+    }
+    
+    /// Forces evolution to the next generation
+    func evolveNextGeneration() {
+        evolvePopulation()
+    }
+    
     // MARK: - Main Simulation Loop
     
     /// Executes one simulation tick
     private func tick() {
         tickCount += 1
         
-        // Update all bugs with arena awareness and communication
+        // Update all bugs with voxel-based movement and communication
         var newSignals: [Signal] = []
         for bug in bugs {
+            // Use new voxel-based movement system
+            bug.updateVoxelPosition(in: voxelWorld, pathfinding: pathfinding, decision: bug.lastDecision ?? BugOutputs.zero)
+            
+            // Traditional update for other behaviors
             bug.update(
-    in: arena3D.createTempArena(),
+    in: createTempArena(),
     foods: foods,
     otherBugs: bugs,
     seasonalManager: seasonalManager,
@@ -132,8 +151,8 @@ class SimulationEngine {
     territoryManager: territoryManager
 )
             
-            // Let bug generate signals (using 2D compatibility for now)
-            if let signal = bug.generateSignals(in: arena3D.createTempArena(), foods: foods, otherBugs: bugs) {
+            // Let bug generate signals
+            if let signal = bug.generateSignals(in: createTempArena(), foods: foods, otherBugs: bugs) {
                 newSignals.append(signal)
             }
         }
@@ -182,12 +201,12 @@ class SimulationEngine {
         // Update territories and migrations (using 2D compatibility)
         territoryManager.update(
             populations: speciationManager.populations,
-            arena: arena3D.createTempArena(),
+            arena: createTempArena(),
             ecosystemManager: ecosystemManager
         )
         
         // Update populations and speciation (using 2D compatibility)
-        speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: arena3D.createTempArena())
+        speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: createTempArena())
         
         // Clean up old speciation events every 50 ticks to prevent memory buildup
         if tickCount % 50 == 0 {
@@ -210,12 +229,38 @@ class SimulationEngine {
     
     // MARK: - Population Management
     
-    /// Sets up the initial random population using arena spawn points
+    /// Sets up the initial random population using voxel world spawn points
     private func setupInitialPopulation() {
-        bugs = (0..<initialPopulation).map { _ in
-            let spawnPosition = arena3D.findSpawnPosition()
-            return Bug(dna: BugDNA.random(), position: spawnPosition, generation: 0)
+        print("🚀 SimulationEngine: Creating initial population of \(initialPopulation) bugs...")
+        bugs = (0..<initialPopulation).map { index in
+            let spawnPosition3D = voxelWorld.findSpawnPosition()
+            let surfacePosition = calculateSurfaceSpawnPosition(spawnPosition3D)
+            let bug = Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: 0)
+            if index < 3 {
+                print("   Bug \(index): spawned at surface position \(surfacePosition)")
+            }
+            return bug
         }
+        print("✅ SimulationEngine: Created \(bugs.count) bugs successfully")
+    }
+    
+    /// Calculate proper surface position for spawning bugs
+    private func calculateSurfaceSpawnPosition(_ position3D: Position3D) -> Position3D {
+        guard let voxel = voxelWorld.getVoxel(at: position3D) else {
+            return position3D // Fallback to original position
+        }
+        
+        // If it's passable terrain, spawn at voxel center
+        if voxel.transitionType.isPassable {
+            return position3D
+        }
+        
+        // For solid terrain, spawn on top of the voxel
+        return Position3D(
+            position3D.x,
+            position3D.y,
+            position3D.z + (voxelWorld.voxelSize / 2.0)
+        )
     }
     
     /// Handles reproduction between compatible bugs with speciation constraints (seasonally adjusted)
@@ -293,14 +338,16 @@ class SimulationEngine {
                 parent = randomSurvivor
             } else {
                 // If no survivors, create completely new bug
-                let spawnPosition = arena3D.findSpawnPosition()
-                bugs.append(Bug(dna: BugDNA.random(), position: spawnPosition, generation: currentGeneration))
+                let spawnPosition3D = voxelWorld.findSpawnPosition()
+                let surfacePosition = calculateSurfaceSpawnPosition(spawnPosition3D)
+                bugs.append(Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: currentGeneration))
                 continue
             }
             
             let mutatedDNA = parent.dna.mutated(mutationRate: 0.3, mutationStrength: 0.2)
-            let spawnPosition = arena3D.findSpawnPosition()
-            bugs.append(Bug(dna: mutatedDNA, position: spawnPosition, generation: currentGeneration))
+            let spawnPosition3D = voxelWorld.findSpawnPosition()
+            let surfacePosition = calculateSurfaceSpawnPosition(spawnPosition3D)
+            bugs.append(Bug(dna: mutatedDNA, position3D: surfacePosition, generation: currentGeneration))
         }
     }
     
@@ -344,7 +391,7 @@ class SimulationEngine {
         
         // Add survivors with refreshed energy and reset age
         for survivor in survivors {
-            let refreshedBug = Bug(dna: survivor.dna, position: survivor.position, generation: currentGeneration)
+            let refreshedBug = Bug(dna: survivor.dna, position3D: survivor.position3D, generation: currentGeneration)
             refreshedBug.energy = Bug.initialEnergy
             newPopulation.append(refreshedBug)
         }
@@ -354,23 +401,26 @@ class SimulationEngine {
             // Safe parent selection with fallbacks
             guard let parent1 = survivors.randomElement() else {
                 // If no survivors, create random bug
-                let randomPosition = arena3D.findSpawnPosition()
-                newPopulation.append(Bug(dna: BugDNA.random(), position: randomPosition, generation: currentGeneration))
+                let randomPosition3D = voxelWorld.findSpawnPosition()
+                let surfacePosition = calculateSurfaceSpawnPosition(randomPosition3D)
+                newPopulation.append(Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: currentGeneration))
                 continue
             }
             
             guard let parent2 = survivors.randomElement() else {
                 // If only one survivor, use asexual reproduction (mutation only)
                 let mutatedDNA = parent1.dna.mutated(mutationRate: 0.2, mutationStrength: 0.3)
-                let childPosition = arena3D.findSpawnPosition()
-                newPopulation.append(Bug(dna: mutatedDNA, position: childPosition, generation: currentGeneration))
+                let childPosition3D = voxelWorld.findSpawnPosition()
+                let surfacePosition = calculateSurfaceSpawnPosition(childPosition3D)
+                newPopulation.append(Bug(dna: mutatedDNA, position3D: surfacePosition, generation: currentGeneration))
                 continue
             }
             
             let childDNA = BugDNA.crossover(parent1.dna, parent2.dna).mutated()
-            let childPosition = arena3D.findSpawnPosition()
+            let childPosition3D = voxelWorld.findSpawnPosition()
+            let surfacePosition = calculateSurfaceSpawnPosition(childPosition3D)
             
-            newPopulation.append(Bug(dna: childDNA, position: childPosition, generation: currentGeneration))
+            newPopulation.append(Bug(dna: childDNA, position3D: surfacePosition, generation: currentGeneration))
         }
         
         bugs = newPopulation
@@ -389,7 +439,7 @@ class SimulationEngine {
         let geneticBonus = bug.dna.geneticFitness * 10
         
         // Terrain adaptation bonus
-        let currentTerrain = arena3D.terrainAt(bug.position)
+        let currentTerrain = createTempArena().terrainAt(bug.position)
         let terrainBonus = bug.dna.terrainFitness(for: currentTerrain) * 5
         
         // Exploration bonus for bugs that have been in different terrain types
@@ -418,6 +468,13 @@ class SimulationEngine {
         return curiosityBonus + memoryBonus
     }
     
+    // MARK: - Compatibility Methods
+    
+    /// Create a temporary Arena object for backward compatibility with existing systems
+    private func createTempArena() -> Arena {
+        return Arena(bounds: voxelWorld.worldBounds)
+    }
+    
     // MARK: - Food Management
     
     /// Spawns initial food distribution, prioritizing food zones and open areas
@@ -425,7 +482,7 @@ class SimulationEngine {
         var newFoods: [CGPoint] = []
         
         // Spawn food in designated food zones (limited to prevent oversaturation)
-        let foodTiles = arena3D.tilesOfType(.food)
+        let foodTiles = createTempArena().tilesOfType(.food)
         for tile in foodTiles.prefix(min(20, maxFoodItems / 20)) { // Much more conservative initial food zone spawning
             let randomOffset = CGPoint(
                 x: Double.random(in: -15...15),
@@ -439,8 +496,8 @@ class SimulationEngine {
         }
         
         // Spawn majority of food distributed in open areas AND hills for better distribution
-        let openTiles = arena3D.tilesOfType(.open)
-        let hillTiles = arena3D.tilesOfType(.hill)
+        let openTiles = createTempArena().tilesOfType(.open)
+        let hillTiles = createTempArena().tilesOfType(.hill)
         let availableTiles = openTiles + hillTiles
         for _ in 0..<(maxFoodItems * 4 / 5) { // Most food spawns in distributed areas
             if let tile = availableTiles.randomElement() {
@@ -451,10 +508,10 @@ class SimulationEngine {
                 
                 // Much more liberal food spawning - only avoid very close to edges
                 let minDistanceFromEdge = 30.0
-                let edgeDistance = min(
-                    min(tile.position.x - arena3D.bounds.minX, arena3D.bounds.maxX - tile.position.x),
-                    min(tile.position.y - arena3D.bounds.minY, arena3D.bounds.maxY - tile.position.y)
-                )
+                let bounds = voxelWorld.worldBounds
+                let xDistance = min(tile.position.x - bounds.minX, bounds.maxX - tile.position.x)
+                let yDistance = min(tile.position.y - bounds.minY, bounds.maxY - tile.position.y)
+                let edgeDistance = min(xDistance, yDistance)
                 
                 // Only skip if extremely close to edge
                 if edgeDistance < minDistanceFromEdge {
@@ -485,7 +542,7 @@ class SimulationEngine {
             let foodZoneChance = min(0.3, 1.0 - (Double(foods.count) / Double(seasonalMaxFood))) // Reduce food zone chance as food increases
             
             if Double.random(in: 0...1) < foodZoneChance {
-                let foodTiles = arena3D.tilesOfType(.food)
+                let foodTiles = createTempArena().tilesOfType(.food)
                 
                 // Count existing food near each food zone to prevent oversaturation
                 let availableFoodTiles = foodTiles.filter { tile in
@@ -512,16 +569,16 @@ class SimulationEngine {
                     }
                 }
             } else {
-                let openTiles = arena3D.tilesOfType(.open)
-                let hillTiles = arena3D.tilesOfType(.hill)
+                let openTiles = createTempArena().tilesOfType(.open)
+                let hillTiles = createTempArena().tilesOfType(.hill)
                 let availableTiles = openTiles + hillTiles
                 if let tile = availableTiles.randomElement() {
                     // Much more liberal food spawning
                     let minDistanceFromEdge = 30.0
-                    let edgeDistance = min(
-                        min(tile.position.x - arena3D.bounds.minX, arena3D.bounds.maxX - tile.position.x),
-                        min(tile.position.y - arena3D.bounds.minY, arena3D.bounds.maxY - tile.position.y)
-                    )
+                    let bounds = voxelWorld.worldBounds
+                    let xDistance = min(tile.position.x - bounds.minX, bounds.maxX - tile.position.x)
+                    let yDistance = min(tile.position.y - bounds.minY, bounds.maxY - tile.position.y)
+                    let edgeDistance = min(xDistance, yDistance)
                     
                     // Only spawn food if far enough from edges
                     if edgeDistance >= minDistanceFromEdge {
@@ -684,7 +741,7 @@ class SimulationEngine {
             
             for i in 0..<tools.count {
                 if nearbyTools.contains(where: { $0.id == tools[i].id }) {
-                    _ = bug.useTool(&tools[i], in: arena3D.createTempArena())
+                    _ = bug.useTool(&tools[i], in: createTempArena())
                 }
             }
         }
@@ -718,7 +775,7 @@ class SimulationEngine {
         
         for _ in 0..<resourceCount {
             let resourceType = ResourceType.allCases.randomElement() ?? .stick
-            let position = arena3D.findSpawnPosition()
+            let position = voxelWorld.findSpawnPosition().position2D
             
             let resource = Resource(
                 type: resourceType,

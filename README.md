@@ -306,6 +306,7 @@ struct BugDNA {
 - [x] **🏔️ Advanced Terrain Generation**: Multi-octave Perlin noise, biomes, climate zones, rivers, caves, and wind corridors
 
 ### 🌟 Future Expansions
+- [ ] **🌅 Day/Night Cycles**: Dynamic lighting transitions with circadian rhythms affecting bug behavior, predator-prey activity patterns, and neural adaptation to light/dark cycles
 - [ ] **Quantum Behaviors**: Quantum-inspired neural network architectures
 - [ ] **Multiplayer Evolution**: Compete isolated populations across different 3D worlds
 - [ ] **Real-World Integration**: Train on real environmental data with 3D terrain mapping
@@ -335,6 +336,7 @@ git push origin feature/amazing-new-trait
 
 ### System Documentation
 - **[🌍 3D Arena System](docs/features/3d-arena-system.md)**: **NEW** - Advanced 3D world generation, multi-layer environments, and immersive visualization
+- **[🧊 Voxel World System](docs/features/voxel-world-system.md)**: **NEW** - AAA-quality PBR materials, cinematic lighting, and immersive 3D metaverse rendering
 - **[🌍 Terrain System](docs/features/terrain-system.md)**: World generation, terrain types, and environmental challenges  
 - **[🧠 Neural Network System](docs/features/neural-network-system.md)**: Evolvable AI brains with 3D spatial awareness and decision making
 - **[🦁 Predator-Prey System](docs/features/predator-prey-system.md)**: Species interactions and hunting mechanics
