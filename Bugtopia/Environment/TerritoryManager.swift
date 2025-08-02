@@ -272,7 +272,7 @@ class TerritoryManager {
     
     private func initiateMigration(for population: Population, to target: CGPoint) {
         // This would set a migration target for all bugs in the population
-        print("🌍 Population \(population.name) is migrating to \(target)!")
+        // Population migrating
     }
     
     // MARK: - Neural Network Inputs

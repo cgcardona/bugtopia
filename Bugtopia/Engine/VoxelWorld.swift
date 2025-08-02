@@ -255,7 +255,7 @@ class VoxelWorld {
     // MARK: - Voxel World Generation
     
     private func generateVoxelWorld() {
-        print("🎮 Generating voxel world with dimensions \(dimensions.width)×\(dimensions.height)×\(dimensions.depth)")
+        // Generating voxel world
         
         // Step 1: Generate base terrain data
         generateHeightMap()
@@ -274,7 +274,7 @@ class VoxelWorld {
         // Step 5: Optimize connectivity
         optimizeConnectivity()
         
-        print("🎮 Voxel world generation complete! Created \(getTotalVoxelCount()) voxels")
+        // Voxel world generation complete
     }
     
     private func generateHeightMap() {
@@ -375,21 +375,21 @@ class VoxelWorld {
         }
         
         // Print debug statistics
-        print("🧊 VOXEL GENERATION STATISTICS:")
-        print("📊 Terrain Types:")
+        // Voxel generation statistics:
+        // Terrain Types:
         for (type, count) in terrainCounts.sorted(by: { $0.value > $1.value }) {
             let percentage = Double(count) / Double(getTotalVoxelCount()) * 100
-            print("   \(type): \(count) (\(String(format: "%.1f", percentage))%)")
+            // Type count logged
         }
-        print("📊 Transition Types:")
+        // Transition Types:
         for (type, count) in transitionCounts.sorted(by: { $0.value > $1.value }) {
             let percentage = Double(count) / Double(getTotalVoxelCount()) * 100
-            print("   \(type): \(count) (\(String(format: "%.1f", percentage))%)")
+            // Type count logged
         }
         
         let renderableCount = transitionCounts.filter { $0.key != "air" }.values.reduce(0, +)
         let renderablePercentage = Double(renderableCount) / Double(getTotalVoxelCount()) * 100
-        print("✨ RENDERABLE VOXELS: \(renderableCount) (\(String(format: "%.1f", renderablePercentage))%)")
+        // Renderable voxels counted
     }
     
     private func createVoxel(at gridPos: (x: Int, y: Int, z: Int)) -> Voxel {
@@ -406,7 +406,7 @@ class VoxelWorld {
         // Determine terrain properties with bounds checking
         guard gridPos.x < heightMap.count && gridPos.y < heightMap[0].count,
               gridPos.x < biomeMap.count && gridPos.y < biomeMap[0].count else {
-            print("⚠️ Grid position out of bounds: (\(gridPos.x), \(gridPos.y)) for maps size (\(heightMap.count), \(heightMap[0].count))")
+            // Grid position out of bounds
             // Return a safe default voxel
             return Voxel(
                 gridPosition: gridPos,
@@ -618,7 +618,7 @@ class VoxelWorld {
     }
     
     private func generateLayerTransitions() {
-        print("🌉 Generating layer transitions for 4-layer exploration...")
+        // Generating layer transitions
         
         // Create vertical connectivity throughout the world
         for x in 0..<dimensions.width {
@@ -663,11 +663,11 @@ class VoxelWorld {
             // Create climbing route with range validation
             let maxZ = min(canopyZ, dimensions.depth - 1)
             guard surfaceZ <= maxZ && surfaceZ >= 0 && surfaceZ < dimensions.depth else {
-                print("⚠️ Skipping tree at (\(x), \(y)): surfaceZ=\(surfaceZ), canopyZ=\(canopyZ), maxZ=\(maxZ)")
+                // Skipping tree (invalid range)
                 continue  // Skip if invalid range
             }
             
-            print("🌲 Creating tree: surfaceZ=\(surfaceZ), maxZ=\(maxZ), range=\(surfaceZ)...\(maxZ)")
+            // Creating tree
             for z in surfaceZ...maxZ {
                 if z < dimensions.depth {
                     voxels[x][y][z] = Voxel(
@@ -726,11 +726,11 @@ class VoxelWorld {
                     
                     // Ensure valid range
                     guard baseZ <= topZ else { 
-                        print("⚠️ Skipping rock face at (\(x), \(y)): baseZ=\(baseZ), topZ=\(topZ)")
+                        // Skipping rock face (invalid range)
                         continue 
                     }
                     
-                    print("🪨 Creating rock face: baseZ=\(baseZ), topZ=\(topZ), range=\(baseZ)...\(topZ)")
+                    // Creating rock face
                     
                     // Create climbing face
                     for z in baseZ...topZ {
@@ -839,14 +839,14 @@ class VoxelWorld {
         
         // Debug extreme values
         if surfaceZ < 0 || surfaceZ >= dimensions.depth {
-            print("🚨 Surface level clamped: height=\(height), surfaceZ=\(surfaceZ) -> \(clampedZ)")
+            // Surface level clamped
         }
         
         return clampedZ
     }
     
     private func populateResources() {
-        print("🌱 Populating voxel resources...")
+        // Populating voxel resources
         
         for x in 0..<dimensions.width {
             for y in 0..<dimensions.height {
@@ -898,7 +898,7 @@ class VoxelWorld {
     }
     
     private func optimizeConnectivity() {
-        print("🔗 Optimizing voxel connectivity...")
+        // Optimizing voxel connectivity
         
         // Update connections based on actual neighbor accessibility
         for x in 0..<dimensions.width {
@@ -1047,12 +1047,12 @@ class VoxelWorld {
         
         // Fallback to any passable surface voxel
         if let spawnVoxel = surfaceVoxels.randomElement() {
-            print("🐛 Spawning at fallback location: Position3D(\(spawnVoxel.position.x), \(spawnVoxel.position.y), \(spawnVoxel.position.z))")
+            // Spawning at fallback location
             return spawnVoxel.position
         }
         
         // Final fallback - find actual surface height in the center of the world
-        print("⚠️ No suitable spawn positions found, using emergency spawn at world center")
+        // No suitable spawn positions found, using emergency spawn
         let centerX = dimensions.width / 2
         let centerY = dimensions.height / 2
         
@@ -1067,7 +1067,7 @@ class VoxelWorld {
             }
         }
         
-        print("🚨 Emergency spawn at Position3D(\(worldBounds.midX), \(worldBounds.midY), \(surfaceZ))")
+        // Emergency spawn at world center
         return Position3D(worldBounds.midX, worldBounds.midY, surfaceZ)
     }
     

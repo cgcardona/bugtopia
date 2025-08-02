@@ -161,7 +161,7 @@ class SeasonalManager {
             yearCount += 1
         }
         
-        print("🌍 Season changed: \(oldSeason.emoji) → \(currentSeason.emoji) (Year \(yearCount + 1))")
+        // Season changed
     }
     
     /// Reset seasonal system

@@ -310,7 +310,7 @@ class DisasterManager {
         ticksSinceLastDisaster = 0
         nextDisasterIn = Int.random(in: minTimeBetweenDisasters...maxTimeBetweenDisasters)
         
-        print("🌋 Disaster spawned: \(disaster.type.icon) \(disaster.type.name) at (\(Int(epicenter.x)), \(Int(epicenter.y))) - Intensity: \(String(format: "%.1f", intensity)), Duration: \(duration) ticks")
+        // Disaster spawned
     }
     
     private func calculateDisasterWeights(season: Season, weather: WeatherType) -> [DisasterType: Double] {

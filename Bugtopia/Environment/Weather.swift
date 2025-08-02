@@ -293,7 +293,7 @@ class WeatherManager {
         )
         recentWeatherEvents.append(event)
         
-        print("🌦️ Weather changed from \(previousWeather.emoji) \(previousWeather.name) to \(currentWeather.emoji) \(currentWeather.name) (Duration: \(maxWeatherDuration) ticks)")
+        // Weather changed
     }
     
     /// Update seasonal weather bias

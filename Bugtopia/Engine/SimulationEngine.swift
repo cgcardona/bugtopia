@@ -231,17 +231,17 @@ class SimulationEngine {
     
     /// Sets up the initial random population using voxel world spawn points
     private func setupInitialPopulation() {
-        print("🚀 SimulationEngine: Creating initial population of \(initialPopulation) bugs...")
+        // SimulationEngine: Creating initial population
         bugs = (0..<initialPopulation).map { index in
             let spawnPosition3D = voxelWorld.findSpawnPosition()
             let surfacePosition = calculateSurfaceSpawnPosition(spawnPosition3D)
             let bug = Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: 0)
             if index < 3 {
-                print("   Bug \(index): spawned at surface position \(surfacePosition)")
+                // Bug spawned at surface position
             }
             return bug
         }
-        print("✅ SimulationEngine: Created \(bugs.count) bugs successfully")
+        // SimulationEngine: Created bugs successfully
     }
     
     /// Calculate proper surface position for spawning bugs
@@ -428,7 +428,7 @@ class SimulationEngine {
         // Update statistics for new generation
         updateGenerationStatistics()
         
-        print("🧬 Generation \(currentGeneration) - \(bugs.count) bugs evolved")
+                    // Generation evolved
     }
     
     /// Calculates enhanced fitness score considering terrain adaptation
@@ -608,7 +608,7 @@ class SimulationEngine {
         if foods.count < foodCountBefore {
             let destroyed = foodCountBefore - foods.count
             if destroyed > 0 {
-                print("🔥 Disasters destroyed \(destroyed) food items")
+                // Disasters destroyed food items
             }
         }
     }

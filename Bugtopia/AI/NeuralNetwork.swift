@@ -272,7 +272,7 @@ class NeuralNetwork {
     /// Forward pass through the network
     func predict(inputs: [Double]) -> [Double] {
         guard inputs.count == dna.topology[0] else {
-            print("⚠️ Input size mismatch: expected \(dna.topology[0]), got \(inputs.count)")
+            // Warning: Input size mismatch
             return Array(repeating: 0.0, count: dna.topology.last ?? 1)
         }
         

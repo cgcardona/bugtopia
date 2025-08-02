@@ -56,6 +56,10 @@ struct Arena3DView: NSViewRepresentable {
         setupEnvironmentalContext(scene: scene)
         addNavigationAids(scene: scene)
         
+        // 🎨 FORCE VAN GOGH MATERIAL INITIALIZATION
+        // Clear cache immediately to ensure Van Gogh materials are used
+        forceVanGoghMaterialUpdate()
+        
         // Render the world
         renderTerrain(scene: scene)
         renderBugs(scene: scene)
@@ -64,12 +68,18 @@ struct Arena3DView: NSViewRepresentable {
         // 🎮 SET UP PROPER DUAL NAVIGATION SYSTEM
         setupDualNavigationSystem(sceneView: sceneView, scene: scene)
         
-        print("🎮 Dual Navigation: Walking Mode + God Mode ready! Press SPACE to toggle!")
+        // Dual Navigation: Walking Mode + God Mode ready
         
         return sceneView
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
+        // 🎨 CHECK FOR VAN GOGH MATERIAL REGENERATION
+        // Regenerate terrain if materials need updating
+        if needsSceneRegeneration {
+            renderTerrain(scene: nsView.scene!)
+        }
+        
         // Update bug positions and territories
         updateBugPositions(scene: nsView.scene!)
         updateTerritoryVisualizations(scene: nsView.scene!)
@@ -92,11 +102,11 @@ struct Arena3DView: NSViewRepresentable {
         // Force physics world to process all static bodies immediately
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             scene.physicsWorld.timeStep = 1.0 / 60.0  // Ensure consistent timestep
-            print("🔄 Physics world synchronized and ready")
+            // Physics world synchronized and ready
         }
         
         // Debug physics world setup
-        print("⚙️ Physics world configured: gravity=\(scene.physicsWorld.gravity), speed=\(scene.physicsWorld.speed)")
+        // Physics world configured
         
         // Add invisible safety floor to catch anything that falls through
         createSafetyFloor(scene: scene)
@@ -123,13 +133,13 @@ struct Arena3DView: NSViewRepresentable {
         floorNode.physicsBody?.restitution = 0.8          // Bouncy to launch back up
         
         scene.rootNode.addChildNode(floorNode)
-        print("🛡️ Safety floor created at Y=-100 to catch falling objects")
+        // Safety floor created at Y=-100
         
         // Position validation will be handled through better physics and positioning
     }
     
     private func setupLighting(scene: SCNScene) {
-        print("🌅 Initializing AAA PBR lighting pipeline...")
+        // Initializing AAA PBR lighting pipeline
         
         // 🌞 OPTIMIZED SUN: Balanced quality and performance
         let sunLight = SCNLight()
@@ -217,7 +227,7 @@ struct Arena3DView: NSViewRepresentable {
         scene.lightingEnvironment.intensity = 2.0
         scene.lightingEnvironment.contents = createAdvancedHDREnvironment()
         
-        print("✨ AAA lighting system: 5 dynamic lights + HDR environment active")
+        // AAA lighting system active
     }
     
     private func createAdvancedHDREnvironment() -> NSImage {
@@ -257,7 +267,7 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func setupEnvironmentalContext(scene: SCNScene) {
-        print("🌍 Creating immersive environmental context...")
+        // Creating immersive environmental context
         
         // 1️⃣ SKYBOX: Replace black void with realistic environment
         createSkybox(scene: scene)
@@ -274,20 +284,20 @@ struct Arena3DView: NSViewRepresentable {
         // 5️⃣ COORDINATE GRID: Optional spatial reference system
         createCoordinateGrid(scene: scene)
         
-        print("🗺️ Environmental context: Skybox + Ground + Navigation aids active")
+        // Environmental context active
     }
     
     private func createSkybox(scene: SCNScene) {
-        print("🌌 Loading stunning DALL-E skybox...")
+        // Loading skybox
         
         // INSTANT LOADING: Use gorgeous pre-generated DALL-E skybox
         if let skyboxImage = NSImage(named: "epic-skybox-panorama") {
             scene.background.contents = skyboxImage
             scene.lightingEnvironment.contents = skyboxImage
             scene.lightingEnvironment.intensity = 2.5  // Enhanced lighting
-            print("✅ Epic DALL-E skybox loaded instantly!")
+            // Skybox loaded
         } else {
-            print("⚠️ Skybox asset not found, using fallback")
+            // Skybox asset not found, using fallback
             // Fallback to procedural skybox
             let skybox = MDLSkyCubeTexture(name: nil,
                                           channelEncoding: .uInt8,
@@ -304,7 +314,7 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func createGroundPlane(scene: SCNScene) {
-        print("🌍 Loading stunning DALL-E ground texture...")
+        // Loading ground texture
         
         // MASSIVE GROUND PLANE for epic infinite horizon
         let groundGeometry = SCNPlane(width: 4000, height: 4000)
@@ -316,9 +326,9 @@ struct Arena3DView: NSViewRepresentable {
         if let groundTexture = NSImage(named: "fantasy-ground-diffuse") {
             groundMaterial.diffuse.contents = groundTexture
             groundMaterial.lightingModel = .physicallyBased  // PBR for realism
-            print("✅ Epic DALL-E ground texture loaded instantly!")
+            // Ground texture loaded
         } else {
-            print("⚠️ Ground texture not found, using fallback")
+            // Ground texture not found, using fallback
             groundMaterial.diffuse.contents = NSColor(red: 0.15, green: 0.25, blue: 0.1, alpha: 1.0)
         }
         
@@ -336,11 +346,11 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func createOptimizedAtmosphericClouds(scene: SCNScene) {
-        print("☁️ Adding optimized atmospheric clouds with DALL-E texture...")
+        // Adding atmospheric clouds
         
         // LIGHTWEIGHT CLOUDS: Just a few for atmosphere, not performance-heavy
         guard let cloudTexture = NSImage(named: "volumetric-cloud-texture") else {
-            print("⚠️ Cloud texture not found")
+            // Cloud texture not found
             return
         }
         
@@ -376,7 +386,7 @@ struct Arena3DView: NSViewRepresentable {
             scene.rootNode.addChildNode(cloudNode)
         }
         
-        print("✅ Optimized atmospheric clouds added!")
+        // Atmospheric clouds added
     }
     
     private func createHorizonMarkers(scene: SCNScene) {
@@ -444,7 +454,7 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func setupCamera(scene: SCNScene) {
-        print("📸 Setting up enhanced navigation camera...")
+        // Setting up enhanced navigation camera
         
         let camera = SCNCamera()
         camera.fieldOfView = 75
@@ -466,13 +476,13 @@ struct Arena3DView: NSViewRepresentable {
         scene.rootNode.addChildNode(cameraNode)
         self.cameraNode = cameraNode
         
-        print("🔍 Camera node created and assigned: \(self.cameraNode != nil)")
-        print("🔍 Camera position: \(cameraNode.position)")
+        // Camera node created and assigned
+        // Camera position set
         
         // ADD CAMERA CONSTRAINTS for better navigation
         addCameraConstraints(cameraNode: cameraNode, scene: scene)
         
-        print("🎮 Enhanced camera: HDR + Bloom + Optimized positioning active")
+        // Enhanced camera: HDR + Bloom active
     }
     
     private func addCameraConstraints(cameraNode: SCNNode, scene: SCNScene) {
@@ -491,7 +501,7 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func addNavigationAids(scene: SCNScene) {
-        print("🧭 Adding navigation aids...")
+        // Adding navigation aids
         
         // 🎯 TERRAIN CENTER MARKER: Clear reference point
         addTerrainCenterMarker(scene: scene)
@@ -502,7 +512,7 @@ struct Arena3DView: NSViewRepresentable {
         // 🔺 LAYER INDICATORS: Show the 4 terrain layers visually
         addLayerIndicators(scene: scene)
         
-        print("🗺️ Navigation aids: Center marker + Scale + Layer indicators active")
+        // Navigation aids active
     }
     
     private func addTerrainCenterMarker(scene: SCNScene) {
@@ -590,7 +600,20 @@ struct Arena3DView: NSViewRepresentable {
     // MARK: - Epic Terrain Rendering
     
     private func renderTerrain(scene: SCNScene) {
-        print("🎨 Rendering EPIC 3D Voxel Terrain...")
+        // Rendering 3D Voxel Terrain
+        
+        // 🎨 VAN GOGH SCENE REGENERATION CHECK
+        // Remove existing terrain if regeneration needed for new materials
+        if needsSceneRegeneration {
+            scene.rootNode.childNode(withName: "VoxelTerrainContainer", recursively: false)?.removeFromParentNode()
+            needsSceneRegeneration = false
+            // Scene cleared for Van Gogh material regeneration
+        }
+        
+        // Check if terrain container already exists (avoid duplicate rendering)
+        if scene.rootNode.childNode(withName: "VoxelTerrainContainer", recursively: false) != nil {
+            return // Terrain already rendered
+        }
         
         // Create terrain container
         let terrainContainer = SCNNode()
@@ -605,7 +628,7 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func renderVoxelTerrain(container: SCNNode) {
-        print("🧊 Rendering voxel world with \(simulationEngine.voxelWorld.getTotalVoxelCount()) voxels...")
+        // Rendering voxel world
         
         // Create layer containers for organization
         var layerContainers: [TerrainLayer: SCNNode] = [:]
@@ -659,7 +682,7 @@ struct Arena3DView: NSViewRepresentable {
         
         // Debug positioning for first few voxels
         if voxel.gridPosition.x < 3 && voxel.gridPosition.y < 3 && voxel.gridPosition.z < 3 {
-            print("🧊 Voxel[\(voxel.gridPosition.x),\(voxel.gridPosition.y),\(voxel.gridPosition.z)] at Position3D(\(voxel.position.x), \(voxel.position.y), \(voxel.position.z)) → SCN(\(scnPosition.x), \(scnPosition.y), \(scnPosition.z)) [\(voxel.transitionType)]")
+            // Voxel rendering debug (commented for performance)ion.y), \(scnPosition.z)) [\(voxel.transitionType)]")
         }
         
         // Add physics body for collision detection if solid
@@ -683,9 +706,7 @@ struct Arena3DView: NSViewRepresentable {
             // Force physics body to be immediately active (read-only property, handled automatically)
             
             // Debug physics body creation
-            if voxel.gridPosition.x < 3 && voxel.gridPosition.y < 3 && voxel.gridPosition.z < 3 {
-                print("🔧 Physics body created for voxel[\(voxel.gridPosition.x),\(voxel.gridPosition.y),\(voxel.gridPosition.z)] with shape: \(type(of: geometry))")
-            }
+            // Physics body created for voxel (debug commented)
         }
         
         return voxelNode
@@ -842,7 +863,37 @@ struct Arena3DView: NSViewRepresentable {
     private static var materialCache: [String: SCNMaterial] = [:]
     private static var sharedTextures: [String: NSImage] = [:]
     
+    // 🎨 VAN GOGH CACHE MANAGEMENT
+    // Clear material cache to force regeneration with new Van Gogh materials
+    static func clearMaterialCache() {
+        materialCache.removeAll()
+        sharedTextures.removeAll()
+        // Material cache cleared for Van Gogh transformation
+    }
+    
+    // Force immediate Van Gogh material regeneration
+    func forceVanGoghMaterialUpdate() {
+        Self.clearMaterialCache()
+        Self.hasInitializedVanGoghMaterials = false
+        // Trigger scene regeneration on next update
+        needsSceneRegeneration = true
+    }
+    
+    // Track when scene needs full regeneration for new materials
+    private var needsSceneRegeneration = false
+    
+    // Force cache refresh on first Van Gogh render
+    private static var hasInitializedVanGoghMaterials = false
+    
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
+        // 🎨 VAN GOGH CACHE INVALIDATION
+        // Clear cache on first Van Gogh render to force regeneration
+        if !Self.hasInitializedVanGoghMaterials {
+            Self.clearMaterialCache()
+            Self.hasInitializedVanGoghMaterials = true
+            // Van Gogh materials now active - cache cleared
+        }
+        
         // Create cache key for material reuse
         let cacheKey = "\(voxel.terrainType.rawValue)_\(voxel.biome.rawValue)_\(voxel.layer.rawValue)"
         
@@ -1573,11 +1624,8 @@ struct Arena3DView: NSViewRepresentable {
     
     private func renderBugs(scene: SCNScene) {
         let bugs = simulationEngine.bugs
-        print("🐛 Rendering \(bugs.count) EPIC 3D Bugs...")
-        print("🐛 Arena3DView renderBugs called - Bug array contents:")
-        for (index, bug) in bugs.prefix(5).enumerated() {
-            print("   Bug \(index): ID=\(bug.id.uuidString.prefix(8)), position3D=\(bug.position3D), energy=\(bug.energy)")
-        }
+        // Rendering 3D Bugs
+        // Bug array contents (debug commented)
         
         let bugContainer = SCNNode()
         bugContainer.name = "BugContainer"
@@ -1586,9 +1634,9 @@ struct Arena3DView: NSViewRepresentable {
         for bug in bugs {
             let bugNode = createBugNode(bug: bug)
             bugContainer.addChildNode(bugNode)
-            print("   ✅ Created 3D node for bug at position \(bug.position3D)")
+            // Created 3D node for bug
         }
-        print("🐛 BugContainer added to scene with \(bugContainer.childNodes.count) bug nodes")
+        // BugContainer added to scene
     }
     
     private func createBugNode(bug: Bug) -> SCNNode {
@@ -1630,14 +1678,14 @@ struct Arena3DView: NSViewRepresentable {
             if let firstHit = raycastResults.first {
                 // Position bug slightly above the terrain surface
                 scnPosition.y = firstHit.worldCoordinates.y + 2.0  // 2 units above surface
-                print("🎯 Bug positioned on terrain surface at Y=\(scnPosition.y)")
+                // Bug positioned on terrain surface
             }
         }
         
         bugNode.position = scnPosition
         
         // Debug positioning
-        print("🐛 Bug positioned at: Position3D(\(bug.position3D.x), \(bug.position3D.y), \(bug.position3D.z)) → SCN(\(scnPosition.x), \(scnPosition.y), \(scnPosition.z))")
+        // Bug positioned (debug commented)
         
         // Add physics body with enhanced shape and margin for reliable collision
         let physicsOptions: [SCNPhysicsShape.Option: Any] = [
@@ -1664,7 +1712,7 @@ struct Arena3DView: NSViewRepresentable {
         bugNode.physicsBody?.velocityFactor = SCNVector3(0.3, 0.3, 0.3)  // Further reduced max velocity
         
         // Debug physics body creation
-        print("🔧 Physics body created for bug \(bug.dna.speciesTraits.speciesType) with shape: \(type(of: bodyGeometry))")
+                    // Physics body created for bug
         
         // Add energy indicator
         addEnergyIndicator(to: bugNode, energy: bug.energy)
@@ -1856,7 +1904,7 @@ struct Arena3DView: NSViewRepresentable {
     
     private func renderTerritories(scene: SCNScene) {
         let territories3D = simulationEngine.territoryManager.territories3D
-        print("🏰 Rendering \(territories3D.count) EPIC 3D Territories...")
+        // Rendering 3D Territories
         
         let territoryContainer = SCNNode()
         territoryContainer.name = "TerritoryContainer"
@@ -1995,7 +2043,7 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func addAtmosphericEffects(scene: SCNScene) {
-        print("🌟 Creating cinematic atmospheric effects...")
+        // Creating cinematic atmospheric effects
         
         // 🌫️ ENHANCED FOG: Layer-specific atmospheric density
         createLayeredFog(scene: scene)
@@ -2012,7 +2060,7 @@ struct Arena3DView: NSViewRepresentable {
         // 🔮 MYSTICAL AURA: Underground energy emanations
         createUndergroundMysticAura(scene: scene)
         
-        print("🎆 Cinematic atmosphere: 5 particle systems creating immersive metaverse")
+        // Cinematic atmosphere: particle systems active
     }
     
     private func createLayeredFog(scene: SCNScene) {
@@ -2191,7 +2239,7 @@ struct Arena3DView: NSViewRepresentable {
     
     private func setupCameraAnimation(scene: SCNScene) {
         // DISABLED: Let user control camera manually with built-in SceneKit controls
-        print("📸 Camera animation disabled - manual control active")
+        // Camera animation disabled - manual control active
     }
     
     private func updateBugPositions(scene: SCNScene) {
@@ -2275,8 +2323,8 @@ struct Arena3DView: NSViewRepresentable {
     // MARK: - 🎮 DUAL NAVIGATION SYSTEM
     
     private func setupDualNavigationSystem(sceneView: SCNView, scene: SCNScene) {
-        print("🎮 Setting up advanced dual navigation system...")
-        print("🔍 Camera node available: \(cameraNode != nil)")
+        // Setting up dual navigation system
+        // Camera node available checked
         
         // Create and configure navigation controller
         let navController = NavigationController()
@@ -2288,7 +2336,7 @@ struct Arena3DView: NSViewRepresentable {
         navController.movementSpeed = movementSpeed
         navController.rotationSpeed = rotationSpeed
         
-        print("🔍 Navigation controller camera set: \(navController.cameraNode != nil)")
+        // Navigation controller camera set
         
         // Create navigation responder that fills the entire scene view
         let navigationResponder = NavigationResponderView()
@@ -2311,17 +2359,17 @@ struct Arena3DView: NSViewRepresentable {
             // RETRY camera assignment in case of timing issues
             if let camera = sceneView?.scene?.rootNode.childNodes.first(where: { $0.camera != nil }) {
                 navController.cameraNode = camera
-                print("🔧 Fixed camera reference: \(navController.cameraNode != nil)")
+                // Fixed camera reference
             }
             
-            print("🎯 Made NavigationResponder first responder")
+            // Made NavigationResponder first responder
         }
         
         // Initial setup
         updateCameraForNavigationMode(navController.navigationMode)
         
-        print("✅ Dual Navigation ready: WASD=Move, Mouse=Look, Space=Toggle Mode")
-        print("🔍 Debug: Navigation responder frame: \(navigationResponder.frame)")
+        // Dual Navigation ready
+        // Navigation responder frame set
     }
     
     private func updateCameraForNavigationMode(_ mode: NavigationMode) {
@@ -2337,7 +2385,7 @@ struct Arena3DView: NSViewRepresentable {
                 CGFloat(groundHeight + walkingHeight),
                 cameraNode.position.z
             )
-            print("🚶 Walking Mode: First person at ground level")
+            // Walking Mode: First person at ground level
             
         case .god:
             // God mode: Free flight, start with overview
@@ -2345,7 +2393,7 @@ struct Arena3DView: NSViewRepresentable {
             if cameraNode.position.y < 100 {
                 cameraNode.position.y = 200  // Lift up for overview
             }
-            print("👁️ God Mode: Free flight navigation")
+            // God Mode: Free flight navigation
         }
     }
     
@@ -2393,7 +2441,7 @@ class NavigationController {
             return false  // No collision checking in god mode
         }
         
-        print("🔍 COLLISION CHECK: Camera at SCN(\(position.x), \(position.y), \(position.z))")
+        // Collision check: Camera position
         
         // Convert SCNVector3 to Position3D for voxel lookup
         let position3D = Position3D(
@@ -2402,15 +2450,15 @@ class NavigationController {
             Double(position.y)
         )
         
-        print("🔍 COLLISION CHECK: Converted to Position3D(\(position3D.x), \(position3D.y), \(position3D.z))")
+        // Collision check: Converted position
         
         // Check voxel at this position
         guard let voxel = voxelWorld.getVoxel(at: position3D) else {
-            print("🔍 COLLISION CHECK: No voxel found at position")
+            // Collision check: No voxel found
             return false  // No voxel = no collision
         }
         
-        print("🔍 COLLISION CHECK: Found voxel - terrain: \(voxel.terrainType), transition: \(voxel.transitionType)")
+        // Collision check: Found voxel
         
         // 🚶 CAMERA-SPECIFIC COLLISION LOGIC
         // Cameras should be blocked by walls AND trees (even though bugs can climb trees)
@@ -2419,14 +2467,13 @@ class NavigationController {
         let isBlocked = wallBlocked || treeBlocked
         
         // Debug: Show blocking logic details
-        print("🔍 BLOCKING LOGIC: wallBlocked=\(wallBlocked), treeBlocked=\(treeBlocked), isBlocked=\(isBlocked)")
+        // Blocking logic (debug commented)
 
         if isBlocked {
-            print("🚧 Collision detected with \(voxel.terrainType) (\(voxel.transitionType)) at \(position)")
-            print("🔍 RETURNING TRUE - collision blocked!")
+            // Collision detected - blocked
             return true
         } else {
-            print("🔍 RETURNING FALSE - no collision with \(voxel.terrainType) (\(voxel.transitionType))")
+            // No collision detected
             return false
         }
     }
@@ -2448,8 +2495,7 @@ class NavigationController {
         updateCameraForMode()
         
         let modeText = navigationMode == .walking ? "🚶 Walking Mode" : "👁️ God Mode"
-        print("🔄 Switched to: \(modeText)")
-        print("🔍 NavigationController mode is now: \(navigationMode)")
+        // Switched navigation mode
     }
     
     private func updateCameraForMode() {
@@ -2466,14 +2512,14 @@ class NavigationController {
             )
             // Set horizontal viewing angle for walking mode
             cameraNode.eulerAngles = SCNVector3(-0.1, cameraNode.eulerAngles.y, 0)  // Slight downward tilt
-            print("🚶 Walking Mode: First person at ground level with horizontal view")
+            // Walking Mode activated
             
         case .god:
             cameraNode.removeAllActions()
             if cameraNode.position.y < 100 {
                 cameraNode.position.y = 200
             }
-            print("👁️ God Mode: Free flight navigation")
+            // God Mode: Free flight navigation
         }
     }
     
@@ -2486,13 +2532,13 @@ class NavigationController {
         } else if let scene = sceneView?.scene {
             activeCamera = scene.rootNode.childNodes.first(where: { $0.camera != nil })
             if let found = activeCamera {
-                print("🔧 Found camera in scene, updating reference")
+                // Found camera in scene, updating reference
                 cameraNode = found
             }
         }
         
         guard let cameraNode = activeCamera else { 
-            print("🔍 NavigationController: No camera node available!")
+            // NavigationController: No camera node available
             return 
         }
         
@@ -2540,14 +2586,14 @@ class NavigationController {
         
         // 🚧 COLLISION CHECK for walkmode
         if navigationMode == .walking {
-            print("🚶 WALKMODE: Checking collision for movement to (\(newPosition.x), \(newPosition.y), \(newPosition.z))")
+            // Walkmode: Checking collision for movement
             let collisionResult = wouldCollide(at: newPosition)
-            print("🔍 COLLISION RESULT: \(collisionResult)")
+            // Collision result checked
             if collisionResult {
-                print("🚧 Movement blocked by collision!")
+                // Movement blocked by collision
                 return  // Don't apply movement if collision detected
             } else {
-                print("✅ No collision detected, allowing movement")
+                // No collision detected, allowing movement
             }
         }
         
@@ -2557,7 +2603,7 @@ class NavigationController {
         // Only log significant movements to reduce noise
         let movementMagnitude = sqrt(translation.x * translation.x + translation.y * translation.y + translation.z * translation.z)
         if movementMagnitude > 1.0 {
-            print("🔍 \(navigationMode) movement: \(direction)")
+            // Movement: direction logged
         }
         
         // Terrain following for walking mode
@@ -2576,13 +2622,13 @@ class NavigationController {
         } else if let scene = sceneView?.scene {
             activeCamera = scene.rootNode.childNodes.first(where: { $0.camera != nil })
             if let found = activeCamera {
-                print("🔧 Found camera in scene for rotation, updating reference")
+                // Found camera in scene for rotation
                 cameraNode = found
             }
         }
         
         guard let cameraNode = activeCamera else { 
-            print("🔍 NavigationController: No camera node for rotation!")
+            // NavigationController: No camera node for rotation
             return 
         }
         
@@ -2595,7 +2641,7 @@ class NavigationController {
         
         // Only log significant rotations
         if abs(yaw) > 0.01 || abs(pitch) > 0.01 {
-            print("🔍 Camera rotation: yaw=\(yaw), pitch=\(pitch)")
+            // Camera rotation applied
         }
     }
     
@@ -2667,23 +2713,23 @@ class NavigationResponderView: NSView {
     }
     
     override func keyDown(with event: NSEvent) {
-        print("🔍 Key down: \(event.keyCode)")
+        // Key down event
         pressedKeys.insert(event.keyCode)
         
         // Handle mode toggle (Space key)
         if event.keyCode == 49 { // Space
-            print("🔄 Space pressed - toggling mode")
+            // Space pressed - toggling mode
             navigationController?.toggleMode()
         }
     }
     
     override func keyUp(with event: NSEvent) {
-        print("🔍 Key up: \(event.keyCode)")
+        // Key up event
         pressedKeys.remove(event.keyCode)
     }
     
     override func mouseDragged(with event: NSEvent) {
-        print("🔍 Mouse dragged: deltaX=\(event.deltaX), deltaY=\(event.deltaY)")
+        // Mouse dragged
         let sensitivity: Float = 0.005
         let yaw = -Float(event.deltaX) * sensitivity
         let pitch = -Float(event.deltaY) * sensitivity
@@ -2692,29 +2738,29 @@ class NavigationResponderView: NSView {
     }
     
     override func rightMouseDragged(with event: NSEvent) {
-        print("🔍 Right mouse dragged: deltaX=\(event.deltaX), deltaY=\(event.deltaY)")
+        // Right mouse dragged
         // Same as left mouse drag for camera rotation
         mouseDragged(with: event)
     }
     
     override func otherMouseDragged(with event: NSEvent) {
-        print("🔍 Other mouse dragged: deltaX=\(event.deltaX), deltaY=\(event.deltaY)")
+        // Other mouse dragged
         // Same as left mouse drag for camera rotation
         mouseDragged(with: event)
     }
     
     override func mouseDown(with event: NSEvent) {
-        print("🔍 Mouse down - making first responder")
+        // Mouse down - making first responder
         self.window?.makeFirstResponder(self)
     }
     
     override func rightMouseDown(with event: NSEvent) {
-        print("🔍 Right mouse down - making first responder")
+        // Right mouse down - making first responder
         self.window?.makeFirstResponder(self)
     }
     
     override func scrollWheel(with event: NSEvent) {
-        print("🔍 Scroll wheel: deltaX=\(event.deltaX), deltaY=\(event.deltaY)")
+        // Scroll wheel event
         // Use scroll for camera rotation as backup
         let sensitivity: Float = 0.01
         let yaw = -Float(event.deltaX) * sensitivity
@@ -2727,16 +2773,16 @@ class NavigationResponderView: NSView {
     
     override func mouseMoved(with event: NSEvent) {
         // Track mouse movement even without dragging
-        print("🔍 Mouse moved in view")
+        // Mouse moved in view
     }
     
     override func mouseEntered(with event: NSEvent) {
-        print("🔍 Mouse entered navigation view")
+        // Mouse entered navigation view
         self.window?.makeFirstResponder(self)
     }
     
     override func mouseExited(with event: NSEvent) {
-        print("🔍 Mouse exited navigation view")
+        // Mouse exited navigation view
     }
     
     private func startUpdateTimer() {
@@ -2751,14 +2797,14 @@ class NavigationResponderView: NSView {
         lastUpdateTime = currentTime
         
         guard let navigationController = navigationController else { 
-            print("🔍 No navigation controller!")
+            // No navigation controller
             return 
         }
         
         // Ensure navigation controller has camera reference
         if navigationController.cameraNode == nil && directCameraReference != nil {
             navigationController.cameraNode = directCameraReference
-            print("🔧 Restored camera reference from backup")
+            // Restored camera reference from backup
         }
         
         // Debug: Show pressed keys only when they change

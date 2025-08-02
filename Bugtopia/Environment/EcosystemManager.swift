@@ -130,7 +130,7 @@ class EcosystemManager {
             }
         }
         
-        print("🌱 EcosystemManager: Initialized \(resourceZones.count) resource zones")
+        // EcosystemManager: Initialized resource zones
     }
     
     /// Update ecosystem dynamics each simulation tick
@@ -228,7 +228,7 @@ class EcosystemManager {
     }
     
     private func triggerMajorEcologicalCycle() {
-        print("🌍 Major Ecological Cycle at generation \(ecosystemAge)!")
+        // Major Ecological Cycle triggered
         
         // Randomly boost or reduce resource zones
         for i in 0..<resourceZones.count {

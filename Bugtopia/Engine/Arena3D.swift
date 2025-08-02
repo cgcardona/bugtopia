@@ -163,7 +163,7 @@ class Arena3D: ObservableObject {
     // MARK: - 3D Terrain Generation
     
     private func generateTerrain() {
-        print("🌍 Generating 3D Arena: \(worldType.rawValue)")
+        // Generating 3D Arena
         
         // Generate complex height map with multiple octaves
         generateAdvancedHeightMap()
@@ -185,9 +185,9 @@ class Arena3D: ObservableObject {
         // Post-process terrain for realistic features
         applyTerrainPostProcessing()
         
-        print("🏔️ Generated advanced 3D terrain with \(TerrainLayer.allCases.count) layers")
-        print("🌿 Biomes: \(biomeMap.flatMap { $0 }.compactMap { $0 }.count) biome zones")
-        print("🌡️ Climate zones: \(temperatureMap.flatMap { $0 }.count) temperature variations")
+        // Generated advanced 3D terrain
+        // Biomes generated
+        // Climate zones generated
     }
     
     private func generateAdvancedHeightMap() {
