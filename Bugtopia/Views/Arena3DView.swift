@@ -56,9 +56,8 @@ struct Arena3DView: NSViewRepresentable {
         setupEnvironmentalContext(scene: scene)
         addNavigationAids(scene: scene)
         
-        // 🎨 FORCE VAN GOGH MATERIAL INITIALIZATION
-        // Clear cache immediately to ensure Van Gogh materials are used
-        Self.clearMaterialCache()
+        // 🎨 VAN GOGH MATERIALS READY
+        // Materials will be created fresh (no caching system active)
         
         // Render the world with fresh Van Gogh materials
         renderTerrain(scene: scene)
@@ -844,63 +843,52 @@ struct Arena3DView: NSViewRepresentable {
         return box
     }
     
-    // MARK: - High-Performance Material Caching System
-    
-    private static var materialCache: [String: SCNMaterial] = [:]
-    private static var sharedTextures: [String: NSImage] = [:]
-    
-    // 🎨 VAN GOGH CACHE MANAGEMENT
-    // Clear material cache to force regeneration with new Van Gogh materials
-    static func clearMaterialCache() {
-        materialCache.removeAll()
-        sharedTextures.removeAll()
-    }
-    
-    // Force immediate Van Gogh material regeneration
-    func forceVanGoghMaterialUpdate() {
-        Self.clearMaterialCache()
-        // No state modification - materials will be applied immediately
-    }
-    
-    // Van Gogh materials are applied immediately without state tracking
+    // MARK: - Van Gogh Material System (No Caching)
+    // 
+    // ALL CACHING DISABLED TO PREVENT SWIFTUI VIOLATIONS
+    // Materials and textures are generated fresh each time for SwiftUI compliance
+    // Performance traded for stability and Van Gogh effect visibility
     
     // 🕵️ SWIFTUI VIOLATION DETECTOR (REMOVED - was causing violations itself)
     
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
         // 🎨 VAN GOGH MATERIALS
-        // Cache is pre-cleared in makeNSView for fresh Van Gogh materials
         
-        // Skip cache key generation (no caching to avoid SwiftUI violations)
-        // let cacheKey = "\(voxel.terrainType.rawValue)_\(voxel.biome.rawValue)_\(voxel.layer.rawValue)"
-        
-        // ⚠️  SKIP ALL STATIC PROPERTY ACCESS DURING VIEW UPDATES
-        // Always create fresh materials (no static property access)
+        // 🔍 TERRAIN TYPE DEBUGGING
+        print("🎨 Creating material for: \(voxel.terrainType) at layer \(voxel.layer) in biome \(voxel.biome)")
         
         // Create new material
         let material: SCNMaterial
         switch voxel.terrainType {
         case .wall:
-            material = createSimpleRockMaterial(voxel: voxel)
+            print("  → 🎨 VAN GOGH WALL/ROCK (temporary for testing)")
+            material = createOptimizedRockMaterial(voxel: voxel)
         case .water:
+            print("  → 🌊 VAN GOGH WATER")
             material = createOptimizedWaterMaterial(voxel: voxel)
         case .forest:
+            print("  → 🌳 VAN GOGH FOREST")
             material = createOptimizedWoodMaterial(voxel: voxel)
         case .sand:
             material = createOptimizedSandMaterial(voxel: voxel)
         case .ice:
             material = createOptimizedIceMaterial(voxel: voxel)
         case .hill:
+            print("  → 🏔️ Brown hill/stone material")
             material = createOptimizedStoneMaterial(voxel: voxel)
         case .food:
+            print("  → 🍎 VAN GOGH FOOD")
             material = createOptimizedVegetationMaterial(voxel: voxel)
         case .swamp:
             material = createOptimizedMudMaterial(voxel: voxel)
+        case .open:
+            print("  → 🌱 VAN GOGH GRASS (default case)")
+            material = createOptimizedGrassMaterial(voxel: voxel)
         default:
+            print("  → 🌱 VAN GOGH GRASS (fallback default)")
             material = createOptimizedGrassMaterial(voxel: voxel)
         }
         
-        // ⚠️  SKIP ALL STATIC PROPERTY ACCESS DURING VIEW UPDATES
-        // Fresh material created (no caching during view updates)
         return material.copy() as! SCNMaterial
     }
     
