@@ -880,7 +880,7 @@ struct Arena3DView: NSViewRepresentable {
         let material: SCNMaterial
         switch voxel.terrainType {
         case .wall:
-            material = createOptimizedRockMaterial(voxel: voxel)
+            material = createSimpleRockMaterial(voxel: voxel)
         case .water:
             material = createOptimizedWaterMaterial(voxel: voxel)
         case .forest:
@@ -902,6 +902,20 @@ struct Arena3DView: NSViewRepresentable {
         // ⚠️  SKIP ALL STATIC PROPERTY ACCESS DURING VIEW UPDATES
         // Fresh material created (no caching during view updates)
         return material.copy() as! SCNMaterial
+    }
+    
+    private func createSimpleRockMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Simple rock material for performance (no Van Gogh styling)
+        material.diffuse.contents = getLayerAwareColor(
+            baseColor: NSColor(red: 0.4, green: 0.35, blue: 0.3, alpha: 1.0),
+            voxel: voxel
+        )
+        material.metalness.contents = 0.02      // Rocks are not metallic
+        material.roughness.contents = 0.8       // Rough surface
+        
+        return material
     }
     
     private func createOptimizedRockMaterial(voxel: Voxel) -> SCNMaterial {

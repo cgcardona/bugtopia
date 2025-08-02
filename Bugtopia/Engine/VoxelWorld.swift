@@ -521,10 +521,10 @@ class VoxelWorld {
             if noise < -0.4 { return .food }
             return .open
         default: // Grasslands, Savanna
-            if noise > 0.6 { return .hill }
+            if noise > 0.7 { return .hill }       // Reduced hills to 30%
             if noise > 0.2 { return .food }       // Abundant grassland resources
             if noise < -0.6 { return .water }
-            return .open
+            return .open  // Note: .open renders as grass in default material case
         }
     }
     
