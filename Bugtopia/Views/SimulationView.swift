@@ -196,6 +196,36 @@ struct SimulationView: View {
                     StatRow(label: "Status", value: simulationEngine.isRunning ? "Running" : "Paused")
                 }
                 
+                Divider()
+                
+                // 🌱 Seasonal Cycles
+                SeasonalStatusView(seasonalManager: simulationEngine.seasonalManager)
+                
+                Divider()
+                
+                // 🌦️ Weather Information
+                WeatherStatusView(weatherManager: simulationEngine.weatherManager)
+                
+                Divider()
+                
+                // 🌋 Natural Disasters
+                DisasterStatusView(disasterManager: simulationEngine.disasterManager)
+                
+                Divider()
+                
+                // 🌿 Ecosystem Health
+                EcosystemStatusView(ecosystemManager: simulationEngine.ecosystemManager)
+                
+                Divider()
+                
+                // 🧠 Neural Energy Economics
+                NeuralEnergyStatusView(bugs: simulationEngine.bugs)
+                
+                Divider()
+                
+                // 🗺️ Territories & Speciation
+                TerritoryStatusView(territoryManager: simulationEngine.territoryManager, speciationManager: simulationEngine.speciationManager)
+                
                 Spacer()
             }
             .padding()
