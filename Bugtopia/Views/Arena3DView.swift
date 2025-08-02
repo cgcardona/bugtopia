@@ -894,20 +894,9 @@ struct Arena3DView: NSViewRepresentable {
             material.roughness.contents = 0.8
             material.metalness.contents = 0.02
         case .water:
-            // 🌊 INSTANTLY SPECTACULAR WATER: Beautiful from the start!
-            let currentTime = Date().timeIntervalSince1970
-            let flowEffect = sin(currentTime * 2.0 + voxel.position.x * 0.1) * 0.2
-            
-            material.diffuse.contents = NSColor(
-                red: CGFloat(0.1 + flowEffect * 0.3),      // Shimmer effect
-                green: CGFloat(0.5 + flowEffect * 0.2),    // Ocean green-blue
-                blue: CGFloat(0.9 + flowEffect * 0.1),     // Deep blue
-                alpha: 0.8
-            )
-            material.roughness.contents = 0.02              // Mirror smooth
-            material.metalness.contents = 0.95              // Highly reflective
-            material.transparency = 0.7
-            material.emission.contents = NSColor(red: 0.1, green: 0.2, blue: 0.4, alpha: 1.0)  // Magical glow
+            // 🌊 INSTANTLY SPECTACULAR WATER: Full Van Gogh materials immediately!
+            // Skip the async processing entirely for water - apply the full spectacular material now
+            return createOptimizedWaterMaterial(voxel: voxel)
         case .forest:
             material.diffuse.contents = NSColor(red: 0.3, green: 0.6, blue: 0.2, alpha: 1.0)
             material.roughness.contents = 0.7
@@ -965,10 +954,12 @@ struct Arena3DView: NSViewRepresentable {
             // Process materials in background
             var materialUpdates: [(SCNNode, SCNMaterial)] = []
             
-            // Collect all voxel nodes that need Van Gogh materials
+            // Collect all voxel nodes that need Van Gogh materials (SKIP WATER - already has full materials)
             self.traverseVoxelNodes(container: container) { voxelNode, voxel in
-                let vanGoghMaterial = self.createVanGoghMaterial(for: voxel)
-                materialUpdates.append((voxelNode, vanGoghMaterial))
+                if voxel.terrainType != .water {  // Skip water - already has spectacular materials!
+                    let vanGoghMaterial = self.createVanGoghMaterial(for: voxel)
+                    materialUpdates.append((voxelNode, vanGoghMaterial))
+                }
             }
             
             // Apply materials on main thread in batches to avoid blocking UI
@@ -1017,7 +1008,7 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func applyMaterialUpdatesInBatches(updates: [(SCNNode, SCNMaterial)]) {
-        let batchSize = 10 // Process 10 materials per frame to avoid blocking
+        let batchSize = 50 // Process 50 materials per frame - faster Van Gogh application!
         var index = 0
         
         func processBatch() {
@@ -1365,9 +1356,8 @@ struct Arena3DView: NSViewRepresentable {
                let material = geometry.firstMaterial,
                material.transparency > 0.3 {  // Likely a water voxel
                 
-                // Only refresh water materials (not all transparent materials)
-                if let nodeName = node.name, nodeName.contains("water") ||
-                   (material.metalness.contents as? NSNumber)?.floatValue == 0.95 {  // Our water metalness signature
+                // Only refresh water materials (detect by metalness signature)
+                if (material.metalness.contents as? NSNumber)?.floatValue == 0.95 {  // Our water metalness signature
                     
                     self.updateWaterMaterialInRealTime(node: node)
                 }
