@@ -37,7 +37,7 @@ class SimulationEngine {
     let voxelWorld: VoxelWorld
     let pathfinding: VoxelPathfinding
     private let maxPopulation = 180  // Tripled for more genetic diversity and faster evolution
-    private let initialPopulation = 50   // Reduced population for better performance
+    private let initialPopulation = 90   // Increased population to see more diverse creatures
     private let maxFoodItems = 800  // Doubled to support much larger population (3x bugs need more food)
     private let baseFoodSpawnRate = 0.8 // Base spawn rate, modified by seasons
     

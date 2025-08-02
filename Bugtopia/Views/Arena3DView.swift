@@ -36,6 +36,7 @@ struct Arena3DView: NSViewRepresentable {
     @State private var walkingHeight: Float = 10.0  // Height above ground for walking mode
     @State private var movementSpeed: Float = 50.0  // Movement speed
     @State private var rotationSpeed: Float = 1.0   // Rotation speed
+    @State private var hasRefreshedBugVisuals = false  // 🦋 PHASE 3: Track visual refresh
     
     func makeNSView(context: Context) -> SCNView {
         let sceneView = SCNView()
@@ -87,6 +88,12 @@ struct Arena3DView: NSViewRepresentable {
         
         // Dispatch scene updates asynchronously to avoid SwiftUI violations
         DispatchQueue.main.async {
+            // 🦋 PHASE 3: One-time refresh to apply new creature beauty to existing bugs
+            if !self.hasRefreshedBugVisuals {
+                self.refreshAllBugVisuals(scene: scene)
+                self.hasRefreshedBugVisuals = true
+            }
+            
             self.updateBugPositions(scene: scene)
             self.updateTerritoryVisualizations(scene: scene)
         }
@@ -1498,6 +1505,12 @@ struct Arena3DView: NSViewRepresentable {
         
         // Add particle effects for atmosphere
         addAtmosphericEffects(scene: scene)
+        
+        // 🌍 PHASE 2: Enhanced biome-specific atmospheric effects
+        addBiomeSpecificAtmosphericEffects(scene: scene)
+        
+        // 🌦️ PHASE 2: Weather-responsive visual effects
+        addWeatherSpecificEffects(scene: scene)
     }
     
     private func renderVoxelTerrain(container: SCNNode) {
@@ -3401,10 +3414,8 @@ struct Arena3DView: NSViewRepresentable {
         let bugNode = SCNNode()
         bugNode.name = "Bug_\(bug.id.uuidString)"
         
-        // Create bug body based on species
-        let bodyGeometry = createBugGeometry(for: bug)
-        let bodyNode = SCNNode(geometry: bodyGeometry)
-        bugNode.addChildNode(bodyNode)
+        // Create detailed multi-part bug body based on species
+        createDetailedBugBody(for: bug, parentNode: bugNode)
         
         // Add movement capabilities indicators
         if bug.canFly {
@@ -3446,11 +3457,13 @@ struct Arena3DView: NSViewRepresentable {
         // Bug positioned (debug commented)
         
         // Add physics body with enhanced shape and margin for reliable collision
+        // Create a simple physics shape for the compound bug body
+        let physicsGeometry = SCNSphere(radius: CGFloat(bug.dna.size * 5.0)) // Simple physics approximation
         let physicsOptions: [SCNPhysicsShape.Option: Any] = [
             .type: SCNPhysicsShape.ShapeType.convexHull,    // More accurate than bounding box
             .collisionMargin: 0.5                          // Add collision margin for reliability
         ]
-        let physicsShape = SCNPhysicsShape(geometry: bodyGeometry, options: physicsOptions)
+        let physicsShape = SCNPhysicsShape(geometry: physicsGeometry, options: physicsOptions)
         bugNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: physicsShape)
         bugNode.physicsBody?.mass = 0.1
         bugNode.physicsBody?.categoryBitMask = 2       // Bug category  
@@ -3472,10 +3485,32 @@ struct Arena3DView: NSViewRepresentable {
         // Debug physics body creation
                     // Physics body created for bug
         
-        // Add energy indicator
-        addEnergyIndicator(to: bugNode, energy: bug.energy)
+        // 🌟 PHASE 3: Enhanced Health & Age Indicators
+        addAdvancedHealthIndicators(to: bugNode, bug: bug)
+        
+        // 🎭 PHASE 3: Add behavioral animation system
+        addBehavioralAnimations(to: bugNode, bug: bug)
         
         return bugNode
+    }
+    
+    // MARK: - 🦋 PHASE 3: CREATURE BEAUTY - Advanced Bug Geometry
+    
+    // 🦋 PHASE 3: Create detailed multi-part insect body based on species
+    private func createDetailedBugBody(for bug: Bug, parentNode: SCNNode) {
+        let species = bug.dna.speciesTraits.speciesType
+        let size = Float(bug.dna.size * 10.0) // Scale for visibility in voxel world
+        
+        switch species {
+        case .herbivore:
+            createDetailedHerbivoreBody(bug: bug, size: size, parentNode: parentNode)
+        case .carnivore:
+            createDetailedCarnivoreBody(bug: bug, size: size, parentNode: parentNode)
+        case .omnivore:
+            createDetailedOmnivoreBody(bug: bug, size: size, parentNode: parentNode)
+        case .scavenger:
+            createDetailedScavengerBody(bug: bug, size: size, parentNode: parentNode)
+        }
     }
     
     private func createBugGeometry(for bug: Bug) -> SCNGeometry {
@@ -3484,48 +3519,549 @@ struct Arena3DView: NSViewRepresentable {
         
         switch species {
         case .herbivore:
-            // 🟢 VAN GOGH HERBIVORE: Organic, flowing sphere with swirling greens
-            let sphere = SCNSphere(radius: CGFloat(size))
-            sphere.firstMaterial = createVanGoghBugMaterial(
-                species: .herbivore, 
-                bug: bug,
-                baseColor: NSColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1.0)
-            )
-            return sphere
+            // 🦋 BUTTERFLY/BEETLE INSPIRATION: Elegant oval body with gentle curves
+            return createHerbivoreGeometry(bug: bug, size: size)
             
         case .carnivore:
-            // 🔴 VAN GOGH CARNIVORE: Angular, aggressive with flame-like reds
-            let box = SCNBox(width: CGFloat(size * 1.5), height: CGFloat(size), length: CGFloat(size * 1.2), chamferRadius: 0.2)
-            box.firstMaterial = createVanGoghBugMaterial(
-                species: .carnivore, 
-                bug: bug,
-                baseColor: NSColor(red: 0.8, green: 0.1, blue: 0.1, alpha: 1.0)
-            )
-            return box
+            // 🥊 PRAYING MANTIS/WASP INSPIRATION: Angular, predatory with sharp edges
+            return createCarnivoreGeometry(bug: bug, size: size)
             
         case .omnivore:
-            // 🟠 VAN GOGH OMNIVORE: Dynamic capsule with sunset gradients
-            let capsule = SCNCapsule(capRadius: CGFloat(size * 0.8), height: CGFloat(size * 1.5))
-            capsule.firstMaterial = createVanGoghBugMaterial(
-                species: .omnivore, 
-                bug: bug,
-                baseColor: NSColor(red: 0.9, green: 0.5, blue: 0.1, alpha: 1.0)
-            )
-            return capsule
+            // 🐜 ANT/BEE INSPIRATION: Segmented body with tool-carrying adaptations
+            return createOmnivoreGeometry(bug: bug, size: size)
             
         case .scavenger:
-            // 🟣 VAN GOGH SCAVENGER: Mysterious cylinder with iridescent purples
-            let cylinder = SCNCylinder(radius: CGFloat(size * 0.7), height: CGFloat(size * 1.2))
-            cylinder.firstMaterial = createVanGoghBugMaterial(
-                species: .scavenger, 
-                bug: bug,
-                baseColor: NSColor(red: 0.5, green: 0.2, blue: 0.8, alpha: 1.0)
-            )
-            return cylinder
+            // 🪰 FLY INSPIRATION: Rounded, opportunistic with weathered appearance
+            return createScavengerGeometry(bug: bug, size: size)
         }
     }
     
-    // 🎨 Van Gogh Bug Material Creation
+    // 🦋 Herbivore: Butterfly/Beetle-inspired elegant geometry
+    private func createHerbivoreGeometry(bug: Bug, size: Float) -> SCNGeometry {
+        // Create compound geometry for detailed insect body
+        let compoundNode = SCNNode()
+        
+        // 1. HEAD: Small rounded head
+        let head = SCNSphere(radius: CGFloat(size * 0.3))
+        let headNode = SCNNode(geometry: head)
+        headNode.position = SCNVector3(0, size * 0.8, 0)
+        head.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.25, 
+            speciesModifier: 0.3,
+            baseColor: NSColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1.0)
+        )
+        compoundNode.addChildNode(headNode)
+        
+        // 2. THORAX: Elongated oval thorax (main body)
+        let thorax = SCNSphere(radius: CGFloat(size * 0.5))
+        thorax.segmentCount = 12
+        let thoraxNode = SCNNode(geometry: thorax)
+        thoraxNode.scale = SCNVector3(1.0, 1.4, 0.8)  // Make it elongated
+        thoraxNode.position = SCNVector3(0, 0, 0)
+        thorax.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.25, 
+            speciesModifier: 0.3,
+            baseColor: NSColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1.0)
+        )
+        compoundNode.addChildNode(thoraxNode)
+        
+        // 3. ABDOMEN: Segmented abdomen
+        let abdomen = SCNSphere(radius: CGFloat(size * 0.4))
+        let abdomenNode = SCNNode(geometry: abdomen)
+        abdomenNode.scale = SCNVector3(0.9, 1.6, 0.7)  // Long and narrow
+        abdomenNode.position = SCNVector3(0, -size * 0.9, 0)
+        abdomen.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.25, 
+            speciesModifier: 0.2,
+            baseColor: NSColor(red: 0.15, green: 0.6, blue: 0.25, alpha: 1.0)
+        )
+        compoundNode.addChildNode(abdomenNode)
+        
+        // 4. ANTENNAE: Thin cylindrical antennae
+        for i in 0..<2 {
+            let antenna = SCNCylinder(radius: CGFloat(size * 0.05), height: CGFloat(size * 0.6))
+            let antennaNode = SCNNode(geometry: antenna)
+            let xOffset = i == 0 ? -size * 0.2 : size * 0.2
+            antennaNode.position = SCNVector3(xOffset, size * 1.0, size * 0.1)
+            antennaNode.eulerAngles = SCNVector3(Float.pi * 0.3, 0, 0)
+            antenna.firstMaterial?.diffuse.contents = NSColor.brown
+            compoundNode.addChildNode(antennaNode)
+        }
+        
+        // Return the compound geometry as a single shape
+        // Since SCNGeometry can't contain child nodes, we'll return the thorax as main geometry
+        // and add the other parts as child nodes to the bug node later
+        return thorax
+    }
+    
+    // 🦋 Detailed Herbivore Body: Butterfly/Beetle-inspired multi-part geometry
+    private func createDetailedHerbivoreBody(bug: Bug, size: Float, parentNode: SCNNode) {
+        // 1. HEAD: Small rounded head with compound eyes
+        let head = SCNSphere(radius: CGFloat(size * 0.3))
+        let headNode = SCNNode(geometry: head)
+        headNode.position = SCNVector3(0, size * 0.8, 0)
+        head.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.25, 
+            speciesModifier: 0.3,
+            baseColor: NSColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1.0)
+        )
+        parentNode.addChildNode(headNode)
+        
+        // 2. THORAX: Elongated oval thorax (main body) 
+        let thorax = SCNSphere(radius: CGFloat(size * 0.5))
+        thorax.segmentCount = 12
+        let thoraxNode = SCNNode(geometry: thorax)
+        thoraxNode.scale = SCNVector3(1.0, 1.4, 0.8)  // Make it elongated
+        thoraxNode.position = SCNVector3(0, 0, 0)
+        thorax.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.25, 
+            speciesModifier: 0.3,
+            baseColor: NSColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1.0)
+        )
+        parentNode.addChildNode(thoraxNode)
+        
+        // 3. ABDOMEN: Segmented abdomen
+        let abdomen = SCNSphere(radius: CGFloat(size * 0.4))
+        let abdomenNode = SCNNode(geometry: abdomen)
+        abdomenNode.scale = SCNVector3(0.9, 1.6, 0.7)  // Long and narrow
+        abdomenNode.position = SCNVector3(0, -size * 0.9, 0)
+        abdomen.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.25, 
+            speciesModifier: 0.2,
+            baseColor: NSColor(red: 0.15, green: 0.6, blue: 0.25, alpha: 1.0)
+        )
+        parentNode.addChildNode(abdomenNode)
+        
+        // 4. ANTENNAE: Thin cylindrical antennae
+        for i in 0..<2 {
+            let antenna = SCNCylinder(radius: CGFloat(size * 0.05), height: CGFloat(size * 0.6))
+            let antennaNode = SCNNode(geometry: antenna)
+            let xOffset = i == 0 ? -size * 0.2 : size * 0.2
+            antennaNode.position = SCNVector3(xOffset, size * 1.0, size * 0.1)
+            antennaNode.eulerAngles = SCNVector3(Float.pi * 0.3, 0, 0)
+            antenna.firstMaterial?.diffuse.contents = NSColor.brown
+            parentNode.addChildNode(antennaNode)
+        }
+        
+        // 5. LEGS: Six legs positioned around thorax
+        for i in 0..<6 {
+            let leg = SCNCylinder(radius: CGFloat(size * 0.03), height: CGFloat(size * 0.4))
+            let legNode = SCNNode(geometry: leg)
+            
+            let angle = Float(i) * Float.pi / 3.0
+            let legX = cos(angle) * size * 0.6
+            let legZ = sin(angle) * size * 0.6
+            
+            legNode.position = SCNVector3(legX, -size * 0.2, legZ)
+            legNode.eulerAngles = SCNVector3(Float.pi * 0.5, angle, 0)
+            leg.firstMaterial?.diffuse.contents = NSColor.darkGray
+            parentNode.addChildNode(legNode)
+        }
+    }
+    
+    // 🥊 Carnivore: Praying Mantis/Wasp-inspired predatory geometry
+    private func createCarnivoreGeometry(bug: Bug, size: Float) -> SCNGeometry {
+        // Create angular, aggressive thorax
+        let body = SCNBox(
+            width: CGFloat(size * 0.8), 
+            height: CGFloat(size * 1.2), 
+            length: CGFloat(size * 1.4), 
+            chamferRadius: CGFloat(size * 0.1)
+        )
+        
+        // Sharp, predatory appearance with genetic variation
+        body.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.05, 
+            speciesModifier: 0.9,
+                baseColor: NSColor(red: 0.8, green: 0.1, blue: 0.1, alpha: 1.0)
+            )
+        
+        return body
+    }
+    
+    // 🥊 Detailed Carnivore Body: Praying Mantis/Wasp-inspired predatory geometry
+    private func createDetailedCarnivoreBody(bug: Bug, size: Float, parentNode: SCNNode) {
+        // 1. HEAD: Triangular predatory head
+        let head = SCNBox(
+            width: CGFloat(size * 0.4), 
+            height: CGFloat(size * 0.3), 
+            length: CGFloat(size * 0.5), 
+            chamferRadius: CGFloat(size * 0.05)
+        )
+        let headNode = SCNNode(geometry: head)
+        headNode.position = SCNVector3(0, size * 0.9, 0)
+        head.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.05, 
+            speciesModifier: 0.9,
+            baseColor: NSColor(red: 0.8, green: 0.1, blue: 0.1, alpha: 1.0)
+        )
+        parentNode.addChildNode(headNode)
+        
+        // 2. THORAX: Angular, muscular thorax
+        let thorax = SCNBox(
+            width: CGFloat(size * 0.6), 
+            height: CGFloat(size * 0.8), 
+            length: CGFloat(size * 1.0), 
+            chamferRadius: CGFloat(size * 0.1)
+        )
+        let thoraxNode = SCNNode(geometry: thorax)
+        thoraxNode.position = SCNVector3(0, 0, 0)
+        thorax.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.05, 
+            speciesModifier: 0.9,
+            baseColor: NSColor(red: 0.8, green: 0.1, blue: 0.1, alpha: 1.0)
+        )
+        parentNode.addChildNode(thoraxNode)
+        
+        // 3. NARROW WAIST: Characteristic wasp waist
+        let waist = SCNCylinder(radius: CGFloat(size * 0.15), height: CGFloat(size * 0.3))
+        let waistNode = SCNNode(geometry: waist)
+        waistNode.position = SCNVector3(0, -size * 0.6, 0)
+        waist.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.05, 
+            speciesModifier: 0.7,
+            baseColor: NSColor(red: 0.6, green: 0.08, blue: 0.08, alpha: 1.0)
+        )
+        parentNode.addChildNode(waistNode)
+        
+        // 4. ABDOMEN: Pointed abdomen
+        let abdomen = SCNSphere(radius: CGFloat(size * 0.4))
+        let abdomenNode = SCNNode(geometry: abdomen)
+        abdomenNode.scale = SCNVector3(0.8, 1.4, 0.8)  // Elongated and pointed
+        abdomenNode.position = SCNVector3(0, -size * 1.1, 0)
+        abdomen.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.05, 
+            speciesModifier: 0.8,
+            baseColor: NSColor(red: 0.7, green: 0.05, blue: 0.05, alpha: 1.0)
+        )
+        parentNode.addChildNode(abdomenNode)
+        
+        // 5. LARGE COMPOUND EYES
+        for i in 0..<2 {
+            let eye = SCNSphere(radius: CGFloat(size * 0.12))
+            let eyeNode = SCNNode(geometry: eye)
+            let xOffset = i == 0 ? -size * 0.15 : size * 0.15
+            eyeNode.position = SCNVector3(xOffset, size * 1.0, size * 0.2)
+            eye.firstMaterial?.diffuse.contents = NSColor.black
+            parentNode.addChildNode(eyeNode)
+        }
+        
+        // 6. POWERFUL FRONT LEGS (raptorial legs like mantis)
+        for i in 0..<2 {
+            let frontLeg = SCNBox(
+                width: CGFloat(size * 0.08), 
+                height: CGFloat(size * 0.6), 
+                length: CGFloat(size * 0.06), 
+                chamferRadius: 0
+            )
+            let frontLegNode = SCNNode(geometry: frontLeg)
+            let xOffset = i == 0 ? -size * 0.4 : size * 0.4
+            frontLegNode.position = SCNVector3(xOffset, size * 0.2, size * 0.3)
+            frontLegNode.eulerAngles = SCNVector3(Float.pi * 0.3, 0, 0)
+            frontLeg.firstMaterial?.diffuse.contents = NSColor.darkGray
+            parentNode.addChildNode(frontLegNode)
+        }
+        
+        // 7. REGULAR LEGS: Four additional legs
+        for i in 0..<4 {
+            let leg = SCNCylinder(radius: CGFloat(size * 0.03), height: CGFloat(size * 0.4))
+            let legNode = SCNNode(geometry: leg)
+            
+            let angle = Float(i) * Float.pi / 2.0 + Float.pi / 4.0
+            let legX = cos(angle) * size * 0.5
+            let legZ = sin(angle) * size * 0.5
+            
+            legNode.position = SCNVector3(legX, -size * 0.2, legZ)
+            legNode.eulerAngles = SCNVector3(Float.pi * 0.5, angle, 0)
+            leg.firstMaterial?.diffuse.contents = NSColor.darkGray
+            parentNode.addChildNode(legNode)
+        }
+    }
+    
+    // 🐜 Omnivore: Ant/Bee-inspired segmented geometry  
+    private func createOmnivoreGeometry(bug: Bug, size: Float) -> SCNGeometry {
+        // Create segmented body (like ant thorax)
+        let body = SCNCapsule(capRadius: CGFloat(size * 0.5), height: CGFloat(size * 1.6))
+        body.heightSegmentCount = 8  // Visible segmentation
+        body.radialSegmentCount = 12
+        
+        // Warm, industrious colors with genetic expression
+        body.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.15, 
+            speciesModifier: 0.6,
+                baseColor: NSColor(red: 0.9, green: 0.5, blue: 0.1, alpha: 1.0)
+            )
+        
+        return body
+    }
+    
+    // 🐜 Detailed Omnivore Body: Ant/Bee-inspired segmented geometry
+    private func createDetailedOmnivoreBody(bug: Bug, size: Float, parentNode: SCNNode) {
+        // 1. HEAD: Rounded head with mandibles
+        let head = SCNSphere(radius: CGFloat(size * 0.35))
+        let headNode = SCNNode(geometry: head)
+        headNode.position = SCNVector3(0, size * 0.8, 0)
+        head.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.15, 
+            speciesModifier: 0.6,
+            baseColor: NSColor(red: 0.9, green: 0.5, blue: 0.1, alpha: 1.0)
+        )
+        parentNode.addChildNode(headNode)
+        
+        // 2. THORAX: Segmented thorax
+        let thorax = SCNCapsule(capRadius: CGFloat(size * 0.4), height: CGFloat(size * 0.8))
+        let thoraxNode = SCNNode(geometry: thorax)
+        thoraxNode.position = SCNVector3(0, 0, 0)
+        thorax.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.15, 
+            speciesModifier: 0.6,
+            baseColor: NSColor(red: 0.9, green: 0.5, blue: 0.1, alpha: 1.0)
+        )
+        parentNode.addChildNode(thoraxNode)
+        
+        // 3. NARROW CONNECTOR: Petiole (ant waist)
+        let connector = SCNCylinder(radius: CGFloat(size * 0.1), height: CGFloat(size * 0.2))
+        let connectorNode = SCNNode(geometry: connector)
+        connectorNode.position = SCNVector3(0, -size * 0.6, 0)
+        connector.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.15, 
+            speciesModifier: 0.4,
+            baseColor: NSColor(red: 0.7, green: 0.4, blue: 0.08, alpha: 1.0)
+        )
+        parentNode.addChildNode(connectorNode)
+        
+        // 4. ABDOMEN: Large segmented abdomen
+        let abdomen = SCNSphere(radius: CGFloat(size * 0.5))
+        let abdomenNode = SCNNode(geometry: abdomen)
+        abdomenNode.scale = SCNVector3(1.0, 1.3, 1.0)
+        abdomenNode.position = SCNVector3(0, -size * 1.0, 0)
+        abdomen.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.15, 
+            speciesModifier: 0.5,
+            baseColor: NSColor(red: 0.8, green: 0.45, blue: 0.09, alpha: 1.0)
+        )
+        parentNode.addChildNode(abdomenNode)
+        
+        // 5. ANTENNAE: Bent antennae
+        for i in 0..<2 {
+            let antenna = SCNCylinder(radius: CGFloat(size * 0.04), height: CGFloat(size * 0.5))
+            let antennaNode = SCNNode(geometry: antenna)
+            let xOffset = i == 0 ? -size * 0.2 : size * 0.2
+            antennaNode.position = SCNVector3(xOffset, size * 1.0, size * 0.1)
+            antennaNode.eulerAngles = SCNVector3(Float.pi * 0.4, 0, 0)
+            antenna.firstMaterial?.diffuse.contents = NSColor.darkGray
+            parentNode.addChildNode(antennaNode)
+        }
+        
+        // 6. SIX LEGS: Standard insect legs
+        for i in 0..<6 {
+            let leg = SCNCylinder(radius: CGFloat(size * 0.03), height: CGFloat(size * 0.4))
+            let legNode = SCNNode(geometry: leg)
+            
+            let angle = Float(i) * Float.pi / 3.0
+            let legX = cos(angle) * size * 0.5
+            let legZ = sin(angle) * size * 0.5
+            
+            legNode.position = SCNVector3(legX, -size * 0.1, legZ)
+            legNode.eulerAngles = SCNVector3(Float.pi * 0.5, angle, 0)
+            leg.firstMaterial?.diffuse.contents = NSColor.darkGray
+            parentNode.addChildNode(legNode)
+        }
+    }
+    
+    // 🪰 Scavenger: Fly-inspired opportunistic geometry
+    private func createScavengerGeometry(bug: Bug, size: Float) -> SCNGeometry {
+        // Create rounded, compact body
+        let body = SCNCylinder(radius: CGFloat(size * 0.7), height: CGFloat(size * 0.9))
+        body.radialSegmentCount = 10
+        body.heightSegmentCount = 6
+        
+        // Iridescent, opportunistic colors with genetic variation
+        body.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.75, 
+            speciesModifier: 0.8,
+                baseColor: NSColor(red: 0.5, green: 0.2, blue: 0.8, alpha: 1.0)
+            )
+        
+        return body
+    }
+    
+    // 🪰 Detailed Scavenger Body: Fly-inspired compact geometry
+    private func createDetailedScavengerBody(bug: Bug, size: Float, parentNode: SCNNode) {
+        // 1. LARGE HEAD: Big head with compound eyes (like fly)
+        let head = SCNSphere(radius: CGFloat(size * 0.4))
+        let headNode = SCNNode(geometry: head)
+        headNode.position = SCNVector3(0, size * 0.6, 0)
+        head.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.75, 
+            speciesModifier: 0.8,
+            baseColor: NSColor(red: 0.5, green: 0.2, blue: 0.8, alpha: 1.0)
+        )
+        parentNode.addChildNode(headNode)
+        
+        // 2. COMPACT THORAX: Short, robust thorax
+        let thorax = SCNCylinder(radius: CGFloat(size * 0.45), height: CGFloat(size * 0.6))
+        let thoraxNode = SCNNode(geometry: thorax)
+        thoraxNode.position = SCNVector3(0, 0, 0)
+        thorax.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.75, 
+            speciesModifier: 0.8,
+            baseColor: NSColor(red: 0.5, green: 0.2, blue: 0.8, alpha: 1.0)
+        )
+        parentNode.addChildNode(thoraxNode)
+        
+        // 3. BULBOUS ABDOMEN: Large rounded abdomen
+        let abdomen = SCNSphere(radius: CGFloat(size * 0.5))
+        let abdomenNode = SCNNode(geometry: abdomen)
+        abdomenNode.scale = SCNVector3(1.1, 1.2, 1.1)
+        abdomenNode.position = SCNVector3(0, -size * 0.7, 0)
+        abdomen.firstMaterial = createGeneticVanGoghMaterial(
+            for: bug, 
+            baseHue: 0.75, 
+            speciesModifier: 0.7,
+            baseColor: NSColor(red: 0.4, green: 0.15, blue: 0.7, alpha: 1.0)
+        )
+        parentNode.addChildNode(abdomenNode)
+        
+        // 4. LARGE COMPOUND EYES: Prominent eyes
+        for i in 0..<2 {
+            let eye = SCNSphere(radius: CGFloat(size * 0.15))
+            let eyeNode = SCNNode(geometry: eye)
+            let xOffset = i == 0 ? -size * 0.25 : size * 0.25
+            eyeNode.position = SCNVector3(xOffset, size * 0.7, size * 0.3)
+            eye.firstMaterial?.diffuse.contents = NSColor.black
+            eye.firstMaterial?.specular.contents = NSColor.white
+            parentNode.addChildNode(eyeNode)
+        }
+        
+        // 5. SHORT ANTENNAE: Stubby fly antennae
+        for i in 0..<2 {
+            let antenna = SCNCylinder(radius: CGFloat(size * 0.03), height: CGFloat(size * 0.2))
+            let antennaNode = SCNNode(geometry: antenna)
+            let xOffset = i == 0 ? -size * 0.15 : size * 0.15
+            antennaNode.position = SCNVector3(xOffset, size * 0.9, size * 0.2)
+            antenna.firstMaterial?.diffuse.contents = NSColor.darkGray
+            parentNode.addChildNode(antennaNode)
+        }
+        
+        // 6. SIX LEGS: Stocky scavenger legs
+        for i in 0..<6 {
+            let leg = SCNCylinder(radius: CGFloat(size * 0.04), height: CGFloat(size * 0.3))
+            let legNode = SCNNode(geometry: leg)
+            
+            let angle = Float(i) * Float.pi / 3.0
+            let legX = cos(angle) * size * 0.6
+            let legZ = sin(angle) * size * 0.6
+            
+            legNode.position = SCNVector3(legX, -size * 0.2, legZ)
+            legNode.eulerAngles = SCNVector3(Float.pi * 0.5, angle, 0)
+            leg.firstMaterial?.diffuse.contents = NSColor.darkGray
+            parentNode.addChildNode(legNode)
+        }
+    }
+    
+    // 🧬 PHASE 3: Genetic Visual Expression Material System
+    private func createGeneticVanGoghMaterial(for bug: Bug, baseHue: Double, speciesModifier: Double, baseColor: NSColor) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Genetic color expression: DNA determines final appearance
+        let geneticColor = createGeneticExpressedColor(bug: bug, baseHue: baseHue, speciesModifier: speciesModifier)
+        
+        // Van Gogh artistic styling combined with genetic traits
+        let expressiveColor = createVanGoghGeneticColor(
+            species: bug.dna.speciesTraits.speciesType, 
+            bug: bug, 
+            geneticColor: geneticColor,
+            baseColor: baseColor
+        )
+        
+        // Apply genetic traits to material properties
+        material.diffuse.contents = expressiveColor
+        
+        // Genetic size affects material properties
+        let sizeEffect = Float(bug.dna.size)
+        material.roughness.contents = NSNumber(value: 0.3 + (1.0 - sizeEffect) * 0.4) // Smaller bugs are rougher
+        
+        // Camouflage affects transparency and iridescence
+        let camouflage = Float(bug.dna.camouflage)
+        material.transparency = CGFloat(0.95 + camouflage * 0.05) // High camouflage = slight transparency
+        
+        // Age affects material weathering
+        let ageEffect = min(1.0, Float(bug.age) / Float(Bug.maxAge))
+        material.metalness.contents = NSNumber(value: camouflage * 0.2 + ageEffect * 0.3) // Older bugs get more metallic
+        
+        // Health affects brightness
+        let healthRatio = Float(bug.energy / Bug.maxEnergy)
+        let brightness = 0.7 + healthRatio * 0.3
+        material.emission.contents = NSColor(white: CGFloat(brightness * 0.1), alpha: 1.0) // Healthy bugs glow slightly
+        
+        return material
+    }
+    
+    // 🧬 Genetic Color Expression Functions
+    private func createGeneticExpressedColor(bug: Bug, baseHue: Double, speciesModifier: Double) -> NSColor {
+        // Combine individual DNA color with species tendency
+        let individualHue = bug.dna.colorHue
+        let blendedHue = (individualHue * 0.7 + baseHue * 0.3).truncatingRemainder(dividingBy: 1.0)
+        
+        // Genetic traits affect saturation and brightness
+        let geneticSaturation = bug.dna.colorSaturation * (0.8 + bug.dna.aggression * 0.2) // Aggressive bugs are more saturated
+        let geneticBrightness = bug.dna.colorBrightness * (0.7 + bug.energy / Bug.maxEnergy * 0.3) // Healthy bugs are brighter
+        
+        return NSColor(
+            hue: CGFloat(blendedHue),
+            saturation: CGFloat(geneticSaturation),
+            brightness: CGFloat(geneticBrightness),
+            alpha: 1.0
+        )
+    }
+    
+    private func createVanGoghGeneticColor(species: SpeciesType, bug: Bug, geneticColor: NSColor, baseColor: NSColor) -> NSColor {
+        // Blend genetic expression with Van Gogh artistic style
+        let geneticRGB = geneticColor.rgbComponents
+        let baseRGB = baseColor.rgbComponents
+        
+        // Species personality affects the blend ratio
+        let speciesStrength: Double
+        switch species {
+        case .herbivore:
+            speciesStrength = 0.3 // Gentle, individual expression dominates
+        case .carnivore:
+            speciesStrength = 0.7 // Strong species identity
+        case .omnivore:
+            speciesStrength = 0.5 // Balanced
+        case .scavenger:
+            speciesStrength = 0.4 // Opportunistic, varied appearance
+        }
+        
+        return NSColor(
+            red: CGFloat(geneticRGB.red * (1.0 - speciesStrength) + baseRGB.red * speciesStrength),
+            green: CGFloat(geneticRGB.green * (1.0 - speciesStrength) + baseRGB.green * speciesStrength),
+            blue: CGFloat(geneticRGB.blue * (1.0 - speciesStrength) + baseRGB.blue * speciesStrength),
+            alpha: 1.0
+        )
+    }
+    
+    // 🎨 Van Gogh Bug Material Creation (Legacy support)
     private func createVanGoghBugMaterial(species: SpeciesType, bug: Bug, baseColor: NSColor) -> SCNMaterial {
         let material = SCNMaterial()
         
@@ -3586,33 +4122,432 @@ struct Arena3DView: NSViewRepresentable {
         )
     }
     
+    // 🦋 PHASE 3: ADVANCED PROCEDURAL WING SYSTEM
     private func addWings(to bugNode: SCNNode, bug: Bug) {
-        let wingSize = Float(bug.dna.wingSpan * 0.5)
+        guard bug.dna.wingSpan > 0.5 else { return } // Only bugs with significant wing span get wings
         
-        // Left wing
-        let leftWing = SCNBox(width: CGFloat(wingSize), height: 0.1, length: CGFloat(wingSize * 0.3), chamferRadius: 0.05)
-        leftWing.firstMaterial?.diffuse.contents = NSColor(white: 0.9, alpha: 0.7)
-        leftWing.firstMaterial?.transparency = 0.7
+        let wingSize = Float(bug.dna.wingSpan * 0.6)
+        let species = bug.dna.speciesTraits.speciesType
         
+        // Create species-specific wing shapes
+        let (leftWing, rightWing) = createSpeciesSpecificWings(for: species, bug: bug, wingSize: wingSize)
+        
+        // Position wings based on body size and species
+        let wingOffset = wingSize * 0.8
         let leftWingNode = SCNNode(geometry: leftWing)
-        leftWingNode.position = SCNVector3(-wingSize * 0.7, 0, 0)
-        bugNode.addChildNode(leftWingNode)
+        let rightWingNode = SCNNode(geometry: rightWing)
         
-        // Right wing
-        let rightWingNode = SCNNode(geometry: leftWing)
-        rightWingNode.position = SCNVector3(wingSize * 0.7, 0, 0)
+        leftWingNode.position = SCNVector3(-wingOffset, 0, 0)
+        rightWingNode.position = SCNVector3(wingOffset, 0, 0)
+        
+        // Set wing names for behavioral animation targeting
+        leftWingNode.name = "LeftWing"
+        rightWingNode.name = "RightWing"
+        
+        bugNode.addChildNode(leftWingNode)
         bugNode.addChildNode(rightWingNode)
         
-        // Add wing animation
-        let flapAnimation = SCNAction.sequence([
-            SCNAction.rotateBy(x: 0, y: 0, z: 0.3, duration: 0.1),
-            SCNAction.rotateBy(x: 0, y: 0, z: -0.6, duration: 0.2),
-            SCNAction.rotateBy(x: 0, y: 0, z: 0.3, duration: 0.1)
-        ])
-        let repeatFlap = SCNAction.repeatForever(flapAnimation)
+        // Add procedural wing animation based on genetics and behavior
+        addProceduralWingAnimation(to: leftWingNode, bug: bug, isLeftWing: true)
+        addProceduralWingAnimation(to: rightWingNode, bug: bug, isLeftWing: false)
+    }
+    
+    // 🎨 Species-Specific Wing Shapes
+    private func createSpeciesSpecificWings(for species: SpeciesType, bug: Bug, wingSize: Float) -> (SCNGeometry, SCNGeometry) {
+        let wingMaterial = createWingMaterial(for: bug)
         
-        leftWingNode.runAction(repeatFlap)
-        rightWingNode.runAction(repeatFlap)
+        switch species {
+        case .herbivore:
+            // 🦋 Butterfly wings: Large, rounded, beautiful
+            let wing = SCNPlane(width: CGFloat(wingSize * 1.2), height: CGFloat(wingSize * 0.8))
+            wing.cornerRadius = CGFloat(wingSize * 0.3)
+            wing.firstMaterial = wingMaterial
+            return (wing, wing)
+            
+        case .carnivore:
+            // 🦅 Wasp wings: Narrow, sharp, efficient
+            let wing = SCNPlane(width: CGFloat(wingSize * 0.8), height: CGFloat(wingSize * 1.4))
+            wing.cornerRadius = CGFloat(wingSize * 0.1)
+            wing.firstMaterial = wingMaterial
+            return (wing, wing)
+            
+        case .omnivore:
+            // 🐝 Bee wings: Compact, functional, translucent
+            let wing = SCNPlane(width: CGFloat(wingSize), height: CGFloat(wingSize))
+            wing.cornerRadius = CGFloat(wingSize * 0.2)
+            wing.firstMaterial = wingMaterial
+            return (wing, wing)
+            
+        case .scavenger:
+            // 🪰 Fly wings: Small, rapid-flutter design
+            let wing = SCNPlane(width: CGFloat(wingSize * 0.6), height: CGFloat(wingSize * 0.9))
+            wing.cornerRadius = CGFloat(wingSize * 0.4)
+            wing.firstMaterial = wingMaterial
+            return (wing, wing)
+        }
+    }
+    
+    // 🌈 Wing Material with Genetic Expression
+    private func createWingMaterial(for bug: Bug) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Wing transparency based on genetics
+        let baseTransparency = 0.3 + bug.dna.wingSpan * 0.4 // Larger wings more transparent
+        material.transparency = baseTransparency
+        
+        // Wing color reflects genetics
+        let wingColor = createGeneticExpressedColor(bug: bug, baseHue: 0.1, speciesModifier: 0.2)
+        material.diffuse.contents = wingColor
+        
+        // Iridescence based on species and genetics
+        let iridescence = Float(bug.dna.camouflage * 0.3 + bug.dna.colorSaturation * 0.2)
+        material.metalness.contents = NSNumber(value: iridescence)
+        material.roughness.contents = NSNumber(value: 0.1) // Wings are smooth
+        
+        // Age affects wing wear
+        let ageEffect = Float(bug.age) / Float(Bug.maxAge)
+        material.emission.contents = NSColor(white: CGFloat(0.1 - ageEffect * 0.05), alpha: 1.0)
+        
+        return material
+    }
+    
+    // 🎭 Procedural Wing Animation System
+    private func addProceduralWingAnimation(to wingNode: SCNNode, bug: Bug, isLeftWing: Bool) {
+        // Base flap rate influenced by genetics
+        let baseFlaps = 0.05 + bug.dna.speed * 0.1 // Faster bugs flap faster
+        let aggressionBoost = bug.dna.aggression * 0.05 // Aggressive bugs flap more intensely
+        let energyMultiplier = bug.energy / Bug.maxEnergy // Low energy = slower flapping
+        
+        let flapDuration = (baseFlaps + aggressionBoost) * energyMultiplier
+        let flapIntensity = Float(0.2 + bug.dna.wingSpan * 0.4) // Larger wings = bigger movement
+        
+        // Species-specific flap patterns
+        let flapPattern = createSpeciesFlappingPattern(
+            species: bug.dna.speciesTraits.speciesType, 
+            duration: flapDuration, 
+            intensity: flapIntensity,
+            isLeftWing: isLeftWing
+        )
+        
+        // Behavioral modifiers affect wing animation
+        addBehavioralWingModifiers(to: wingNode, bug: bug, basePattern: flapPattern)
+    }
+    
+    // 🎪 Species-Specific Flapping Patterns
+    private func createSpeciesFlappingPattern(species: SpeciesType, duration: Double, intensity: Float, isLeftWing: Bool) -> SCNAction {
+        let direction: Float = isLeftWing ? 1.0 : -1.0
+        
+        switch species {
+        case .herbivore:
+            // 🦋 Butterfly: Graceful, slow, sweeping motions
+            return SCNAction.sequence([
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * direction * 0.8), duration: duration * 2.0),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(-intensity * direction * 1.6), duration: duration * 1.0),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * direction * 0.8), duration: duration * 2.0)
+            ])
+            
+        case .carnivore:
+            // 🦅 Wasp: Sharp, aggressive, rapid beats
+            return SCNAction.sequence([
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * direction), duration: duration * 0.3),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(-intensity * direction * 2.0), duration: duration * 0.4),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * direction), duration: duration * 0.3)
+            ])
+            
+        case .omnivore:
+            // 🐝 Bee: Efficient, steady, rhythmic
+            return SCNAction.sequence([
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * direction * 0.6), duration: duration),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(-intensity * direction * 1.2), duration: duration),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * direction * 0.6), duration: duration)
+            ])
+            
+        case .scavenger:
+            // 🪰 Fly: Very rapid, buzzing, erratic
+            return SCNAction.sequence([
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * direction * 0.4), duration: duration * 0.1),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(-intensity * direction * 0.8), duration: duration * 0.2),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * direction * 0.4), duration: duration * 0.1)
+            ])
+        }
+    }
+    
+    // 🎭 Behavioral Wing Animation Modifiers
+    private func addBehavioralWingModifiers(to wingNode: SCNNode, bug: Bug, basePattern: SCNAction) {
+        var finalPattern = basePattern
+        
+        // Check current behavior state and modify wing animation accordingly
+        if let decision = bug.lastDecision {
+            if decision.fleeing > 0.7 {
+                // PANIC FLAPPING: Faster, more erratic when fleeing
+                finalPattern = basePattern
+            } else if decision.hunting > 0.7 {
+                // AGGRESSIVE FLAPPING: More intense when hunting
+                finalPattern = basePattern
+            } else if decision.social > 0.8 {
+                // DISPLAY FLAPPING: Showy, rhythmic during social interactions
+                finalPattern = basePattern
+            } else if bug.energy < Bug.maxEnergy * 0.3 {
+                // TIRED FLAPPING: Slower, weaker when low energy
+                finalPattern = basePattern
+            }
+        }
+        
+        let repeatPattern = SCNAction.repeatForever(finalPattern)
+        wingNode.runAction(repeatPattern)
+    }
+    
+    // MARK: - 🎭 PHASE 3: BEHAVIORAL ANIMATION SYSTEM
+    
+    private func addBehavioralAnimations(to bugNode: SCNNode, bug: Bug) {
+        // Set up behavioral animation tracking
+        bugNode.name = "Bug_\(bug.id.uuidString)"
+        
+        // Add subtle idle animation - breathing/pulsing
+        addIdleAnimation(to: bugNode, bug: bug)
+        
+        // Check current behavioral state and add appropriate animations
+        if let decision = bug.lastDecision {
+            addBehaviorSpecificAnimations(to: bugNode, bug: bug, decision: decision)
+        }
+        
+        // Add age-related animation effects
+        addAgeRelatedAnimations(to: bugNode, bug: bug)
+    }
+    
+    // 🌊 Idle Breathing/Pulsing Animation
+    private func addIdleAnimation(to bugNode: SCNNode, bug: Bug) {
+        // Subtle breathing effect - slight scale pulsing
+        let breathingRate = 2.0 + bug.dna.speed * 0.5 // Faster bugs breathe faster
+        let breathingIntensity = 0.02 + bug.dna.size * 0.01 // Larger bugs have more noticeable breathing
+        
+        let breatheIn = SCNAction.scale(by: 1.0 + breathingIntensity, duration: breathingRate)
+        let breatheOut = SCNAction.scale(by: 1.0 - breathingIntensity, duration: breathingRate)
+        
+        let breathingCycle = SCNAction.sequence([breatheIn, breatheOut])
+        let breathing = SCNAction.repeatForever(breathingCycle)
+        
+        bugNode.runAction(breathing, forKey: "breathing")
+    }
+    
+    // 🎪 Behavior-Specific Animations
+    private func addBehaviorSpecificAnimations(to bugNode: SCNNode, bug: Bug, decision: BugOutputs) {
+        
+        // 🏃 FLEEING ANIMATION - Panic response
+        if decision.fleeing > 0.7 {
+            addFleeingAnimation(to: bugNode, bug: bug, intensity: decision.fleeing)
+        }
+        
+        // 🦁 HUNTING ANIMATION - Predatory stance
+        else if decision.hunting > 0.7 {
+            addHuntingAnimation(to: bugNode, bug: bug, intensity: decision.hunting)
+        }
+        
+        // 💖 REPRODUCTION ANIMATION - Mating display
+        else if decision.reproduction > 0.8 {
+            addMatingAnimation(to: bugNode, bug: bug, intensity: decision.reproduction)
+        }
+        
+        // 🤝 SOCIAL ANIMATION - Social display
+        else if decision.social > 0.8 {
+            addSocialAnimation(to: bugNode, bug: bug, intensity: decision.social)
+        }
+        
+        // 😤 AGGRESSION ANIMATION - Aggressive posturing
+        else if decision.aggression > 0.7 {
+            addAggressionAnimation(to: bugNode, bug: bug, intensity: decision.aggression)
+        }
+        
+        // 🔍 EXPLORATION ANIMATION - Curious movement
+        else if decision.exploration > 0.8 {
+            addExplorationAnimation(to: bugNode, bug: bug, intensity: decision.exploration)
+        }
+    }
+    
+    // 😨 Fleeing Animation - Erratic, fast movements
+    private func addFleeingAnimation(to bugNode: SCNNode, bug: Bug, intensity: Double) {
+        let panicShake = SCNAction.sequence([
+            SCNAction.rotateBy(x: 0, y: CGFloat(intensity * 0.1), z: 0, duration: 0.05),
+            SCNAction.rotateBy(x: 0, y: CGFloat(-intensity * 0.2), z: 0, duration: 0.1),
+            SCNAction.rotateBy(x: 0, y: CGFloat(intensity * 0.1), z: 0, duration: 0.05)
+        ])
+        
+        let repeatPanic = SCNAction.repeatForever(panicShake)
+        bugNode.runAction(repeatPanic, forKey: "fleeing")
+        
+        // Enhanced wing flapping for flying species
+        if bug.canFly {
+            enhanceWingAnimationForBehavior(bugNode: bugNode, behavior: "panic", multiplier: 3.0)
+        }
+    }
+    
+    // 🦁 Hunting Animation - Predatory crouch and pounce preparation
+    private func addHuntingAnimation(to bugNode: SCNNode, bug: Bug, intensity: Double) {
+        // Predatory crouch - lower body slightly
+        let crouch = SCNAction.scale(by: 0.8, duration: 0.5)
+        let rise = SCNAction.scale(by: 1.25, duration: 0.3)
+        
+        // Tension animation - slight back-and-forth rocking
+        let tense = SCNAction.sequence([
+            SCNAction.rotateBy(x: CGFloat(intensity * 0.05), y: 0, z: 0, duration: 0.2),
+            SCNAction.rotateBy(x: CGFloat(-intensity * 0.1), y: 0, z: 0, duration: 0.4),
+            SCNAction.rotateBy(x: CGFloat(intensity * 0.05), y: 0, z: 0, duration: 0.2)
+        ])
+        
+        let huntingCycle = SCNAction.sequence([crouch, tense, rise])
+        let hunting = SCNAction.repeatForever(huntingCycle)
+        
+        bugNode.runAction(hunting, forKey: "hunting")
+        
+        // Enhanced wing readiness for flying predators
+        if bug.canFly {
+            enhanceWingAnimationForBehavior(bugNode: bugNode, behavior: "hunt", multiplier: 1.5)
+        }
+    }
+    
+    // 💖 Mating Animation - Rhythmic display dance
+    private func addMatingAnimation(to bugNode: SCNNode, bug: Bug, intensity: Double) {
+        let species = bug.dna.speciesTraits.speciesType
+        let matingDance = createSpeciesMatingDance(species: species, bug: bug, intensity: intensity)
+        
+        let mating = SCNAction.repeatForever(matingDance)
+        bugNode.runAction(mating, forKey: "mating")
+        
+        // Show off wings if available
+        if bug.canFly {
+            enhanceWingAnimationForBehavior(bugNode: bugNode, behavior: "display", multiplier: 0.5) // Slower, showier
+        }
+    }
+    
+    // 🎪 Species-Specific Mating Dances
+    private func createSpeciesMatingDance(species: SpeciesType, bug: Bug, intensity: Double) -> SCNAction {
+        switch species {
+        case .herbivore:
+            // 🦋 Butterfly courtship: Spiraling flight pattern simulation
+            return SCNAction.sequence([
+                SCNAction.rotateBy(x: 0, y: CGFloat(intensity * 0.5), z: 0, duration: 1.0),
+                SCNAction.scale(by: 1.1, duration: 0.5),
+                SCNAction.scale(by: 0.9, duration: 0.5),
+                SCNAction.rotateBy(x: 0, y: CGFloat(-intensity * 0.5), z: 0, duration: 1.0)
+            ])
+            
+        case .carnivore:
+            // 🦅 Aggressive display: Sharp, dominant movements
+            return SCNAction.sequence([
+                SCNAction.scale(by: 1.2, duration: 0.3),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * 0.3), duration: 0.2),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(-intensity * 0.6), duration: 0.4),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * 0.3), duration: 0.2),
+                SCNAction.scale(by: 0.83, duration: 0.3)
+            ])
+            
+        case .omnivore:
+            // 🐝 Bee waggle dance: Figure-eight pattern simulation
+            return SCNAction.sequence([
+                SCNAction.rotateBy(x: 0, y: CGFloat(intensity * 0.2), z: 0, duration: 0.4),
+                SCNAction.move(by: SCNVector3(Float(intensity), 0, 0), duration: 0.2),
+                SCNAction.rotateBy(x: 0, y: CGFloat(-intensity * 0.4), z: 0, duration: 0.8),
+                SCNAction.move(by: SCNVector3(-Float(intensity), 0, 0), duration: 0.2),
+                SCNAction.rotateBy(x: 0, y: CGFloat(intensity * 0.2), z: 0, duration: 0.4)
+            ])
+            
+        case .scavenger:
+            // 🪰 Erratic display: Quick, opportunistic movements
+            return SCNAction.sequence([
+                SCNAction.rotateBy(x: CGFloat(intensity * 0.1), y: CGFloat(intensity * 0.2), z: CGFloat(intensity * 0.1), duration: 0.1),
+                SCNAction.scale(by: 1.05, duration: 0.1),
+                SCNAction.scale(by: 0.95, duration: 0.1),
+                SCNAction.rotateBy(x: CGFloat(-intensity * 0.1), y: CGFloat(-intensity * 0.2), z: CGFloat(-intensity * 0.1), duration: 0.1)
+            ])
+        }
+    }
+    
+    // 🤝 Social Animation - Friendly, open posture
+    private func addSocialAnimation(to bugNode: SCNNode, bug: Bug, intensity: Double) {
+        // Gentle swaying motion
+        let sway = SCNAction.sequence([
+            SCNAction.rotateBy(x: 0, y: CGFloat(intensity * 0.1), z: 0, duration: 1.5),
+            SCNAction.rotateBy(x: 0, y: CGFloat(-intensity * 0.2), z: 0, duration: 3.0),
+            SCNAction.rotateBy(x: 0, y: CGFloat(intensity * 0.1), z: 0, duration: 1.5)
+        ])
+        
+        let social = SCNAction.repeatForever(sway)
+        bugNode.runAction(social, forKey: "social")
+    }
+    
+    // 😤 Aggression Animation - Threatening posture
+    private func addAggressionAnimation(to bugNode: SCNNode, bug: Bug, intensity: Double) {
+        // Puffing up and angular movements
+        let puffUp = SCNAction.scale(by: 1.0 + intensity * 0.1, duration: 0.3)
+        let deflate = SCNAction.scale(by: 1.0 - intensity * 0.05, duration: 0.2)
+        
+        let threat = SCNAction.sequence([
+            puffUp,
+            SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * 0.2), duration: 0.1),
+            SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(-intensity * 0.4), duration: 0.2),
+            SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(intensity * 0.2), duration: 0.1),
+            deflate
+        ])
+        
+        let aggression = SCNAction.repeatForever(threat)
+        bugNode.runAction(aggression, forKey: "aggression")
+    }
+    
+    // 🔍 Exploration Animation - Curious, searching movements
+    private func addExplorationAnimation(to bugNode: SCNNode, bug: Bug, intensity: Double) {
+        // Head-turning motion simulating looking around
+        let lookAround = SCNAction.sequence([
+            SCNAction.rotateBy(x: 0, y: CGFloat(intensity * 0.3), z: 0, duration: 0.8),
+            SCNAction.wait(duration: 0.2),
+            SCNAction.rotateBy(x: 0, y: CGFloat(-intensity * 0.6), z: 0, duration: 1.6),
+            SCNAction.wait(duration: 0.2),
+            SCNAction.rotateBy(x: 0, y: CGFloat(intensity * 0.3), z: 0, duration: 0.8),
+            SCNAction.wait(duration: 0.4)
+        ])
+        
+        let exploration = SCNAction.repeatForever(lookAround)
+        bugNode.runAction(exploration, forKey: "exploration")
+    }
+    
+    // 🕰️ Age-Related Animations
+    private func addAgeRelatedAnimations(to bugNode: SCNNode, bug: Bug) {
+        let ageRatio = Double(bug.age) / Double(Bug.maxAge)
+        
+        if ageRatio > 0.7 {
+            // Old bugs move more slowly and stiffly
+            let tremor = SCNAction.sequence([
+                SCNAction.rotateBy(x: CGFloat(ageRatio * 0.02), y: 0, z: 0, duration: 0.2),
+                SCNAction.rotateBy(x: CGFloat(-ageRatio * 0.04), y: 0, z: 0, duration: 0.4),
+                SCNAction.rotateBy(x: CGFloat(ageRatio * 0.02), y: 0, z: 0, duration: 0.2)
+            ])
+            
+            let oldAge = SCNAction.repeatForever(tremor)
+            bugNode.runAction(oldAge, forKey: "aging")
+        }
+    }
+    
+    // ✨ Wing Animation Enhancement for Behaviors
+    private func enhanceWingAnimationForBehavior(bugNode: SCNNode, behavior: String, multiplier: Double) {
+        // Find wing nodes and modify their animation speed
+        if let leftWing = bugNode.childNode(withName: "LeftWing", recursively: true),
+           let rightWing = bugNode.childNode(withName: "RightWing", recursively: true) {
+            
+            // Remove existing animation
+            leftWing.removeAllActions()
+            rightWing.removeAllActions()
+            
+            // Add enhanced animation based on behavior
+            // This would need access to the original wing animation - simplified for now
+            let enhancedFlap = SCNAction.sequence([
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(0.3 * multiplier), duration: 0.1 / multiplier),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(-0.6 * multiplier), duration: 0.2 / multiplier),
+                SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(0.3 * multiplier), duration: 0.1 / multiplier)
+            ])
+            
+            let repeatEnhanced = SCNAction.repeatForever(enhancedFlap)
+            leftWing.runAction(repeatEnhanced)
+            rightWing.runAction(repeatEnhanced)
+        }
     }
     
     private func addFins(to bugNode: SCNNode, bug: Bug) {
@@ -3644,6 +4579,253 @@ struct Arena3DView: NSViewRepresentable {
         }
     }
     
+    // 🌟 PHASE 3: ADVANCED HEALTH & AGE VISUAL INDICATORS
+    
+    private func addAdvancedHealthIndicators(to bugNode: SCNNode, bug: Bug) {
+        // Multi-layered health visualization system
+        addEnergyBar(to: bugNode, bug: bug)
+        addAgeIndicator(to: bugNode, bug: bug)
+        addHealthEffects(to: bugNode, bug: bug)
+        addSpeciesStatusIndicator(to: bugNode, bug: bug)
+    }
+    
+    // ⚡ Enhanced Energy Bar with Health Context
+    private func addEnergyBar(to bugNode: SCNNode, bug: Bug) {
+        let energyRatio = bug.energy / Bug.maxEnergy
+        let ageRatio = Double(bug.age) / Double(Bug.maxAge)
+        
+        // Energy bar size affected by age
+        let barHeight = CGFloat(energyRatio * 5.0 * (1.0 - ageRatio * 0.3)) // Older bugs have smaller max energy display
+        let energyBar = SCNBox(width: 0.12, height: barHeight, length: 0.12, chamferRadius: 0.03)
+        
+        // Dynamic energy color with age consideration
+        let energyColor = getHealthColor(energy: energyRatio, age: ageRatio)
+        
+        energyBar.firstMaterial?.diffuse.contents = energyColor
+        energyBar.firstMaterial?.emission.contents = energyColor
+        
+        // Add pulse effect for very low or high energy
+        let energyNode = SCNNode(geometry: energyBar)
+        energyNode.position = SCNVector3(0, 3.5, 0)
+        energyNode.name = "EnergyBar"
+        
+        // Pulse when critically low energy
+        if energyRatio < 0.2 {
+            let pulse = SCNAction.sequence([
+                SCNAction.scale(by: 1.3, duration: 0.3),
+                SCNAction.scale(by: 0.7, duration: 0.3)
+            ])
+            let warning = SCNAction.repeatForever(pulse)
+            energyNode.runAction(warning, forKey: "lowEnergyWarning")
+        }
+        
+        bugNode.addChildNode(energyNode)
+    }
+    
+    // 🕰️ Age Indicator Ring
+    private func addAgeIndicator(to bugNode: SCNNode, bug: Bug) {
+        let ageRatio = Double(bug.age) / Double(Bug.maxAge)
+        
+        // Age ring that fills up as bug gets older
+        let ageRing = SCNTorus(ringRadius: 0.8, pipeRadius: 0.05)
+        
+        // Age color progression: young (blue) -> mature (green) -> old (orange) -> ancient (red)
+        let ageColor = getAgeColor(ageRatio: ageRatio)
+        
+        ageRing.firstMaterial?.diffuse.contents = ageColor
+        ageRing.firstMaterial?.transparency = 0.3 + ageRatio * 0.4 // More visible as they age
+        
+        let ageNode = SCNNode(geometry: ageRing)
+        ageNode.position = SCNVector3(0, 0.2, 0)
+        ageNode.name = "AgeRing"
+        
+        // Gentle rotation to show life activity
+        let rotation = SCNAction.rotateBy(x: 0, y: CGFloat(Double.pi * 2), z: 0, duration: 10.0 - ageRatio * 5.0) // Slower rotation as they age
+        let ageAnimation = SCNAction.repeatForever(rotation)
+        ageNode.runAction(ageAnimation, forKey: "ageRotation")
+        
+        bugNode.addChildNode(ageNode)
+    }
+    
+    // ❤️ Health Visual Effects
+    private func addHealthEffects(to bugNode: SCNNode, bug: Bug) {
+        let energyRatio = bug.energy / Bug.maxEnergy
+        let ageRatio = Double(bug.age) / Double(Bug.maxAge)
+        
+        // Health particle effects
+        if energyRatio > 0.8 && ageRatio < 0.3 {
+            // Vibrant health sparkles for young, healthy bugs
+            addHealthSparkles(to: bugNode, bug: bug)
+        } else if energyRatio < 0.3 || ageRatio > 0.8 {
+            // Decay effects for sick or very old bugs
+            addDecayEffects(to: bugNode, bug: bug)
+        }
+        
+        // Generation indicator for evolved bugs
+        if bug.generation > 0 {
+            addGenerationIndicator(to: bugNode, generation: bug.generation)
+        }
+    }
+    
+    // ✨ Health Sparkles for Vibrant Bugs
+    private func addHealthSparkles(to bugNode: SCNNode, bug: Bug) {
+        let sparkleSystem = SCNParticleSystem()
+        sparkleSystem.particleImage = createSparkleParticleImage()
+        sparkleSystem.birthRate = 5.0
+        sparkleSystem.particleLifeSpan = 1.0
+        sparkleSystem.particleSize = 0.3
+        sparkleSystem.particleSizeVariation = 0.1
+        sparkleSystem.particleVelocity = 2.0
+        sparkleSystem.particleVelocityVariation = 1.0
+        // sparkleSystem.emissionShape = SCNSphere(radius: 0.5) // Not available in SceneKit
+        
+        // Genetic color sparkles
+        let sparkleColor = createGeneticExpressedColor(bug: bug, baseHue: 0.6, speciesModifier: 0.3)
+        sparkleSystem.particleColor = sparkleColor
+        
+        let sparkleNode = SCNNode()
+        sparkleNode.addParticleSystem(sparkleSystem)
+        sparkleNode.position = SCNVector3(0, 1, 0)
+        sparkleNode.name = "HealthSparkles"
+        bugNode.addChildNode(sparkleNode)
+    }
+    
+    // 💀 Decay Effects for Sick/Old Bugs
+    private func addDecayEffects(to bugNode: SCNNode, bug: Bug) {
+        let decaySystem = SCNParticleSystem()
+        decaySystem.particleImage = createDecayParticleImage()
+        decaySystem.birthRate = 2.0
+        decaySystem.particleLifeSpan = 2.0
+        decaySystem.particleSize = 0.2
+        decaySystem.particleVelocity = 0.5
+        decaySystem.particleVelocityVariation = 0.3
+        decaySystem.particleColor = NSColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 0.6)
+        
+        let decayNode = SCNNode()
+        decayNode.addParticleSystem(decaySystem)
+        decayNode.position = SCNVector3(0, 0.5, 0)
+        decayNode.name = "DecayEffects"
+        bugNode.addChildNode(decayNode)
+    }
+    
+    // 🏆 Generation Indicator Badge
+    private func addGenerationIndicator(to bugNode: SCNNode, generation: Int) {
+        let badge = SCNSphere(radius: 0.15)
+        
+        // Color badge based on generation advancement
+        let generationHue = min(1.0, Double(generation) * 0.1) // Evolves through spectrum
+        let badgeColor = NSColor(hue: CGFloat(generationHue), saturation: 0.8, brightness: 0.9, alpha: 0.8)
+        
+        badge.firstMaterial?.diffuse.contents = badgeColor
+        badge.firstMaterial?.emission.contents = badgeColor
+        
+        let badgeNode = SCNNode(geometry: badge)
+        badgeNode.position = SCNVector3(1.2, 2, 0)
+        badgeNode.name = "GenerationBadge"
+        
+        // Generation text would be complex - for now show evolution through color and size
+        let generationSize = 1.0 + min(Double(generation) * 0.1, 0.5)
+        badgeNode.scale = SCNVector3(generationSize, generationSize, generationSize)
+        
+        bugNode.addChildNode(badgeNode)
+    }
+    
+    // 🏷️ Species Status Indicator
+    private func addSpeciesStatusIndicator(to bugNode: SCNNode, bug: Bug) {
+        // Small indicator showing species and key genetic traits
+        let statusRing = SCNTorus(ringRadius: 0.3, pipeRadius: 0.02)
+        
+        // Color based on species with genetic modification
+        let speciesColor = createGeneticExpressedColor(bug: bug, baseHue: 0.0, speciesModifier: 1.0)
+        statusRing.firstMaterial?.diffuse.contents = speciesColor
+        statusRing.firstMaterial?.metalness.contents = NSNumber(value: bug.dna.camouflage)
+        
+        let statusNode = SCNNode(geometry: statusRing)
+        statusNode.position = SCNVector3(0, -0.3, 0)
+        statusNode.name = "SpeciesStatus"
+        
+        // Different rotation speeds for different species
+        let rotationSpeed = bug.dna.speed * 2.0
+        let statusRotation = SCNAction.rotateBy(x: 0, y: CGFloat(Double.pi * 2), z: 0, duration: 5.0 / rotationSpeed)
+        let statusAnimation = SCNAction.repeatForever(statusRotation)
+        statusNode.runAction(statusAnimation, forKey: "speciesRotation")
+        
+        bugNode.addChildNode(statusNode)
+    }
+    
+    // 🎨 Color Helper Functions
+    private func getHealthColor(energy: Double, age: Double) -> NSColor {
+        // Health color affected by both energy and age
+        let healthScore = energy * (1.0 - age * 0.3) // Age reduces perceived health
+        
+        if healthScore > 0.7 {
+            return NSColor.green
+        } else if healthScore > 0.4 {
+            return NSColor.yellow
+        } else if healthScore > 0.2 {
+            return NSColor.orange
+        } else {
+            return NSColor.red
+        }
+    }
+    
+    private func getAgeColor(ageRatio: Double) -> NSColor {
+        if ageRatio < 0.25 {
+            // Young: Vibrant blue
+            return NSColor(hue: 0.6, saturation: 0.8, brightness: 1.0, alpha: 1.0)
+        } else if ageRatio < 0.5 {
+            // Mature: Fresh green
+            return NSColor(hue: 0.3, saturation: 0.8, brightness: 0.9, alpha: 1.0)
+        } else if ageRatio < 0.75 {
+            // Middle-aged: Warm orange
+            return NSColor(hue: 0.1, saturation: 0.8, brightness: 0.8, alpha: 1.0)
+        } else {
+            // Old: Deep red
+            return NSColor(hue: 0.0, saturation: 0.8, brightness: 0.7, alpha: 1.0)
+        }
+    }
+    
+    // 🎨 Particle Image Generators
+    private func createSparkleParticleImage() -> NSImage {
+        let size: CGFloat = 8
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor.white.setFill()
+        let sparkle = NSBezierPath()
+        
+        // Create star shape
+        sparkle.move(to: NSPoint(x: size/2, y: 0))
+        sparkle.line(to: NSPoint(x: size*0.6, y: size*0.4))
+        sparkle.line(to: NSPoint(x: size, y: size*0.4))
+        sparkle.line(to: NSPoint(x: size*0.7, y: size*0.6))
+        sparkle.line(to: NSPoint(x: size*0.8, y: size))
+        sparkle.line(to: NSPoint(x: size/2, y: size*0.8))
+        sparkle.line(to: NSPoint(x: size*0.2, y: size))
+        sparkle.line(to: NSPoint(x: size*0.3, y: size*0.6))
+        sparkle.line(to: NSPoint(x: 0, y: size*0.4))
+        sparkle.line(to: NSPoint(x: size*0.4, y: size*0.4))
+        sparkle.close()
+        sparkle.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createDecayParticleImage() -> NSImage {
+        let size: CGFloat = 6
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.4, green: 0.3, blue: 0.2, alpha: 0.8).setFill()
+        let decay = NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: size-2, height: size-2))
+        decay.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    // Legacy energy indicator for compatibility
     private func addEnergyIndicator(to bugNode: SCNNode, energy: Double) {
         let energyBar = SCNBox(width: 0.1, height: CGFloat(energy / Bug.maxEnergy * 5.0), length: 0.1, chamferRadius: 0.02)
         
@@ -3918,31 +5100,685 @@ struct Arena3DView: NSViewRepresentable {
         scene.rootNode.addChildNode(auraNode)
     }
     
-    // MARK: - Particle Image Generators
+    // MARK: - 🌍 PHASE 2: Enhanced Biome-Specific Atmospheric Effects
     
-    private func createSparkleParticleImage() -> NSImage {
-        let size = 8
-        let image = NSImage(size: NSSize(width: size, height: size))
-        image.lockFocus()
+    private func addBiomeSpecificAtmosphericEffects(scene: SCNScene) {
+        // Create biome-specific particle effects based on dominant biome
+        let dominantBiome = getDominantBiome()
         
-        // Create star shape
-        NSColor.white.setFill()
-        let center = CGFloat(size) / 2
-        let star = NSBezierPath()
-        star.move(to: NSPoint(x: center, y: CGFloat(size)))
-        star.line(to: NSPoint(x: center - 1, y: center))
-        star.line(to: NSPoint(x: 0, y: center))
-        star.line(to: NSPoint(x: center - 1, y: center - 1))
-        star.line(to: NSPoint(x: center, y: 0))
-        star.line(to: NSPoint(x: center + 1, y: center - 1))
-        star.line(to: NSPoint(x: CGFloat(size), y: center))
-        star.line(to: NSPoint(x: center + 1, y: center))
-        star.close()
-        star.fill()
-        
-        image.unlockFocus()
-        return image
+        switch dominantBiome {
+        case .tundra:
+            addTundraSnowEffects(scene: scene)
+            addTundraAuroraEffects(scene: scene)
+        case .borealForest:
+            addBorealMistEffects(scene: scene)
+            addBorealPineMotes(scene: scene)
+        case .temperateForest:
+            addTemperateForestLightRays(scene: scene)
+            addTemperateForestLeafFall(scene: scene)
+        case .temperateGrassland:
+            addGrasslandWindWaves(scene: scene)
+            addGrasslandPollenEffects(scene: scene)
+        case .desert:
+            addDesertHeatShimmer(scene: scene)
+            addDesertSandstorm(scene: scene)
+        case .savanna:
+            addSavannaGrassSeeds(scene: scene)
+            addSavannaDustDevils(scene: scene)
+        case .tropicalRainforest:
+            addRainforestMist(scene: scene)
+            addRainforestDroplets(scene: scene)
+        case .wetlands:
+            addWetlandsFireflies(scene: scene)
+            addWetlandsBubbles(scene: scene)
+        case .alpine:
+            addAlpineSnowfall(scene: scene)
+            addAlpineWindGusts(scene: scene)
+        case .coastal:
+            addCoastalSeaSpray(scene: scene)
+            addCoastalSeagullFeathers(scene: scene)
+        }
     }
+    
+    // 🏔️ Tundra Effects - "Crystalline Majesty"
+    private func addTundraSnowEffects(scene: SCNScene) {
+        let snowSystem = SCNParticleSystem()
+        snowSystem.particleImage = createSnowflakeParticleImage()
+        snowSystem.birthRate = 40
+        snowSystem.particleLifeSpan = 15.0
+        snowSystem.particleSize = 3.0
+        snowSystem.particleSizeVariation = 1.0
+        snowSystem.particleColor = NSColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 0.8)
+        snowSystem.particleColorVariation = SCNVector4(0.05, 0.05, 0.0, 0.1)
+        snowSystem.particleVelocity = 1.5
+        snowSystem.particleVelocityVariation = 0.8
+        snowSystem.acceleration = SCNVector3(0, -2.0, 0)  // Gentle fall
+        
+        let snowNode = SCNNode()
+        snowNode.addParticleSystem(snowSystem)
+        snowNode.position = SCNVector3(0, 150, 0)
+        snowNode.name = "TundraSnow"
+        scene.rootNode.addChildNode(snowNode)
+    }
+    
+    private func addTundraAuroraEffects(scene: SCNScene) {
+        let auroraSystem = SCNParticleSystem()
+        auroraSystem.particleImage = createAuroraParticleImage()
+        auroraSystem.birthRate = 10
+        auroraSystem.particleLifeSpan = 25.0
+        auroraSystem.particleSize = 8.0
+        auroraSystem.particleSizeVariation = 3.0
+        auroraSystem.particleColor = NSColor(red: 0.2, green: 0.8, blue: 0.6, alpha: 0.4)
+        auroraSystem.particleColorVariation = SCNVector4(0.2, 0.3, 0.4, 0.2)
+        auroraSystem.particleVelocity = 0.3
+        
+        let auroraNode = SCNNode()
+        auroraNode.addParticleSystem(auroraSystem)
+        auroraNode.position = SCNVector3(0, 180, 0)
+        auroraNode.name = "TundraAurora"
+        scene.rootNode.addChildNode(auroraNode)
+    }
+    
+    // 🌲 Boreal Forest Effects - "Misty Cathedral"
+    private func addBorealMistEffects(scene: SCNScene) {
+        let mistSystem = SCNParticleSystem()
+        mistSystem.particleImage = createMistParticleImage()
+        mistSystem.birthRate = 25
+        mistSystem.particleLifeSpan = 20.0
+        mistSystem.particleSize = 6.0
+        mistSystem.particleSizeVariation = 2.0
+        mistSystem.particleColor = NSColor(red: 0.9, green: 0.95, blue: 0.98, alpha: 0.3)
+        mistSystem.particleVelocity = 0.5
+        mistSystem.particleVelocityVariation = 0.3
+        
+        let mistNode = SCNNode()
+        mistNode.addParticleSystem(mistSystem)
+        mistNode.position = SCNVector3(0, 40, 0)
+        mistNode.name = "BorealMist"
+        scene.rootNode.addChildNode(mistNode)
+    }
+    
+    private func addBorealPineMotes(scene: SCNScene) {
+        let moteSystem = SCNParticleSystem()
+        moteSystem.particleImage = createPineMoteParticleImage()
+        moteSystem.birthRate = 15
+        moteSystem.particleLifeSpan = 12.0
+        moteSystem.particleSize = 2.5
+        moteSystem.particleColor = NSColor(red: 0.4, green: 0.6, blue: 0.3, alpha: 0.6)
+        moteSystem.particleVelocity = 1.0
+        
+        let moteNode = SCNNode()
+        moteNode.addParticleSystem(moteSystem)
+        moteNode.position = SCNVector3(0, 50, 0)
+        moteNode.name = "BorealPineMotes"
+        scene.rootNode.addChildNode(moteNode)
+    }
+    
+    // 🌳 Temperate Forest Effects - "Living Symphony"
+    private func addTemperateForestLightRays(scene: SCNScene) {
+        let raySystem = SCNParticleSystem()
+        raySystem.particleImage = createLightRayParticleImage()
+        raySystem.birthRate = 8
+        raySystem.particleLifeSpan = 30.0
+        raySystem.particleSize = 12.0
+        raySystem.particleSizeVariation = 4.0
+        raySystem.particleColor = NSColor(red: 1.0, green: 0.95, blue: 0.7, alpha: 0.2)
+        raySystem.particleVelocity = 0.1
+        
+        let rayNode = SCNNode()
+        rayNode.addParticleSystem(raySystem)
+        rayNode.position = SCNVector3(0, 80, 0)
+        rayNode.name = "TemperateForestLightRays"
+        scene.rootNode.addChildNode(rayNode)
+    }
+    
+    private func addTemperateForestLeafFall(scene: SCNScene) {
+        let leafSystem = SCNParticleSystem()
+        leafSystem.particleImage = createLeafParticleImage()
+        leafSystem.birthRate = 20
+        leafSystem.particleLifeSpan = 18.0
+        leafSystem.particleSize = 4.0
+        leafSystem.particleSizeVariation = 1.5
+        leafSystem.particleColor = NSColor(red: 0.6, green: 0.8, blue: 0.3, alpha: 0.7)
+        leafSystem.particleColorVariation = SCNVector4(0.3, 0.2, 0.2, 0.1)
+        leafSystem.particleVelocity = 1.2
+        leafSystem.acceleration = SCNVector3(0, -1.5, 0)
+        
+        let leafNode = SCNNode()
+        leafNode.addParticleSystem(leafSystem)
+        leafNode.position = SCNVector3(0, 70, 0)
+        leafNode.name = "TemperateForestLeaves"
+        scene.rootNode.addChildNode(leafNode)
+    }
+    
+    // 🌾 Grassland Effects - "Windswept Freedom"
+    private func addGrasslandWindWaves(scene: SCNScene) {
+        let waveSystem = SCNParticleSystem()
+        waveSystem.particleImage = createGrassWaveParticleImage()
+        waveSystem.birthRate = 35
+        waveSystem.particleLifeSpan = 8.0
+        waveSystem.particleSize = 5.0
+        waveSystem.particleColor = NSColor(red: 0.7, green: 0.9, blue: 0.4, alpha: 0.4)
+        waveSystem.particleVelocity = 4.0
+        waveSystem.particleVelocityVariation = 2.0
+        
+        let waveNode = SCNNode()
+        waveNode.addParticleSystem(waveSystem)
+        waveNode.position = SCNVector3(0, 25, 0)
+        waveNode.name = "GrasslandWindWaves"
+        scene.rootNode.addChildNode(waveNode)
+    }
+    
+    private func addGrasslandPollenEffects(scene: SCNScene) {
+        let pollenSystem = SCNParticleSystem()
+        pollenSystem.particleImage = createPollenParticleImage()
+        pollenSystem.birthRate = 50
+        pollenSystem.particleLifeSpan = 10.0
+        pollenSystem.particleSize = 1.5
+        pollenSystem.particleColor = NSColor(red: 1.0, green: 0.9, blue: 0.3, alpha: 0.5)
+        pollenSystem.particleVelocity = 2.5
+        pollenSystem.particleVelocityVariation = 1.5
+        
+        let pollenNode = SCNNode()
+        pollenNode.addParticleSystem(pollenSystem)
+        pollenNode.position = SCNVector3(0, 35, 0)
+        pollenNode.name = "GrasslandPollen"
+        scene.rootNode.addChildNode(pollenNode)
+    }
+    
+    // 🏜️ Desert Effects - "Timeless Endurance"
+    private func addDesertHeatShimmer(scene: SCNScene) {
+        let shimmerSystem = SCNParticleSystem()
+        shimmerSystem.particleImage = createHeatShimmerParticleImage()
+        shimmerSystem.birthRate = 60
+        shimmerSystem.particleLifeSpan = 4.0
+        shimmerSystem.particleSize = 8.0
+        shimmerSystem.particleSizeVariation = 3.0
+        shimmerSystem.particleColor = NSColor(red: 1.0, green: 0.8, blue: 0.6, alpha: 0.2)
+        shimmerSystem.particleVelocity = 3.0
+        shimmerSystem.acceleration = SCNVector3(0, 5.0, 0)  // Rising heat
+        
+        let shimmerNode = SCNNode()
+        shimmerNode.addParticleSystem(shimmerSystem)
+        shimmerNode.position = SCNVector3(0, 15, 0)
+        shimmerNode.name = "DesertHeatShimmer"
+        scene.rootNode.addChildNode(shimmerNode)
+    }
+    
+    private func addDesertSandstorm(scene: SCNScene) {
+        let sandSystem = SCNParticleSystem()
+        sandSystem.particleImage = createSandParticleImage()
+        sandSystem.birthRate = 30
+        sandSystem.particleLifeSpan = 15.0
+        sandSystem.particleSize = 3.0
+        sandSystem.particleColor = NSColor(red: 0.8, green: 0.6, blue: 0.4, alpha: 0.6)
+        sandSystem.particleVelocity = 8.0
+        sandSystem.particleVelocityVariation = 4.0
+        
+        let sandNode = SCNNode()
+        sandNode.addParticleSystem(sandSystem)
+        sandNode.position = SCNVector3(0, 30, 0)
+        sandNode.name = "DesertSandstorm"
+        scene.rootNode.addChildNode(sandNode)
+    }
+    
+    // 🦒 Savanna Effects - "Epic Horizons"
+    private func addSavannaGrassSeeds(scene: SCNScene) {
+        let seedSystem = SCNParticleSystem()
+        seedSystem.particleImage = createGrassSeedParticleImage()
+        seedSystem.birthRate = 25
+        seedSystem.particleLifeSpan = 12.0
+        seedSystem.particleSize = 2.0
+        seedSystem.particleColor = NSColor(red: 0.9, green: 0.7, blue: 0.4, alpha: 0.7)
+        seedSystem.particleVelocity = 3.0
+        seedSystem.particleVelocityVariation = 2.0
+        
+        let seedNode = SCNNode()
+        seedNode.addParticleSystem(seedSystem)
+        seedNode.position = SCNVector3(0, 30, 0)
+        seedNode.name = "SavannaGrassSeeds"
+        scene.rootNode.addChildNode(seedNode)
+    }
+    
+    private func addSavannaDustDevils(scene: SCNScene) {
+        let dustSystem = SCNParticleSystem()
+        dustSystem.particleImage = createDustDevilParticleImage()
+        dustSystem.birthRate = 10
+        dustSystem.particleLifeSpan = 20.0
+        dustSystem.particleSize = 10.0
+        dustSystem.particleSizeVariation = 5.0
+        dustSystem.particleColor = NSColor(red: 0.7, green: 0.5, blue: 0.3, alpha: 0.4)
+        dustSystem.particleVelocity = 5.0
+        dustSystem.particleVelocityVariation = 3.0
+        
+        let dustNode = SCNNode()
+        dustNode.addParticleSystem(dustSystem)
+        dustNode.position = SCNVector3(0, 25, 0)
+        dustNode.name = "SavannaDustDevils"
+        scene.rootNode.addChildNode(dustNode)
+    }
+    
+    // 🌴 Tropical Rainforest Effects - "Emerald Cathedral"
+    private func addRainforestMist(scene: SCNScene) {
+        let mistSystem = SCNParticleSystem()
+        mistSystem.particleImage = createTropicalMistParticleImage()
+        mistSystem.birthRate = 40
+        mistSystem.particleLifeSpan = 25.0
+        mistSystem.particleSize = 7.0
+        mistSystem.particleSizeVariation = 2.0
+        mistSystem.particleColor = NSColor(red: 0.8, green: 0.95, blue: 0.85, alpha: 0.4)
+        mistSystem.particleVelocity = 0.8
+        mistSystem.particleVelocityVariation = 0.5
+        
+        let mistNode = SCNNode()
+        mistNode.addParticleSystem(mistSystem)
+        mistNode.position = SCNVector3(0, 50, 0)
+        mistNode.name = "RainforestMist"
+        scene.rootNode.addChildNode(mistNode)
+    }
+    
+    private func addRainforestDroplets(scene: SCNScene) {
+        let dropletSystem = SCNParticleSystem()
+        dropletSystem.particleImage = createWaterDropletParticleImage()
+        dropletSystem.birthRate = 35
+        dropletSystem.particleLifeSpan = 8.0
+        dropletSystem.particleSize = 2.5
+        dropletSystem.particleColor = NSColor(red: 0.7, green: 0.9, blue: 0.95, alpha: 0.6)
+        dropletSystem.particleVelocity = 2.0
+        dropletSystem.acceleration = SCNVector3(0, -3.0, 0)
+        
+        let dropletNode = SCNNode()
+        dropletNode.addParticleSystem(dropletSystem)
+        dropletNode.position = SCNVector3(0, 80, 0)
+        dropletNode.name = "RainforestDroplets"
+        scene.rootNode.addChildNode(dropletNode)
+    }
+    
+    // 🐸 Wetlands Effects - "Mirror of Life"
+    private func addWetlandsFireflies(scene: SCNScene) {
+        let fireflySystem = SCNParticleSystem()
+        fireflySystem.particleImage = createFireflyParticleImage()
+        fireflySystem.birthRate = 15
+        fireflySystem.particleLifeSpan = 30.0
+        fireflySystem.particleSize = 3.0
+        fireflySystem.particleColor = NSColor(red: 1.0, green: 1.0, blue: 0.6, alpha: 0.8)
+        fireflySystem.particleVelocity = 1.5
+        fireflySystem.particleVelocityVariation = 1.0
+        
+        let fireflyNode = SCNNode()
+        fireflyNode.addParticleSystem(fireflySystem)
+        fireflyNode.position = SCNVector3(0, 35, 0)
+        fireflyNode.name = "WetlandsFireflies"
+        scene.rootNode.addChildNode(fireflyNode)
+        
+        // Add gentle pulsing animation for fireflies
+        let pulseAnimation = SCNAction.sequence([
+            SCNAction.fadeOpacity(to: 0.3, duration: 2.0),
+            SCNAction.fadeOpacity(to: 0.8, duration: 2.0)
+        ])
+        fireflyNode.runAction(SCNAction.repeatForever(pulseAnimation))
+    }
+    
+    private func addWetlandsBubbles(scene: SCNScene) {
+        let bubbleSystem = SCNParticleSystem()
+        bubbleSystem.particleImage = createBubbleParticleImage()
+        bubbleSystem.birthRate = 20
+        bubbleSystem.particleLifeSpan = 15.0
+        bubbleSystem.particleSize = 4.0
+        bubbleSystem.particleSizeVariation = 2.0
+        bubbleSystem.particleColor = NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.3)
+        bubbleSystem.particleVelocity = 1.0
+        bubbleSystem.acceleration = SCNVector3(0, 2.0, 0)  // Rising bubbles
+        
+        let bubbleNode = SCNNode()
+        bubbleNode.addParticleSystem(bubbleSystem)
+        bubbleNode.position = SCNVector3(0, 10, 0)
+        bubbleNode.name = "WetlandsBubbles"
+        scene.rootNode.addChildNode(bubbleNode)
+    }
+    
+    // ⛰️ Alpine Effects - "Majestic Heights"
+    private func addAlpineSnowfall(scene: SCNScene) {
+        let snowSystem = SCNParticleSystem()
+        snowSystem.particleImage = createAlpineSnowParticleImage()
+        snowSystem.birthRate = 35
+        snowSystem.particleLifeSpan = 20.0
+        snowSystem.particleSize = 3.5
+        snowSystem.particleSizeVariation = 1.0
+        snowSystem.particleColor = NSColor(red: 0.98, green: 0.98, blue: 1.0, alpha: 0.9)
+        snowSystem.particleVelocity = 2.0
+        snowSystem.acceleration = SCNVector3(0, -2.5, 0)
+        
+        let snowNode = SCNNode()
+        snowNode.addParticleSystem(snowSystem)
+        snowNode.position = SCNVector3(0, 120, 0)
+        snowNode.name = "AlpineSnowfall"
+        scene.rootNode.addChildNode(snowNode)
+    }
+    
+    private func addAlpineWindGusts(scene: SCNScene) {
+        let gustSystem = SCNParticleSystem()
+        gustSystem.particleImage = createWindGustParticleImage()
+        gustSystem.birthRate = 25
+        gustSystem.particleLifeSpan = 8.0
+        gustSystem.particleSize = 6.0
+        gustSystem.particleColor = NSColor(red: 0.9, green: 0.9, blue: 1.0, alpha: 0.3)
+        gustSystem.particleVelocity = 10.0
+        gustSystem.particleVelocityVariation = 5.0
+        
+        let gustNode = SCNNode()
+        gustNode.addParticleSystem(gustSystem)
+        gustNode.position = SCNVector3(0, 90, 0)
+        gustNode.name = "AlpineWindGusts"
+        scene.rootNode.addChildNode(gustNode)
+    }
+    
+    // 🏖️ Coastal Effects - "Where Worlds Meet"
+    private func addCoastalSeaSpray(scene: SCNScene) {
+        let spraySystem = SCNParticleSystem()
+        spraySystem.particleImage = createSeaSprayParticleImage()
+        spraySystem.birthRate = 30
+        spraySystem.particleLifeSpan = 12.0
+        spraySystem.particleSize = 4.0
+        spraySystem.particleSizeVariation = 2.0
+        spraySystem.particleColor = NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 0.5)
+        spraySystem.particleVelocity = 3.0
+        spraySystem.particleVelocityVariation = 2.0
+        spraySystem.acceleration = SCNVector3(0, -1.0, 0)
+        
+        let sprayNode = SCNNode()
+        sprayNode.addParticleSystem(spraySystem)
+        sprayNode.position = SCNVector3(0, 25, 0)
+        sprayNode.name = "CoastalSeaSpray"
+        scene.rootNode.addChildNode(sprayNode)
+    }
+    
+    private func addCoastalSeagullFeathers(scene: SCNScene) {
+        let featherSystem = SCNParticleSystem()
+        featherSystem.particleImage = createFeatherParticleImage()
+        featherSystem.birthRate = 8
+        featherSystem.particleLifeSpan = 25.0
+        featherSystem.particleSize = 5.0
+        featherSystem.particleSizeVariation = 2.0
+        featherSystem.particleColor = NSColor(red: 0.95, green: 0.95, blue: 0.9, alpha: 0.7)
+        featherSystem.particleVelocity = 2.0
+        featherSystem.acceleration = SCNVector3(0, -0.8, 0)
+        
+        let featherNode = SCNNode()
+        featherNode.addParticleSystem(featherSystem)
+        featherNode.position = SCNVector3(0, 100, 0)
+        featherNode.name = "CoastalSeagullFeathers"
+        scene.rootNode.addChildNode(featherNode)
+    }
+    
+    // MARK: - 🌦️ PHASE 2: Weather-Specific Visual Effects
+    
+    private func addWeatherSpecificEffects(scene: SCNScene) {
+        // Get current weather from simulation engine
+        let currentWeather = simulationEngine.weatherManager.currentWeather
+        let weatherIntensity = simulationEngine.weatherManager.weatherIntensity
+        
+        // Remove any existing weather effects first
+        scene.rootNode.childNodes.filter { $0.name?.hasPrefix("Weather_") == true }.forEach { $0.removeFromParentNode() }
+        
+        switch currentWeather {
+        case .rain:
+            addRainEffects(scene: scene, intensity: weatherIntensity)
+        case .blizzard:
+            addBlizzardEffects(scene: scene, intensity: weatherIntensity)
+        case .storm:
+            addStormEffects(scene: scene, intensity: weatherIntensity)
+        case .fog:
+            addFogEffects(scene: scene, intensity: weatherIntensity)
+        case .drought:
+            addDroughtEffects(scene: scene, intensity: weatherIntensity)
+        case .clear:
+            addClearWeatherEffects(scene: scene)
+        }
+    }
+    
+    // 🌧️ Rain Effects
+    private func addRainEffects(scene: SCNScene, intensity: Double) {
+        let rainSystem = SCNParticleSystem()
+        rainSystem.particleImage = createRainDropParticleImage()
+        rainSystem.birthRate = CGFloat(100 * intensity)  // More intense = more rain
+        rainSystem.particleLifeSpan = 3.0
+        rainSystem.particleSize = 2.0
+        rainSystem.particleSizeVariation = 0.5
+        rainSystem.particleColor = NSColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 0.8)
+        rainSystem.particleVelocity = CGFloat(15.0 + (10.0 * intensity))
+        rainSystem.acceleration = SCNVector3(0, -20.0, 0)
+        // Note: emissionOcclusionSpeedFactor not available in SceneKit
+        rainSystem.particleAngleVariation = CGFloat(Double.pi / 6)
+        
+        let rainNode = SCNNode()
+        rainNode.addParticleSystem(rainSystem)
+        rainNode.position = SCNVector3(0, 200, 0)
+        rainNode.name = "Weather_Rain"
+        scene.rootNode.addChildNode(rainNode)
+        
+        // Add puddle effects on surface
+        addPuddleEffects(scene: scene, intensity: intensity)
+    }
+    
+    // ❄️ Blizzard Effects
+    private func addBlizzardEffects(scene: SCNScene, intensity: Double) {
+        let blizzardSystem = SCNParticleSystem()
+        blizzardSystem.particleImage = createBlizzardSnowParticleImage()
+        blizzardSystem.birthRate = CGFloat(80 * intensity)
+        blizzardSystem.particleLifeSpan = 8.0
+        blizzardSystem.particleSize = 4.0
+        blizzardSystem.particleSizeVariation = 2.0
+        blizzardSystem.particleColor = NSColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 0.9)
+        blizzardSystem.particleVelocity = CGFloat(20.0 * intensity)
+        blizzardSystem.particleVelocityVariation = CGFloat(10.0 * intensity)
+        blizzardSystem.acceleration = SCNVector3(-5.0, -8.0, 0)  // Horizontal wind
+        blizzardSystem.particleAngleVariation = CGFloat(Double.pi / 2)
+        
+        let blizzardNode = SCNNode()
+        blizzardNode.addParticleSystem(blizzardSystem)
+        blizzardNode.position = SCNVector3(0, 150, 0)
+        blizzardNode.name = "Weather_Blizzard"
+        scene.rootNode.addChildNode(blizzardNode)
+        
+        // Add wind gusts
+        addWindGustEffects(scene: scene, intensity: intensity)
+    }
+    
+    // ⛈️ Storm Effects
+    private func addStormEffects(scene: SCNScene, intensity: Double) {
+        // Heavy rain
+        addRainEffects(scene: scene, intensity: intensity)
+        
+        // Lightning effects
+        let lightningSystem = SCNParticleSystem()
+        lightningSystem.particleImage = createLightningParticleImage()
+        lightningSystem.birthRate = CGFloat(2 * intensity)
+        lightningSystem.particleLifeSpan = 0.3
+        lightningSystem.particleSize = 50.0
+        lightningSystem.particleSizeVariation = 20.0
+        lightningSystem.particleColor = NSColor(red: 1.0, green: 1.0, blue: 0.9, alpha: 0.9)
+        lightningSystem.particleVelocity = 0.0
+        
+        let lightningNode = SCNNode()
+        lightningNode.addParticleSystem(lightningSystem)
+        lightningNode.position = SCNVector3(0, 100, 0)
+        lightningNode.name = "Weather_Lightning"
+        scene.rootNode.addChildNode(lightningNode)
+        
+        // Dark storm clouds effect (enhanced fog)
+        addStormCloudEffects(scene: scene, intensity: intensity)
+    }
+    
+    // 🌫️ Fog Effects
+    private func addFogEffects(scene: SCNScene, intensity: Double) {
+        // Enhanced scene fog
+        scene.fogStartDistance = CGFloat(50 - (30 * intensity))  // More intense = closer fog
+        scene.fogEndDistance = CGFloat(200 - (100 * intensity))
+        scene.fogColor = NSColor(red: 0.9, green: 0.9, blue: 0.95, alpha: 1.0)
+        scene.fogDensityExponent = 2.0 + intensity
+        
+        // Additional fog particles
+        let fogSystem = SCNParticleSystem()
+        fogSystem.particleImage = createFogParticleImage()
+        fogSystem.birthRate = CGFloat(60 * intensity)
+        fogSystem.particleLifeSpan = 30.0
+        fogSystem.particleSize = 15.0
+        fogSystem.particleSizeVariation = 8.0
+        fogSystem.particleColor = NSColor(red: 0.9, green: 0.9, blue: 0.95, alpha: 0.3)
+        fogSystem.particleVelocity = 0.5
+        fogSystem.particleVelocityVariation = 0.3
+        
+        let fogNode = SCNNode()
+        fogNode.addParticleSystem(fogSystem)
+        fogNode.position = SCNVector3(0, 40, 0)
+        fogNode.name = "Weather_Fog"
+        scene.rootNode.addChildNode(fogNode)
+    }
+    
+    // 🏜️ Drought Effects
+    private func addDroughtEffects(scene: SCNScene, intensity: Double) {
+        // Heat shimmer
+        let heatSystem = SCNParticleSystem()
+        heatSystem.particleImage = createHeatWaveParticleImage()
+        heatSystem.birthRate = CGFloat(40 * intensity)
+        heatSystem.particleLifeSpan = 6.0
+        heatSystem.particleSize = 10.0
+        heatSystem.particleSizeVariation = 4.0
+        heatSystem.particleColor = NSColor(red: 1.0, green: 0.8, blue: 0.6, alpha: 0.2)
+        heatSystem.particleVelocity = 2.0
+        heatSystem.acceleration = SCNVector3(0, 4.0, 0)  // Rising heat
+        
+        let heatNode = SCNNode()
+        heatNode.addParticleSystem(heatSystem)
+        heatNode.position = SCNVector3(0, 10, 0)
+        heatNode.name = "Weather_Drought"
+        scene.rootNode.addChildNode(heatNode)
+        
+        // Dust particles
+        addDustEffects(scene: scene, intensity: intensity)
+    }
+    
+    // ☀️ Clear Weather Effects
+    private func addClearWeatherEffects(scene: SCNScene) {
+        // Reset fog to normal
+        scene.fogStartDistance = 100
+        scene.fogEndDistance = 600
+        scene.fogColor = NSColor(red: 0.85, green: 0.9, blue: 0.95, alpha: 1.0)
+        scene.fogDensityExponent = 1.8
+        
+        // Gentle sunbeam effects
+        let sunbeamSystem = SCNParticleSystem()
+        sunbeamSystem.particleImage = createSunbeamParticleImage()
+        sunbeamSystem.birthRate = 5
+        sunbeamSystem.particleLifeSpan = 40.0
+        sunbeamSystem.particleSize = 20.0
+        sunbeamSystem.particleSizeVariation = 8.0
+        sunbeamSystem.particleColor = NSColor(red: 1.0, green: 0.95, blue: 0.7, alpha: 0.1)
+        sunbeamSystem.particleVelocity = 0.2
+        
+        let sunbeamNode = SCNNode()
+        sunbeamNode.addParticleSystem(sunbeamSystem)
+        sunbeamNode.position = SCNVector3(0, 120, 0)
+        sunbeamNode.name = "Weather_Sunbeams"
+        scene.rootNode.addChildNode(sunbeamNode)
+    }
+    
+    // Supporting weather effects
+    private func addPuddleEffects(scene: SCNScene, intensity: Double) {
+        let puddleSystem = SCNParticleSystem()
+        puddleSystem.particleImage = createSplashParticleImage()
+        puddleSystem.birthRate = CGFloat(30 * intensity)
+        puddleSystem.particleLifeSpan = 2.0
+        puddleSystem.particleSize = 3.0
+        puddleSystem.particleColor = NSColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 0.6)
+        puddleSystem.particleVelocity = 1.0
+        puddleSystem.acceleration = SCNVector3(0, -5.0, 0)
+        
+        let puddleNode = SCNNode()
+        puddleNode.addParticleSystem(puddleSystem)
+        puddleNode.position = SCNVector3(0, 5, 0)
+        puddleNode.name = "Weather_Puddles"
+        scene.rootNode.addChildNode(puddleNode)
+    }
+    
+    private func addWindGustEffects(scene: SCNScene, intensity: Double) {
+        let gustSystem = SCNParticleSystem()
+        gustSystem.particleImage = createWindGustParticleImage()
+        gustSystem.birthRate = CGFloat(50 * intensity)
+        gustSystem.particleLifeSpan = 5.0
+        gustSystem.particleSize = 8.0
+        gustSystem.particleColor = NSColor(red: 0.9, green: 0.9, blue: 1.0, alpha: 0.2)
+        gustSystem.particleVelocity = CGFloat(15.0 * intensity)
+        gustSystem.particleVelocityVariation = CGFloat(8.0 * intensity)
+        
+        let gustNode = SCNNode()
+        gustNode.addParticleSystem(gustSystem)
+        gustNode.position = SCNVector3(0, 60, 0)
+        gustNode.name = "Weather_WindGusts"
+        scene.rootNode.addChildNode(gustNode)
+    }
+    
+    private func addStormCloudEffects(scene: SCNScene, intensity: Double) {
+        let cloudSystem = SCNParticleSystem()
+        cloudSystem.particleImage = createStormCloudParticleImage()
+        cloudSystem.birthRate = CGFloat(20 * intensity)
+        cloudSystem.particleLifeSpan = 50.0
+        cloudSystem.particleSize = 25.0
+        cloudSystem.particleSizeVariation = 10.0
+        cloudSystem.particleColor = NSColor(red: 0.3, green: 0.3, blue: 0.4, alpha: 0.7)
+        cloudSystem.particleVelocity = 2.0
+        
+        let cloudNode = SCNNode()
+        cloudNode.addParticleSystem(cloudSystem)
+        cloudNode.position = SCNVector3(0, 150, 0)
+        cloudNode.name = "Weather_StormClouds"
+        scene.rootNode.addChildNode(cloudNode)
+    }
+    
+    private func addDustEffects(scene: SCNScene, intensity: Double) {
+        let dustSystem = SCNParticleSystem()
+        dustSystem.particleImage = createDustParticleImage()
+        dustSystem.birthRate = CGFloat(45 * intensity)
+        dustSystem.particleLifeSpan = 12.0
+        dustSystem.particleSize = 4.0
+        dustSystem.particleColor = NSColor(red: 0.8, green: 0.7, blue: 0.5, alpha: 0.4)
+        dustSystem.particleVelocity = 3.0
+        dustSystem.particleVelocityVariation = 2.0
+        
+        let dustNode = SCNNode()
+        dustNode.addParticleSystem(dustSystem)
+        dustNode.position = SCNVector3(0, 20, 0)
+        dustNode.name = "Weather_Dust"
+        scene.rootNode.addChildNode(dustNode)
+    }
+    
+    // MARK: - 🌍 Utility Functions
+    
+    /// Determine the dominant biome in the current world for biome-specific effects
+    private func getDominantBiome() -> BiomeType {
+        let voxelWorld = simulationEngine.voxelWorld
+        var biomeCount: [BiomeType: Int] = [:]
+        
+        // Sample biomes from multiple points across the world
+        let samplePoints = 20
+        let stepX = voxelWorld.dimensions.width / samplePoints
+        let stepY = voxelWorld.dimensions.height / samplePoints
+        
+        for i in 0..<samplePoints {
+            for j in 0..<samplePoints {
+                let x = min(i * stepX, voxelWorld.dimensions.width - 1)
+                let y = min(j * stepY, voxelWorld.dimensions.height - 1)
+                let biome = voxelWorld.biomeMap[x][y]
+                biomeCount[biome, default: 0] += 1
+            }
+        }
+        
+        // Return the most common biome
+        return biomeCount.max(by: { $0.value < $1.value })?.key ?? .temperateForest
+    }
+    
+    // MARK: - Particle Image Generators
     
     private func createCausticParticleImage() -> NSImage {
         let size = 12
@@ -3993,6 +5829,497 @@ struct Arena3DView: NSViewRepresentable {
         return image
     }
     
+    // MARK: - 🌍 PHASE 2: Enhanced Biome-Specific Particle Images
+    
+    // Snow and Ice Particles
+    private func createSnowflakeParticleImage() -> NSImage {
+        let size = 12
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor.white.setFill()
+        let center = CGFloat(size) / 2
+        let snowflake = NSBezierPath()
+        
+        // Create 6-pointed snowflake
+        for i in 0..<6 {
+            let angle = Double(i) * Double.pi / 3.0
+            let x1 = center + cos(angle) * (center - 1)
+            let y1 = center + sin(angle) * (center - 1)
+            let x2 = center + cos(angle) * 2
+            let y2 = center + sin(angle) * 2
+            
+            snowflake.move(to: NSPoint(x: x2, y: y2))
+            snowflake.line(to: NSPoint(x: x1, y: y1))
+        }
+        snowflake.stroke()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createAuroraParticleImage() -> NSImage {
+        let size = 20
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let gradient = NSGradient(colors: [
+            NSColor(red: 0.2, green: 0.8, blue: 0.6, alpha: 0.6),
+            NSColor(red: 0.4, green: 0.6, blue: 0.9, alpha: 0.3),
+            NSColor(red: 0.6, green: 0.4, blue: 0.8, alpha: 0.1)
+        ])
+        
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), relativeCenterPosition: NSPoint.zero)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createAlpineSnowParticleImage() -> NSImage {
+        let size = 8
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.98, green: 0.98, blue: 1.0, alpha: 0.9).setFill()
+        let snowflake = NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: size-2, height: size-2))
+        snowflake.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    // Forest and Plant Particles
+    private func createMistParticleImage() -> NSImage {
+        let size = 16
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let gradient = NSGradient(colors: [
+            NSColor(red: 0.9, green: 0.95, blue: 0.98, alpha: 0.4),
+            NSColor(red: 0.9, green: 0.95, blue: 0.98, alpha: 0.0)
+        ])
+        
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), relativeCenterPosition: NSPoint.zero)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createTropicalMistParticleImage() -> NSImage {
+        let size = 18
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let gradient = NSGradient(colors: [
+            NSColor(red: 0.8, green: 0.95, blue: 0.85, alpha: 0.5),
+            NSColor(red: 0.8, green: 0.95, blue: 0.85, alpha: 0.0)
+        ])
+        
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), relativeCenterPosition: NSPoint.zero)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createPineMoteParticleImage() -> NSImage {
+        let size = 6
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.4, green: 0.6, blue: 0.3, alpha: 0.7).setFill()
+        let mote = NSBezierPath(ovalIn: NSRect(x: 0, y: 0, width: size, height: size))
+        mote.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createLightRayParticleImage() -> NSImage {
+        let size = 24
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let gradient = NSGradient(colors: [
+            NSColor(red: 1.0, green: 0.95, blue: 0.7, alpha: 0.3),
+            NSColor(red: 1.0, green: 0.95, blue: 0.7, alpha: 0.0)
+        ])
+        
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), relativeCenterPosition: NSPoint.zero)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createLeafParticleImage() -> NSImage {
+        let size: CGFloat = 8
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.6, green: 0.8, blue: 0.3, alpha: 0.8).setFill()
+        let leaf = NSBezierPath()
+        leaf.move(to: NSPoint(x: size/2, y: 0))
+        leaf.curve(to: NSPoint(x: size, y: size/2), controlPoint1: NSPoint(x: size*0.8, y: size*0.2), controlPoint2: NSPoint(x: size*0.9, y: size*0.4))
+        leaf.curve(to: NSPoint(x: size/2, y: size), controlPoint1: NSPoint(x: size*0.9, y: size*0.6), controlPoint2: NSPoint(x: size*0.8, y: size*0.8))
+        leaf.curve(to: NSPoint(x: 0, y: size/2), controlPoint1: NSPoint(x: size*0.2, y: size*0.8), controlPoint2: NSPoint(x: size*0.1, y: size*0.6))
+        leaf.curve(to: NSPoint(x: size/2, y: 0), controlPoint1: NSPoint(x: size*0.1, y: size*0.4), controlPoint2: NSPoint(x: size*0.2, y: size*0.2))
+        leaf.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createGrassWaveParticleImage() -> NSImage {
+        let size = 12
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.7, green: 0.9, blue: 0.4, alpha: 0.5).setStroke()
+        let wave = NSBezierPath()
+        wave.move(to: NSPoint(x: 0, y: size/2))
+        wave.curve(to: NSPoint(x: size, y: size/2), controlPoint1: NSPoint(x: size/3, y: 0), controlPoint2: NSPoint(x: size*2/3, y: size))
+        wave.stroke()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createPollenParticleImage() -> NSImage {
+        let size = 4
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 1.0, green: 0.9, blue: 0.3, alpha: 0.8).setFill()
+        let pollen = NSBezierPath(ovalIn: NSRect(x: 0, y: 0, width: size, height: size))
+        pollen.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    // Desert Particles
+    private func createHeatShimmerParticleImage() -> NSImage {
+        let size = 16
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let gradient = NSGradient(colors: [
+            NSColor(red: 1.0, green: 0.8, blue: 0.6, alpha: 0.3),
+            NSColor(red: 1.0, green: 0.8, blue: 0.6, alpha: 0.0)
+        ])
+        
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), relativeCenterPosition: NSPoint.zero)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createSandParticleImage() -> NSImage {
+        let size = 6
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.8, green: 0.6, blue: 0.4, alpha: 0.7).setFill()
+        let sand = NSBezierPath(ovalIn: NSRect(x: 0, y: 0, width: size, height: size))
+        sand.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createGrassSeedParticleImage() -> NSImage {
+        let size = 4
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.9, green: 0.7, blue: 0.4, alpha: 0.8).setFill()
+        let seed = NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: size-2, height: size-2))
+        seed.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createDustDevilParticleImage() -> NSImage {
+        let size = 20
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.7, green: 0.5, blue: 0.3, alpha: 0.5).setStroke()
+        let spiral = NSBezierPath()
+        let center = CGFloat(size) / 2
+        
+        for i in 0..<20 {
+            let angle = Double(i) * 0.5
+            let radius = Double(i) * 0.4
+            let x = center + cos(angle) * radius
+            let y = center + sin(angle) * radius
+            
+            if i == 0 {
+                spiral.move(to: NSPoint(x: x, y: y))
+            } else {
+                spiral.line(to: NSPoint(x: x, y: y))
+            }
+        }
+        spiral.stroke()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    // Water Particles
+    private func createWaterDropletParticleImage() -> NSImage {
+        let size: CGFloat = 6
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.7, green: 0.9, blue: 0.95, alpha: 0.8).setFill()
+        let droplet = NSBezierPath()
+        droplet.move(to: NSPoint(x: size/2, y: 0))
+        droplet.curve(to: NSPoint(x: size, y: size*0.7), controlPoint1: NSPoint(x: size*0.8, y: size*0.3), controlPoint2: NSPoint(x: size, y: size*0.5))
+        droplet.curve(to: NSPoint(x: size/2, y: size), controlPoint1: NSPoint(x: size, y: size*0.9), controlPoint2: NSPoint(x: size*0.75, y: size))
+        droplet.curve(to: NSPoint(x: 0, y: size*0.7), controlPoint1: NSPoint(x: size*0.25, y: size), controlPoint2: NSPoint(x: 0, y: size*0.9))
+        droplet.curve(to: NSPoint(x: size/2, y: 0), controlPoint1: NSPoint(x: 0, y: size*0.5), controlPoint2: NSPoint(x: size*0.2, y: size*0.3))
+        droplet.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createFireflyParticleImage() -> NSImage {
+        let size = 8
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let gradient = NSGradient(colors: [
+            NSColor(red: 1.0, green: 1.0, blue: 0.6, alpha: 1.0),
+            NSColor(red: 1.0, green: 1.0, blue: 0.6, alpha: 0.0)
+        ])
+        
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), relativeCenterPosition: NSPoint.zero)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createBubbleParticleImage() -> NSImage {
+        let size = 10
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.4).setStroke()
+        let bubble = NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: size-2, height: size-2))
+        bubble.stroke()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createSeaSprayParticleImage() -> NSImage {
+        let size: CGFloat = 8
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 0.7).setFill()
+        let spray = NSBezierPath()
+        
+        // Create irregular splash shape
+        spray.move(to: NSPoint(x: size/2, y: 0))
+        spray.line(to: NSPoint(x: size*0.8, y: size*0.3))
+        spray.line(to: NSPoint(x: size, y: size*0.6))
+        spray.line(to: NSPoint(x: size*0.7, y: size))
+        spray.line(to: NSPoint(x: size*0.3, y: size))
+        spray.line(to: NSPoint(x: 0, y: size*0.6))
+        spray.line(to: NSPoint(x: size*0.2, y: size*0.3))
+        spray.close()
+        spray.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createFeatherParticleImage() -> NSImage {
+        let size: CGFloat = 12
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.95, green: 0.95, blue: 0.9, alpha: 0.8).setFill()
+        let feather = NSBezierPath()
+        
+        // Create feather shape
+        feather.move(to: NSPoint(x: size/2, y: 0))
+        feather.curve(to: NSPoint(x: size*0.8, y: size*0.4), controlPoint1: NSPoint(x: size*0.6, y: size*0.1), controlPoint2: NSPoint(x: size*0.7, y: size*0.25))
+        feather.curve(to: NSPoint(x: size/2, y: size), controlPoint1: NSPoint(x: size*0.8, y: size*0.6), controlPoint2: NSPoint(x: size*0.65, y: size*0.8))
+        feather.curve(to: NSPoint(x: size*0.2, y: size*0.4), controlPoint1: NSPoint(x: size*0.35, y: size*0.8), controlPoint2: NSPoint(x: size*0.2, y: size*0.6))
+        feather.curve(to: NSPoint(x: size/2, y: 0), controlPoint1: NSPoint(x: size*0.3, y: size*0.25), controlPoint2: NSPoint(x: size*0.4, y: size*0.1))
+        feather.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    // MARK: - 🌦️ PHASE 2: Weather-Specific Particle Images
+    
+    private func createRainDropParticleImage() -> NSImage {
+        let size = 4
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 0.9).setFill()
+        let raindrop = NSBezierPath()
+        raindrop.move(to: NSPoint(x: size/2, y: 0))
+        raindrop.line(to: NSPoint(x: size/2, y: size))
+        raindrop.lineWidth = 1.0
+        raindrop.stroke()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createBlizzardSnowParticleImage() -> NSImage {
+        let size = 10
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 0.95).setFill()
+        let snow = NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: size-2, height: size-2))
+        snow.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createLightningParticleImage() -> NSImage {
+        let size: CGFloat = 60
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 1.0, green: 1.0, blue: 0.9, alpha: 0.95).setStroke()
+        let lightning = NSBezierPath()
+        lightning.lineWidth = 3.0
+        
+        // Create zigzag lightning bolt
+        lightning.move(to: NSPoint(x: size/2, y: 0))
+        lightning.line(to: NSPoint(x: size*0.4, y: size*0.3))
+        lightning.line(to: NSPoint(x: size*0.6, y: size*0.5))
+        lightning.line(to: NSPoint(x: size*0.3, y: size*0.7))
+        lightning.line(to: NSPoint(x: size/2, y: size))
+        lightning.stroke()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createFogParticleImage() -> NSImage {
+        let size = 20
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let gradient = NSGradient(colors: [
+            NSColor(red: 0.9, green: 0.9, blue: 0.95, alpha: 0.4),
+            NSColor(red: 0.9, green: 0.9, blue: 0.95, alpha: 0.0)
+        ])
+        
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), relativeCenterPosition: NSPoint.zero)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createHeatWaveParticleImage() -> NSImage {
+        let size = 14
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let gradient = NSGradient(colors: [
+            NSColor(red: 1.0, green: 0.8, blue: 0.6, alpha: 0.3),
+            NSColor(red: 1.0, green: 0.8, blue: 0.6, alpha: 0.0)
+        ])
+        
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), relativeCenterPosition: NSPoint.zero)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createSunbeamParticleImage() -> NSImage {
+        let size = 40
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let gradient = NSGradient(colors: [
+            NSColor(red: 1.0, green: 0.95, blue: 0.7, alpha: 0.2),
+            NSColor(red: 1.0, green: 0.95, blue: 0.7, alpha: 0.0)
+        ])
+        
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), relativeCenterPosition: NSPoint.zero)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createSplashParticleImage() -> NSImage {
+        let size = 6
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 0.7).setFill()
+        let splash = NSBezierPath(ovalIn: NSRect(x: 0, y: 0, width: size, height: size))
+        splash.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createWindGustParticleImage() -> NSImage {
+        let size: CGFloat = 16
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.9, green: 0.9, blue: 1.0, alpha: 0.3).setStroke()
+        let gust = NSBezierPath()
+        gust.lineWidth = 2.0
+        
+        // Create wind lines
+        for i in 0..<3 {
+            let y = CGFloat(i) * size/3 + size/6
+            gust.move(to: NSPoint(x: 0, y: y))
+            gust.line(to: NSPoint(x: size, y: y))
+        }
+        gust.stroke()
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createStormCloudParticleImage() -> NSImage {
+        let size = 30
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let gradient = NSGradient(colors: [
+            NSColor(red: 0.3, green: 0.3, blue: 0.4, alpha: 0.8),
+            NSColor(red: 0.3, green: 0.3, blue: 0.4, alpha: 0.0)
+        ])
+        
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), relativeCenterPosition: NSPoint.zero)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createDustParticleImage() -> NSImage {
+        let size = 8
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        NSColor(red: 0.8, green: 0.7, blue: 0.5, alpha: 0.5).setFill()
+        let dust = NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: size-2, height: size-2))
+        dust.fill()
+        
+        image.unlockFocus()
+        return image
+    }
+    
     // MARK: - Animation and Updates
     
     private func setupCameraAnimation(scene: SCNScene) {
@@ -4017,7 +6344,25 @@ struct Arena3DView: NSViewRepresentable {
                 
                 // Update energy indicator
                 updateEnergyIndicator(bugNode: bugNode, energy: bug.energy)
+            } else {
+                // Bug node doesn't exist, create it with new Phase 3 visuals
+                let newBugNode = createBugNode(bug: bug)
+                bugContainer.addChildNode(newBugNode)
             }
+        }
+    }
+    
+    // 🦋 PHASE 3: Force refresh of all bug visuals to apply new creature designs
+    private func refreshAllBugVisuals(scene: SCNScene) {
+        guard let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else { return }
+        
+        // Remove all existing bug nodes
+        bugContainer.childNodes.forEach { $0.removeFromParentNode() }
+        
+        // Recreate all bugs with new Phase 3 visuals
+        for bug in simulationEngine.bugs {
+            let newBugNode = createBugNode(bug: bug)
+            bugContainer.addChildNode(newBugNode)
         }
     }
     
@@ -4591,5 +6936,17 @@ class NavigationResponderView: NSView {
     
     deinit {
         updateTimer?.invalidate()
+    }
+}
+
+// MARK: - 🌈 Extensions for Phase 3
+
+// RGB Color Helper Extension for NSColor
+private extension NSColor {
+    var rgbComponents: (red: Double, green: Double, blue: Double) {
+        guard let rgbColor = usingColorSpace(.deviceRGB) else {
+            return (0.5, 0.5, 0.5) // Fallback gray
+        }
+        return (Double(rgbColor.redComponent), Double(rgbColor.greenComponent), Double(rgbColor.blueComponent))
     }
 }
