@@ -462,10 +462,10 @@ struct Arena3DView: NSViewRepresentable {
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         
-        // SURFACE LAYER POSITION: Where diverse Van Gogh terrain exists!
-        // Surface layer: Z = -30 to +10 (forests, water, grass, hills)
-        cameraNode.position = SCNVector3(50, 50, 0)       // Surface layer center
-        cameraNode.look(at: SCNVector3(25, 25, -10))      // Look at surface terrain
+        // SURFACE LAYER POSITION: Fixed coordinate mapping!
+        // Surface layer: Voxel Z = -30 to +10 → SCN Y = -30 to +10
+        cameraNode.position = SCNVector3(50, -10, 50)     // SCN Y=-10 = Voxel Z=-10 (surface)
+        cameraNode.look(at: SCNVector3(25, -15, 25))      // Look at surface terrain
         
         scene.rootNode.addChildNode(cameraNode)
         self.cameraNode = cameraNode
