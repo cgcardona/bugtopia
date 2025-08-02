@@ -47,9 +47,19 @@ struct SimulationView: View {
                     .background(Color(NSColor.controlBackgroundColor))
                 
                 HStack(spacing: 0) {
+                    // Left Statistics Panel
+                    if showingStatistics {
+                        leftStatisticsPanel
+                            .frame(width: 280)
+                            .background(Color(NSColor.controlBackgroundColor))
+                            .transition(.move(edge: .leading))
+                    }
+                    
                     // Main Simulation Canvas
                     simulationCanvas
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(Color.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                         .onAppear {
                             // Start simulation on appear
                             simulationEngine.start()
@@ -59,10 +69,10 @@ struct SimulationView: View {
                             simulationEngine.pause()
                         }
                     
-                    // Side Panel for Statistics
+                    // Right Environmental Panel
                     if showingStatistics {
-                        statisticsPanel
-                            .frame(width: 300)
+                        rightEnvironmentalPanel
+                            .frame(width: 280)
                             .background(Color(NSColor.controlBackgroundColor))
                             .transition(.move(edge: .trailing))
                     }
@@ -159,14 +169,80 @@ struct SimulationView: View {
     
 
     
-    // MARK: - Statistics Panel
+    // MARK: - Statistics Panels
     
-    private var statisticsPanel: some View {
+    private var leftStatisticsPanel: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Header
                 HStack {
-                    Text("🧬 Evolution Analytics")
+                    Text("📊 Population Analytics")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Spacer()
+                }
+                
+                Divider()
+                
+                // Population Statistics
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("🎮 Simulation Status")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    
+                    StatRow(label: "🐛 Total Bugs", value: "\(simulationEngine.bugs.count)")
+                    StatRow(label: "🧬 Generation", value: "\(simulationEngine.currentGeneration)")
+                    StatRow(label: "🍎 Food Sources", value: "\(simulationEngine.foods.count)")
+                    StatRow(label: "⚡ Status", value: simulationEngine.isRunning ? "Running" : "Paused")
+                    
+                    // Generation Progress Bar
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Generation Progress")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        let generationProgress = Double(simulationEngine.tickCount % simulationEngine.generationLength) / Double(simulationEngine.generationLength)
+                        ProgressView(value: generationProgress)
+                            .accentColor(.blue)
+                            .frame(height: 6)
+                        
+                        let ticksRemaining = simulationEngine.generationLength - (simulationEngine.tickCount % simulationEngine.generationLength)
+                        Text("\(ticksRemaining) ticks until generation \(simulationEngine.currentGeneration + 1)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 4)
+                }
+                
+                Divider()
+                
+                // Genetic Averages
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("🧬 Genetic Averages")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    
+                    let averageEnergy = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.energy).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    let averageSpeed = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.speed).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    let averageSize = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.size).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    
+                    StatRow(label: "⚡ Energy", value: String(format: "%.1f", averageEnergy))
+                    StatRow(label: "🏃 Speed", value: String(format: "%.2f", averageSpeed))
+                    StatRow(label: "📏 Size", value: String(format: "%.2f", averageSize))
+                }
+                
+                Spacer()
+            }
+            .padding()
+        }
+    }
+    
+    private var rightEnvironmentalPanel: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header
+                HStack {
+                    Text("🌍 Environment Analytics")
                         .font(.title2)
                         .fontWeight(.bold)
                     Spacer()
@@ -180,20 +256,6 @@ struct SimulationView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
-                }
-                
-                Divider()
-                
-                // Simulation Status
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("🎮 Simulation Status")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                    
-                    StatRow(label: "Generation", value: "\(simulationEngine.currentGeneration)")
-                    StatRow(label: "Population", value: "\(simulationEngine.bugs.count)")
-                    StatRow(label: "Food Sources", value: "\(simulationEngine.foods.count)")
-                    StatRow(label: "Status", value: simulationEngine.isRunning ? "Running" : "Paused")
                 }
                 
                 Divider()

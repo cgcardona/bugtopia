@@ -1297,9 +1297,9 @@ struct Arena3DView: NSViewRepresentable {
             return (cameraPos, lookAt)
             
         case .abyss3D:
-            // Deep perspective to show underwater trenches
-            let cameraPos = SCNVector3(centerX + 35, 0, centerY + 45)
-            let lookAt = SCNVector3(centerX, -40, centerY)
+            // Elevated view to show abyss depths without going too deep underground
+            let cameraPos = SCNVector3(centerX + 40, 25, centerY + 50)
+            let lookAt = SCNVector3(centerX, -10, centerY)
             return (cameraPos, lookAt)
             
         case .volcano3D:
