@@ -1043,8 +1043,8 @@ struct Arena3DView: NSViewRepresentable {
         // 1️⃣ SKYBOX: Replace black void with realistic environment
         createSkybox(scene: scene)
         
-        // 2️⃣ GROUND PLANE: Anchor the terrain with infinite ground
-        createGroundPlane(scene: scene)
+        // 2️⃣ GROUND PLANE: Removed to eliminate white texture below terrain
+        // createGroundPlane(scene: scene)
         
         // 3️⃣ OPTIMIZED ATMOSPHERIC CLOUDS: Beautiful DALL-E clouds
         createOptimizedAtmosphericClouds(scene: scene)
