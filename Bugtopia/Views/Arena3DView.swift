@@ -905,31 +905,87 @@ struct Arena3DView: NSViewRepresentable {
     private func createOptimizedWaterMaterial(voxel: Voxel) -> SCNMaterial {
         let material = SCNMaterial()
         
-        // Advanced water rendering with shared textures
-        material.diffuse.contents = NSColor(red: 0.1, green: 0.3, blue: 0.7, alpha: 0.7)
-        material.metalness.contents = 0.95      // Water is highly reflective
-        material.roughness.contents = 0.05      // Very smooth surface
-        material.transparency = 0.7
+        // 🎨 VAN GOGH WATER: Swirling, mesmerizing like Starry Night
+        let vanGoghWaterColor = createVanGoghWaterColor(voxel: voxel)
+        material.diffuse.contents = vanGoghWaterColor
+        material.metalness.contents = 0.9       // Highly reflective
+        material.roughness.contents = 0.1       // Smooth but with character
+        material.transparency = 0.6
         
-        // Use shared water normal map
-        material.normal.contents = getSharedTexture(type: "water_normal")
+        // Use Van Gogh swirling water normal map
+        material.normal.contents = getVanGoghTexture(type: "water_swirl")
         material.transparencyMode = .aOne
         
+        // Add magical luminescence like moonlight on water
+        material.emission.contents = NSColor(red: 0.05, green: 0.1, blue: 0.2, alpha: 1.0)
+        
         return material
+    }
+    
+    // 🎨 Van Gogh Water Color Generation
+    private func createVanGoghWaterColor(voxel: Voxel) -> NSColor {
+        let position = voxel.position
+        
+        // Create hypnotic water swirls
+        let centerX = position.x / 50.0 - 0.5
+        let centerY = position.y / 50.0 - 0.5
+        let radius = sqrt(centerX * centerX + centerY * centerY)
+        let angle = atan2(centerY, centerX)
+        
+        // Van Gogh-style water with circular patterns
+        let spiral = sin(radius * 15.0 + angle * 4.0) * 0.3
+        let depth = cos(radius * 8.0) * 0.2
+        
+        // Deep blues with swirling highlights
+        let blueIntensity = 0.6 + spiral * 0.3
+        let greenHint = 0.2 + depth * 0.2
+        let highlights = 0.1 + max(0, spiral * 0.4)
+        
+        return NSColor(
+            red: CGFloat(highlights),
+            green: CGFloat(greenHint),
+            blue: CGFloat(blueIntensity),
+            alpha: 0.7
+        )
     }
     
     private func createOptimizedWoodMaterial(voxel: Voxel) -> SCNMaterial {
         let material = SCNMaterial()
         
-        // Realistic wood properties with shared textures
-        material.diffuse.contents = NSColor(red: 0.4, green: 0.25, blue: 0.15, alpha: 1.0)
+        // 🎨 VAN GOGH TREES: Expressive cypress-like with flame patterns
+        let vanGoghTreeColor = createVanGoghTreeColor(voxel: voxel)
+        material.diffuse.contents = vanGoghTreeColor
         material.metalness.contents = 0.0       // Wood is not metallic
-        material.roughness.contents = 0.6       // Medium roughness
+        material.roughness.contents = 0.7       // Textured bark feeling
         
-        // Use shared wood grain normal map
-        material.normal.contents = getSharedTexture(type: "wood_normal")
+        // Use Van Gogh flame-like tree normal map
+        material.normal.contents = getVanGoghTexture(type: "tree_swirl")
+        
+        // Add warm tree glow like Van Gogh's golden trees
+        material.emission.contents = NSColor(red: 0.1, green: 0.05, blue: 0.02, alpha: 1.0)
         
         return material
+    }
+    
+    // 🎨 Van Gogh Tree Color Generation
+    private func createVanGoghTreeColor(voxel: Voxel) -> NSColor {
+        let position = voxel.position
+        
+        // Create vertical flame-like patterns for cypress trees
+        let vertical = sin(position.z * 0.3) * cos(position.x * 0.1) * 0.3
+        let bark = cos(position.y * 0.2) * 0.2
+        
+        // Van Gogh tree colors: warm browns with golden highlights
+        let brownBase = 0.3 + vertical * 0.2
+        let goldenHint = 0.15 + max(0, vertical * 0.3)
+        let depth = 0.1 + bark * 0.1
+        
+        return NSColor(
+            red: CGFloat(brownBase + goldenHint),
+            green: CGFloat(brownBase * 0.7),
+            blue: CGFloat(depth),
+            alpha: 1.0
+        )
     }
     
     private func createOptimizedSandMaterial(voxel: Voxel) -> SCNMaterial {
@@ -969,15 +1025,38 @@ struct Arena3DView: NSViewRepresentable {
     private func createOptimizedVegetationMaterial(voxel: Voxel) -> SCNMaterial {
         let material = SCNMaterial()
         
-        // Vegetation/food material
-        material.diffuse.contents = NSColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1.0)
-        material.metalness.contents = 0.0       // Organic materials are not metallic
-        material.roughness.contents = 0.8       // Rough organic surface
+        // 🍎 VAN GOGH FOOD: Vibrant, pulsing life energy
+        let vanGoghFoodColor = createVanGoghFoodColor(voxel: voxel)
+        material.diffuse.contents = vanGoghFoodColor
+        material.metalness.contents = 0.0       // Natural organic material
+        material.roughness.contents = 0.5       // Softer, more inviting
         
-        // Add slight emission for "fresh" vegetation
-        material.emission.contents = NSColor(red: 0.05, green: 0.1, blue: 0.05, alpha: 1.0)
+        // Magical glow indicating nutritious life energy
+        material.emission.contents = NSColor(red: 0.1, green: 0.4, blue: 0.1, alpha: 1.0)
         
         return material
+    }
+    
+    // 🎨 Van Gogh Food Color Generation
+    private func createVanGoghFoodColor(voxel: Voxel) -> NSColor {
+        let position = voxel.position
+        
+        // Create pulsing life energy patterns
+        let pulse1 = sin(position.x * 0.2) * cos(position.y * 0.2) * 0.3
+        let pulse2 = cos(position.x * 0.15 + position.y * 0.15) * 0.2
+        let lifePulse = (pulse1 + pulse2) * 0.5
+        
+        // Van Gogh-style vibrant greens with golden life energy
+        let vibrantGreen = 0.6 + lifePulse * 0.3
+        let lifeGold = 0.2 + max(0, lifePulse * 0.4)
+        let depth = 0.1 + pulse1 * 0.1
+        
+        return NSColor(
+            red: CGFloat(lifeGold),
+            green: CGFloat(vibrantGreen),
+            blue: CGFloat(depth),
+            alpha: 1.0
+        )
     }
     
     private func createOptimizedMudMaterial(voxel: Voxel) -> SCNMaterial {
@@ -994,15 +1073,45 @@ struct Arena3DView: NSViewRepresentable {
     private func createOptimizedGrassMaterial(voxel: Voxel) -> SCNMaterial {
         let material = SCNMaterial()
         
-        // Default grass/open terrain
+        // 🎨 VAN GOGH GRASS: Swirling, expressive grass with painterly feel
+        let vanGoghGrassColor = createVanGoghGrassColor(voxel: voxel)
         material.diffuse.contents = getLayerAwareColor(
-            baseColor: NSColor(red: 0.3, green: 0.6, blue: 0.2, alpha: 1.0),
+            baseColor: vanGoghGrassColor,
             voxel: voxel
         )
         material.metalness.contents = 0.0       // Grass is not metallic
-        material.roughness.contents = 0.8       // Rough organic surface
+        material.roughness.contents = 0.6       // Softer for painterly effect
+        
+        // Add Van Gogh swirling normal map for texture
+        material.normal.contents = getVanGoghTexture(type: "grass_swirl")
+        
+        // Add subtle magical glow like Van Gogh's luminous greens
+        material.emission.contents = NSColor(red: 0.05, green: 0.12, blue: 0.03, alpha: 1.0)
         
         return material
+    }
+    
+    // 🎨 Van Gogh Color Generation for Grass
+    private func createVanGoghGrassColor(voxel: Voxel) -> NSColor {
+        // Van Gogh-inspired grass colors with swirling variation
+        let position = voxel.position
+        
+        // Create swirling pattern using position-based noise
+        let swirl1 = sin(position.x * 0.15) * cos(position.y * 0.15)
+        let swirl2 = cos(position.x * 0.08) * sin(position.y * 0.12)
+        let swirlIntensity = (swirl1 + swirl2) * 0.3
+        
+        // Van Gogh-style vibrant greens with expression
+        let baseGreen = 0.5 + swirlIntensity * 0.4        // Dynamic green intensity
+        let expressiveBlue = 0.15 + swirlIntensity * 0.2   // Cooler tones in shadows
+        let warmYellow = 0.1 + max(0, swirlIntensity * 0.3) // Warm highlights
+        
+        return NSColor(
+            red: CGFloat(warmYellow), 
+            green: CGFloat(baseGreen), 
+            blue: CGFloat(expressiveBlue), 
+            alpha: 1.0
+        )
     }
     
     // MARK: - Shared Texture System (Performance Optimized)
@@ -1022,6 +1131,12 @@ struct Arena3DView: NSViewRepresentable {
             texture = createOptimizedWaterNormalMap()
         case "wood_normal":
             texture = createOptimizedWoodNormalMap()
+        case "grass_swirl":
+            texture = createVanGoghSwirlTexture(pattern: .grass)
+        case "water_swirl":
+            texture = createVanGoghSwirlTexture(pattern: .water)
+        case "tree_swirl":
+            texture = createVanGoghSwirlTexture(pattern: .tree)
         default:
             texture = createDefaultNormalMap()
         }
@@ -1106,6 +1221,79 @@ struct Arena3DView: NSViewRepresentable {
         
         image.unlockFocus()
         return image
+    }
+    
+    // MARK: - 🎨 Van Gogh Texture Generation System
+    
+    enum VanGoghPattern {
+        case grass, water, tree, sky
+    }
+    
+    private func createVanGoghSwirlTexture(pattern: VanGoghPattern) -> NSImage {
+        let size = 64  // Balanced size for detail vs performance
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        // Van Gogh swirling pattern generation
+        for x in 0..<size {
+            for y in 0..<size {
+                let fx = Double(x) / Double(size)
+                let fy = Double(y) / Double(size)
+                
+                // Create Van Gogh-style swirling patterns
+                let swirl = createVanGoghSwirl(x: fx, y: fy, pattern: pattern)
+                
+                // Convert to normal map colors (bluish with red/green variation)
+                let normalColor = NSColor(
+                    red: CGFloat(0.5 + swirl.x * 0.5),
+                    green: CGFloat(0.5 + swirl.y * 0.5),
+                    blue: CGFloat(0.7 + swirl.z * 0.3),
+                    alpha: 1.0
+                )
+                
+                normalColor.setFill()
+                NSRect(x: x, y: y, width: 1, height: 1).fill()
+            }
+        }
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createVanGoghSwirl(x: Double, y: Double, pattern: VanGoghPattern) -> (x: Double, y: Double, z: Double) {
+        switch pattern {
+        case .grass:
+            // Organic, flowing grass patterns like Van Gogh's wheat fields
+            let swirl1 = sin(x * 8.0) * cos(y * 6.0) * 0.3
+            let swirl2 = cos(x * 4.0) * sin(y * 8.0) * 0.2
+            return (swirl1, swirl2, 0.1)
+            
+        case .water:
+            // Circular, hypnotic water swirls like Starry Night
+            let centerX = x - 0.5
+            let centerY = y - 0.5
+            let radius = sqrt(centerX * centerX + centerY * centerY)
+            let angle = atan2(centerY, centerX)
+            let spiral = sin(radius * 10.0 + angle * 3.0) * 0.4
+            return (spiral * cos(angle), spiral * sin(angle), 0.2)
+            
+        case .tree:
+            // Vertical, flame-like patterns for cypress trees
+            let vertical = sin(y * 12.0) * cos(x * 3.0) * 0.4
+            let twist = cos(y * 8.0 + x * 2.0) * 0.2
+            return (twist, vertical, 0.15)
+            
+        case .sky:
+            // Atmospheric, cloud-like swirls
+            let cloud1 = sin(x * 3.0) * cos(y * 2.0) * 0.3
+            let cloud2 = cos(x * 2.0 + y * 3.0) * 0.2
+            return (cloud1, cloud2, 0.25)
+        }
+    }
+    
+    // 🎨 Van Gogh Texture Helper
+    private func getVanGoghTexture(type: String) -> NSImage {
+        return getSharedTexture(type: type)
     }
     
     // MARK: - Advanced Material Helpers
@@ -1490,25 +1678,106 @@ struct Arena3DView: NSViewRepresentable {
         
         switch species {
         case .herbivore:
+            // 🟢 VAN GOGH HERBIVORE: Organic, flowing sphere with swirling greens
             let sphere = SCNSphere(radius: CGFloat(size))
-            sphere.firstMaterial?.diffuse.contents = NSColor.green
+            sphere.firstMaterial = createVanGoghBugMaterial(
+                species: .herbivore, 
+                bug: bug,
+                baseColor: NSColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1.0)
+            )
             return sphere
             
         case .carnivore:
-            let box = SCNBox(width: CGFloat(size * 1.5), height: CGFloat(size), length: CGFloat(size * 1.2), chamferRadius: 0.1)
-            box.firstMaterial?.diffuse.contents = NSColor.red
+            // 🔴 VAN GOGH CARNIVORE: Angular, aggressive with flame-like reds
+            let box = SCNBox(width: CGFloat(size * 1.5), height: CGFloat(size), length: CGFloat(size * 1.2), chamferRadius: 0.2)
+            box.firstMaterial = createVanGoghBugMaterial(
+                species: .carnivore, 
+                bug: bug,
+                baseColor: NSColor(red: 0.8, green: 0.1, blue: 0.1, alpha: 1.0)
+            )
             return box
             
         case .omnivore:
+            // 🟠 VAN GOGH OMNIVORE: Dynamic capsule with sunset gradients
             let capsule = SCNCapsule(capRadius: CGFloat(size * 0.8), height: CGFloat(size * 1.5))
-            capsule.firstMaterial?.diffuse.contents = NSColor.orange
+            capsule.firstMaterial = createVanGoghBugMaterial(
+                species: .omnivore, 
+                bug: bug,
+                baseColor: NSColor(red: 0.9, green: 0.5, blue: 0.1, alpha: 1.0)
+            )
             return capsule
             
         case .scavenger:
+            // 🟣 VAN GOGH SCAVENGER: Mysterious cylinder with iridescent purples
             let cylinder = SCNCylinder(radius: CGFloat(size * 0.7), height: CGFloat(size * 1.2))
-            cylinder.firstMaterial?.diffuse.contents = NSColor.purple
+            cylinder.firstMaterial = createVanGoghBugMaterial(
+                species: .scavenger, 
+                bug: bug,
+                baseColor: NSColor(red: 0.5, green: 0.2, blue: 0.8, alpha: 1.0)
+            )
             return cylinder
         }
+    }
+    
+    // 🎨 Van Gogh Bug Material Creation
+    private func createVanGoghBugMaterial(species: SpeciesType, bug: Bug, baseColor: NSColor) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Create expressive, Van Gogh-inspired bug coloring
+        let expressiveColor = createVanGoghBugColor(species: species, bug: bug, baseColor: baseColor)
+        material.diffuse.contents = expressiveColor
+        
+        // Give bugs personality through material properties
+        switch species {
+        case .herbivore:
+            material.metalness.contents = 0.0
+            material.roughness.contents = 0.8    // Soft, organic feeling
+            material.emission.contents = NSColor(red: 0.05, green: 0.15, blue: 0.05, alpha: 1.0)
+            
+        case .carnivore:
+            material.metalness.contents = 0.2    // Slight menacing sheen
+            material.roughness.contents = 0.3    // Smooth, predatory
+            material.emission.contents = NSColor(red: 0.2, green: 0.02, blue: 0.02, alpha: 1.0)
+            
+        case .omnivore:
+            material.metalness.contents = 0.1
+            material.roughness.contents = 0.5    // Balanced texture
+            material.emission.contents = NSColor(red: 0.15, green: 0.1, blue: 0.02, alpha: 1.0)
+            
+        case .scavenger:
+            material.metalness.contents = 0.3    // Mysterious iridescence
+            material.roughness.contents = 0.2    // Sleek appearance
+            material.emission.contents = NSColor(red: 0.1, green: 0.05, blue: 0.15, alpha: 1.0)
+        }
+        
+        return material
+    }
+    
+    // 🎨 Van Gogh Bug Color with Personality
+    private func createVanGoghBugColor(species: SpeciesType, bug: Bug, baseColor: NSColor) -> NSColor {
+        // Add personality variation based on bug's unique ID and traits
+        let bugVariation = Double(bug.id.hashValue % 1000) / 1000.0
+        let energyInfluence = bug.energy / Bug.maxEnergy
+        
+        // Create expressive color variation like Van Gogh's paint dabs
+        let variation = sin(bugVariation * .pi * 2) * 0.3
+        let energy = energyInfluence * 0.2
+        
+        // Extract base color components
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        baseColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        
+        // Apply Van Gogh-style expressive modulation
+        let expressiveRed = max(0, min(1, red + CGFloat(variation) + CGFloat(energy)))
+        let expressiveGreen = max(0, min(1, green + CGFloat(variation * 0.7)))
+        let expressiveBlue = max(0, min(1, blue + CGFloat(variation * 0.5)))
+        
+        return NSColor(
+            red: expressiveRed,
+            green: expressiveGreen,
+            blue: expressiveBlue,
+            alpha: alpha
+        )
     }
     
     private func addWings(to bugNode: SCNNode, bug: Bug) {
