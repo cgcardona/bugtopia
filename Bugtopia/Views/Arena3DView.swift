@@ -660,12 +660,15 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func shouldRenderVoxel(_ voxel: Voxel) -> Bool {
-        // Render voxels that are not just empty air
+        // Only render voxels that represent actual terrain features
+        // Navigation-friendly areas (air, flight) should remain invisible for movement
         switch voxel.transitionType {
         case .air:
-            return false  // Don't render empty air voxels
-        default:
-            return true   // Render everything else (solid, water, climbable, etc.)
+            return false  // Don't render empty air voxels - navigable space
+        case .flight(_):
+            return false  // Don't render flight areas - navigable air space for flying
+        case .solid, .swim(_), .climb(_), .ramp(_), .tunnel(_), .bridge(_):
+            return true   // Render actual terrain features (walls, water, climbable surfaces, etc.)
         }
     }
     
@@ -884,36 +887,53 @@ struct Arena3DView: NSViewRepresentable {
         // Underground/invisible terrain gets basic materials for performance
         switch voxel.terrainType {
         case .wall:
-            // 🏃‍♂️ WALLS ARE UNDERGROUND & INVISIBLE: Use fast basic materials to improve load time
-            material.diffuse.contents = NSColor(red: 0.4, green: 0.35, blue: 0.3, alpha: 1.0)
-            material.roughness.contents = 0.8
-            material.metalness.contents = 0.02
+            // 🪨 ENHANCED VAN GOGH ROCKS: Artistic treatment for visible walls
+            print("🪨 DEBUG: Creating enhanced Van Gogh rock material for voxel at \(voxel.position)")
+            return createVanGoghRockMaterial(voxel: voxel)
         case .water:
             // 🌊 INSTANTLY SPECTACULAR WATER: Full Van Gogh materials immediately!
             // Skip the async processing entirely for water - apply the full spectacular material now
             return createOptimizedWaterMaterial(voxel: voxel)
         case .forest:
-            // 🌲 SPECTACULAR VAN GOGH TREES: Premium visible terrain gets full artistic treatment!
-            print("🌲 DEBUG: Creating Van Gogh wood material for forest voxel at \(voxel.position)")
-            return createOptimizedWoodMaterial(voxel: voxel)
+            // 🌲 BRIGHT GREEN TREES: Distinct visual identity
+            material.diffuse.contents = NSColor(red: 0.3, green: 0.6, blue: 0.2, alpha: 1.0)
+            material.roughness.contents = 0.7
+            material.metalness.contents = 0.0
         case .sand:
-            // 🎨 INSTANT VAN GOGH SAND: Apply full artistic materials immediately!
-            return createOptimizedSandMaterial(voxel: voxel)
+            // 🏖️ BRIGHT YELLOW SAND: Clear visual distinction
+            material.diffuse.contents = NSColor(red: 0.9, green: 0.8, blue: 0.6, alpha: 1.0)
+            material.roughness.contents = 0.9
+            material.metalness.contents = 0.0
         case .ice:
-            // 🎨 INSTANT VAN GOGH ICE: Apply full artistic materials immediately!
-            return createOptimizedIceMaterial(voxel: voxel)
+            // 🧊 BRIGHT BLUE ICE: Crystal clear distinction
+            material.diffuse.contents = NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.9)
+            material.roughness.contents = 0.05
+            material.metalness.contents = 0.1
+            material.transparency = 0.1
         case .hill:
-            // 🎨 INSTANT VAN GOGH STONE: Apply full artistic materials immediately!
-            return createOptimizedStoneMaterial(voxel: voxel)
+            // ⛰️ BROWN STONE: Rocky distinction
+            material.diffuse.contents = NSColor(red: 0.5, green: 0.45, blue: 0.4, alpha: 1.0)
+            material.roughness.contents = 0.7
+            material.metalness.contents = 0.05
         case .food:
-            // 🎨 INSTANT VAN GOGH VEGETATION: Apply full artistic materials immediately!
-            return createOptimizedVegetationMaterial(voxel: voxel)
+            // 🍎 BRIGHT GREEN FOOD: High visibility with emission
+            material.diffuse.contents = NSColor(red: 0.4, green: 0.8, blue: 0.3, alpha: 1.0)
+            material.roughness.contents = 0.5
+            material.metalness.contents = 0.0
+            material.emission.contents = NSColor(red: 0.15, green: 0.6, blue: 0.15, alpha: 1.0)
         case .swamp:
-            // 🎨 INSTANT VAN GOGH MUD: Apply full artistic materials immediately!
-            return createOptimizedMudMaterial(voxel: voxel)
+            // 🐊 MUDDY BROWN SWAMP: Distinct muddy appearance
+            material.diffuse.contents = NSColor(red: 0.3, green: 0.25, blue: 0.15, alpha: 1.0)
+            material.roughness.contents = 0.9
+            material.metalness.contents = 0.0
         case .open:
-            // 🎨 INSTANT VAN GOGH GRASS: Apply full artistic materials immediately!
-            return createOptimizedGrassMaterial(voxel: voxel)
+            // 🌱 BRIGHT GRASS GREEN: Clear grass identity
+            material.diffuse.contents = getLayerAwareColor(
+                baseColor: NSColor(red: 0.3, green: 0.7, blue: 0.3, alpha: 1.0),
+                voxel: voxel
+            )
+            material.roughness.contents = 0.6
+            material.metalness.contents = 0.0
         case .shadow:
             // 🏃‍♂️ SHADOWS ARE LESS VISIBLE: Use basic materials for performance
             material.diffuse.contents = NSColor(white: 0.2, alpha: 0.6)
@@ -926,9 +946,153 @@ struct Arena3DView: NSViewRepresentable {
             material.roughness.contents = 0.8
             material.metalness.contents = 0.02
         case .wind:
-            // 🎨 INSTANT VAN GOGH WIND: Apply light grass materials immediately!
-            return createOptimizedGrassMaterial(voxel: voxel)
+            // 💨 SPECTACULAR VAN GOGH WIND: Flowing grass artistic materials!
+            print("💨 DEBUG: Creating enhanced Van Gogh wind material for voxel at \(voxel.position)")
+            return createVanGoghWindMaterial(voxel: voxel)
         }
+        
+        return material
+    }
+    
+    // MARK: - 🎨 Enhanced Van Gogh Material System
+    // Comprehensive artistic materials for all terrain types (merged from main branch)
+    
+    private func createVanGoghForestMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Van Gogh forest colors: Deep greens with warm golden undertones
+        let baseColor = NSColor(red: 0.2, green: 0.4, blue: 0.1, alpha: 1.0)  
+        material.diffuse.contents = baseColor
+        
+        // Warm golden emission like sunlight through trees
+        material.emission.contents = NSColor(red: 0.15, green: 0.12, blue: 0.05, alpha: 1.0)
+        material.roughness.contents = 0.7
+        material.metalness.contents = 0.0
+        
+        // Van Gogh swirl texture for tree bark
+        material.normal.contents = getVanGoghTexture(type: "tree_swirl")
+        
+        return material
+    }
+    
+    private func createVanGoghGrassMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Van Gogh grass: Vibrant greens with brushstroke texture
+        let grassGreen = NSColor(red: 0.3, green: 0.6, blue: 0.2, alpha: 1.0)
+        material.diffuse.contents = grassGreen
+        
+        // Subtle earth-tone emission 
+        material.emission.contents = NSColor(red: 0.05, green: 0.08, blue: 0.02, alpha: 1.0)
+        material.roughness.contents = 0.8
+        material.metalness.contents = 0.0
+        
+        return material
+    }
+    
+    private func createVanGoghFoodMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Van Gogh vegetation: Rich purples and oranges like his irises
+        let foodColor = NSColor(red: 0.6, green: 0.3, blue: 0.8, alpha: 1.0)
+        material.diffuse.contents = foodColor
+        
+        // Vibrant emission for food visibility
+        material.emission.contents = NSColor(red: 0.2, green: 0.1, blue: 0.3, alpha: 1.0)
+        material.roughness.contents = 0.6
+        material.metalness.contents = 0.0
+        
+        return material
+    }
+    
+    private func createVanGoghRockMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Van Gogh rocks: Warm earth tones with artistic texture
+        let rockColor = NSColor(red: 0.5, green: 0.4, blue: 0.3, alpha: 1.0)
+        material.diffuse.contents = rockColor
+        
+        // Subtle warm emission
+        material.emission.contents = NSColor(red: 0.1, green: 0.08, blue: 0.05, alpha: 1.0)
+        material.roughness.contents = 0.9
+        material.metalness.contents = 0.1
+        
+        return material
+    }
+    
+    private func createVanGoghSandMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Van Gogh sand: Warm golden yellows like his sunflower paintings
+        let sandColor = NSColor(red: 0.9, green: 0.7, blue: 0.4, alpha: 1.0)
+        material.diffuse.contents = sandColor
+        
+        // Bright golden emission like desert sunlight
+        material.emission.contents = NSColor(red: 0.3, green: 0.2, blue: 0.1, alpha: 1.0)
+        material.roughness.contents = 0.6
+        material.metalness.contents = 0.0
+        
+        return material
+    }
+    
+    private func createVanGoghIceMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Van Gogh ice: Cool blues and whites with crystalline beauty
+        let iceColor = NSColor(red: 0.7, green: 0.9, blue: 1.0, alpha: 0.8)
+        material.diffuse.contents = iceColor
+        
+        // Cool blue emission like winter light
+        material.emission.contents = NSColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 1.0)
+        material.roughness.contents = 0.1
+        material.metalness.contents = 0.0
+        material.transparency = 0.3
+        
+        return material
+    }
+    
+    private func createVanGoghStoneMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Van Gogh stone: Gray-blue tones like his quarry paintings
+        let stoneColor = NSColor(red: 0.4, green: 0.5, blue: 0.6, alpha: 1.0)
+        material.diffuse.contents = stoneColor
+        
+        // Cool gray emission
+        material.emission.contents = NSColor(red: 0.05, green: 0.08, blue: 0.12, alpha: 1.0)
+        material.roughness.contents = 0.8
+        material.metalness.contents = 0.2
+        
+        return material
+    }
+    
+    private func createVanGoghSwampMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Van Gogh swamp: Deep muddy greens and browns
+        let swampColor = NSColor(red: 0.3, green: 0.4, blue: 0.2, alpha: 1.0)
+        material.diffuse.contents = swampColor
+        
+        // Murky green emission
+        material.emission.contents = NSColor(red: 0.08, green: 0.12, blue: 0.06, alpha: 1.0)
+        material.roughness.contents = 0.9
+        material.metalness.contents = 0.0
+        
+        return material
+    }
+    
+    private func createVanGoghWindMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Van Gogh wind: Light flowing greens like grass in motion
+        let windColor = NSColor(red: 0.4, green: 0.7, blue: 0.3, alpha: 0.7)
+        material.diffuse.contents = windColor
+        
+        // Subtle green emission suggesting movement
+        material.emission.contents = NSColor(red: 0.1, green: 0.15, blue: 0.08, alpha: 1.0)
+        material.roughness.contents = 0.6
+        material.metalness.contents = 0.0
+        material.transparency = 0.2
         
         return material
     }

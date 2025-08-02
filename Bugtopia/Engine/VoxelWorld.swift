@@ -374,22 +374,36 @@ class VoxelWorld {
             }
         }
         
-        // Print debug statistics
-        // Voxel generation statistics:
-        // Terrain Types:
-        for (_, count) in terrainCounts.sorted(by: { $0.value > $1.value }) {
-            let _ = Double(count) / Double(getTotalVoxelCount()) * 100
-            // Type count logged
-        }
-        // Transition Types:
-        for (_, count) in transitionCounts.sorted(by: { $0.value > $1.value }) {
-            let _ = Double(count) / Double(getTotalVoxelCount()) * 100
-            // Type count logged
+        // 🔍 COMPREHENSIVE DEBUG LOGGING - Enhanced Van Gogh Terrain Analysis
+        print("\n🌍 =================================")
+        print("🌍 VOXEL WORLD GENERATION COMPLETE")
+        print("🌍 =================================")
+        
+        print("\n🎨 TERRAIN TYPE DISTRIBUTION:")
+        for (terrainType, count) in terrainCounts.sorted(by: { $0.value > $1.value }) {
+            let percentage = Double(count) / Double(getTotalVoxelCount()) * 100
+            print("   \(terrainType): \(count) voxels (\(String(format: "%.1f", percentage))%)")
         }
         
-        let renderableCount = transitionCounts.filter { $0.key != "air" }.values.reduce(0, +)
-        let _ = Double(renderableCount) / Double(getTotalVoxelCount()) * 100
-        // Renderable voxels counted
+        print("\n🔄 TRANSITION TYPE DISTRIBUTION:")
+        for (transitionType, count) in transitionCounts.sorted(by: { $0.value > $1.value }) {
+            let percentage = Double(count) / Double(getTotalVoxelCount()) * 100
+            print("   \(transitionType): \(count) voxels (\(String(format: "%.1f", percentage))%)")
+        }
+        
+        // Calculate actual renderables based on Arena3DView shouldRenderVoxel logic
+        // Only solid, swim, climb, ramp, tunnel, bridge are rendered - air and flight are navigable
+        let renderableTypes = ["solid", "swim", "climb", "ramp", "tunnel", "bridge"]
+        let renderableCount = transitionCounts.filter { renderableTypes.contains($0.key.split(separator: "(").first?.trimmingCharacters(in: .whitespaces) ?? "") }.values.reduce(0, +)
+        let navigableCount = transitionCounts["air", default: 0] + transitionCounts.filter { $0.key.hasPrefix("flight(") }.values.reduce(0, +)
+        let renderablePercentage = Double(renderableCount) / Double(getTotalVoxelCount()) * 100
+        let navigablePercentage = Double(navigableCount) / Double(getTotalVoxelCount()) * 100
+        
+        print("\n🎨 RENDERABLE VOXELS: \(renderableCount) (\(String(format: "%.1f", renderablePercentage))%)")
+        print("🌬️ NAVIGABLE SPACE: \(navigableCount) (\(String(format: "%.1f", navigablePercentage))%)")
+        print("   ├─ Air spaces: \(transitionCounts["air", default: 0]) voxels")
+        print("   └─ Flight zones: \(transitionCounts.filter { $0.key.hasPrefix("flight(") }.values.reduce(0, +)) voxels")
+        print("🌍 =================================\n")
     }
     
     private func createVoxel(at gridPos: (x: Int, y: Int, z: Int)) -> Voxel {
@@ -594,10 +608,36 @@ class VoxelWorld {
                 // Easier ramps too
                 return .ramp(angle: min(0.3, heightDiff / 10.0))
             }
+        case .forest:
+            // 🌲 Create ultra-sparse forest: only ~1% of forest voxels are solid tree trunks
+            // This creates vast navigable spaces with occasional scattered trees
+            let treeHash = (gridPos.x * 73 + gridPos.y * 97 + gridPos.z * 131) % 100
+            return treeHash < 1 ? .solid : .air
+        case .food:
+            // 🍎 Create ultra-sparse food sources: only ~1% of food voxels are solid food items
+            // This creates very rare, easily reachable food scattered throughout areas
+            let foodHash = (gridPos.x * 83 + gridPos.y * 107 + gridPos.z * 139) % 100  
+            return foodHash < 1 ? .solid : .air
+        case .sand:
+            // 🏖️ Create ultra-sparse sand features: only ~2% solid for scattered dunes
+            let sandHash = (gridPos.x * 71 + gridPos.y * 103 + gridPos.z * 127) % 100
+            return sandHash < 2 ? .solid : .air
+        case .ice:
+            // 🧊 Create ultra-sparse ice features: only ~2% solid for scattered ice
+            let iceHash = (gridPos.x * 79 + gridPos.y * 109 + gridPos.z * 137) % 100
+            return iceHash < 2 ? .solid : .air
+        case .swamp:
+            // 🐊 Create ultra-sparse swamp features: only ~1% solid for rare muddy patches
+            let swampHash = (gridPos.x * 89 + gridPos.y * 113 + gridPos.z * 149) % 100
+            return swampHash < 1 ? .solid : .air  
         case .open:
             return layer == .aerial ? .flight(clearance: 1.0) : .air
-        default:
-            return .air
+        case .shadow:
+            return .air    // Shadows remain as navigable air
+        case .predator:
+            return .air    // Predator areas remain as navigable air
+        case .wind:
+            return .air    // Wind areas remain as navigable air
         }
     }
     
