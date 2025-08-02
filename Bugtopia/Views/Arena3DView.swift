@@ -42,7 +42,7 @@ struct Arena3DView: NSViewRepresentable {
         // ✅ FIX: Avoid state modification during view creation
         // Store sceneView reference after SwiftUI cycle completes
         DispatchQueue.main.async {
-            self.sceneView = sceneView
+        self.sceneView = sceneView
         }
         
         // Create the 3D scene
@@ -489,7 +489,7 @@ struct Arena3DView: NSViewRepresentable {
         scene.rootNode.addChildNode(cameraNode)
         // ✅ FIX: Avoid state modification during view creation
         DispatchQueue.main.async {
-            self.cameraNode = cameraNode
+        self.cameraNode = cameraNode
         }
         
         // Camera node created and assigned
@@ -631,10 +631,13 @@ struct Arena3DView: NSViewRepresentable {
         // Render voxels with spectacular visuals
         renderVoxelTerrain(container: terrainContainer)
         
-        // ✅ FIX: Apply Van Gogh materials asynchronously after initial render
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        // 🌊 INSTANT SPECTACULAR WATER: Apply immediately, no delay!
+        DispatchQueue.main.async {
             self.applyVanGoghMaterialsAsync(container: terrainContainer)
         }
+        
+        // 🌊 ULTRA-SPECTACULAR WATER: Start continuous animation system
+        self.startSpectacularWaterAnimation(scene: scene)
         
         // Add particle effects for atmosphere
         addAtmosphericEffects(scene: scene)
@@ -891,10 +894,20 @@ struct Arena3DView: NSViewRepresentable {
             material.roughness.contents = 0.8
             material.metalness.contents = 0.02
         case .water:
-            material.diffuse.contents = NSColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 0.7)
-            material.roughness.contents = 0.1
-            material.metalness.contents = 0.9
-            material.transparency = 0.6
+            // 🌊 INSTANTLY SPECTACULAR WATER: Beautiful from the start!
+            let currentTime = Date().timeIntervalSince1970
+            let flowEffect = sin(currentTime * 2.0 + voxel.position.x * 0.1) * 0.2
+            
+            material.diffuse.contents = NSColor(
+                red: CGFloat(0.1 + flowEffect * 0.3),      // Shimmer effect
+                green: CGFloat(0.5 + flowEffect * 0.2),    // Ocean green-blue
+                blue: CGFloat(0.9 + flowEffect * 0.1),     // Deep blue
+                alpha: 0.8
+            )
+            material.roughness.contents = 0.02              // Mirror smooth
+            material.metalness.contents = 0.95              // Highly reflective
+            material.transparency = 0.7
+            material.emission.contents = NSColor(red: 0.1, green: 0.2, blue: 0.4, alpha: 1.0)  // Magical glow
         case .forest:
             material.diffuse.contents = NSColor(red: 0.3, green: 0.6, blue: 0.2, alpha: 1.0)
             material.roughness.contents = 0.7
@@ -1119,24 +1132,290 @@ struct Arena3DView: NSViewRepresentable {
     private func createOptimizedWaterMaterial(voxel: Voxel) -> SCNMaterial {
         let material = SCNMaterial()
         
-        // 🎨 VAN GOGH WATER: Swirling, mesmerizing like Starry Night
-        let vanGoghWaterColor = createVanGoghWaterColor(voxel: voxel)
-        material.diffuse.contents = vanGoghWaterColor
-        material.metalness.contents = 0.9       // Highly reflective
-        material.roughness.contents = 0.1       // Smooth but with character
-        material.transparency = 0.6
+        // 🌟 ULTRA-SPECTACULAR WATER SYSTEM: Multiple advanced techniques
         
-        // Use Van Gogh swirling water normal map
-        material.normal.contents = getVanGoghTexture(type: "water_swirl")
+        // 1. Time-animated base water color with flowing effects
+        let spectacularWaterColor = createSpectacularWaterColor(voxel: voxel)
+        material.diffuse.contents = spectacularWaterColor
+        
+        // 2. Ultra-realistic water physics properties
+        material.metalness.contents = 0.95      // Nearly perfect reflection
+        material.roughness.contents = 0.02      // Mirror-smooth surface
+        material.transparency = calculateDynamicTransparency(voxel: voxel)
+        
+        // 3. Advanced multi-layered normal mapping for realism
+        material.normal.contents = createAdvancedWaterNormals(voxel: voxel)
         material.transparencyMode = .aOne
         
-        // Add magical luminescence like moonlight on water
-        material.emission.contents = NSColor(red: 0.15, green: 0.25, blue: 0.4, alpha: 1.0)
+        // 4. Spectacular caustic lighting effects
+        material.emission.contents = createCausticLighting(voxel: voxel)
+        
+        // 5. Environment reflection for photorealism
+        material.reflective.contents = createWaterReflectionMap()
+        
+        // 6. Advanced displacement for water depth illusion
+        material.displacement.contents = createWaterDisplacementMap(voxel: voxel)
         
         return material
     }
     
-    // 🎨 Van Gogh Water Color Generation
+    // 🌟 SPECTACULAR WATER COLOR SYSTEM
+    private func createSpectacularWaterColor(voxel: Voxel) -> NSColor {
+        let position = voxel.position
+        let currentTime = Date().timeIntervalSince1970
+        
+        // 1. ULTRA-DRAMATIC FLOWING WATER ANIMATION - Amplified 3x!
+        let flowX = sin(currentTime * 1.5 + position.x * 0.2) * 0.8         // 3x stronger, faster
+        let flowY = cos(currentTime * 2.0 + position.y * 0.25) * 0.6        // More dramatic
+        let flowZ = sin(currentTime * 1.0 + position.z * 0.15) * 0.7        // Enhanced movement
+        
+        // 2. DRAMATIC MULTI-LAYERED DEPTH SIMULATION - More layers, stronger effects
+        let surfaceDisturbance = sin(position.x * 0.4 + currentTime * 4.0) * 
+                                cos(position.z * 0.35 + currentTime * 3.0) * 0.4    // 3x stronger ripples
+        let midDepthFlow = cos(position.x * 0.2 + position.z * 0.2 + currentTime * 1.5) * 0.5  // Enhanced flow
+        let deepCurrents = sin(position.x * 0.1 + position.z * 0.12 + currentTime * 0.8) * 0.3  // Stronger currents
+        
+        // 3. SPECTACULAR CAUSTIC LIGHT INTERACTIONS - More patterns, faster animation
+        let lightX = position.x / 15.0  // Tighter patterns
+        let lightZ = position.z / 15.0
+        let causticPattern1 = sin(lightX * 12.0 + currentTime * 6.0) * cos(lightZ * 10.0 + currentTime * 5.0)
+        let causticPattern2 = cos(lightX * 18.0 + currentTime * 8.0) * sin(lightZ * 15.0 + currentTime * 7.0)
+        let causticPattern3 = sin(lightX * 25.0 + lightZ * 20.0 + currentTime * 10.0) * 0.8  // New pattern!
+        let lightEffect = (causticPattern1 + causticPattern2 + causticPattern3) * 0.6  // 2x stronger
+        
+        // 4. DEPTH-BASED COLOR BLENDING
+        let deepBlue = 0.1 + flowZ * 0.15        // Deep ocean blues
+        let mediumBlue = 0.4 + flowY * 0.2 + midDepthFlow // Medium water
+        let surfaceBlue = 0.7 + flowX * 0.3 + surfaceDisturbance // Surface reflection
+        
+        // 5. CARIBBEAN/TROPICAL WATER COLORS with animation
+        let turquoise = 0.2 + lightEffect * 0.4  // Bright tropical turquoise
+        let emerald = 0.6 + (flowX + flowY) * 0.2 // Emerald green highlights
+        let crystal = 0.9 + lightEffect * 0.1 + deepCurrents  // Crystal clear highlights
+        
+        // 6. FINAL SPECTACULAR COLOR COMPOSITION
+        let finalRed = CGFloat(crystal * 0.3 + turquoise * 0.2)
+        let finalGreen = CGFloat(emerald * 0.8 + lightEffect * 0.3)
+        let finalBlue = CGFloat(surfaceBlue * 0.6 + mediumBlue * 0.3 + deepBlue * 0.1)
+        
+        return NSColor(
+            red: finalRed,
+            green: finalGreen, 
+            blue: finalBlue,
+            alpha: 0.75
+        )
+    }
+    
+    private func calculateDynamicTransparency(voxel: Voxel) -> CGFloat {
+        let position = voxel.position
+        let currentTime = Date().timeIntervalSince1970
+        
+        // DRAMATIC transparency variations - more dynamic range
+        let baseTransparency = voxel.layer == .underground ? 0.3 : 0.6
+        let rippleEffect = sin(currentTime * 4.0 + position.x * 0.3) * 0.25     // 2.5x stronger variation
+        let waveEffect = cos(currentTime * 3.0 + position.z * 0.25) * 0.15      // Additional wave transparency
+        
+        let dynamicTransparency = baseTransparency + rippleEffect + waveEffect
+        return CGFloat(max(0.2, min(0.9, dynamicTransparency)))  // Clamp to reasonable range
+    }
+    
+    private func createAdvancedWaterNormals(voxel: Voxel) -> NSImage {
+        let size = 64  // Higher resolution for water
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let currentTime = Date().timeIntervalSince1970
+        
+        for x in 0..<size {
+            for y in 0..<size {
+                // ULTRA-DRAMATIC multiple wave layers for spectacular water surface
+                let wave1 = sin(Double(x) * 0.6 + currentTime * 6.0) * cos(Double(y) * 0.5 + currentTime * 4.0)
+                let wave2 = cos(Double(x) * 0.3 + currentTime * 3.0) * sin(Double(y) * 0.4 + currentTime * 5.0)
+                let wave3 = sin(Double(x) * 0.8 + Double(y) * 0.7 + currentTime * 8.0) * 0.8
+                let wave4 = cos(Double(x) * 0.45 + Double(y) * 0.35 + currentTime * 7.0) * 0.6  // New wave layer
+                
+                let normalIntensity = (wave1 + wave2 + wave3 + wave4) / 4.0
+                let clampedIntensity = (normalIntensity + 1.0) / 2.0  // Normalize to 0-1
+                
+                let color = NSColor(
+                    red: 0.5, 
+                    green: 0.5,
+                    blue: clampedIntensity,
+                    alpha: 1.0
+                )
+                
+                let rect = NSRect(x: x, y: y, width: 1, height: 1)
+                color.setFill()
+                rect.fill()
+            }
+        }
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createCausticLighting(voxel: Voxel) -> NSColor {
+        let position = voxel.position
+        let currentTime = Date().timeIntervalSince1970
+        
+        // ULTRA-SPECTACULAR animated caustic patterns - dramatic sunlight through water
+        let caustic1 = sin(position.x * 0.4 + currentTime * 8.0) * cos(position.z * 0.35 + currentTime * 7.0)
+        let caustic2 = cos(position.x * 0.3 + currentTime * 6.0) * sin(position.z * 0.45 + currentTime * 9.0)
+        let caustic3 = sin(position.x * 0.5 + position.z * 0.4 + currentTime * 11.0) * 0.9
+        let caustic4 = cos(position.x * 0.25 + position.z * 0.3 + currentTime * 5.0) * 0.8  // New pattern
+        
+        let causticIntensity = (caustic1 + caustic2 + caustic3 + caustic4) / 4.0
+        let brightness = max(0, causticIntensity) * 0.8  // 2x brighter caustics!
+        
+        // More dramatic color variations
+        let dynamicRed = 0.3 + brightness * 1.2      // Enhanced warm sunlight
+        let dynamicGreen = 0.5 + brightness * 0.9    // Richer golden highlights
+        let dynamicBlue = 0.7 + brightness * 0.6     // Deeper water tones
+        
+        return NSColor(
+            red: CGFloat(max(0, min(1, dynamicRed))),
+            green: CGFloat(max(0, min(1, dynamicGreen))),
+            blue: CGFloat(max(0, min(1, dynamicBlue))),
+            alpha: 1.0
+        )
+    }
+    
+    private func createWaterReflectionMap() -> NSImage {
+        // Create a simple sky reflection for water
+        let size = 32
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        // Gradient from sky blue to white (clouds)
+        for x in 0..<size {
+            for y in 0..<size {
+                let skyIntensity = Double(y) / Double(size)  // Vertical gradient
+                let cloudNoise = sin(Double(x) * 0.5) * cos(Double(y) * 0.6) * 0.2
+                
+                let finalIntensity = skyIntensity + cloudNoise
+                let color = NSColor(
+                    red: CGFloat(0.6 + finalIntensity * 0.4),
+                    green: CGFloat(0.8 + finalIntensity * 0.2),
+                    blue: CGFloat(1.0),
+                    alpha: 1.0
+                )
+                
+                let rect = NSRect(x: x, y: y, width: 1, height: 1)
+                color.setFill()
+                rect.fill()
+            }
+        }
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func createWaterDisplacementMap(voxel: Voxel) -> NSImage {
+        let size = 32
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let currentTime = Date().timeIntervalSince1970
+        
+        // Create subtle displacement for water depth illusion
+        for x in 0..<size {
+            for y in 0..<size {
+                let displacement = sin(Double(x) * 0.4 + currentTime * 2.0) * 
+                                 cos(Double(y) * 0.3 + currentTime * 1.5) * 0.1
+                
+                let intensity = (displacement + 1.0) / 2.0  // Normalize
+                let color = NSColor(red: intensity, green: intensity, blue: intensity, alpha: 1.0)
+                
+                let rect = NSRect(x: x, y: y, width: 1, height: 1)
+                color.setFill()
+                rect.fill()
+            }
+        }
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    // 🌊 SPECTACULAR WATER ANIMATION SYSTEM
+    private func startSpectacularWaterAnimation(scene: SCNScene) {
+        // Create a continuous animation that refreshes water materials every 1/30th second
+        // This creates truly living, breathing water that continuously evolves
+        
+        var frameCount = 0
+        let animationTimer = Timer.scheduledTimer(withTimeInterval: 1.0/30.0, repeats: true) { timer in
+            frameCount += 1
+            
+            // Update water materials every 3 frames (10 times per second) for ultra-smooth effects
+            if frameCount % 3 == 0 {
+                self.refreshSpectacularWaterMaterials(scene: scene)
+            }
+        }
+        
+        // Store timer to prevent deallocation
+        RunLoop.current.add(animationTimer, forMode: .common)
+        
+        print("🌊 Spectacular water animation system started - water will now flow and shimmer continuously!")
+    }
+    
+    private func refreshSpectacularWaterMaterials(scene: SCNScene) {
+        // Find all water voxel nodes and refresh their materials
+        scene.rootNode.enumerateChildNodes { node, _ in
+            if let geometry = node.geometry,
+               geometry is SCNBox,
+               let material = geometry.firstMaterial,
+               material.transparency > 0.3 {  // Likely a water voxel
+                
+                // Only refresh water materials (not all transparent materials)
+                if let nodeName = node.name, nodeName.contains("water") ||
+                   (material.metalness.contents as? NSNumber)?.floatValue == 0.95 {  // Our water metalness signature
+                    
+                    self.updateWaterMaterialInRealTime(node: node)
+                }
+            }
+        }
+    }
+    
+    private func updateWaterMaterialInRealTime(node: SCNNode) {
+        guard let geometry = node.geometry,
+              let material = geometry.firstMaterial else { return }
+        
+        // Create time-based water position for animation
+        let currentTime = Date().timeIntervalSince1970
+        let animatedPosition = Position3D(
+            node.position.x + sin(currentTime) * 2.0,
+            node.position.z + cos(currentTime * 1.2) * 1.5,  // Note: SCN Y->Z mapping
+            node.position.y + sin(currentTime * 0.8) * 1.0   // Note: SCN Z->Y mapping
+        )
+        
+        // Create animated voxel for material generation
+        let animatedVoxel = createAnimatedWaterVoxel(position: animatedPosition)
+        
+        // Update the material properties with new animations
+        DispatchQueue.main.async {
+            material.diffuse.contents = self.createSpectacularWaterColor(voxel: animatedVoxel)
+            material.emission.contents = self.createCausticLighting(voxel: animatedVoxel)
+            material.transparency = self.calculateDynamicTransparency(voxel: animatedVoxel)
+            
+            // Update normal maps less frequently for performance
+            if Int(currentTime * 2) % 3 == 0 {  // Every 1.5 seconds
+                material.normal.contents = self.createAdvancedWaterNormals(voxel: animatedVoxel)
+            }
+        }
+    }
+    
+    private func createAnimatedWaterVoxel(position: Position3D) -> Voxel {
+        // Create a temporary voxel for animation calculations
+        return Voxel(
+            gridPosition: (0, 0, 0),  // Not used for materials
+            worldPosition: position,
+            terrainType: .water,
+            layer: .surface,
+            transitionType: .swim(depth: 0.8),
+            biome: .temperateForest
+        )
+    }
+    
+    // 🎨 Van Gogh Water Color Generation (Legacy - keeping for comparison)
     private func createVanGoghWaterColor(voxel: Voxel) -> NSColor {
         let position = voxel.position
         
