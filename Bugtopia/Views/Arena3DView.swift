@@ -1059,17 +1059,27 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func createSkybox(scene: SCNScene) {
-        // Loading skybox
+        // 🌍 DYNAMIC SKYBOX: Load world-specific DALL-E skybox
+        let worldType = simulationEngine.voxelWorld.worldType
+        let skyboxAssetName = getSkyboxAssetName(for: worldType)
         
-        // INSTANT LOADING: Use gorgeous pre-generated DALL-E skybox
-        if let skyboxImage = NSImage(named: "epic-skybox-panorama") {
+        print("🎨 Loading skybox for \(worldType.rawValue): \(skyboxAssetName)")
+        
+        // Try to load world-specific skybox first
+        if let skyboxImage = NSImage(named: skyboxAssetName) {
             scene.background.contents = skyboxImage
             scene.lightingEnvironment.contents = skyboxImage
-            scene.lightingEnvironment.intensity = 2.5  // Enhanced lighting
-            // Skybox loaded
+            scene.lightingEnvironment.intensity = getSkyboxIntensity(for: worldType)
+            print("✅ Loaded world-specific skybox: \(skyboxAssetName)")
+        } else if let fallbackImage = NSImage(named: "epic-skybox-panorama") {
+            // Fallback to original skybox if world-specific not found
+            scene.background.contents = fallbackImage
+            scene.lightingEnvironment.contents = fallbackImage
+            scene.lightingEnvironment.intensity = 2.5
+            print("⚠️ World skybox not found, using fallback: epic-skybox-panorama")
         } else {
-            // Skybox asset not found, using fallback
-            // Fallback to procedural skybox
+            // Final fallback to procedural skybox
+            print("⚠️ No skybox assets found, generating procedural skybox")
             let skybox = MDLSkyCubeTexture(name: nil,
                                           channelEncoding: .uInt8,
                                           textureDimensions: vector_int2(Int32(256), Int32(256)),
@@ -1081,6 +1091,46 @@ struct Arena3DView: NSViewRepresentable {
             scene.background.contents = skybox.imageFromTexture()?.takeUnretainedValue()
             scene.lightingEnvironment.contents = skybox.imageFromTexture()?.takeUnretainedValue()
             scene.lightingEnvironment.intensity = 1.0
+        }
+    }
+    
+    /// Maps world types to their corresponding skybox asset names
+    private func getSkyboxAssetName(for worldType: WorldType3D) -> String {
+        switch worldType {
+        case .continental3D:
+            return "continental-skybox"
+        case .archipelago3D:
+            return "archipelago-skybox"
+        case .canyon3D:
+            return "canyon-skybox"
+        case .cavern3D:
+            return "cavern-skybox"
+        case .skylands3D:
+            return "skylands-skybox"
+        case .abyss3D:
+            return "abyss-skybox"
+        case .volcano3D:
+            return "volcano-skybox"
+        }
+    }
+    
+    /// Returns optimal lighting intensity for each world type's atmosphere
+    private func getSkyboxIntensity(for worldType: WorldType3D) -> CGFloat {
+        switch worldType {
+        case .continental3D:
+            return 2.5  // Bright, open plains
+        case .archipelago3D:
+            return 3.0  // Brilliant tropical sunlight
+        case .canyon3D:
+            return 2.0  // Harsh desert light
+        case .cavern3D:
+            return 1.2  // Dim underground lighting
+        case .skylands3D:
+            return 2.8  // Ethereal sky lighting
+        case .abyss3D:
+            return 1.5  // Filtered underwater light
+        case .volcano3D:
+            return 2.2  // Dramatic volcanic glow
         }
     }
     
