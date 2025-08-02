@@ -377,18 +377,18 @@ class VoxelWorld {
         // Print debug statistics
         // Voxel generation statistics:
         // Terrain Types:
-        for (type, count) in terrainCounts.sorted(by: { $0.value > $1.value }) {
-            let percentage = Double(count) / Double(getTotalVoxelCount()) * 100
+        for (_, count) in terrainCounts.sorted(by: { $0.value > $1.value }) {
+            let _ = Double(count) / Double(getTotalVoxelCount()) * 100
             // Type count logged
         }
         // Transition Types:
-        for (type, count) in transitionCounts.sorted(by: { $0.value > $1.value }) {
-            let percentage = Double(count) / Double(getTotalVoxelCount()) * 100
+        for (_, count) in transitionCounts.sorted(by: { $0.value > $1.value }) {
+            let _ = Double(count) / Double(getTotalVoxelCount()) * 100
             // Type count logged
         }
         
         let renderableCount = transitionCounts.filter { $0.key != "air" }.values.reduce(0, +)
-        let renderablePercentage = Double(renderableCount) / Double(getTotalVoxelCount()) * 100
+        let _ = Double(renderableCount) / Double(getTotalVoxelCount()) * 100
         // Renderable voxels counted
     }
     

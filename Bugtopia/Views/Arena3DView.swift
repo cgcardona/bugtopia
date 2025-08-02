@@ -76,7 +76,7 @@ struct Arena3DView: NSViewRepresentable {
     func updateNSView(_ nsView: SCNView, context: Context) {
         // 🎨 CHECK FOR VAN GOGH MATERIAL REGENERATION
         // Regenerate terrain if materials need updating
-        if needsSceneRegeneration {
+        if Self.needsSceneRegeneration {
             renderTerrain(scene: nsView.scene!)
         }
         
@@ -604,9 +604,9 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🎨 VAN GOGH SCENE REGENERATION CHECK
         // Remove existing terrain if regeneration needed for new materials
-        if needsSceneRegeneration {
+        if Self.needsSceneRegeneration {
             scene.rootNode.childNode(withName: "VoxelTerrainContainer", recursively: false)?.removeFromParentNode()
-            needsSceneRegeneration = false
+            Self.needsSceneRegeneration = false
             // Scene cleared for Van Gogh material regeneration
         }
         
@@ -876,11 +876,11 @@ struct Arena3DView: NSViewRepresentable {
         Self.clearMaterialCache()
         Self.hasInitializedVanGoghMaterials = false
         // Trigger scene regeneration on next update
-        needsSceneRegeneration = true
+        Self.needsSceneRegeneration = true
     }
     
-    // Track when scene needs full regeneration for new materials
-    private var needsSceneRegeneration = false
+    // Track when scene needs full regeneration for new materials (static to avoid mutating issues)
+    private static var needsSceneRegeneration = false
     
     // Force cache refresh on first Van Gogh render
     private static var hasInitializedVanGoghMaterials = false
@@ -2494,7 +2494,7 @@ class NavigationController {
         navigationMode = navigationMode == .walking ? .god : .walking
         updateCameraForMode()
         
-        let modeText = navigationMode == .walking ? "🚶 Walking Mode" : "👁️ God Mode"
+        let _ = navigationMode == .walking ? "🚶 Walking Mode" : "👁️ God Mode"
         // Switched navigation mode
     }
     
