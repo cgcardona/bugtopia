@@ -2013,6 +2013,7 @@ struct Arena3DView: NSViewRepresentable {
         let navController = NavigationController()
         navController.cameraNode = cameraNode
         navController.sceneView = sceneView
+        navController.voxelWorld = simulationEngine.voxelWorld  // For collision detection
         navController.navigationMode = navigationMode
         navController.walkingHeight = walkingHeight
         navController.movementSpeed = movementSpeed
@@ -2109,12 +2110,41 @@ enum MovementDirection {
 class NavigationController {
     weak var cameraNode: SCNNode?
     weak var sceneView: SCNView?
+    weak var voxelWorld: VoxelWorld?  // For collision detection
     var navigationMode: NavigationMode = .god
     var walkingHeight: Float = 10.0
     var movementSpeed: Float = 50.0
     var rotationSpeed: Float = 1.0
     
     var onModeToggle: (() -> Void)?
+    
+    // 🚧 COLLISION DETECTION for walkmode
+    private func wouldCollide(at position: SCNVector3) -> Bool {
+        guard let voxelWorld = voxelWorld, navigationMode == .walking else {
+            return false  // No collision checking in god mode
+        }
+        
+        // Convert SCNVector3 to Position3D for voxel lookup
+        let position3D = Position3D(
+            Double(position.x),
+            Double(position.z),  // Note: SCN Y/Z swapped in voxel coords
+            Double(position.y)
+        )
+        
+        // Check voxel at this position
+        guard let voxel = voxelWorld.getVoxel(at: position3D) else {
+            return false  // No voxel = no collision
+        }
+        
+        // Check if voxel blocks movement
+        let isBlocked = !voxel.terrainType.isPassable || !voxel.transitionType.isPassable
+        
+        if isBlocked {
+            print("🚧 Collision detected with \(voxel.terrainType) (\(voxel.transitionType)) at \(position)")
+        }
+        
+        return isBlocked
+    }
     
     func toggleMode() {
         navigationMode = navigationMode == .walking ? .god : .walking
@@ -2204,12 +2234,21 @@ class NavigationController {
             }
         }
         
-        // Apply movement
-        cameraNode.position = SCNVector3(
+        // Calculate intended new position
+        let newPosition = SCNVector3(
             cameraNode.position.x + translation.x,
             cameraNode.position.y + translation.y,
             cameraNode.position.z + translation.z
         )
+        
+        // 🚧 COLLISION CHECK for walkmode
+        if navigationMode == .walking && wouldCollide(at: newPosition) {
+            print("🚧 Movement blocked by collision!")
+            return  // Don't apply movement if collision detected
+        }
+        
+        // Apply movement (no collision detected)
+        cameraNode.position = newPosition
         
         // Only log significant movements to reduce noise
         let movementMagnitude = sqrt(translation.x * translation.x + translation.y * translation.y + translation.z * translation.z)
