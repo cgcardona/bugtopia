@@ -2118,11 +2118,13 @@ class NavigationController {
     
     var onModeToggle: (() -> Void)?
     
-    // 🚧 COLLISION DETECTION for walkmode
+        // 🚧 COLLISION DETECTION for walkmode
     private func wouldCollide(at position: SCNVector3) -> Bool {
         guard let voxelWorld = voxelWorld, navigationMode == .walking else {
             return false  // No collision checking in god mode
         }
+        
+        print("🔍 COLLISION CHECK: Camera at SCN(\(position.x), \(position.y), \(position.z))")
         
         // Convert SCNVector3 to Position3D for voxel lookup
         let position3D = Position3D(
@@ -2131,19 +2133,45 @@ class NavigationController {
             Double(position.y)
         )
         
+        print("🔍 COLLISION CHECK: Converted to Position3D(\(position3D.x), \(position3D.y), \(position3D.z))")
+        
         // Check voxel at this position
         guard let voxel = voxelWorld.getVoxel(at: position3D) else {
+            print("🔍 COLLISION CHECK: No voxel found at position")
             return false  // No voxel = no collision
         }
         
-        // Check if voxel blocks movement
-        let isBlocked = !voxel.terrainType.isPassable || !voxel.transitionType.isPassable
+        print("🔍 COLLISION CHECK: Found voxel - terrain: \(voxel.terrainType), transition: \(voxel.transitionType)")
         
+        // 🚶 CAMERA-SPECIFIC COLLISION LOGIC
+        // Cameras should be blocked by walls AND trees (even though bugs can climb trees)
+        let wallBlocked = voxel.terrainType == .wall
+        let treeBlocked = shouldBlockCameraFromVoxel(voxel)
+        let isBlocked = wallBlocked || treeBlocked
+        
+        // Debug: Show blocking logic details
+        print("🔍 BLOCKING LOGIC: wallBlocked=\(wallBlocked), treeBlocked=\(treeBlocked), isBlocked=\(isBlocked)")
+
         if isBlocked {
             print("🚧 Collision detected with \(voxel.terrainType) (\(voxel.transitionType)) at \(position)")
+            print("🔍 RETURNING TRUE - collision blocked!")
+            return true
+        } else {
+            print("🔍 RETURNING FALSE - no collision with \(voxel.terrainType) (\(voxel.transitionType))")
+            return false
         }
-        
-        return isBlocked
+    }
+    
+    // 🌲 Determine if camera should be blocked by this voxel
+    private func shouldBlockCameraFromVoxel(_ voxel: Voxel) -> Bool {
+        switch voxel.transitionType {
+        case .solid:
+            return true  // Always block solid voxels
+        case .climb:
+            return true  // Block trees from camera (bugs can still climb)
+        case .air, .ramp, .swim, .tunnel, .flight, .bridge:
+            return false  // Allow camera through these
+        }
     }
     
     func toggleMode() {
@@ -2242,9 +2270,16 @@ class NavigationController {
         )
         
         // 🚧 COLLISION CHECK for walkmode
-        if navigationMode == .walking && wouldCollide(at: newPosition) {
-            print("🚧 Movement blocked by collision!")
-            return  // Don't apply movement if collision detected
+        if navigationMode == .walking {
+            print("🚶 WALKMODE: Checking collision for movement to (\(newPosition.x), \(newPosition.y), \(newPosition.z))")
+            let collisionResult = wouldCollide(at: newPosition)
+            print("🔍 COLLISION RESULT: \(collisionResult)")
+            if collisionResult {
+                print("🚧 Movement blocked by collision!")
+                return  // Don't apply movement if collision detected
+            } else {
+                print("✅ No collision detected, allowing movement")
+            }
         }
         
         // Apply movement (no collision detected)
