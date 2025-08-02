@@ -88,26 +88,25 @@ struct SimulationView: View {
         HStack(spacing: 12) {
             // Control buttons
             HStack(spacing: 8) {
-            Button(action: {
-                if simulationEngine.isRunning {
-                    simulationEngine.pause()
-                } else {
-                    simulationEngine.start()
-                }
-            }) {
-                Image(systemName: simulationEngine.isRunning ? "pause.fill" : "play.fill")
-                    .font(.title2)
-            }
-                .buttonStyle(.bordered)
-            
                 Button(action: {
-                simulationEngine.reset()
+                    if simulationEngine.isRunning {
+                        simulationEngine.pause()
+                    } else {
+                        simulationEngine.start()
+                    }
                 }) {
-                    Image(systemName: "arrow.clockwise")
+                    Image(systemName: simulationEngine.isRunning ? "pause.fill" : "play.fill")
                         .font(.title2)
-            }
-            .buttonStyle(.bordered)
-            
+                }
+                .buttonStyle(.borderedProminent)
+                
+                Button(action: {
+                    simulationEngine.reset()
+                }) {
+                    Text("Reset")
+                }
+                .buttonStyle(.bordered)
+                
                 Button(action: {
                     simulationEngine.step()
                 }) {
@@ -126,13 +125,60 @@ struct SimulationView: View {
                 .buttonStyle(.borderedProminent)
             }
             
-            // Simulation Stats
+            Divider()
+                .frame(height: 30)
+            
+            // Quick Status Indicators
+            HStack(spacing: 8) {
+                // Weather Indicator
+                WeatherIndicator(weatherManager: simulationEngine.weatherManager)
+                
+                Text("•")
+                    .foregroundColor(.secondary)
+                
+                // Season Indicator
+                HStack(spacing: 4) {
+                    Text(simulationEngine.seasonalManager.currentSeason.emoji)
+                        .font(.title2)
+                    Text(simulationEngine.seasonalManager.currentSeason.rawValue.capitalized)
+                        .font(.headline)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(simulationEngine.seasonalManager.currentSeason.color.opacity(0.2)))
+                
+                Text("•")
+                    .foregroundColor(.secondary)
+                
+                // Disaster Indicator
+                DisasterIndicator(disasterManager: simulationEngine.disasterManager)
+                
+                // Ecosystem Indicator
+                EcosystemIndicator(ecosystemManager: simulationEngine.ecosystemManager)
+            }
+            
+            Divider()
+                .frame(height: 30)
+            
+            // Generation Info
             VStack(alignment: .leading, spacing: 2) {
                 Text("Generation: \(simulationEngine.currentGeneration)")
                     .font(.headline)
-                    .fontWeight(.bold)
                 Text("Population: \(simulationEngine.bugs.count)")
-                    .font(.subheadline)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Divider()
+                .frame(height: 30)
+            
+            // Quick Performance Stats
+            VStack(alignment: .leading, spacing: 2) {
+                let averageEnergy = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.energy).reduce(0, +) / Double(simulationEngine.bugs.count)
+                Text("Avg Energy: \(String(format: "%.1f", averageEnergy))")
+                    .font(.caption)
+                Text("Food: \(simulationEngine.foods.count)")
+                    .font(.caption)
                     .foregroundColor(.secondary)
             }
             
@@ -144,7 +190,7 @@ struct SimulationView: View {
                     showingStatistics.toggle()
                 }
             }) {
-                Image(systemName: showingStatistics ? "sidebar.right" : "sidebar.left")
+                Image(systemName: showingStatistics ? "sidebar.left.and.sidebar.right" : "rectangle.center.inset.filled")
                     .font(.title2)
             }
             .buttonStyle(.bordered)
@@ -222,13 +268,89 @@ struct SimulationView: View {
                         .font(.headline)
                         .fontWeight(.semibold)
                     
-                    let averageEnergy = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.energy).reduce(0, +) / Double(simulationEngine.bugs.count)
                     let averageSpeed = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.speed).reduce(0, +) / Double(simulationEngine.bugs.count)
-                    let averageSize = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.size).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    let averageVision = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.visionRadius).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    let averageEfficiency = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.energyEfficiency).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    let averageAggression = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.aggression).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    
+                    StatRow(label: "🏃 Speed", value: String(format: "%.2f", averageSpeed))
+                    StatRow(label: "👁️ Vision", value: String(format: "%.1f", averageVision))
+                    StatRow(label: "⚡ Efficiency", value: String(format: "%.2f", averageEfficiency))
+                    StatRow(label: "⚔️ Aggression", value: String(format: "%.2f", averageAggression))
+                }
+                
+                Divider()
+                
+                // Environmental Adaptations
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("🌍 Environmental Adaptations")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    
+                    let averageStrength = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.strength).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    let averageMemory = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.memory).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    let averageStickiness = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.stickiness).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    let averageCamouflage = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.camouflage).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    let averageCuriosity = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.dna.curiosity).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    
+                    StatRow(label: "💪 Strength", value: String(format: "%.2f", averageStrength))
+                    StatRow(label: "🧠 Memory", value: String(format: "%.2f", averageMemory))
+                    StatRow(label: "🕷️ Stickiness", value: String(format: "%.2f", averageStickiness))
+                    StatRow(label: "🫥 Camouflage", value: String(format: "%.2f", averageCamouflage))
+                    StatRow(label: "🔍 Curiosity", value: String(format: "%.2f", averageCuriosity))
+                }
+                
+                Divider()
+                
+                // Current Averages
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("📈 Current Averages")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    
+                    let averageEnergy = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.energy).reduce(0, +) / Double(simulationEngine.bugs.count)
+                    let averageAge = simulationEngine.bugs.isEmpty ? 0 : Double(simulationEngine.bugs.map(\.age).reduce(0, +)) / Double(simulationEngine.bugs.count)
                     
                     StatRow(label: "⚡ Energy", value: String(format: "%.1f", averageEnergy))
-                    StatRow(label: "🏃 Speed", value: String(format: "%.2f", averageSpeed))
-                    StatRow(label: "📏 Size", value: String(format: "%.2f", averageSize))
+                    StatRow(label: "📅 Age", value: String(format: "%.0f", averageAge))
+                }
+                
+                Divider()
+                
+                // Population Dynamics
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("🧬 Population Dynamics")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    
+                    let populations = simulationEngine.speciationManager.populations
+                    let viableSpecies = populations.filter { $0.isViableSpecies }
+                    
+                    StatRow(label: "Active Populations", value: "\(populations.count)")
+                    StatRow(label: "Viable Species", value: "\(viableSpecies.count)")
+                    
+                    if let largestPop = populations.max(by: { $0.size < $1.size }) {
+                        StatRow(label: "Largest Pop Size", value: "\(largestPop.size)")
+                        StatRow(label: "Dominant Species", value: String(largestPop.name.prefix(25)))
+                        StatRow(label: "Species Age", value: "\(largestPop.age) gen")
+                    }
+                    
+                    // Recent speciation events
+                    let recentEvents = simulationEngine.speciationManager.getRecentEvents(limit: 2)
+                    if !recentEvents.isEmpty {
+                        Text("Recent Speciation Events:")
+                            .font(.subheadline)
+                            .foregroundColor(.purple)
+                            .padding(.top, 8)
+                        
+                        ForEach(recentEvents.indices, id: \.self) { index in
+                            Text("• \(recentEvents[index].description)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                                .padding(.leading, 8)
+                        }
+                    }
                 }
                 
                 Spacer()
