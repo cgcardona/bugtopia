@@ -33,11 +33,6 @@ struct Arena3DView: NSViewRepresentable {
     @State private var rotationSpeed: Float = 1.0   // Rotation speed
     
     func makeNSView(context: Context) -> SCNView {
-        // 🕵️ SWIFTUI INTEGRATION DETECTOR
-        print("🔍 makeNSView called - checking for violations")
-        let stack = Thread.callStackSymbols
-        print("📍 makeNSView stack: \(stack.prefix(3).joined(separator: "\n"))")
-        
         let sceneView = SCNView()
         // ✅ FIX: Avoid state modification during view creation
         // Store sceneView reference after SwiftUI cycle completes
@@ -82,11 +77,6 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
-        // 🕵️ SWIFTUI UPDATE DETECTOR
-        print("🔍 updateNSView called - dispatching async updates")
-        let stack = Thread.callStackSymbols
-        print("📍 updateNSView stack: \(stack.prefix(3).joined(separator: "\n"))")
-        
         // ✅ FIX: Move scene updates out of SwiftUI update cycle to prevent violations
         guard let scene = nsView.scene else { return }
         
@@ -631,10 +621,8 @@ struct Arena3DView: NSViewRepresentable {
         // Render voxels with spectacular visuals
         renderVoxelTerrain(container: terrainContainer)
         
-        // 🌊 INSTANT SPECTACULAR WATER: Apply immediately, no delay!
-        DispatchQueue.main.async {
-            self.applyVanGoghMaterialsAsync(container: terrainContainer)
-        }
+        // 🎨 INSTANT VAN GOGH MATERIALS: All terrain types get immediate artistic treatment!
+        // No async processing needed - all materials applied instantly during voxel creation
         
         // 🌊 ULTRA-SPECTACULAR WATER: Start continuous animation system
         self.startSpectacularWaterAnimation(scene: scene)
@@ -776,21 +764,26 @@ struct Arena3DView: NSViewRepresentable {
     private func createAdvancedWaterMaterial(depth: Double, voxel: Voxel) -> SCNMaterial {
         let material = SCNMaterial()
         
-        // Depth-based water coloring
-        let deepBlue = NSColor(red: 0.05, green: 0.2, blue: 0.4, alpha: 0.8)
-        let shallowBlue = NSColor(red: 0.2, green: 0.5, blue: 0.8, alpha: 0.6)
-        let waterColor = blendColors(deepBlue, shallowBlue, ratio: depth)
+        // 🎨 VAN GOGH WATER COLORING: Swirling artistic patterns
+        let vanGoghWaterColor = createVanGoghWaterColor(voxel: voxel)
         
-        material.diffuse.contents = waterColor
+        material.diffuse.contents = vanGoghWaterColor
         material.metalness.contents = 0.98      // Water is highly reflective
         material.roughness.contents = 0.02      // Ultra-smooth surface
         material.transparency = 0.3 + (depth * 0.4)  // Deeper water is more opaque
         
-        // Add caustic-like patterns
-        material.normal.contents = createWaterNormalMap(voxel: voxel)
-        
-        // Enable environmental reflections
+        // 🎨 VAN GOGH SWIRL PATTERNS: Artistic water textures
+        material.normal.contents = getVanGoghTexture(type: "water_swirl")
         material.transparencyMode = .aOne
+        
+        // 🎨 VAN GOGH CAUSTIC LIGHTING: Starlight on water effects
+        material.emission.contents = createVanGoghCausticLighting(voxel: voxel)
+        
+        // 🎨 VAN GOGH REFLECTION MAPPING: Artistic sky reflections
+        material.reflective.contents = createVanGoghWaterReflectionMap()
+        
+        // 🎨 VAN GOGH DISPLACEMENT: Painterly depth illusion
+        material.displacement.contents = createVanGoghWaterDisplacementMap(voxel: voxel)
         
         return material
     }
@@ -881,15 +874,17 @@ struct Arena3DView: NSViewRepresentable {
     // Performance traded for stability and Van Gogh effect visibility
     
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
-        // ✅ FIX: Simplified material creation to avoid blocking during view updates
-        // Heavy Van Gogh textures will be applied asynchronously after initial render
+        // 🎨 INSTANT VAN GOGH MATERIAL SYSTEM
+        // All terrain types now get full Van Gogh artistic materials immediately!
         
         // Create lightweight base material immediately
         let material = SCNMaterial()
         
-        // Set basic properties without heavy texture generation
+        // 🎨 VISIBLE TERRAIN GETS INSTANT VAN GOGH MATERIALS!
+        // Underground/invisible terrain gets basic materials for performance
         switch voxel.terrainType {
         case .wall:
+            // 🏃‍♂️ WALLS ARE UNDERGROUND & INVISIBLE: Use fast basic materials to improve load time
             material.diffuse.contents = NSColor(red: 0.4, green: 0.35, blue: 0.3, alpha: 1.0)
             material.roughness.contents = 0.8
             material.metalness.contents = 0.02
@@ -898,167 +893,48 @@ struct Arena3DView: NSViewRepresentable {
             // Skip the async processing entirely for water - apply the full spectacular material now
             return createOptimizedWaterMaterial(voxel: voxel)
         case .forest:
-            material.diffuse.contents = NSColor(red: 0.3, green: 0.6, blue: 0.2, alpha: 1.0)
-            material.roughness.contents = 0.7
-            material.metalness.contents = 0.0
+            // 🌲 SPECTACULAR VAN GOGH TREES: Premium visible terrain gets full artistic treatment!
+            print("🌲 DEBUG: Creating Van Gogh wood material for forest voxel at \(voxel.position)")
+            return createOptimizedWoodMaterial(voxel: voxel)
         case .sand:
-            material.diffuse.contents = NSColor(red: 0.9, green: 0.8, blue: 0.6, alpha: 1.0)
-            material.roughness.contents = 0.9
-            material.metalness.contents = 0.0
+            // 🎨 INSTANT VAN GOGH SAND: Apply full artistic materials immediately!
+            return createOptimizedSandMaterial(voxel: voxel)
         case .ice:
-            material.diffuse.contents = NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.9)
-            material.roughness.contents = 0.05
-            material.metalness.contents = 0.1
-            material.transparency = 0.1
+            // 🎨 INSTANT VAN GOGH ICE: Apply full artistic materials immediately!
+            return createOptimizedIceMaterial(voxel: voxel)
         case .hill:
-            material.diffuse.contents = NSColor(red: 0.5, green: 0.45, blue: 0.4, alpha: 1.0)
-            material.roughness.contents = 0.7
-            material.metalness.contents = 0.05
+            // 🎨 INSTANT VAN GOGH STONE: Apply full artistic materials immediately!
+            return createOptimizedStoneMaterial(voxel: voxel)
         case .food:
-            material.diffuse.contents = NSColor(red: 0.4, green: 0.8, blue: 0.3, alpha: 1.0)
-            material.roughness.contents = 0.5
-            material.metalness.contents = 0.0
-            material.emission.contents = NSColor(red: 0.15, green: 0.6, blue: 0.15, alpha: 1.0)
+            // 🎨 INSTANT VAN GOGH VEGETATION: Apply full artistic materials immediately!
+            return createOptimizedVegetationMaterial(voxel: voxel)
         case .swamp:
-            material.diffuse.contents = NSColor(red: 0.3, green: 0.25, blue: 0.15, alpha: 1.0)
-            material.roughness.contents = 0.9
-            material.metalness.contents = 0.0
+            // 🎨 INSTANT VAN GOGH MUD: Apply full artistic materials immediately!
+            return createOptimizedMudMaterial(voxel: voxel)
         case .open:
-            material.diffuse.contents = getLayerAwareColor(
-                baseColor: NSColor(red: 0.3, green: 0.7, blue: 0.3, alpha: 1.0),
-                voxel: voxel
-            )
-            material.roughness.contents = 0.6
-            material.metalness.contents = 0.0
-        default:
-            material.diffuse.contents = getLayerAwareColor(
-                baseColor: NSColor(red: 0.3, green: 0.7, blue: 0.3, alpha: 1.0),
-                voxel: voxel
-            )
-            material.roughness.contents = 0.6
-            material.metalness.contents = 0.0
+            // 🎨 INSTANT VAN GOGH GRASS: Apply full artistic materials immediately!
+            return createOptimizedGrassMaterial(voxel: voxel)
+        case .shadow:
+            // 🏃‍♂️ SHADOWS ARE LESS VISIBLE: Use basic materials for performance
+            material.diffuse.contents = NSColor(white: 0.2, alpha: 0.6)
+            material.transparency = 0.6
+            material.roughness.contents = 0.8
+            material.metalness.contents = 0.02
+        case .predator:
+            // 🏃‍♂️ PREDATOR AREAS ARE RARE: Use basic materials for performance
+            material.diffuse.contents = NSColor.red.withAlphaComponent(0.3)
+            material.roughness.contents = 0.8
+            material.metalness.contents = 0.02
+        case .wind:
+            // 🎨 INSTANT VAN GOGH WIND: Apply light grass materials immediately!
+            return createOptimizedGrassMaterial(voxel: voxel)
         }
-        
-        // TODO: Apply Van Gogh textures asynchronously after scene loads
-        // This prevents blocking during initial voxel creation
         
         return material
     }
     
-    // MARK: - ✨ Async Van Gogh Material Enhancement System
-    
-    private func applyVanGoghMaterialsAsync(container: SCNNode) {
-        // Apply beautiful Van Gogh materials asynchronously to avoid blocking UI
-        
-        DispatchQueue.global(qos: .userInitiated).async {
-            // Process materials in background
-            var materialUpdates: [(SCNNode, SCNMaterial)] = []
-            
-            // Collect all voxel nodes that need Van Gogh materials (SKIP WATER - already has full materials)
-            self.traverseVoxelNodes(container: container) { voxelNode, voxel in
-                if voxel.terrainType != .water {  // Skip water - already has spectacular materials!
-                    let vanGoghMaterial = self.createVanGoghMaterial(for: voxel)
-                    materialUpdates.append((voxelNode, vanGoghMaterial))
-                }
-            }
-            
-            // Apply materials on main thread in batches to avoid blocking UI
-            DispatchQueue.main.async {
-                self.applyMaterialUpdatesInBatches(updates: materialUpdates)
-            }
-        }
-    }
-    
-    private func traverseVoxelNodes(container: SCNNode, process: (SCNNode, Voxel) -> Void) {
-        // Traverse all voxel nodes and process them efficiently
-        var totalVoxelsFound = 0
-        var totalNodesTraversed = 0
-        
-        for layerContainer in container.childNodes {
-            for voxelNode in layerContainer.childNodes {
-                totalNodesTraversed += 1
-                // Extract voxel data from node position using fixed coordinate conversion
-                if let voxel = getVoxelFromNode(node: voxelNode) {
-                    process(voxelNode, voxel)
-                    totalVoxelsFound += 1
-                }
-            }
-        }
-        
-        print("✨ Van Gogh enhancement: \(totalVoxelsFound)/\(totalNodesTraversed) voxels processed successfully")
-    }
-    
-    private func getVoxelFromNode(node: SCNNode) -> Voxel? {
-        // ✅ FIX: Proper coordinate transformation using existing VoxelWorld methods
-        
-        // Step 1: Convert SCN coordinates back to world coordinates (reverse axis swapping)
-        let worldPosition = Position3D(
-            Double(node.position.x),    // SCN X → World X
-            Double(node.position.z),    // SCN Z → World Y  
-            Double(node.position.y)     // SCN Y → World Z
-        )
-        
-        // Step 2: Use VoxelWorld's worldToGrid method for proper conversion
-        let voxelWorld = simulationEngine.voxelWorld
-        let gridPos = voxelWorld.worldToGrid(worldPosition)
-        
-        // ✅ COORDINATE CONVERSION SUCCESS: SCN → World → Grid
-        let voxel = voxelWorld.voxels[gridPos.x][gridPos.y][gridPos.z]
-        return voxel
-    }
-    
-    private func applyMaterialUpdatesInBatches(updates: [(SCNNode, SCNMaterial)]) {
-        let batchSize = 50 // Process 50 materials per frame - faster Van Gogh application!
-        var index = 0
-        
-        func processBatch() {
-            let endIndex = min(index + batchSize, updates.count)
-            
-            for i in index..<endIndex {
-                let (node, material) = updates[i]
-                node.geometry?.firstMaterial = material
-            }
-            
-            index = endIndex
-            
-            if index < updates.count {
-                // Schedule next batch for next frame
-                DispatchQueue.main.async {
-                    processBatch()
-                }
-            } else {
-                print("✨ Van Gogh materials applied to \(updates.count) voxels")
-            }
-        }
-        
-        processBatch()
-    }
-    
-    private func createVanGoghMaterial(for voxel: Voxel) -> SCNMaterial {
-        // Create the full Van Gogh material (background thread safe)
-        switch voxel.terrainType {
-        case .wall:
-            return createOptimizedRockMaterial(voxel: voxel)
-        case .water:
-            return createOptimizedWaterMaterial(voxel: voxel)
-        case .forest:
-            return createOptimizedWoodMaterial(voxel: voxel)
-        case .sand:
-            return createOptimizedSandMaterial(voxel: voxel)
-        case .ice:
-            return createOptimizedIceMaterial(voxel: voxel)
-        case .hill:
-            return createOptimizedStoneMaterial(voxel: voxel)
-        case .food:
-            return createOptimizedVegetationMaterial(voxel: voxel)
-        case .swamp:
-            return createOptimizedMudMaterial(voxel: voxel)
-        case .open:
-            return createOptimizedGrassMaterial(voxel: voxel)
-        default:
-            return createOptimizedGrassMaterial(voxel: voxel)
-        }
-    }
+    // MARK: - 🗑️ DEAD CODE REMOVED: All async Van Gogh processing eliminated!
+    // All materials are now applied instantly during voxel creation - no more 30s delays!
     
     private func createSimpleRockMaterial(voxel: Voxel) -> SCNMaterial {
         let material = SCNMaterial()
@@ -1125,17 +1001,17 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🌟 ULTRA-SPECTACULAR WATER SYSTEM: Multiple advanced techniques
         
-        // 1. Time-animated base water color with flowing effects
-        let spectacularWaterColor = createSpectacularWaterColor(voxel: voxel)
-        material.diffuse.contents = spectacularWaterColor
+        // 1. 🎨 VAN GOGH WATER COLOR: Swirling artistic patterns
+        let vanGoghWaterColor = createVanGoghWaterColor(voxel: voxel)
+        material.diffuse.contents = vanGoghWaterColor
         
         // 2. Ultra-realistic water physics properties
         material.metalness.contents = 0.95      // Nearly perfect reflection
         material.roughness.contents = 0.02      // Mirror-smooth surface
         material.transparency = calculateDynamicTransparency(voxel: voxel)
         
-        // 3. Advanced multi-layered normal mapping for realism
-        material.normal.contents = createAdvancedWaterNormals(voxel: voxel)
+        // 3. 🎨 VAN GOGH SWIRL PATTERNS: Artistic water textures
+        material.normal.contents = getVanGoghTexture(type: "water_swirl")
         material.transparencyMode = .aOne
         
         // 4. Spectacular caustic lighting effects
@@ -1380,15 +1256,15 @@ struct Arena3DView: NSViewRepresentable {
         // Create animated voxel for material generation
         let animatedVoxel = createAnimatedWaterVoxel(position: animatedPosition)
         
-        // Update the material properties with new animations
+        // Update the material properties with new Van Gogh animations
         DispatchQueue.main.async {
-            material.diffuse.contents = self.createSpectacularWaterColor(voxel: animatedVoxel)
+            material.diffuse.contents = self.createVanGoghWaterColor(voxel: animatedVoxel)
             material.emission.contents = self.createCausticLighting(voxel: animatedVoxel)
             material.transparency = self.calculateDynamicTransparency(voxel: animatedVoxel)
             
-            // Update normal maps less frequently for performance
+            // Update Van Gogh swirl patterns less frequently for performance
             if Int(currentTime * 2) % 3 == 0 {  // Every 1.5 seconds
-                material.normal.contents = self.createAdvancedWaterNormals(voxel: animatedVoxel)
+                material.normal.contents = self.getVanGoghTexture(type: "water_swirl")
             }
         }
     }
@@ -1405,31 +1281,147 @@ struct Arena3DView: NSViewRepresentable {
         )
     }
     
-    // 🎨 Van Gogh Water Color Generation (Legacy - keeping for comparison)
+    // 🎨 VAN GOGH ULTRA-SPECTACULAR WATER COLOR SYSTEM
     private func createVanGoghWaterColor(voxel: Voxel) -> NSColor {
         let position = voxel.position
+        let currentTime = Date().timeIntervalSince1970
         
-        // Create hypnotic water swirls
+        // 1. VAN GOGH FLOWING BRUSHSTROKES - Ultra-dramatic like Starry Night over the Rhône
+        let brushstrokeX = sin(currentTime * 1.5 + position.x * 0.2) * 0.8         // Flowing brushstrokes
+        let brushstrokeY = cos(currentTime * 2.0 + position.y * 0.25) * 0.6        // Swirling patterns
+        let brushstrokeZ = sin(currentTime * 1.0 + position.z * 0.15) * 0.7        // Depth movement
+        
+        // 2. VAN GOGH CIRCULAR SPIRAL PATTERNS - Like whirlpools in Starry Night
         let centerX = position.x / 50.0 - 0.5
         let centerY = position.y / 50.0 - 0.5
         let radius = sqrt(centerX * centerX + centerY * centerY)
         let angle = atan2(centerY, centerX)
+        let spiral = sin(radius * 15.0 + angle * 4.0 + currentTime * 3.0) * 0.4    // Animated spirals
         
-        // Van Gogh-style water with circular patterns
-        let spiral = sin(radius * 15.0 + angle * 4.0) * 0.3
-        let depth = cos(radius * 8.0) * 0.2
+        // 3. VAN GOGH LAYERED WATER DEPTHS - Multiple brushstroke layers
+        let surfaceSwirls = sin(position.x * 0.4 + currentTime * 4.0) * 
+                           cos(position.z * 0.35 + currentTime * 3.0) * 0.4        // Surface brushstrokes
+        let midDepthFlow = cos(position.x * 0.2 + position.z * 0.2 + currentTime * 1.5) * 0.5  // Medium depth
+        let deepCurrents = sin(position.x * 0.1 + position.z * 0.12 + currentTime * 0.8) * 0.3  // Deep patterns
         
-        // Deep blues with swirling highlights
-        let blueIntensity = 0.6 + spiral * 0.3
-        let greenHint = 0.2 + depth * 0.2
-        let highlights = 0.1 + max(0, spiral * 0.4)
+        // 4. VAN GOGH IMPASTO LIGHT EFFECTS - Thick paint texture like moonlight on water
+        let lightX = position.x / 15.0
+        let lightZ = position.z / 15.0
+        let impasto1 = sin(lightX * 12.0 + currentTime * 6.0) * cos(lightZ * 10.0 + currentTime * 5.0)
+        let impasto2 = cos(lightX * 18.0 + currentTime * 8.0) * sin(lightZ * 15.0 + currentTime * 7.0)
+        let impasto3 = sin(lightX * 25.0 + lightZ * 20.0 + currentTime * 10.0) * 0.8
+        let impastoEffect = (impasto1 + impasto2 + impasto3) * 0.6
+        
+        // 5. VAN GOGH SIGNATURE PALETTE - Deep blues, swirling yellows, moonlight whites
+        let deepNightBlue = 0.1 + brushstrokeZ * 0.15 + spiral * 0.2            // Deep Van Gogh blues
+        let swirlingCyan = 0.4 + brushstrokeY * 0.2 + midDepthFlow * 0.3        // Cyan highlights
+        let moonlightBlue = 0.7 + brushstrokeX * 0.3 + surfaceSwirls * 0.2      // Surface moonlight
+        
+        // 6. VAN GOGH GOLDEN HIGHLIGHTS - Like starlight reflections
+        let goldenHighlight = 0.2 + impastoEffect * 0.4 + spiral * 0.3          // Van Gogh gold
+        let emeraldSwirl = 0.6 + (brushstrokeX + brushstrokeY) * 0.2            // Green swirls
+        let celestialWhite = 0.9 + impastoEffect * 0.1 + deepCurrents * 0.1     // Celestial highlights
+        
+        // 7. FINAL VAN GOGH WATER COMPOSITION - Artistic color mixing
+        let finalRed = CGFloat(celestialWhite * 0.3 + goldenHighlight * 0.4)     // Warm moonlight
+        let finalGreen = CGFloat(emeraldSwirl * 0.8 + impastoEffect * 0.3)       // Van Gogh green-blues
+        let finalBlue = CGFloat(moonlightBlue * 0.6 + swirlingCyan * 0.3 + deepNightBlue * 0.4)  // Deep blues
         
         return NSColor(
-            red: CGFloat(highlights),
-            green: CGFloat(greenHint),
-            blue: CGFloat(blueIntensity),
-            alpha: 0.7
+            red: finalRed,
+            green: finalGreen,
+            blue: finalBlue,
+            alpha: 0.75
         )
+    }
+    
+    // 🎨 VAN GOGH CAUSTIC LIGHTING SYSTEM - Starlight on water like in Starry Night over the Rhône
+    private func createVanGoghCausticLighting(voxel: Voxel) -> NSColor {
+        let position = voxel.position
+        let currentTime = Date().timeIntervalSince1970
+        
+        // VAN GOGH STELLAR LIGHT PATTERNS - Like stars reflecting on water
+        let starLight1 = sin(position.x * 0.4 + currentTime * 8.0) * cos(position.z * 0.35 + currentTime * 7.0)
+        let starLight2 = cos(position.x * 0.3 + currentTime * 6.0) * sin(position.z * 0.45 + currentTime * 9.0)
+        let starLight3 = sin(position.x * 0.5 + position.z * 0.4 + currentTime * 11.0) * 0.9
+        let moonBeam = cos(position.x * 0.25 + position.z * 0.3 + currentTime * 5.0) * 0.8  // Moonlight pattern
+        
+        let celestialIntensity = (starLight1 + starLight2 + starLight3 + moonBeam) / 4.0
+        let brightness = max(0, celestialIntensity) * 0.8
+        
+        // VAN GOGH PALETTE - Golden stars, deep blues, celestial whites
+        let starGold = 0.8 + brightness * 1.2          // Golden starlight
+        let moonSilver = 0.7 + brightness * 0.9        // Silver moonbeams  
+        let deepNight = 0.3 + brightness * 0.6         // Deep night blues
+        
+        return NSColor(
+            red: CGFloat(max(0, min(1, starGold))),
+            green: CGFloat(max(0, min(1, moonSilver))),
+            blue: CGFloat(max(0, min(1, deepNight))),
+            alpha: 1.0
+        )
+    }
+    
+    // 🎨 VAN GOGH WATER REFLECTION MAPPING - Swirling night sky like Starry Night
+    private func createVanGoghWaterReflectionMap() -> NSImage {
+        let size = 32
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let currentTime = Date().timeIntervalSince1970
+        
+        // Van Gogh swirling night sky reflection
+        for x in 0..<size {
+            for y in 0..<size {
+                // Swirling sky patterns like Starry Night
+                let skySwirl = sin(Double(x) * 0.5 + currentTime * 2.0) * cos(Double(y) * 0.6 + currentTime * 1.5)
+                let starPattern = cos(Double(x) * 0.3) * sin(Double(y) * 0.4) * 0.3
+                
+                let finalIntensity = (skySwirl + starPattern) * 0.5 + 0.5
+                let color = NSColor(
+                    red: CGFloat(0.2 + finalIntensity * 0.6),      // Golden sky tones
+                    green: CGFloat(0.3 + finalIntensity * 0.5),    // Warm highlights
+                    blue: CGFloat(0.8 + finalIntensity * 0.2),     // Deep night blues
+                    alpha: 1.0
+                )
+                
+                let rect = NSRect(x: x, y: y, width: 1, height: 1)
+                color.setFill()
+                rect.fill()
+            }
+        }
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    // 🎨 VAN GOGH WATER DISPLACEMENT MAPPING - Painterly brushstroke depth
+    private func createVanGoghWaterDisplacementMap(voxel: Voxel) -> NSImage {
+        let size = 32
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        
+        let currentTime = Date().timeIntervalSince1970
+        
+        // Van Gogh impasto brushstroke displacement
+        for x in 0..<size {
+            for y in 0..<size {
+                let brushstroke = sin(Double(x) * 0.4 + currentTime * 2.0) * 
+                                cos(Double(y) * 0.3 + currentTime * 1.5) * 0.2
+                let impasto = cos(Double(x) * 0.6 + Double(y) * 0.5) * 0.1  // Thick paint texture
+                
+                let displacement = brushstroke + impasto
+                let intensity = (displacement + 1.0) / 2.0  // Normalize
+                let color = NSColor(red: intensity, green: intensity, blue: intensity, alpha: 1.0)
+                
+                let rect = NSRect(x: x, y: y, width: 1, height: 1)
+                color.setFill()
+                rect.fill()
+            }
+        }
+        
+        image.unlockFocus()
+        return image
     }
     
     private func createOptimizedWoodMaterial(voxel: Voxel) -> SCNMaterial {
@@ -1437,11 +1429,16 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🎨 VAN GOGH TREES: Expressive cypress-like with flame patterns
         let vanGoghTreeColor = createVanGoghTreeColor(voxel: voxel)
-        material.diffuse.contents = vanGoghTreeColor
+        
+        // Apply the actual Van Gogh tree colors with layer-aware color adjustments
+        material.diffuse.contents = getLayerAwareColor(
+            baseColor: vanGoghTreeColor,
+            voxel: voxel
+        )
         material.metalness.contents = 0.0       // Wood is not metallic
         material.roughness.contents = 0.7       // Textured bark feeling
         
-        // Use Van Gogh flame-like tree normal map
+        // Use Van Gogh flame-like tree normal map for artistic texture
         material.normal.contents = getVanGoghTexture(type: "tree_swirl")
         
         // Add warm tree glow like Van Gogh's golden trees
@@ -1954,77 +1951,96 @@ struct Arena3DView: NSViewRepresentable {
     
     private func createOpenTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.2)
-        box.firstMaterial?.diffuse.contents = getLayerColor(layer: layer, alpha: 0.8)
-        box.firstMaterial?.roughness.contents = 0.8
-        box.firstMaterial?.metalness.contents = 0.1
+        
+        // 🎨 APPLY VAN GOGH GRASS MATERIALS to tile terrain!
+        let dummyVoxel = createDummyVoxel(terrainType: .open, layer: layer)
+        box.firstMaterial = createOptimizedGrassMaterial(voxel: dummyVoxel)
+        
         return box
     }
     
     private func createWallTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.1)
-        box.firstMaterial?.diffuse.contents = NSColor.darkGray
-        box.firstMaterial?.roughness.contents = 0.9
-        box.firstMaterial?.metalness.contents = 0.2
-        box.firstMaterial?.normal.contents = "rock_normal" // Add texture if available
+        
+        // 🎨 APPLY VAN GOGH ROCK MATERIALS to tile terrain!
+        let dummyVoxel = createDummyVoxel(terrainType: .wall, layer: layer)
+        box.firstMaterial = createOptimizedRockMaterial(voxel: dummyVoxel)
+        
         return box
     }
     
     private func createWaterTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.5)
-        box.firstMaterial?.diffuse.contents = NSColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 0.7)
-        box.firstMaterial?.transparency = 0.7
-        box.firstMaterial?.roughness.contents = 0.1
-        box.firstMaterial?.metalness.contents = 0.0
+        
+        // 🎨 APPLY VAN GOGH WATER MATERIALS to tile terrain!
+        let dummyVoxel = createDummyVoxel(terrainType: .water, layer: layer)
+        box.firstMaterial = createOptimizedWaterMaterial(voxel: dummyVoxel)
+        
         return box
     }
     
     private func createFoodTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let sphere = SCNSphere(radius: CGFloat(size * 0.4))
-        sphere.firstMaterial?.diffuse.contents = NSColor.green
-        sphere.firstMaterial?.emission.contents = NSColor(red: 0.0, green: 0.3, blue: 0.0, alpha: 1.0)
-        sphere.firstMaterial?.roughness.contents = 0.3
+        
+        // 🎨 APPLY VAN GOGH VEGETATION MATERIALS to tile terrain!
+        let dummyVoxel = createDummyVoxel(terrainType: .food, layer: layer)
+        sphere.firstMaterial = createOptimizedVegetationMaterial(voxel: dummyVoxel)
+        
         return sphere
     }
     
     private func createForestTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let cylinder = SCNCylinder(radius: CGFloat(size * 0.3), height: CGFloat(height))
-        cylinder.firstMaterial?.diffuse.contents = NSColor(red: 0.2, green: 0.8, blue: 0.2, alpha: 1.0)
-        cylinder.firstMaterial?.roughness.contents = 0.7
+        
+        // 🎨 APPLY VAN GOGH WOOD MATERIALS to tile terrain!
+        let dummyVoxel = createDummyVoxel(terrainType: .forest, layer: layer)
+        cylinder.firstMaterial = createOptimizedWoodMaterial(voxel: dummyVoxel)
+        
         return cylinder
     }
     
     private func createHillTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let cone = SCNCone(topRadius: 0, bottomRadius: CGFloat(size * 0.6), height: CGFloat(height))
-        cone.firstMaterial?.diffuse.contents = NSColor.brown
-        cone.firstMaterial?.roughness.contents = 0.8
+        
+        // 🎨 APPLY VAN GOGH STONE MATERIALS to tile terrain!
+        let dummyVoxel = createDummyVoxel(terrainType: .hill, layer: layer)
+        cone.firstMaterial = createOptimizedStoneMaterial(voxel: dummyVoxel)
+        
         return cone
     }
     
     private func createSandTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.3)
-        box.firstMaterial?.diffuse.contents = NSColor(red: 1.0, green: 0.9, blue: 0.6, alpha: 1.0)
-        box.firstMaterial?.roughness.contents = 0.9
+        
+        // 🎨 APPLY VAN GOGH SAND MATERIALS to tile terrain!
+        let dummyVoxel = createDummyVoxel(terrainType: .sand, layer: layer)
+        box.firstMaterial = createOptimizedSandMaterial(voxel: dummyVoxel)
+        
         return box
     }
     
     private func createIceTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.1)
-        box.firstMaterial?.diffuse.contents = NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 0.9)
-        box.firstMaterial?.transparency = 0.9
-        box.firstMaterial?.roughness.contents = 0.1
-        box.firstMaterial?.metalness.contents = 0.1
+        
+        // 🎨 APPLY VAN GOGH ICE MATERIALS to tile terrain!
+        let dummyVoxel = createDummyVoxel(terrainType: .ice, layer: layer)
+        box.firstMaterial = createOptimizedIceMaterial(voxel: dummyVoxel)
+        
         return box
     }
     
     private func createSwampTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.4)
-        box.firstMaterial?.diffuse.contents = NSColor(red: 0.4, green: 0.5, blue: 0.2, alpha: 0.8)
-        box.firstMaterial?.roughness.contents = 0.9
+        
+        // 🎨 APPLY VAN GOGH MUD MATERIALS to tile terrain!
+        let dummyVoxel = createDummyVoxel(terrainType: .swamp, layer: layer)
+        box.firstMaterial = createOptimizedMudMaterial(voxel: dummyVoxel)
+        
         return box
     }
     
     private func createWindTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
-        // Invisible geometry with particle effects
+        // Invisible geometry with particle effects - keep simple for wind
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height * 0.1), length: CGFloat(size), chamferRadius: 0.5)
         box.firstMaterial?.diffuse.contents = NSColor.clear
         box.firstMaterial?.transparency = 0.1
@@ -2033,16 +2049,34 @@ struct Arena3DView: NSViewRepresentable {
     
     private func createPredatorTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let pyramid = SCNPyramid(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size))
-        pyramid.firstMaterial?.diffuse.contents = NSColor.red
-        pyramid.firstMaterial?.emission.contents = NSColor(red: 0.3, green: 0.0, blue: 0.0, alpha: 1.0)
+        
+        // 🎨 APPLY VAN GOGH ROCK MATERIALS to predator terrain (dramatic stones)!
+        let dummyVoxel = createDummyVoxel(terrainType: .wall, layer: layer)
+        pyramid.firstMaterial = createOptimizedRockMaterial(voxel: dummyVoxel)
+        
         return pyramid
     }
     
     private func createShadowTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height * 0.5), length: CGFloat(size), chamferRadius: 0.2)
-        box.firstMaterial?.diffuse.contents = NSColor(white: 0.2, alpha: 0.6)
+        
+        // 🎨 APPLY VAN GOGH STONE MATERIALS to shadow terrain (dark artistic stones)!
+        let dummyVoxel = createDummyVoxel(terrainType: .hill, layer: layer)
+        box.firstMaterial = createOptimizedStoneMaterial(voxel: dummyVoxel)
         box.firstMaterial?.transparency = 0.6
         return box
+    }
+    
+    // 🎨 HELPER: Create dummy voxel for tile terrain Van Gogh materials
+    private func createDummyVoxel(terrainType: TerrainType, layer: TerrainLayer) -> Voxel {
+        return Voxel(
+            gridPosition: (0, 0, 0),  // Not used for materials
+            worldPosition: Position3D(0, 0, 0),  // Not used for materials  
+            terrainType: terrainType,
+            layer: layer,
+            transitionType: .solid,  // Default transition
+            biome: .temperateForest  // Default biome
+        )
     }
     
     private func getLayerColor(layer: TerrainLayer, alpha: Float = 1.0) -> NSColor {
