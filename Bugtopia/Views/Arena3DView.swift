@@ -58,9 +58,7 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🎨 FORCE VAN GOGH MATERIAL INITIALIZATION
         // Clear cache immediately to ensure Van Gogh materials are used
-        print("🔧 DEBUG: makeNSView - About to clear material cache")
         Self.clearMaterialCache()
-        print("🔧 DEBUG: makeNSView - Material cache cleared, about to render terrain")
         
         // Render the world with fresh Van Gogh materials
         renderTerrain(scene: scene)
@@ -76,11 +74,9 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
-        print("🔄 DEBUG: updateNSView called - this should NOT trigger material generation")
         // Update bug positions and territories
         updateBugPositions(scene: nsView.scene!)
         updateTerritoryVisualizations(scene: nsView.scene!)
-        print("🔄 DEBUG: updateNSView completed")
     }
     
     // MARK: - Scene Setup
@@ -856,10 +852,8 @@ struct Arena3DView: NSViewRepresentable {
     // 🎨 VAN GOGH CACHE MANAGEMENT
     // Clear material cache to force regeneration with new Van Gogh materials
     static func clearMaterialCache() {
-        print("🔧 DEBUG: clearMaterialCache - Clearing \(materialCache.count) materials and \(sharedTextures.count) textures")
         materialCache.removeAll()
         sharedTextures.removeAll()
-        print("🔧 DEBUG: clearMaterialCache - Cache cleared")
     }
     
     // Force immediate Van Gogh material regeneration
@@ -875,25 +869,21 @@ struct Arena3DView: NSViewRepresentable {
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
         // 🎨 VAN GOGH MATERIALS
         // Cache is pre-cleared in makeNSView for fresh Van Gogh materials
-        print("🎨 DEBUG: createPBRMaterial called for \(voxel.terrainType.rawValue) at \(voxel.position)")
         
         // Skip cache key generation (no caching to avoid SwiftUI violations)
         // let cacheKey = "\(voxel.terrainType.rawValue)_\(voxel.biome.rawValue)_\(voxel.layer.rawValue)"
         
         // ⚠️  SKIP ALL STATIC PROPERTY ACCESS DURING VIEW UPDATES
-        print("🔧 DEBUG: Always create fresh materials (no static property access)")
+        // Always create fresh materials (no static property access)
         
-        // Create new material and cache it
-        print("🎨 DEBUG: Creating \(voxel.terrainType.rawValue) material")
+        // Create new material
         let material: SCNMaterial
         switch voxel.terrainType {
         case .wall:
             material = createOptimizedRockMaterial(voxel: voxel)
         case .water:
-            print("🌊 DEBUG: Creating Van Gogh water material")
             material = createOptimizedWaterMaterial(voxel: voxel)
         case .forest:
-            print("🌳 DEBUG: Creating Van Gogh tree material")
             material = createOptimizedWoodMaterial(voxel: voxel)
         case .sand:
             material = createOptimizedSandMaterial(voxel: voxel)
@@ -902,50 +892,69 @@ struct Arena3DView: NSViewRepresentable {
         case .hill:
             material = createOptimizedStoneMaterial(voxel: voxel)
         case .food:
-            print("🍎 DEBUG: Creating Van Gogh food material")
             material = createOptimizedVegetationMaterial(voxel: voxel)
         case .swamp:
             material = createOptimizedMudMaterial(voxel: voxel)
         default:
-            print("🌱 DEBUG: Creating Van Gogh grass material")
             material = createOptimizedGrassMaterial(voxel: voxel)
         }
         
         // ⚠️  SKIP ALL STATIC PROPERTY ACCESS DURING VIEW UPDATES
-        print("🔧 DEBUG: Fresh material created (no caching during view updates)")
+        // Fresh material created (no caching during view updates)
         return material.copy() as! SCNMaterial
     }
     
     private func createOptimizedRockMaterial(voxel: Voxel) -> SCNMaterial {
         let material = SCNMaterial()
         
-        // Realistic rock properties with optimized shared textures
+        // 🎨 VAN GOGH ROCKS: Dramatic, expressive stone with swirling energy
+        let vanGoghRockColor = createVanGoghRockColor(voxel: voxel)
         material.diffuse.contents = getLayerAwareColor(
-            baseColor: NSColor(red: 0.4, green: 0.35, blue: 0.3, alpha: 1.0),
+            baseColor: vanGoghRockColor,
             voxel: voxel
         )
-        material.metalness.contents = 0.02      // Rocks are not metallic
-        material.roughness.contents = 0.8       // Rough surface
+        material.metalness.contents = 0.1       // Slight metallic shimmer like minerals
+        material.roughness.contents = 0.6       // Softer for painterly effect
         
-        // Use shared normal map instead of generating per voxel
-        material.normal.contents = getSharedTexture(type: "rock_normal")
+        // Use Van Gogh swirling rock patterns
+        material.normal.contents = getVanGoghTexture(type: "rock_swirl")
         
-        // Add subtle color variation based on biome
-        material.diffuse.contents = modulateColorByBiome(
-            baseColor: material.diffuse.contents as! NSColor,
-            biome: voxel.biome
-        )
+        // Add warm earth glow like Van Gogh's earthy palette
+        material.emission.contents = NSColor(red: 0.15, green: 0.12, blue: 0.08, alpha: 1.0)
         
         return material
+    }
+    
+    // 🎨 Van Gogh Rock Color Generation
+    private func createVanGoghRockColor(voxel: Voxel) -> NSColor {
+        let position = voxel.position
+        
+        // Create geological swirling patterns like Van Gogh's brushstrokes
+        let swirl1 = sin(position.x * 0.1) * cos(position.z * 0.12)
+        let swirl2 = cos(position.y * 0.08) * sin(position.x * 0.15)
+        let geologicalPattern = (swirl1 + swirl2) * 0.4
+        
+        // Van Gogh-style earth tones with dynamic intensity
+        let earthBrown = 0.45 + geologicalPattern * 0.3      // Rich browns
+        let warmOcher = 0.35 + geologicalPattern * 0.25      // Golden ochre tones  
+        let deepUmber = 0.25 + max(0, geologicalPattern * 0.2) // Deep shadow tones
+        
+        // Add subtle mineral sparkle variation
+        let mineralGlint = sin(position.x * 0.2 + position.z * 0.18) * 0.1
+        
+        return NSColor(
+            red: CGFloat(earthBrown + mineralGlint),
+            green: CGFloat(warmOcher + mineralGlint * 0.5),
+            blue: CGFloat(deepUmber),
+            alpha: 1.0
+        )
     }
     
     private func createOptimizedWaterMaterial(voxel: Voxel) -> SCNMaterial {
         let material = SCNMaterial()
         
         // 🎨 VAN GOGH WATER: Swirling, mesmerizing like Starry Night
-        print("🌊 DEBUG: About to create Van Gogh water color")
         let vanGoghWaterColor = createVanGoghWaterColor(voxel: voxel)
-        print("🌊 DEBUG: Van Gogh water color created: \(vanGoghWaterColor)")
         material.diffuse.contents = vanGoghWaterColor
         material.metalness.contents = 0.9       // Highly reflective
         material.roughness.contents = 0.1       // Smooth but with character
@@ -956,7 +965,7 @@ struct Arena3DView: NSViewRepresentable {
         material.transparencyMode = .aOne
         
         // Add magical luminescence like moonlight on water
-        material.emission.contents = NSColor(red: 0.05, green: 0.1, blue: 0.2, alpha: 1.0)
+        material.emission.contents = NSColor(red: 0.15, green: 0.25, blue: 0.4, alpha: 1.0)
         
         return material
     }
@@ -1001,7 +1010,7 @@ struct Arena3DView: NSViewRepresentable {
         material.normal.contents = getVanGoghTexture(type: "tree_swirl")
         
         // Add warm tree glow like Van Gogh's golden trees
-        material.emission.contents = NSColor(red: 0.1, green: 0.05, blue: 0.02, alpha: 1.0)
+        material.emission.contents = NSColor(red: 0.2, green: 0.12, blue: 0.05, alpha: 1.0)
         
         return material
     }
@@ -1071,7 +1080,7 @@ struct Arena3DView: NSViewRepresentable {
         material.roughness.contents = 0.5       // Softer, more inviting
         
         // Magical glow indicating nutritious life energy
-        material.emission.contents = NSColor(red: 0.1, green: 0.4, blue: 0.1, alpha: 1.0)
+        material.emission.contents = NSColor(red: 0.15, green: 0.6, blue: 0.15, alpha: 1.0)
         
         return material
     }
@@ -1113,9 +1122,7 @@ struct Arena3DView: NSViewRepresentable {
         let material = SCNMaterial()
         
         // 🎨 VAN GOGH GRASS: Swirling, expressive grass with painterly feel
-        print("🌱 DEBUG: About to create Van Gogh grass color")
         let vanGoghGrassColor = createVanGoghGrassColor(voxel: voxel)
-        print("🌱 DEBUG: Van Gogh grass color created: \(vanGoghGrassColor)")
         material.diffuse.contents = getLayerAwareColor(
             baseColor: vanGoghGrassColor,
             voxel: voxel
@@ -1127,7 +1134,7 @@ struct Arena3DView: NSViewRepresentable {
         material.normal.contents = getVanGoghTexture(type: "grass_swirl")
         
         // Add subtle magical glow like Van Gogh's luminous greens
-        material.emission.contents = NSColor(red: 0.05, green: 0.12, blue: 0.03, alpha: 1.0)
+        material.emission.contents = NSColor(red: 0.1, green: 0.25, blue: 0.08, alpha: 1.0)
         
         return material
     }
@@ -1160,7 +1167,6 @@ struct Arena3DView: NSViewRepresentable {
     private func getSharedTexture(type: String) -> NSImage {
         // ⚠️ SKIP STATIC PROPERTY ACCESS TO AVOID SWIFTUI VIOLATIONS
         // Always generate fresh textures during view updates
-        print("🖼️ DEBUG: Generating fresh \(type) texture (no static caching)")
         
         // Generate texture fresh each time (no cache access)
         let texture: NSImage
@@ -1177,6 +1183,8 @@ struct Arena3DView: NSViewRepresentable {
             texture = createVanGoghSwirlTexture(pattern: .water)
         case "tree_swirl":
             texture = createVanGoghSwirlTexture(pattern: .tree)
+        case "rock_swirl":
+            texture = createVanGoghSwirlTexture(pattern: .rock)
         default:
             texture = createDefaultNormalMap()
         }
@@ -1266,7 +1274,7 @@ struct Arena3DView: NSViewRepresentable {
     // MARK: - 🎨 Van Gogh Texture Generation System
     
     enum VanGoghPattern {
-        case grass, water, tree, sky
+        case grass, water, tree, rock, sky
     }
     
     private func createVanGoghSwirlTexture(pattern: VanGoghPattern) -> NSImage {
@@ -1322,6 +1330,12 @@ struct Arena3DView: NSViewRepresentable {
             let vertical = sin(y * 12.0) * cos(x * 3.0) * 0.4
             let twist = cos(y * 8.0 + x * 2.0) * 0.2
             return (twist, vertical, 0.15)
+            
+        case .rock:
+            // Geological, mineral-like patterns with angular swirls
+            let geological = sin(x * 8.0) * cos(y * 6.0) * 0.35
+            let stratified = cos(y * 10.0) * 0.25
+            return (geological, stratified * cos(x * 4.0), 0.2)
             
         case .sky:
             // Atmospheric, cloud-like swirls
