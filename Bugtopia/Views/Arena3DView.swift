@@ -462,9 +462,9 @@ struct Arena3DView: NSViewRepresentable {
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         
-        // GOOD STARTING POSITION: Nice overview of terrain
-        cameraNode.position = SCNVector3(100, 100, 100)  // Closer elevated overview
-        cameraNode.look(at: SCNVector3(0, 0, 0))  // Look at terrain center
+        // WORKING POSITION: Back to stable overview that shows terrain
+        cameraNode.position = SCNVector3(100, 100, 100)  // Restored working position
+        cameraNode.look(at: SCNVector3(0, 0, 0))          // Look at terrain center
         
         scene.rootNode.addChildNode(cameraNode)
         self.cameraNode = cameraNode
@@ -854,15 +854,15 @@ struct Arena3DView: NSViewRepresentable {
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
         // 🎨 VAN GOGH MATERIALS
         
-        // 🔍 TERRAIN TYPE DEBUGGING
-        print("🎨 Creating material for: \(voxel.terrainType) at layer \(voxel.layer) in biome \(voxel.biome)")
+        // 🔍 TERRAIN TYPE DEBUGGING (reduced logging)
+        print("🎨 \(voxel.terrainType) (\(voxel.layer))")
         
         // Create new material
         let material: SCNMaterial
         switch voxel.terrainType {
         case .wall:
-            print("  → 🎨 VAN GOGH WALL/ROCK (temporary for testing)")
-            material = createOptimizedRockMaterial(voxel: voxel)
+            print("  → Simple rock material (underground only - no Van Gogh needed)")
+            material = createSimpleRockMaterial(voxel: voxel)
         case .water:
             print("  → 🌊 VAN GOGH WATER")
             material = createOptimizedWaterMaterial(voxel: voxel)
