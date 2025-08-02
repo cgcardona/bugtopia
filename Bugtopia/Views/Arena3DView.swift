@@ -870,26 +870,18 @@ struct Arena3DView: NSViewRepresentable {
     
     // Van Gogh materials are applied immediately without state tracking
     
-    // 🕵️ SWIFTUI VIOLATION DETECTOR
-    private static func detectSwiftUIViolation(_ message: String) {
-        print("⚠️ SWIFTUI VIOLATION: \(message)")
-        print("📍 STACK TRACE:")
-        for symbol in Thread.callStackSymbols {
-            print("   \(symbol)")
-        }
-    }
+    // 🕵️ SWIFTUI VIOLATION DETECTOR (REMOVED - was causing violations itself)
     
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
         // 🎨 VAN GOGH MATERIALS
         // Cache is pre-cleared in makeNSView for fresh Van Gogh materials
         print("🎨 DEBUG: createPBRMaterial called for \(voxel.terrainType.rawValue) at \(voxel.position)")
         
-        // Create cache key for material reuse
-        let cacheKey = "\(voxel.terrainType.rawValue)_\(voxel.biome.rawValue)_\(voxel.layer.rawValue)"
+        // Skip cache key generation (no caching to avoid SwiftUI violations)
+        // let cacheKey = "\(voxel.terrainType.rawValue)_\(voxel.biome.rawValue)_\(voxel.layer.rawValue)"
         
-        // Skip cache lookup to avoid SwiftUI violations during view updates
-        // Cache is cleared in makeNSView, so always create fresh materials
-        print("🔧 DEBUG: Skipping cache lookup to avoid SwiftUI violations")
+        // ⚠️  SKIP ALL STATIC PROPERTY ACCESS DURING VIEW UPDATES
+        print("🔧 DEBUG: Always create fresh materials (no static property access)")
         
         // Create new material and cache it
         print("🎨 DEBUG: Creating \(voxel.terrainType.rawValue) material")
@@ -919,12 +911,8 @@ struct Arena3DView: NSViewRepresentable {
             material = createOptimizedGrassMaterial(voxel: voxel)
         }
         
-        // ⚠️  SWIFTUI VIOLATION: Don't cache during view updates
-        print("🔧 DEBUG: About to cache material with key: \(cacheKey)")
-        Self.detectSwiftUIViolation("Attempting to modify materialCache during view rendering in createPBRMaterial")
-        // Commenting out caching to prevent SwiftUI violations
-        // Self.materialCache[cacheKey] = material
-        print("🔧 DEBUG: Skipping cache to avoid SwiftUI violation")
+        // ⚠️  SKIP ALL STATIC PROPERTY ACCESS DURING VIEW UPDATES
+        print("🔧 DEBUG: Fresh material created (no caching during view updates)")
         return material.copy() as! SCNMaterial
     }
     
@@ -1170,12 +1158,11 @@ struct Arena3DView: NSViewRepresentable {
     // MARK: - Shared Texture System (Performance Optimized)
     
     private func getSharedTexture(type: String) -> NSImage {
-        // Return cached texture if available
-        if let cachedTexture = Self.sharedTextures[type] {
-            return cachedTexture
-        }
+        // ⚠️ SKIP STATIC PROPERTY ACCESS TO AVOID SWIFTUI VIOLATIONS
+        // Always generate fresh textures during view updates
+        print("🖼️ DEBUG: Generating fresh \(type) texture (no static caching)")
         
-        // Generate texture once and cache it
+        // Generate texture fresh each time (no cache access)
         let texture: NSImage
         switch type {
         case "rock_normal":
@@ -1194,8 +1181,8 @@ struct Arena3DView: NSViewRepresentable {
             texture = createDefaultNormalMap()
         }
         
-        // Cache for future use
-        Self.sharedTextures[type] = texture
+        // ⚠️ NO CACHING TO AVOID SWIFTUI VIOLATIONS
+        // Skip: Self.sharedTextures[type] = texture
         return texture
     }
     
