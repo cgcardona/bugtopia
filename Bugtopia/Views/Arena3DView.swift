@@ -141,18 +141,30 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func setupLighting(scene: SCNScene) {
-        // Initializing AAA PBR lighting pipeline
+        // 🎨 ENHANCED BIOME-AWARE LIGHTING SYSTEM
+        // Apply our style guide lighting principles with biome-specific presets
         
-        // 🌞 OPTIMIZED SUN: Balanced quality and performance
+        // Determine primary biome for lighting (simplified for now - could be enhanced later)
+        let primaryBiome: BiomeType = .temperateForest  // Default, will be enhanced to detect actual biome
+        
+        // Apply biome lighting preset
+        setupBiomeLighting(scene: scene, biome: primaryBiome)
+    }
+    
+    private func setupBiomeLighting(scene: SCNScene, biome: BiomeType) {
+        // 🌞 BIOME-ADAPTIVE SUN: Lighting that changes based on biome character
         let sunLight = SCNLight()
         sunLight.type = .directional
-        sunLight.color = NSColor(red: 1.0, green: 0.95, blue: 0.8, alpha: 1.0)
-        sunLight.intensity = 2500  // Balanced for PBR materials
+        
+        // Apply biome-specific sun characteristics following our style guide
+        let sunConfig = getBiomeSunConfiguration(biome: biome)
+        sunLight.color = sunConfig.color
+        sunLight.intensity = sunConfig.intensity
         sunLight.castsShadow = true
-        sunLight.shadowRadius = 4.0  // Balanced shadows
-        sunLight.shadowMapSize = CGSize(width: 1024, height: 1024)  // Optimized resolution
+        sunLight.shadowRadius = 4.0
+        sunLight.shadowMapSize = CGSize(width: 1024, height: 1024)
         sunLight.shadowMode = .deferred
-        sunLight.shadowSampleCount = 8  // Balanced soft shadows
+        sunLight.shadowSampleCount = 8
         sunLight.shadowColor = NSColor.black.withAlphaComponent(0.6)
         
         let sunNode = SCNNode()
@@ -160,29 +172,30 @@ struct Arena3DView: NSViewRepresentable {
         sunNode.position = SCNVector3(300, 500, 300)
         sunNode.look(at: SCNVector3(0, 0, 0))
         
-        // ADD VISIBLE SUN: Make the light source visible
+        // Biome-appropriate visible sun
         let sunGeometry = SCNSphere(radius: 20)
-        sunGeometry.firstMaterial?.diffuse.contents = NSColor.yellow
-        sunGeometry.firstMaterial?.emission.contents = NSColor(red: 1.0, green: 0.9, blue: 0.6, alpha: 1.0)
+        sunGeometry.firstMaterial?.diffuse.contents = sunConfig.color
+        sunGeometry.firstMaterial?.emission.contents = sunConfig.emissionColor
         sunNode.geometry = sunGeometry
-        
         scene.rootNode.addChildNode(sunNode)
         
-        // 🌙 ENHANCED AMBIENT: Realistic sky illumination
+        // 🌙 BIOME-ADAPTIVE AMBIENT: Sky lighting that matches biome mood
+        let ambientConfig = getBiomeAmbientConfiguration(biome: biome)
         let ambientLight = SCNLight()
         ambientLight.type = .ambient
-        ambientLight.color = NSColor(red: 0.4, green: 0.5, blue: 0.7, alpha: 1.0)
-        ambientLight.intensity = 400  // Increased for PBR
+        ambientLight.color = ambientConfig.color
+        ambientLight.intensity = ambientConfig.intensity
         
         let ambientNode = SCNNode()
         ambientNode.light = ambientLight
         scene.rootNode.addChildNode(ambientNode)
         
-        // 💎 FILL LIGHT: Subtle rim lighting for 3D depth
+        // 💎 BIOME-ADAPTIVE FILL: Atmospheric lighting for depth
+        let fillConfig = getBiomeFillConfiguration(biome: biome)
         let fillLight = SCNLight()
         fillLight.type = .directional
-        fillLight.color = NSColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 1.0)
-        fillLight.intensity = 800
+        fillLight.color = fillConfig.color
+        fillLight.intensity = fillConfig.intensity
         
         let fillNode = SCNNode()
         fillNode.light = fillLight
@@ -190,46 +203,171 @@ struct Arena3DView: NSViewRepresentable {
         fillNode.look(at: SCNVector3(0, 0, 0))
         scene.rootNode.addChildNode(fillNode)
         
-        // 🕳️ UNDERGROUND MYSTIQUE: Atmospheric cave lighting
-        let caveLight = SCNLight()
-        caveLight.type = .omni
-        caveLight.color = NSColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0)
-        caveLight.intensity = 1200
-        caveLight.attenuationStartDistance = 50
-        caveLight.attenuationEndDistance = 150
+        // Add biome-specific specialty lighting
+        setupBiomeSpecialtyLighting(scene: scene, biome: biome)
         
-        let caveNode = SCNNode()
-        caveNode.light = caveLight
-        caveNode.position = SCNVector3(0, -40, 0)  // Underground level
-        
-        // ADD VISIBLE CAVE CRYSTAL: Mystical underground light source
-        let crystalGeometry = SCNSphere(radius: 5)
-        crystalGeometry.firstMaterial?.diffuse.contents = NSColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 0.8)
-        crystalGeometry.firstMaterial?.emission.contents = NSColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0)
-        crystalGeometry.firstMaterial?.transparency = 0.7
-        caveNode.geometry = crystalGeometry
-        
-        scene.rootNode.addChildNode(caveNode)
-        
-        // 🌳 CANOPY FILTER: Dappled forest lighting
-        let canopyLight = SCNLight()
-        canopyLight.type = .spot
-        canopyLight.color = NSColor(red: 0.6, green: 0.9, blue: 0.4, alpha: 1.0)
-        canopyLight.intensity = 1000
-        canopyLight.spotInnerAngle = 30
-        canopyLight.spotOuterAngle = 60
-        
-        let canopyNode = SCNNode()
-        canopyNode.light = canopyLight
-        canopyNode.position = SCNVector3(50, 100, 50)
-        canopyNode.look(at: SCNVector3(0, 30, 0))  // Point at canopy level
-        scene.rootNode.addChildNode(canopyNode)
-        
-        // 🌈 HDR ENVIRONMENT: Realistic reflections and global illumination
+        // 🌈 BIOME-ADAPTIVE HDR: Environment that matches the biome
         scene.lightingEnvironment.intensity = 2.0
-        scene.lightingEnvironment.contents = createAdvancedHDREnvironment()
+        scene.lightingEnvironment.contents = createBiomeHDREnvironment(biome: biome)
+    }
+    
+    // MARK: - 🌍 Biome Lighting Configuration System
+    
+    struct LightConfiguration {
+        let color: NSColor
+        let intensity: Double
+        let emissionColor: NSColor?
+    }
+    
+    private func getBiomeSunConfiguration(biome: BiomeType) -> LightConfiguration {
+        switch biome {
+        case .tundra:
+            // "Crystalline Majesty" - Cool, brilliant arctic sun
+            return LightConfiguration(
+                color: NSColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 1.0),
+                intensity: 2800,
+                emissionColor: NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0)
+            )
+        case .desert:
+            // "Timeless Endurance" - Intense, warm desert sun
+            return LightConfiguration(
+                color: NSColor(red: 1.0, green: 0.9, blue: 0.7, alpha: 1.0),
+                intensity: 3200,
+                emissionColor: NSColor(red: 1.0, green: 0.8, blue: 0.4, alpha: 1.0)
+            )
+        case .tropicalRainforest:
+            // "Emerald Cathedral" - Filtered through dense canopy
+            return LightConfiguration(
+                color: NSColor(red: 0.85, green: 0.95, blue: 0.75, alpha: 1.0),
+                intensity: 2000,
+                emissionColor: NSColor(red: 0.8, green: 0.9, blue: 0.6, alpha: 1.0)
+            )
+        default:
+            // Default temperate forest lighting
+            return LightConfiguration(
+                color: NSColor(red: 1.0, green: 0.95, blue: 0.8, alpha: 1.0),
+                intensity: 2500,
+                emissionColor: NSColor(red: 1.0, green: 0.9, blue: 0.6, alpha: 1.0)
+            )
+        }
+    }
+    
+    private func getBiomeAmbientConfiguration(biome: BiomeType) -> LightConfiguration {
+        switch biome {
+        case .tundra:
+            return LightConfiguration(color: NSColor(red: 0.3, green: 0.4, blue: 0.7, alpha: 1.0), intensity: 500, emissionColor: nil)
+        case .desert:
+            return LightConfiguration(color: NSColor(red: 0.6, green: 0.5, blue: 0.4, alpha: 1.0), intensity: 300, emissionColor: nil)
+        case .tropicalRainforest:
+            return LightConfiguration(color: NSColor(red: 0.3, green: 0.6, blue: 0.4, alpha: 1.0), intensity: 320, emissionColor: nil)
+        default:
+            return LightConfiguration(color: NSColor(red: 0.4, green: 0.5, blue: 0.7, alpha: 1.0), intensity: 400, emissionColor: nil)
+        }
+    }
+    
+    private func getBiomeFillConfiguration(biome: BiomeType) -> LightConfiguration {
+        switch biome {
+        case .tundra:
+            return LightConfiguration(color: NSColor(red: 0.6, green: 0.7, blue: 1.0, alpha: 1.0), intensity: 900, emissionColor: nil)
+        case .desert:
+            return LightConfiguration(color: NSColor(red: 0.9, green: 0.7, blue: 0.5, alpha: 1.0), intensity: 600, emissionColor: nil)
+        case .tropicalRainforest:
+            return LightConfiguration(color: NSColor(red: 0.5, green: 0.8, blue: 0.6, alpha: 1.0), intensity: 650, emissionColor: nil)
+        default:
+            return LightConfiguration(color: NSColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 1.0), intensity: 800, emissionColor: nil)
+        }
+    }
+    
+    private func setupBiomeSpecialtyLighting(scene: SCNScene, biome: BiomeType) {
+        switch biome {
+        case .tropicalRainforest, .temperateForest, .borealForest:
+            // 🌳 CANOPY FILTER: Dappled forest lighting
+            let canopyLight = SCNLight()
+            canopyLight.type = .spot
+            canopyLight.color = NSColor(red: 0.6, green: 0.9, blue: 0.4, alpha: 1.0)
+            canopyLight.intensity = 1000
+            canopyLight.spotInnerAngle = 30
+            canopyLight.spotOuterAngle = 60
+            
+            let canopyNode = SCNNode()
+            canopyNode.light = canopyLight
+            canopyNode.position = SCNVector3(50, 100, 50)
+            canopyNode.look(at: SCNVector3(0, 30, 0))
+            scene.rootNode.addChildNode(canopyNode)
+            
+        case .tundra, .alpine:
+            // 🕳️ UNDERGROUND CRYSTAL: Mystical cave lighting for cold biomes
+            let caveLight = SCNLight()
+            caveLight.type = .omni
+            caveLight.color = NSColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0)
+            caveLight.intensity = 1200
+            caveLight.attenuationStartDistance = 50
+            caveLight.attenuationEndDistance = 150
+            
+            let caveNode = SCNNode()
+            caveNode.light = caveLight
+            caveNode.position = SCNVector3(0, -40, 0)
+            
+            let crystalGeometry = SCNSphere(radius: 5)
+            crystalGeometry.firstMaterial?.diffuse.contents = NSColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 0.8)
+            crystalGeometry.firstMaterial?.emission.contents = NSColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0)
+            crystalGeometry.firstMaterial?.transparency = 0.7
+            caveNode.geometry = crystalGeometry
+            scene.rootNode.addChildNode(caveNode)
+            
+        default:
+            // Basic lighting for other biomes
+            break
+        }
+    }
+    
+    private func createBiomeHDREnvironment(biome: BiomeType) -> NSImage {
+        let size = 128
+        let image = NSImage(size: NSSize(width: size, height: size))
         
-        // AAA lighting system active
+        image.lockFocus()
+        
+        // Create biome-specific sky gradients
+        let colors = getBiomeEnvironmentColors(biome: biome)
+        let gradient = NSGradient(colors: colors)
+        gradient?.draw(in: NSRect(x: 0, y: 0, width: size, height: size), angle: 90)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func getBiomeEnvironmentColors(biome: BiomeType) -> [NSColor] {
+        switch biome {
+        case .tundra:
+            return [
+                NSColor(red: 0.05, green: 0.15, blue: 0.4, alpha: 1.0),  // Deep arctic blue
+                NSColor(red: 0.3, green: 0.4, blue: 0.7, alpha: 1.0),   // Arctic sky
+                NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0),   // Ice horizon
+                NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0),  // Snow
+            ]
+        case .desert:
+            return [
+                NSColor(red: 0.2, green: 0.15, blue: 0.4, alpha: 1.0),  // Desert night sky
+                NSColor(red: 0.6, green: 0.4, blue: 0.3, alpha: 1.0),   // Desert sky
+                NSColor(red: 1.0, green: 0.7, blue: 0.4, alpha: 1.0),   // Desert horizon
+                NSColor(red: 0.9, green: 0.7, blue: 0.5, alpha: 1.0),   // Sand dunes
+            ]
+        case .tropicalRainforest:
+            return [
+                NSColor(red: 0.05, green: 0.2, blue: 0.1, alpha: 1.0),  // Deep forest canopy
+                NSColor(red: 0.2, green: 0.5, blue: 0.3, alpha: 1.0),   // Forest sky glimpse
+                NSColor(red: 0.6, green: 0.8, blue: 0.4, alpha: 1.0),   // Canopy light
+                NSColor(red: 0.4, green: 0.7, blue: 0.3, alpha: 1.0),   // Mid forest
+            ]
+        default:
+            // Default temperate colors
+            return [
+                NSColor(red: 0.1, green: 0.3, blue: 0.8, alpha: 1.0),
+                NSColor(red: 0.4, green: 0.6, blue: 0.9, alpha: 1.0),
+                NSColor(red: 0.9, green: 0.8, blue: 0.7, alpha: 1.0),
+                NSColor(red: 0.5, green: 0.7, blue: 0.3, alpha: 1.0),
+            ]
+        }
     }
     
     private func createAdvancedHDREnvironment() -> NSImage {
@@ -872,86 +1010,339 @@ struct Arena3DView: NSViewRepresentable {
     
     // MARK: - Van Gogh Material System (No Caching)
     // 
+    // MARK: - 🎨 Enhanced Stylized Material System
+    
+    /// Enhanced material creation following our style guide principles
+    private func createStylizedMaterial(for voxel: Voxel) -> SCNMaterial {
+        // 🎨 Style Guide-Driven Material Creation
+        // Each material follows our "David Attenborough meets Studio Ghibli" vision
+        
+        switch voxel.terrainType {
+        case .water:
+            return createEnhancedWaterMaterial(voxel: voxel)
+        case .forest:
+            return createEnhancedForestMaterial(voxel: voxel)
+        case .wall:
+            return createEnhancedRockMaterial(voxel: voxel)
+        case .sand:
+            return createEnhancedSandMaterial(voxel: voxel)
+        case .ice:
+            return createEnhancedIceMaterial(voxel: voxel)
+        case .hill:
+            return createEnhancedStoneMaterial(voxel: voxel)
+        case .food:
+            return createEnhancedVegetationMaterial(voxel: voxel)
+        case .swamp:
+            return createEnhancedMudMaterial(voxel: voxel)
+        case .open:
+            return createEnhancedGrassMaterial(voxel: voxel)
+        case .shadow:
+            return createEnhancedShadowMaterial(voxel: voxel)
+        case .predator:
+            return createEnhancedPredatorMaterial(voxel: voxel)
+        case .wind:
+            return createEnhancedWindMaterial(voxel: voxel)
+        }
+    }
+    
+    // MARK: - 🌊 Enhanced Water Material - "Living Mirror"
+    private func createEnhancedWaterMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Style Guide: Ocean Blue #1E90FF with transparency and movement
+        let baseWaterBlue = NSColor(red: 0.12, green: 0.56, blue: 1.0, alpha: 0.8)
+        
+        material.diffuse.contents = baseWaterBlue
+        
+        // Water-like properties
+        material.roughness.contents = 0.0  // Very smooth for reflections
+        material.metalness.contents = 0.1  // Slightly metallic for shine
+        material.transparency = 0.7        // Semi-transparent
+        
+        // Subtle blue emission for underwater glow
+        material.emission.contents = NSColor(red: 0.02, green: 0.08, blue: 0.15, alpha: 1.0)
+        
+        return material
+    }
+    
+    // MARK: - 🌲 Enhanced Forest Material - "Ancient Guardians"
+    private func createEnhancedForestMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Style Guide: Rich Deep Forest Green #1B4D3E - darker, more saturated than basic green
+        let enhancedForestGreen = NSColor(red: 0.11, green: 0.30, blue: 0.24, alpha: 1.0)
+        
+        // Add subtle procedural variation for organic feel
+        let variation = Double.random(in: -0.03...0.03)
+        let variedColor = NSColor(
+            red: min(1.0, max(0.0, enhancedForestGreen.redComponent + variation)),
+            green: min(1.0, max(0.0, enhancedForestGreen.greenComponent + variation * 0.7)),
+            blue: min(1.0, max(0.0, enhancedForestGreen.blueComponent + variation)),
+            alpha: 1.0
+        )
+        
+        material.diffuse.contents = variedColor
+        
+        // High roughness for organic bark texture
+        material.roughness.contents = 0.85 + Double.random(in: -0.1...0.1)
+        material.metalness.contents = 0.0
+        
+        // Subtle life force glow
+        material.emission.contents = NSColor(red: 0.02, green: 0.06, blue: 0.04, alpha: 1.0)
+        
+        return material
+    }
+    
+    // MARK: - 🪨 Enhanced Rock Material - "Timeless Foundation"
+    private func createEnhancedRockMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Style Guide: Weathered Stone #5D4E37 - rich earthy brown-gray
+        let enhancedStoneColor = NSColor(red: 0.36, green: 0.31, blue: 0.22, alpha: 1.0)
+        
+        // Add subtle geological variation
+        let variation = Double.random(in: -0.04...0.04)
+        let variedColor = NSColor(
+            red: min(1.0, max(0.0, enhancedStoneColor.redComponent + variation)),
+            green: min(1.0, max(0.0, enhancedStoneColor.greenComponent + variation * 0.8)),
+            blue: min(1.0, max(0.0, enhancedStoneColor.blueComponent + variation * 0.6)),
+            alpha: 1.0
+        )
+        
+        material.diffuse.contents = variedColor
+        
+        // High roughness for weathered stone texture
+        material.roughness.contents = 0.90 + Double.random(in: -0.05...0.05)
+        material.metalness.contents = 0.03  // Tiny bit of mineral shine
+        
+        // Very subtle mineral glow
+        material.emission.contents = NSColor(red: 0.02, green: 0.015, blue: 0.01, alpha: 1.0)
+        
+        return material
+    }
+    
+    // MARK: - 🏖️ Enhanced Sand Material - "Golden Memories"
+    private func createEnhancedSandMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Style Guide: Warm Golden Sand #D2B48C - richer than basic tan
+        let enhancedSandColor = NSColor(red: 0.82, green: 0.71, blue: 0.55, alpha: 1.0)
+        
+        // Add subtle grain variation
+        let variation = Double.random(in: -0.02...0.02)
+        let variedColor = NSColor(
+            red: min(1.0, max(0.0, enhancedSandColor.redComponent + variation)),
+            green: min(1.0, max(0.0, enhancedSandColor.greenComponent + variation * 0.9)),
+            blue: min(1.0, max(0.0, enhancedSandColor.blueComponent + variation * 0.7)),
+            alpha: 1.0
+        )
+        
+        material.diffuse.contents = variedColor
+        
+        // Ultra-high roughness for sand grains
+        material.roughness.contents = 0.95
+        material.metalness.contents = 0.0
+        
+        // Warm golden emission
+        material.emission.contents = NSColor(red: 0.1, green: 0.06, blue: 0.02, alpha: 1.0)
+        
+        return material
+    }
+    
+    // MARK: - 🧊 Enhanced Ice Material - "Crystal Dreams"
+    private func createEnhancedIceMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Style Guide: Glacier Blue #A2E4F0 with crystal clarity
+        material.diffuse.contents = NSColor(red: 0.64, green: 0.89, blue: 0.94, alpha: 0.8)
+        
+        // Very low roughness for ice smoothness
+        material.roughness.contents = 0.02
+        material.metalness.contents = 0.15
+        material.transparency = 0.2
+        
+        // Cool blue emission for inner glow
+        material.emission.contents = NSColor(red: 0.02, green: 0.08, blue: 0.12, alpha: 1.0)
+        
+        return material
+    }
+    
+    // MARK: - ⛰️ Enhanced Stone Material - "Mountain Majesty"
+    private func createEnhancedStoneMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Style Guide: Rich Earth #8B4513 for hill stone
+        material.diffuse.contents = NSColor(red: 0.55, green: 0.27, blue: 0.07, alpha: 1.0)
+        
+        // Medium roughness for weathered stone
+        material.roughness.contents = 0.75
+        material.metalness.contents = 0.03
+        
+        return material
+    }
+    
+    // MARK: - 🍎 Enhanced Vegetation Material - "Life's Bounty"
+    private func createEnhancedVegetationMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Style Guide: Emerald #50C878 for fresh food
+        material.diffuse.contents = NSColor(red: 0.31, green: 0.78, blue: 0.47, alpha: 1.0)
+        
+        // Medium roughness for plant texture
+        material.roughness.contents = 0.6
+        material.metalness.contents = 0.0
+        
+        // Strong green emission for life energy
+        material.emission.contents = NSColor(red: 0.1, green: 0.4, blue: 0.15, alpha: 1.0)
+        
+        return material
+    }
+    
+    // MARK: - 🐊 Enhanced Mud Material - "Ancient Depths"
+    private func createEnhancedMudMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Style Guide: Deep earth brown for swamp
+        material.diffuse.contents = NSColor(red: 0.28, green: 0.22, blue: 0.12, alpha: 1.0)
+        
+        // Very high roughness for mud texture
+        material.roughness.contents = 0.95
+        material.metalness.contents = 0.0
+        
+        return material
+    }
+    
+    // MARK: - 🌱 Enhanced Grass Material - "Living Carpet"
+    private func createEnhancedGrassMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Style Guide: Forest Green #4D8B31 with seasonal variation
+        let baseColor = NSColor(red: 0.30, green: 0.70, blue: 0.30, alpha: 1.0)
+        
+        // Apply layer-aware coloring (existing function)
+        material.diffuse.contents = getLayerAwareColor(baseColor: baseColor, voxel: voxel)
+        
+        // Medium roughness for grass
+        material.roughness.contents = 0.7
+        material.metalness.contents = 0.0
+        
+        // Subtle green emission for life
+        material.emission.contents = NSColor(red: 0.03, green: 0.08, blue: 0.03, alpha: 1.0)
+        
+        return material
+    }
+    
+    // MARK: - 🌫️ Enhanced Shadow Material - "Mystery Veils"
+    private func createEnhancedShadowMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        material.diffuse.contents = NSColor(white: 0.15, alpha: 0.7)
+        material.transparency = 0.7
+        material.roughness.contents = 0.9
+        material.metalness.contents = 0.0
+        
+        return material
+    }
+    
+    // MARK: - 🦁 Enhanced Predator Material - "Danger Zones"
+    private func createEnhancedPredatorMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Style Guide: Coral #FF6B6B for danger
+        material.diffuse.contents = NSColor(red: 1.0, green: 0.42, blue: 0.42, alpha: 0.4)
+        material.transparency = 0.6
+        material.roughness.contents = 0.8
+        material.metalness.contents = 0.02
+        
+        // Pulsing red emission for warning
+        material.emission.contents = NSColor(red: 0.2, green: 0.02, blue: 0.02, alpha: 1.0)
+        
+        return material
+    }
+    
+    // MARK: - 💨 Enhanced Wind Material - "Flowing Energy"
+    private func createEnhancedWindMaterial(voxel: Voxel) -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // Style Guide: Sky Blue #87CEEB for wind/air
+        material.diffuse.contents = NSColor(red: 0.53, green: 0.81, blue: 0.92, alpha: 0.3)
+        material.transparency = 0.7
+        material.roughness.contents = 0.1
+        material.metalness.contents = 0.0
+        
+        // Flowing blue emission
+        material.emission.contents = NSColor(red: 0.02, green: 0.05, blue: 0.08, alpha: 1.0)
+        
+        return material
+    }
+    
+    // MARK: - 🌍 Biome-Aware Material Enhancement
+    
+    /// Enhance materials based on biome characteristics following our style guide
+    private func applyBiomeEnhancement(_ material: SCNMaterial, voxel: Voxel, biome: BiomeType) -> SCNMaterial {
+        // Apply biome-specific color modulation per our style guide
+        
+        switch biome {
+        case .tundra:
+            // "Crystalline Majesty" - Cool blues, pure whites
+            addColorTint(material, tint: NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0), strength: 0.2)
+        case .borealForest:
+            // "Misty Cathedral" - Deep greens, silvery mist
+            addColorTint(material, tint: NSColor(red: 0.85, green: 0.95, blue: 0.85, alpha: 1.0), strength: 0.15)
+        case .temperateForest:
+            // "Living Symphony" - Rich greens, warm earth
+            addColorTint(material, tint: NSColor(red: 0.9, green: 1.0, blue: 0.85, alpha: 1.0), strength: 0.1)
+        case .temperateGrassland:
+            // "Windswept Freedom" - Fresh greens, golden yellows
+            addColorTint(material, tint: NSColor(red: 1.0, green: 1.0, blue: 0.85, alpha: 1.0), strength: 0.15)
+        case .desert:
+            // "Timeless Endurance" - Warm sandstones, burning oranges
+            addColorTint(material, tint: NSColor(red: 1.0, green: 0.9, blue: 0.7, alpha: 1.0), strength: 0.25)
+        case .savanna:
+            // "Epic Horizons" - Golden grass, earth reds
+            addColorTint(material, tint: NSColor(red: 1.0, green: 0.95, blue: 0.8, alpha: 1.0), strength: 0.2)
+        case .tropicalRainforest:
+            // "Emerald Cathedral" - Every shade of green
+            addColorTint(material, tint: NSColor(red: 0.8, green: 1.0, blue: 0.8, alpha: 1.0), strength: 0.2)
+        case .wetlands:
+            // "Mirror of Life" - Water blues, marsh greens
+            addColorTint(material, tint: NSColor(red: 0.85, green: 0.95, blue: 1.0, alpha: 1.0), strength: 0.15)
+        case .alpine:
+            // "Majestic Heights" - Stone grays, alpine blues
+            addColorTint(material, tint: NSColor(red: 0.9, green: 0.9, blue: 1.0, alpha: 1.0), strength: 0.2)
+        case .coastal:
+            // "Where Worlds Meet" - Ocean blues, sand golds
+            addColorTint(material, tint: NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0), strength: 0.15)
+        }
+        
+        return material
+    }
+    
+    /// Add subtle color tint to material while preserving its character
+    private func addColorTint(_ material: SCNMaterial, tint: NSColor, strength: Double) {
+        guard let currentColor = material.diffuse.contents as? NSColor else { return }
+        
+        // Blend current color with biome tint
+        let blendedColor = NSColor(
+            red: currentColor.redComponent * (1.0 - strength) + tint.redComponent * strength,
+            green: currentColor.greenComponent * (1.0 - strength) + tint.greenComponent * strength,
+            blue: currentColor.blueComponent * (1.0 - strength) + tint.blueComponent * strength,
+            alpha: currentColor.alphaComponent
+        )
+        
+        material.diffuse.contents = blendedColor
+    }
+    
     // ALL CACHING DISABLED TO PREVENT SWIFTUI VIOLATIONS
     // Materials and textures are generated fresh each time for SwiftUI compliance
     // Performance traded for stability and Van Gogh effect visibility
     
     private func createPBRMaterial(for voxel: Voxel) -> SCNMaterial {
-        // 🎨 INSTANT VAN GOGH MATERIAL SYSTEM
-        // All terrain types now get full Van Gogh artistic materials immediately!
+        // 🎨 ENHANCED ARTISTIC MATERIAL SYSTEM
+        // Apply our new style guide-driven materials for cinematic beauty!
         
-        // Create lightweight base material immediately
-        let material = SCNMaterial()
-        
-        // 🎨 VISIBLE TERRAIN GETS INSTANT VAN GOGH MATERIALS!
-        // Underground/invisible terrain gets basic materials for performance
-        switch voxel.terrainType {
-        case .wall:
-            // 🪨 ENHANCED VAN GOGH ROCKS: Artistic treatment for visible walls
-            print("🪨 DEBUG: Creating enhanced Van Gogh rock material for voxel at \(voxel.position)")
-            return createVanGoghRockMaterial(voxel: voxel)
-        case .water:
-            // 🌊 INSTANTLY SPECTACULAR WATER: Full Van Gogh materials immediately!
-            // Skip the async processing entirely for water - apply the full spectacular material now
-            return createOptimizedWaterMaterial(voxel: voxel)
-        case .forest:
-            // 🌲 BRIGHT GREEN TREES: Distinct visual identity
-            material.diffuse.contents = NSColor(red: 0.3, green: 0.6, blue: 0.2, alpha: 1.0)
-            material.roughness.contents = 0.7
-            material.metalness.contents = 0.0
-        case .sand:
-            // 🏖️ BRIGHT YELLOW SAND: Clear visual distinction
-            material.diffuse.contents = NSColor(red: 0.9, green: 0.8, blue: 0.6, alpha: 1.0)
-            material.roughness.contents = 0.9
-            material.metalness.contents = 0.0
-        case .ice:
-            // 🧊 BRIGHT BLUE ICE: Crystal clear distinction
-            material.diffuse.contents = NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.9)
-            material.roughness.contents = 0.05
-            material.metalness.contents = 0.1
-            material.transparency = 0.1
-        case .hill:
-            // ⛰️ BROWN STONE: Rocky distinction
-            material.diffuse.contents = NSColor(red: 0.5, green: 0.45, blue: 0.4, alpha: 1.0)
-            material.roughness.contents = 0.7
-            material.metalness.contents = 0.05
-        case .food:
-            // 🍎 BRIGHT GREEN FOOD: High visibility with emission
-            material.diffuse.contents = NSColor(red: 0.4, green: 0.8, blue: 0.3, alpha: 1.0)
-            material.roughness.contents = 0.5
-            material.metalness.contents = 0.0
-            material.emission.contents = NSColor(red: 0.15, green: 0.6, blue: 0.15, alpha: 1.0)
-        case .swamp:
-            // 🐊 MUDDY BROWN SWAMP: Distinct muddy appearance
-            material.diffuse.contents = NSColor(red: 0.3, green: 0.25, blue: 0.15, alpha: 1.0)
-            material.roughness.contents = 0.9
-            material.metalness.contents = 0.0
-        case .open:
-            // 🌱 BRIGHT GRASS GREEN: Clear grass identity
-            material.diffuse.contents = getLayerAwareColor(
-                baseColor: NSColor(red: 0.3, green: 0.7, blue: 0.3, alpha: 1.0),
-                voxel: voxel
-            )
-            material.roughness.contents = 0.6
-            material.metalness.contents = 0.0
-        case .shadow:
-            // 🏃‍♂️ SHADOWS ARE LESS VISIBLE: Use basic materials for performance
-            material.diffuse.contents = NSColor(white: 0.2, alpha: 0.6)
-            material.transparency = 0.6
-            material.roughness.contents = 0.8
-            material.metalness.contents = 0.02
-        case .predator:
-            // 🏃‍♂️ PREDATOR AREAS ARE RARE: Use basic materials for performance
-            material.diffuse.contents = NSColor.red.withAlphaComponent(0.3)
-            material.roughness.contents = 0.8
-            material.metalness.contents = 0.02
-        case .wind:
-            // 💨 SPECTACULAR VAN GOGH WIND: Flowing grass artistic materials!
-            print("💨 DEBUG: Creating enhanced Van Gogh wind material for voxel at \(voxel.position)")
-            return createVanGoghWindMaterial(voxel: voxel)
-        }
-        
-        return material
+        // Use our enhanced material creation system
+        return createStylizedMaterial(for: voxel)
     }
     
     // MARK: - 🎨 Enhanced Van Gogh Material System
@@ -2116,9 +2507,9 @@ struct Arena3DView: NSViewRepresentable {
     private func createOpenTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.2)
         
-        // 🎨 APPLY VAN GOGH GRASS MATERIALS to tile terrain!
+        // 🎨 APPLY ENHANCED MATERIALS to tile terrain!
         let dummyVoxel = createDummyVoxel(terrainType: .open, layer: layer)
-        box.firstMaterial = createOptimizedGrassMaterial(voxel: dummyVoxel)
+        box.firstMaterial = createStylizedMaterial(for: dummyVoxel)
         
         return box
     }
@@ -2126,9 +2517,9 @@ struct Arena3DView: NSViewRepresentable {
     private func createWallTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.1)
         
-        // 🎨 APPLY VAN GOGH ROCK MATERIALS to tile terrain!
+        // 🎨 APPLY ENHANCED MATERIALS to tile terrain!
         let dummyVoxel = createDummyVoxel(terrainType: .wall, layer: layer)
-        box.firstMaterial = createOptimizedRockMaterial(voxel: dummyVoxel)
+        box.firstMaterial = createStylizedMaterial(for: dummyVoxel)
         
         return box
     }
@@ -2136,9 +2527,9 @@ struct Arena3DView: NSViewRepresentable {
     private func createWaterTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.5)
         
-        // 🎨 APPLY VAN GOGH WATER MATERIALS to tile terrain!
+        // 🎨 APPLY ENHANCED MATERIALS to tile terrain!
         let dummyVoxel = createDummyVoxel(terrainType: .water, layer: layer)
-        box.firstMaterial = createOptimizedWaterMaterial(voxel: dummyVoxel)
+        box.firstMaterial = createStylizedMaterial(for: dummyVoxel)
         
         return box
     }
@@ -2146,9 +2537,9 @@ struct Arena3DView: NSViewRepresentable {
     private func createFoodTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let sphere = SCNSphere(radius: CGFloat(size * 0.4))
         
-        // 🎨 APPLY VAN GOGH VEGETATION MATERIALS to tile terrain!
+        // 🎨 APPLY ENHANCED MATERIALS to tile terrain!
         let dummyVoxel = createDummyVoxel(terrainType: .food, layer: layer)
-        sphere.firstMaterial = createOptimizedVegetationMaterial(voxel: dummyVoxel)
+        sphere.firstMaterial = createStylizedMaterial(for: dummyVoxel)
         
         return sphere
     }
@@ -2156,9 +2547,9 @@ struct Arena3DView: NSViewRepresentable {
     private func createForestTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let cylinder = SCNCylinder(radius: CGFloat(size * 0.3), height: CGFloat(height))
         
-        // 🎨 APPLY VAN GOGH WOOD MATERIALS to tile terrain!
+        // 🎨 APPLY ENHANCED MATERIALS to tile terrain!
         let dummyVoxel = createDummyVoxel(terrainType: .forest, layer: layer)
-        cylinder.firstMaterial = createOptimizedWoodMaterial(voxel: dummyVoxel)
+        cylinder.firstMaterial = createStylizedMaterial(for: dummyVoxel)
         
         return cylinder
     }
@@ -2166,9 +2557,9 @@ struct Arena3DView: NSViewRepresentable {
     private func createHillTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let cone = SCNCone(topRadius: 0, bottomRadius: CGFloat(size * 0.6), height: CGFloat(height))
         
-        // 🎨 APPLY VAN GOGH STONE MATERIALS to tile terrain!
+        // 🎨 APPLY ENHANCED MATERIALS to tile terrain!
         let dummyVoxel = createDummyVoxel(terrainType: .hill, layer: layer)
-        cone.firstMaterial = createOptimizedStoneMaterial(voxel: dummyVoxel)
+        cone.firstMaterial = createStylizedMaterial(for: dummyVoxel)
         
         return cone
     }
@@ -2176,9 +2567,9 @@ struct Arena3DView: NSViewRepresentable {
     private func createSandTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.3)
         
-        // 🎨 APPLY VAN GOGH SAND MATERIALS to tile terrain!
+        // 🎨 APPLY ENHANCED MATERIALS to tile terrain!
         let dummyVoxel = createDummyVoxel(terrainType: .sand, layer: layer)
-        box.firstMaterial = createOptimizedSandMaterial(voxel: dummyVoxel)
+        box.firstMaterial = createStylizedMaterial(for: dummyVoxel)
         
         return box
     }
@@ -2186,9 +2577,9 @@ struct Arena3DView: NSViewRepresentable {
     private func createIceTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.1)
         
-        // 🎨 APPLY VAN GOGH ICE MATERIALS to tile terrain!
+        // 🎨 APPLY ENHANCED MATERIALS to tile terrain!
         let dummyVoxel = createDummyVoxel(terrainType: .ice, layer: layer)
-        box.firstMaterial = createOptimizedIceMaterial(voxel: dummyVoxel)
+        box.firstMaterial = createStylizedMaterial(for: dummyVoxel)
         
         return box
     }
@@ -2196,9 +2587,9 @@ struct Arena3DView: NSViewRepresentable {
     private func createSwampTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size), chamferRadius: 0.4)
         
-        // 🎨 APPLY VAN GOGH MUD MATERIALS to tile terrain!
+        // 🎨 APPLY ENHANCED MATERIALS to tile terrain!
         let dummyVoxel = createDummyVoxel(terrainType: .swamp, layer: layer)
-        box.firstMaterial = createOptimizedMudMaterial(voxel: dummyVoxel)
+        box.firstMaterial = createStylizedMaterial(for: dummyVoxel)
         
         return box
     }
@@ -2214,9 +2605,9 @@ struct Arena3DView: NSViewRepresentable {
     private func createPredatorTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let pyramid = SCNPyramid(width: CGFloat(size), height: CGFloat(height), length: CGFloat(size))
         
-        // 🎨 APPLY VAN GOGH ROCK MATERIALS to predator terrain (dramatic stones)!
-        let dummyVoxel = createDummyVoxel(terrainType: .wall, layer: layer)
-        pyramid.firstMaterial = createOptimizedRockMaterial(voxel: dummyVoxel)
+        // 🎨 APPLY ENHANCED MATERIALS to predator terrain (dramatic stones)!
+        let dummyVoxel = createDummyVoxel(terrainType: .predator, layer: layer)
+        pyramid.firstMaterial = createStylizedMaterial(for: dummyVoxel)
         
         return pyramid
     }
@@ -2224,9 +2615,9 @@ struct Arena3DView: NSViewRepresentable {
     private func createShadowTerrain(size: Float, height: Float, layer: TerrainLayer) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(height * 0.5), length: CGFloat(size), chamferRadius: 0.2)
         
-        // 🎨 APPLY VAN GOGH STONE MATERIALS to shadow terrain (dark artistic stones)!
-        let dummyVoxel = createDummyVoxel(terrainType: .hill, layer: layer)
-        box.firstMaterial = createOptimizedStoneMaterial(voxel: dummyVoxel)
+        // 🎨 APPLY ENHANCED MATERIALS to shadow terrain (dark artistic stones)!
+        let dummyVoxel = createDummyVoxel(terrainType: .shadow, layer: layer)
+        box.firstMaterial = createStylizedMaterial(for: dummyVoxel)
         box.firstMaterial?.transparency = 0.6
         return box
     }
