@@ -105,7 +105,28 @@ Bugtopia currently uses a sophisticated but underutilized world generation syste
 
 ### **🎯 GOAL**: Make each world type create **completely different** experiences
 
-### **Phase 1: World-Type Specific Biome Constraints**
+---
+
+## 📊 **CURRENT IMPLEMENTATION STATUS**
+
+### **✅ PHASE 1: World-Type Specific Biome Constraints - COMPLETE**
+**Status**: Implemented and functional  
+**Impact**: Each world type now limits which biomes can appear  
+**Issue**: Terrain still too noisy to clearly show world characteristics  
+
+### **✅ PHASE 2: Dramatic Terrain Generation - COMPLETE**
+**Status**: Implemented across all 4 terrain layers (Underground, Surface, Canopy, Aerial)  
+**Impact**: Each world type now generates dramatically different terrain patterns  
+**Achievement**: Cavern = 80% underground caves, Archipelago = 70% water, Canyon = dramatic valleys, etc.  
+
+### **⏳ PHASE 3: World-Specific Resource Distribution - PLANNED**
+### **⏳ PHASE 4: Enhanced Visual Differentiation - PLANNED**
+### **⏳ PHASE 5: World-Specific Bug Evolution - PLANNED**
+### **⏳ PHASE 6: Dynamic Weather Per World - PLANNED**
+
+---
+
+### **Phase 1: World-Type Specific Biome Constraints ✅**
 
 Each world type should severely limit which biomes can appear:
 

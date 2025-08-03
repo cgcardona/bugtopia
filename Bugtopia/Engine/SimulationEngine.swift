@@ -59,12 +59,13 @@ class SimulationEngine {
     // MARK: - Initialization
     
     init(worldBounds: CGRect) {
-        // 🎲 DYNAMIC WORLD GENERATION: Random world type selection for unique experiences each launch
-        let randomWorldType = WorldType3D.allCases.randomElement() ?? .continental3D
-        print("🔍 DEBUG: SimulationEngine.init() called - creating world type: \(randomWorldType.rawValue)")
-        print("🌍 Generating world type: \(randomWorldType.rawValue)")
+        // 🎯 HARDCODED CONTINENTAL WORLD: Focus on perfecting one world type first
+        let worldType = WorldType3D.continental3D
+        print("🔍 DEBUG: SimulationEngine.init() called - creating world type: \(worldType.rawValue)")
+        print("🌍 Generating CONTINENTAL world (hardcoded for development)")
         
-        self.voxelWorld = VoxelWorld(bounds: worldBounds, worldType: randomWorldType, resolution: 32)
+        // 🔧 INCREASED RESOLUTION: 64x64x64 for more coherent terrain features
+        self.voxelWorld = VoxelWorld(bounds: worldBounds, worldType: worldType, resolution: 64)
         self.pathfinding = VoxelPathfinding(voxelWorld: voxelWorld)
         ecosystemManager.setWorldBounds(worldBounds)
         setupInitialPopulation()

@@ -717,36 +717,42 @@ class VoxelWorld {
         // Generate terrain based on layer type, following original Arena3D design
         switch layer {
         case .underground:
-            return generateUndergroundTerrain(biome: biome, noise: biomeNoise)
+            return generateUndergroundTerrain(biome: biome, height: heightAtPosition, noise: biomeNoise)
         case .surface:
             return generateSurfaceTerrain(biome: biome, height: heightAtPosition, noise: biomeNoise)
         case .canopy:
-            return generateCanopyTerrain(biome: biome, noise: biomeNoise)
+            return generateCanopyTerrain(biome: biome, height: heightAtPosition, noise: biomeNoise)
         case .aerial:
-            return generateAerialTerrain(biome: biome, noise: biomeNoise)
+            return generateAerialTerrain(biome: biome, height: heightAtPosition, noise: biomeNoise)
         }
     }
     
     // MARK: - Layer-Specific Terrain Generation (Ported from Arena3D)
     
-    private func generateUndergroundTerrain(biome: BiomeType, noise: Double) -> TerrainType {
-        // Underground should be mostly explorable caves with some structure
+    private func generateUndergroundTerrain(biome: BiomeType, height: Double, noise: Double) -> TerrainType {
+        // 🌍 WORLD TYPE-SPECIFIC UNDERGROUND TERRAIN
+        // First determine base underground terrain from biome, then modify based on world type
+        
+        let baseTerrain: TerrainType
         switch biome {
         case .wetlands, .coastal:
-            if noise > 0.3 { return .water }      // Underground pools
-            if noise > 0.1 { return .wall }       // Cave walls (reduced from 0.4)
-            if noise < -0.4 { return .food }      // Underground resources
-            return .open                          // Cave passages
+            if noise > 0.3 { baseTerrain = .water }      // Underground pools
+            else if noise > 0.1 { baseTerrain = .wall }  // Cave walls (reduced from 0.4)
+            else if noise < -0.4 { baseTerrain = .food } // Underground resources
+            else { baseTerrain = .open }                 // Cave passages
         case .desert:
-            if noise > 0.3 { return .wall }       // Rock formations (reduced)
-            if noise < -0.3 { return .food }      // Mineral deposits
-            return .open                          // Cave passages
+            if noise > 0.3 { baseTerrain = .wall }       // Rock formations (reduced)
+            else if noise < -0.3 { baseTerrain = .food } // Mineral deposits
+            else { baseTerrain = .open }                 // Cave passages
         default:
-            if noise > 0.2 { return .wall }       // Cave walls (much reduced for exploration)
-            if noise > 0.0 && biome.averageMoisture > 0.7 { return .water }  // Underground water
-            if noise < -0.4 { return .food }      // Cave resources
-            return .open                          // Explorable cave space
+            if noise > 0.2 { baseTerrain = .wall }       // Cave walls (much reduced for exploration)
+            else if noise > 0.0 && biome.averageMoisture > 0.7 { baseTerrain = .water }  // Underground water
+            else if noise < -0.4 { baseTerrain = .food } // Cave resources
+            else { baseTerrain = .open }                 // Explorable cave space
         }
+        
+        // 🎯 Apply world type modifications to underground terrain
+        return applyWorldTypeModifications(baseTerrain: baseTerrain, height: height, noise: noise)
     }
     
     private func generateSurfaceTerrain(biome: BiomeType, height: Double, noise: Double) -> TerrainType {
@@ -796,97 +802,175 @@ class VoxelWorld {
     }
     
     private func applyWorldTypeModifications(baseTerrain: TerrainType, height: Double, noise: Double) -> TerrainType {
-        // 🌍 Modify terrain based on world type characteristics
+        // 🌍 PHASE 2: DRAMATIC TERRAIN GENERATION
+        // Each world type now creates completely different terrain patterns
+        
         switch worldType {
         case .archipelago3D:
-            // More water and islands
-            if height < -10 && noise > -0.2 { return .water }
-            if baseTerrain == .open && noise < -0.3 { return .water }
-            return baseTerrain
+            // 🏖️ ARCHIPELAGO: 70% water, 20% coastal, 10% islands
+            if height < -5 { return .water }                 // Ocean dominates
+            if height < 0 && noise > 0.3 { return .water }   // More ocean areas
+            if height < 5 { return .sand }                   // Beach zones
+            if height < 8 && noise > 0.0 { return .food }    // Coastal vegetation
+            if height > 15 { return .hill }                  // Island peaks
+            return .open                                     // Island ground
             
         case .canyon3D:
-            // More dramatic elevation changes
-            if height > 20 && noise > 0.3 { return .wall }
-            if height < -20 && baseTerrain != .water { return .hill }
-            return baseTerrain
+            // ⛰️ CANYON: Dramatic valleys and towering mesas
+            let centerDistance = abs(0.5 - noise)           // Distance from valley center
+            if centerDistance < 0.15 && height < -15 { return .water }  // River valley
+            if centerDistance < 0.25 { return .open }        // Valley floor
+            if height > 25 { return .wall }                  // Mesa walls/cliffs
+            if height > 15 { return .hill }                  // Mesa tops
+            if height < -10 { return .shadow }               // Deep canyon shadows
+            return .hill                                     // Slopes
             
         case .cavern3D:
-            // More underground-accessible terrain
-            if noise > 0.5 && baseTerrain == .open { return .wall }
-            if noise < -0.4 { return .shadow }  // Cave entrance areas
-            return baseTerrain
+            // 🏔️ CAVERN: 80% underground accessible, cave systems
+            if height < -25 { return .shadow }               // Deep cave passages
+            if height < -20 && noise > 0.3 { return .open }  // Cave floors
+            if height < -15 && noise < 0.2 { return .water } // Underground pools
+            if height > -10 && noise > 0.6 { return .wall }  // Cave walls/ceilings
+            if height > 0 && noise > 0.4 { return .wall }    // Block most surface
+            return .shadow                                   // More cave areas
             
         case .skylands3D:
-            // Floating island characteristics
-            if height > 40 && noise > 0.2 { return .wind }  // Wind currents around floating islands
-            if height < 0 && baseTerrain != .water { return .open }  // Open air below islands
-            return baseTerrain
+            // ☁️ SKYLANDS: Floating islands with wind currents
+            if height < 10 { return .open }                  // Open air below islands
+            if height > 35 && noise > 0.4 { return .wind }   // Wind currents
+            if height > 30 { return .hill }                  // Island tops
+            if height > 25 && noise > 0.2 { return .forest } // Island vegetation
+            if height > 20 { return .open }                  // Island ground
+            return .open                                     // Mostly open air
             
         case .abyss3D:
-            // Deep underwater/underground theme
-            if height < -30 { return .water }
-            if baseTerrain == .hill && noise < 0 { return .shadow }
-            return baseTerrain
+            // 🌊 ABYSS: Deep underwater trenches and darkness
+            if height < -35 { return .shadow }               // Deep abyss darkness
+            if height < -25 { return .water }                // Deep water
+            if height < -15 && noise > 0.5 { return .predator } // Dangerous deep areas
+            if height < -10 { return .water }                // More water layers
+            if height < 0 { return .water }                  // Surface water
+            return .hill                                     // Rare surface land
             
         case .volcano3D:
-            // Volcanic and dangerous terrain
-            if height > 30 && noise > 0.4 { return .predator }  // Dangerous volcanic areas
-            if baseTerrain == .water && noise > 0.2 { return .hill }  // Less water, more rocky
-            return baseTerrain
+            // 🌋 VOLCANO: Central peak with lava and dangerous terrain
+            let centerDistance = sqrt(pow(noise - 0.5, 2))  // Distance from volcano center
+            if centerDistance < 0.1 && height > 35 { return .predator } // Lava crater
+            if centerDistance < 0.2 && height > 30 { return .wall }     // Volcanic walls
+            if height > 25 { return .hill }                  // Volcanic slopes
+            if centerDistance < 0.3 && noise > 0.5 { return .predator } // Lava flows
+            if baseTerrain == .water && noise > 0.3 { return .hill }    // Dry volcanic
+            if noise > 0.6 { return .wall }                  // Rocky volcanic terrain
+            return .hill                                     // Volcanic ground
             
         case .continental3D:
-            // Standard continental terrain - no modifications
-            return baseTerrain
-        default:
-            // Standard continental terrain - no modifications
-            return baseTerrain
+            // 🌍 CONTINENTAL: Coherent, functional terrain with logical features
+            return generateContinentalTerrain(height: height, noise: noise)
         }
     }
     
-    private func generateCanopyTerrain(biome: BiomeType, noise: Double) -> TerrainType {
-        // Canopy layer - trees and elevated areas
+    /// 🌍 CONTINENTAL TERRAIN: Creates coherent, functional terrain with logical features
+    private func generateContinentalTerrain(height: Double, noise: Double) -> TerrainType {
+        // 🎯 HEIGHT-BASED TERRAIN LOGIC: Use elevation to determine appropriate terrain types
+        
+        // 💧 WATER FEATURES: Lakes, rivers, and coastlines in low areas
+        if height < -20 {
+            return .water  // Deep water (lakes, rivers)
+        }
+        
+        if height < -10 && noise < 0.0 {
+            return .water  // Shallow water areas
+        }
+        
+        // 🏖️ COASTAL/WETLAND TRANSITION: Areas near water
+        if height < -5 && noise > -0.3 {
+            if noise > 0.3 { return .sand }    // Sandy beaches/shores
+            if noise > 0.0 { return .swamp }   // Wetland areas
+            return .open                       // Mudflats, coastal plains
+        }
+        
+        // 🌲 FORESTED AREAS: Use larger-scale noise for coherent forests
+        let forestNoise = noise * 0.7 + (sin(height * 0.1) * 0.3)  // Height-influenced forest placement
+        if height > 5 && height < 25 && forestNoise > 0.2 {
+            if forestNoise > 0.5 { return .forest }    // Dense forest
+            if forestNoise > 0.3 { return .food }      // Forest edge with resources
+            return .open                               // Forest clearings
+        }
+        
+        // ⛰️ HILLY/MOUNTAINOUS TERRAIN: Higher elevations
+        if height > 30 {
+            if noise > 0.4 { return .wall }     // Rocky cliffs, steep areas
+            if noise > 0.1 { return .hill }     // Hills and slopes
+            if noise < -0.3 { return .food }    // Mountain resources (rare)
+            return .open                        // Mountain plateaus
+        }
+        
+        if height > 15 {
+            if noise > 0.6 { return .hill }     // Gentler hills
+            if noise < -0.4 { return .food }    // Hill resources
+            return .open                        // Hillside plains
+        }
+        
+        // 🌾 PLAINS AND GRASSLANDS: The majority of continental terrain
+        if noise > 0.5 { return .food }        // Fertile areas with resources
+        if noise < -0.7 { return .hill }       // Occasional rolling hills
+        if noise < -0.8 { return .water }      // Small ponds, streams
+        
+        return .open  // Default grassland/plains (majority of terrain)
+    }
+    
+    private func generateCanopyTerrain(biome: BiomeType, height: Double, noise: Double) -> TerrainType {
+        // 🌍 WORLD TYPE-SPECIFIC CANOPY TERRAIN
+        // First determine base canopy terrain from biome, then modify based on world type
+        
         let vegetationThreshold = biome.vegetationDensity
+        let baseTerrain: TerrainType
         
         if vegetationThreshold < 0.3 {
-            return .open  // No canopy in low vegetation biomes
+            baseTerrain = .open  // No canopy in low vegetation biomes
+        } else {
+            switch biome {
+            case .tropicalRainforest:
+                if noise > 0.2 { baseTerrain = .forest }     // Dense canopy
+                else if noise > -0.3 { baseTerrain = .food } // Canopy fruits
+                else { baseTerrain = .open }
+            case .temperateForest, .borealForest:
+                if noise > 0.4 { baseTerrain = .forest }
+                else if noise > 0.0 { baseTerrain = .food }
+                else if noise < -0.4 { baseTerrain = .wind } // Canopy air currents
+                else { baseTerrain = .open }
+            case .savanna:
+                if noise > 0.6 { baseTerrain = .forest }     // Scattered trees
+                else if noise > 0.2 { baseTerrain = .food }
+                else { baseTerrain = .open }
+            default:
+                if noise > 0.5 { baseTerrain = .food }
+                else if noise < -0.3 { baseTerrain = .wind }
+                else { baseTerrain = .open }
+            }
         }
         
-        switch biome {
-        case .tropicalRainforest:
-            if noise > 0.2 { return .forest }     // Dense canopy
-            if noise > -0.3 { return .food }      // Canopy fruits
-            return .open
-        case .temperateForest, .borealForest:
-            if noise > 0.4 { return .forest }
-            if noise > 0.0 { return .food }
-            if noise < -0.4 { return .wind }      // Canopy air currents
-            return .open
-        case .savanna:
-            if noise > 0.6 { return .forest }     // Scattered trees
-            if noise > 0.2 { return .food }
-            return .open
-        default:
-            if noise > 0.5 { return .food }
-            if noise < -0.3 { return .wind }
-            return .open
-        }
+        // 🎯 Apply world type modifications to canopy terrain
+        return applyWorldTypeModifications(baseTerrain: baseTerrain, height: height, noise: noise)
     }
     
-    private func generateAerialTerrain(biome: BiomeType, noise: Double) -> TerrainType {
-        // Aerial layer - mostly open with wind currents and aerial resources
+    private func generateAerialTerrain(biome: BiomeType, height: Double, noise: Double) -> TerrainType {
+        // 🌍 WORLD TYPE-SPECIFIC AERIAL TERRAIN
+        // First determine base aerial terrain from biome, then modify based on world type
+        
+        let baseTerrain: TerrainType
         if noise > 0.4 {
-            return .wind  // Strong high-altitude winds
+            baseTerrain = .wind  // Strong high-altitude winds
+        } else if noise > 0.7 {
+            baseTerrain = .food  // Aerial resources (flying insects, etc.)
+        } else if noise > 0.2 && noise < 0.4 {
+            baseTerrain = .wind  // Air currents
+        } else {
+            baseTerrain = .open
         }
         
-        if noise > 0.7 {
-            return .food  // Aerial resources (flying insects, etc.)
-        }
-        
-        if noise > 0.2 && noise < 0.4 {
-            return .wind  // Air currents
-        }
-        
-        return .open
+        // 🎯 Apply world type modifications to aerial terrain
+        return applyWorldTypeModifications(baseTerrain: baseTerrain, height: height, noise: noise)
     }
     
     private func determineTransitionType(gridPos: (x: Int, y: Int, z: Int), terrainType: TerrainType, layer: TerrainLayer) -> TransitionType {
