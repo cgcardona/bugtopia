@@ -204,6 +204,40 @@ enum WorldType3D: String, CaseIterable, Codable {
             return volcanoHeight
         }
     }
+    
+    /// 🌍 WORLD-TYPE SPECIFIC BIOME CONSTRAINTS
+    /// Each world type dramatically limits which biomes can appear for unique experiences
+    var allowedBiomes: [BiomeType] {
+        switch self {
+        case .cavern3D:
+            // Underground world: Cold, rocky, minimal vegetation
+            return [.tundra, .alpine]
+            
+        case .archipelago3D:
+            // Island world: Water-rich, tropical themes
+            return [.coastal, .tropicalRainforest, .wetlands, .temperateForest]
+            
+        case .abyss3D:
+            // Deep underwater: Cold, harsh, sparse
+            return [.tundra, .alpine, .wetlands]
+            
+        case .volcano3D:
+            // Volcanic world: Hot, rocky, dangerous
+            return [.desert, .alpine, .savanna]
+            
+        case .canyon3D:
+            // Desert canyons: Dry, rocky, sparse
+            return [.desert, .temperateGrassland, .alpine, .savanna]
+            
+        case .skylands3D:
+            // Floating islands: Temperate, elevated
+            return [.temperateForest, .alpine, .temperateGrassland, .borealForest]
+            
+        case .continental3D:
+            // Standard continental: All biomes allowed for variety
+            return BiomeType.allCases
+        }
+    }
 }
 
 // MARK: - 3D Direction System
@@ -1278,15 +1312,49 @@ class VoxelWorld {
     }
     
     private func determineBiome(temperature: Double, moisture: Double) -> BiomeType {
+        // 🌍 WORLD-TYPE SPECIFIC BIOME CONSTRAINTS
+        // Each world type now limits which biomes can appear for dramatic differentiation
+        let allowedBiomes = worldType.allowedBiomes
+        
+        // Determine biome based on climate as before
+        let climateBiome: BiomeType
         switch (temperature, moisture) {
-        case let (t, m) where t < -0.3 && m < 0.3: return .tundra
-        case let (t, m) where t < -0.3 && m >= 0.3: return .borealForest
-        case let (t, m) where t >= -0.3 && t < 0.3 && m < 0.3: return .temperateGrassland
-        case let (t, m) where t >= -0.3 && t < 0.3 && m >= 0.3: return .temperateForest
-        case let (t, m) where t >= 0.3 && m < 0.3: return .desert
-        case let (t, m) where t >= 0.3 && m >= 0.3 && m < 0.7: return .savanna
-        default: return .tropicalRainforest
+        case let (t, m) where t < -0.3 && m < 0.3: climateBiome = .tundra
+        case let (t, m) where t < -0.3 && m >= 0.3: climateBiome = .borealForest
+        case let (t, m) where t >= -0.3 && t < 0.3 && m < 0.3: climateBiome = .temperateGrassland
+        case let (t, m) where t >= -0.3 && t < 0.3 && m >= 0.3: climateBiome = .temperateForest
+        case let (t, m) where t >= 0.3 && m < 0.3: climateBiome = .desert
+        case let (t, m) where t >= 0.3 && m >= 0.3 && m < 0.7: climateBiome = .savanna
+        default: climateBiome = .tropicalRainforest
         }
+        
+        // 🎯 If climate biome is allowed for this world type, use it
+        if allowedBiomes.contains(climateBiome) {
+            return climateBiome
+        }
+        
+        // 🔄 Otherwise, find the closest allowed biome
+        return findClosestAllowedBiome(target: climateBiome, allowed: allowedBiomes, temperature: temperature, moisture: moisture)
+    }
+    
+    /// Finds the closest allowed biome based on climate similarity
+    private func findClosestAllowedBiome(target: BiomeType, allowed: [BiomeType], temperature: Double, moisture: Double) -> BiomeType {
+        var bestMatch = allowed.first ?? .temperateForest
+        var bestScore = Double.infinity
+        
+        for biome in allowed {
+            // Calculate climate distance
+            let tempDiff = abs(temperature - biome.averageTemperature)
+            let moistDiff = abs(moisture - biome.averageMoisture)
+            let score = tempDiff + moistDiff
+            
+            if score < bestScore {
+                bestScore = score
+                bestMatch = biome
+            }
+        }
+        
+        return bestMatch
     }
     
     // MARK: - Public Access Methods
