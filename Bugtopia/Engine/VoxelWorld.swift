@@ -1078,6 +1078,9 @@ class VoxelWorld {
     private func generateLayerTransitions() {
         // Generating layer transitions
         
+        // 🔧 CRITICAL FIX: Create horizontal connectivity for bug movement
+        createHorizontalConnectivity()
+        
         // Create vertical connectivity throughout the world
         for x in 0..<dimensions.width {
             for y in 0..<dimensions.height {
@@ -1090,6 +1093,42 @@ class VoxelWorld {
         createTreeClimbingRoutes() // Surface ↔ Canopy  
         createAerialAccess()       // Canopy ↔ Aerial
         createVerticalShafts()     // Direct multi-layer connections
+    }
+    
+    private func createHorizontalConnectivity() {
+        // 🔧 OPTIMIZED: Create horizontal connections without the for-loop-ception
+        print("🔗 Creating horizontal connectivity (optimized approach)...")
+        
+        // Process horizontal edges only (avoid redundant iterations)
+        for z in 0..<dimensions.depth {
+            for x in 0..<dimensions.width {
+                for y in 0..<(dimensions.height - 1) {
+                    // North-South connections (only process each edge once)
+                    let currentVoxel = voxels[x][y][z]
+                    let northVoxel = voxels[x][y + 1][z]
+                    
+                    if currentVoxel.transitionType.isPassable && northVoxel.transitionType.isPassable {
+                        voxels[x][y][z].connections[.north] = true
+                        voxels[x][y + 1][z].connections[.south] = true
+                    }
+                }
+            }
+            
+            for y in 0..<dimensions.height {
+                for x in 0..<(dimensions.width - 1) {
+                    // East-West connections (only process each edge once)
+                    let currentVoxel = voxels[x][y][z]
+                    let eastVoxel = voxels[x + 1][y][z]
+                    
+                    if currentVoxel.transitionType.isPassable && eastVoxel.transitionType.isPassable {
+                        voxels[x][y][z].connections[.east] = true
+                        voxels[x + 1][y][z].connections[.west] = true
+                    }
+                }
+            }
+        }
+        
+        print("✅ Horizontal connectivity established (no more for-loop inception)!")
     }
     
     private func createVerticalConnectivity(at pos: (x: Int, y: Int)) {

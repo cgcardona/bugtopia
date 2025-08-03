@@ -261,6 +261,16 @@ extension Bug {
         let currentVoxel = voxelWorld.getVoxel(at: position3D)
         guard currentVoxel != nil else { return }
         
+        // 🐛 DEBUG: Check if neural decisions are being generated
+        if abs(decision.moveX) < 0.01 && abs(decision.moveY) < 0.01 && abs(decision.moveZ) < 0.01 {
+            // No meaningful neural decision - generate random movement to prevent stagnation
+            let randomDirection = Direction3D.allCases.randomElement() ?? .north
+            if let randomVoxel = voxelWorld.getAdjacentVoxels(to: currentVoxel!)[randomDirection] {
+                moveToVoxel(randomVoxel, in: voxelWorld)
+                return
+            }
+        }
+        
         // Get valid moves from current position
         let validMoves = pathfinding.getValidMoves(from: position3D, for: dna.speciesTraits.speciesType, with: dna)
         
@@ -300,19 +310,43 @@ extension Bug {
     private func calculateDirectionScore(direction: Direction3D, voxel: Voxel, decision: BugOutputs) -> Double {
         var score = 0.0
         
-        // Neural network movement preferences
+        // 🔧 CONTINENTAL TERRAIN FIX: Prioritize horizontal exploration over vertical layer changes
         switch direction {
-        case .north: score += decision.moveY < 0 ? abs(decision.moveY) : 0
-        case .south: score += decision.moveY > 0 ? decision.moveY : 0
-        case .east: score += decision.moveX > 0 ? decision.moveX : 0
-        case .west: score += decision.moveX < 0 ? abs(decision.moveX) : 0
-        case .up: score += decision.moveZ > 0 ? decision.moveZ : 0
-        case .down: score += decision.moveZ < 0 ? abs(decision.moveZ) : 0
+        case .north: 
+            score += decision.moveY < 0 ? abs(decision.moveY) * 2.0 : 0  // 2x weight for horizontal
+        case .south: 
+            score += decision.moveY > 0 ? decision.moveY * 2.0 : 0       // 2x weight for horizontal
+        case .east: 
+            score += decision.moveX > 0 ? decision.moveX * 2.0 : 0       // 2x weight for horizontal
+        case .west: 
+            score += decision.moveX < 0 ? abs(decision.moveX) * 2.0 : 0  // 2x weight for horizontal
+        case .up: 
+            score += decision.moveZ > 0 ? decision.moveZ * 0.1 : 0       // Much lower weight for vertical
+        case .down: 
+            score += decision.moveZ < 0 ? abs(decision.moveZ) * 0.1 : 0  // Much lower weight for vertical
         }
         
-        // Layer change preference
+        // 🚶 TERRAIN EXPLORATION: Strongly favor horizontal movement for Continental world
+        if direction == .north || direction == .south || direction == .east || direction == .west {
+            score += 1.0  // Bonus for horizontal movement
+        }
+        
+        // 🔄 CYCLE BREAKING: Add randomness to prevent movement loops
+        score += Double.random(in: 0...0.5)  // Random factor to break ties and cycles
+        
+        // 🌍 BOUNDARY AVOIDANCE: Discourage movement toward world edges
+        let targetPos = voxel.position
+        let worldBounds = 600.0  // Approximate world size based on coordinates seen
+        let edgeDistance = 50.0   // Stay away from edges
+        
+        if targetPos.x < edgeDistance || targetPos.x > (worldBounds - edgeDistance) ||
+           targetPos.y < edgeDistance || targetPos.y > (worldBounds - edgeDistance) {
+            score -= 2.0  // Strong penalty for approaching boundaries
+        }
+        
+        // Layer change preference (reduced for Continental terrain)
         if direction == .up || direction == .down {
-            score += abs(decision.layerChange) * 0.5
+            score += abs(decision.layerChange) * 0.1  // Reduced from 0.5 to 0.1
         }
         
         // Environmental factors
