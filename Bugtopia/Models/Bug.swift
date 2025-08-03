@@ -248,7 +248,10 @@ class Bug: Identifiable, Hashable {
         energy -= disasterEffects.directDamage
         
         // Performance optimization: Skip complex behaviors for very young bugs
-        if age < 10 {
+        if age < 3 {
+            // 🔍 DEBUG: Track young bug behavior
+            print("👶 Young bug (age \(age)) - skipping neural network, using random movement")
+            
             // Simple movement for newborns
             let safeSpeed = max(0.1, currentSpeed) // Ensure positive speed
             velocity = CGPoint(
@@ -335,7 +338,19 @@ class Bug: Identifiable, Hashable {
         
         // Get neural network outputs
         let rawOutputs = neuralNetwork.predict(inputs: inputs)
+        
+        // 🔍 DEBUG: Track neural network outputs
+        print("🧠 Neural Network Debug:")
+        print("   Inputs count: \(inputs.count)")
+        print("   Raw outputs: \(rawOutputs)")
+        
         lastDecision = BugOutputs(from: rawOutputs)
+        
+        if let decision = lastDecision {
+            print("   BugOutputs: moveX=\(decision.moveX), moveY=\(decision.moveY), moveZ=\(decision.moveZ)")
+        } else {
+            print("   ⚠️ lastDecision is nil!")
+        }
         
         // Neural network can override hardcoded food targeting
         if let decision = lastDecision {

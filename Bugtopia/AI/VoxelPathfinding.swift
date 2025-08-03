@@ -275,18 +275,28 @@ extension Bug {
         let validMoves = pathfinding.getValidMoves(from: position3D, for: dna.speciesTraits.speciesType, with: dna)
         
         if validMoves.isEmpty {
+            print("⚠️ Bug STUCK at (\(position3D.x), \(position3D.y)) - no valid moves!")
             // Stuck! Try to find escape route
             handleStuckPosition(in: voxelWorld, pathfinding: pathfinding)
             return
         }
         
+        // 🔍 DEBUG: Track movement decisions
+        print("🐛 Bug at (\(position3D.x), \(position3D.y)) - Valid moves: \(validMoves.count)")
+        print("🧠 Neural: moveX=\(decision.moveX), moveY=\(decision.moveY), moveZ=\(decision.moveZ)")
+        
         // Determine movement intention from neural network
         let intendedDirection = determineMovementDirection(decision: decision, validMoves: validMoves)
         
+        print("🎯 Bug chose direction: \(intendedDirection)")
+        
         if let targetVoxel = validMoves[intendedDirection] {
+            let oldPos = position3D
             // Move to the target voxel
             moveToVoxel(targetVoxel, in: voxelWorld)
+            print("✅ Bug moved from (\(oldPos.x), \(oldPos.y)) to (\(position3D.x), \(position3D.y))")
         } else {
+            print("❌ Target voxel not available for direction: \(intendedDirection)")
             // Try alternative movement
             tryAlternativeMovement(validMoves: validMoves, decision: decision, in: voxelWorld)
         }
@@ -296,13 +306,18 @@ extension Bug {
         var bestDirection: Direction3D = .north
         var bestScore: Double = -1.0
         
+        print("📊 Movement Scoring:")
+        
         for (direction, voxel) in validMoves {
             let score = calculateDirectionScore(direction: direction, voxel: voxel, decision: decision)
+            print("   \(direction): \(String(format: "%.3f", score))")
             if score > bestScore {
                 bestScore = score
                 bestDirection = direction
             }
         }
+        
+        print("🏆 Winner: \(bestDirection) (score: \(String(format: "%.3f", bestScore)))")
         
         return bestDirection
     }
