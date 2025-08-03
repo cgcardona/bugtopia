@@ -169,9 +169,20 @@ enum WorldType3D: String, CaseIterable, Codable {
     func generateHeight(at x: Double, y: Double) -> Double {
         switch self {
         case .continental3D:
-            // Rolling hills and plains
-            let baseHeight = sin(x * 3.14159) * cos(y * 3.14159) * 15.0
-            return baseHeight + 5.0
+            // 🌍 CONTINENTAL: Coherent landscapes with proper elevation ranges
+            // Create large-scale terrain features that match our terrain logic
+            
+            // Large-scale terrain undulation (continent-wide features)
+            let continentalNoise = sin(x * 2.0) * cos(y * 2.0) * 25.0
+            
+            // Medium-scale regional features (mountain ranges, valley systems)
+            let regionalNoise = sin(x * 6.0) * cos(y * 4.0) * 15.0
+            
+            // Combine for natural-looking elevation
+            let baseHeight = continentalNoise + regionalNoise * 0.6
+            
+            // Ensure full range from deep water (-30) to high mountains (+40)
+            return baseHeight
             
         case .archipelago3D:
             // Island chains with water
@@ -529,11 +540,17 @@ class VoxelWorld {
                 // This will create dramatically different terrain patterns for each world type
                 let worldTypeHeight = worldType.generateHeight(at: normalizedX, y: normalizedY)
                 
-                // Add detail layers for texture and realism
-                let detailHeight = noise2D(normalizedX * 12.0, normalizedY * 12.0) * 4.0
-                let fineDetail = noise2D(normalizedX * 24.0, normalizedY * 24.0) * 1.0
+                // 🎯 MUCH LOWER FREQUENCY NOISE for coherent features
+                // Large features (lakes, forests) - very low frequency
+                let majorFeatures = noise2D(normalizedX * 3.0, normalizedY * 3.0) * 8.0
                 
-                heightMap[x][y] = worldTypeHeight + detailHeight + fineDetail
+                // Medium features (hills, clearings) - low frequency  
+                let mediumFeatures = noise2D(normalizedX * 6.0, normalizedY * 6.0) * 3.0
+                
+                // Fine detail (subtle variation) - minimal impact
+                let fineDetail = noise2D(normalizedX * 12.0, normalizedY * 12.0) * 1.0
+                
+                heightMap[x][y] = worldTypeHeight + majorFeatures + mediumFeatures + fineDetail
             }
         }
     }
@@ -711,8 +728,9 @@ class VoxelWorld {
         let normalizedY = Double(gridPos.y) / Double(dimensions.height)
         let normalizedZ = Double(gridPos.z) / Double(dimensions.depth)
         
-        // Layer-specific noise patterns for varied terrain
-        let biomeNoise = noise2D(normalizedX * 8 + normalizedZ * 2, normalizedY * 8 + normalizedZ * 2)
+        // 🎯 MUCH LOWER FREQUENCY noise for coherent terrain regions
+        // Reduced from 8x to 2x for larger, more coherent terrain patches
+        let biomeNoise = noise2D(normalizedX * 2.0 + normalizedZ * 0.5, normalizedY * 2.0 + normalizedZ * 0.5)
         
         // Generate terrain based on layer type, following original Arena3D design
         switch layer {
