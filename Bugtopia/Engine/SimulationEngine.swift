@@ -499,9 +499,9 @@ class SimulationEngine {
                 y: voxel.position.y + randomOffset.y
             )
             
-            // Generate appropriate food type
+            // Generate biome and season appropriate food type
             let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
-            let foodType = FoodType.randomFoodFor(species: targetSpecies)
+            let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
             let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
             newFoods.append(foodItem)
         }
@@ -533,9 +533,9 @@ class SimulationEngine {
                     y: voxel.position.y + randomOffset.y
                 )
                 
-                // Generate appropriate food type
+                // Generate biome and season appropriate food type
                 let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
-                let foodType = FoodType.randomFoodFor(species: targetSpecies)
+                let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
                 let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
                 newFoods.append(foodItem)
             }
@@ -581,10 +581,10 @@ class SimulationEngine {
                     )
                     // Check if disasters would destroy this food immediately
                     if !disasterManager.shouldDestroyFood(at: foodPosition) {
-                        // Generate appropriate food type with higher herbivore ratio
+                        // Generate biome and season appropriate food type with higher herbivore ratio
                         let herbivoreFoodRatio = 0.8 // 80% herbivore foods
                         let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
-                        let foodType = FoodType.randomFoodFor(species: targetSpecies)
+                        let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
                         let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
                         foods.append(foodItem)
                     }
@@ -613,10 +613,10 @@ class SimulationEngine {
                         )
                         // Check if disasters would destroy this food immediately
                         if !disasterManager.shouldDestroyFood(at: foodPosition) {
-                            // Generate appropriate food type with higher herbivore ratio
+                            // Generate biome and season appropriate food type with higher herbivore ratio
                             let herbivoreFoodRatio = 0.8 // 80% herbivore foods
                             let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
-                            let foodType = FoodType.randomFoodFor(species: targetSpecies)
+                            let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
                             let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
                             foods.append(foodItem)
                         }

@@ -510,22 +510,17 @@ class Bug: Identifiable, Hashable {
             
                     // ✅ ENHANCED: Log movement success and compare with stopping
         if deltaX > 1.0 || deltaY > 1.0 {
-            print("🎯 [MOVE-ANALYSIS \(debugId)] DeltaX=\(String(format: "%.2f", deltaX)), DeltaY=\(String(format: "%.2f", deltaY))")
-            print("🎯 [MOVE-ANALYSIS \(debugId)] BEFORE: X=\(String(format: "%.1f", oldPos.x)), Y=\(String(format: "%.1f", oldPos.y))")
-            print("🎯 [MOVE-ANALYSIS \(debugId)] AFTER:  X=\(String(format: "%.1f", proposedPosition.x)), Y=\(String(format: "%.1f", proposedPosition.y))")
+            
             
             // ✅ DEBUG: Log successful movement conditions for comparison
             if Int.random(in: 1...20) == 1 {
-                print("✅ [MOVE-SUCCESS \(debugId)] Energy=\(String(format: "%.1f", energy)), FinalSpeed=\(String(format: "%.3f", finalSpeed))")
-                print("✅ [MOVE-SUCCESS \(debugId)] Neural: X=\(String(format: "%.3f", decision.moveX)), Y=\(String(format: "%.3f", decision.moveY))")
+                
             }
         }
             
             // Track movement stopping indicators
             if deltaX < 0.1 && deltaY < 0.1 && (abs(decision.moveX) > 0.1 || abs(decision.moveY) > 0.1) && Int.random(in: 1...50) == 1 {
-                print("🛑 [STOP-DETECTED \(debugId)] Neural wants to move but movement tiny!")
-                print("🛑 [STOP-DETECTED \(debugId)] Neural: X=\(String(format: "%.3f", decision.moveX)), Y=\(String(format: "%.3f", decision.moveY))")
-                print("🛑 [STOP-DETECTED \(debugId)] Speed: \(String(format: "%.3f", finalSpeed))")
+
             }
             
             position = proposedPosition

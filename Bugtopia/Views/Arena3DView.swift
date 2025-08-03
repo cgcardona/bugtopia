@@ -117,11 +117,8 @@ struct Arena3DView: NSViewRepresentable {
         let primaryBiome = biomeCounts.max(by: { $0.value < $1.value })?.key ?? .temperateForest
         
         // Log biome distribution for development insight
-        print("🌿 Biome distribution in world:")
-        for (biome, count) in biomeCounts.sorted(by: { $0.value > $1.value }) {
-            let percentage = Double(count) / Double(sampleSize) * 100
-            print("   \(biome.rawValue): \(String(format: "%.1f", percentage))%")
-        }
+
+
         
         return primaryBiome
     }
@@ -1067,14 +1064,14 @@ struct Arena3DView: NSViewRepresentable {
         let worldType = simulationEngine.voxelWorld.worldType
         let skyboxAssetName = getSkyboxAssetName(for: worldType)
         
-        print("🎨 Loading skybox for \(worldType.rawValue): \(skyboxAssetName)")
+
         
         // Try to load world-specific skybox first
         if let skyboxImage = NSImage(named: skyboxAssetName) {
             scene.background.contents = skyboxImage
             scene.lightingEnvironment.contents = skyboxImage
             scene.lightingEnvironment.intensity = getSkyboxIntensity(for: worldType)
-            print("✅ Loaded world-specific skybox: \(skyboxAssetName)")
+
         } else if let fallbackImage = NSImage(named: "epic-skybox-panorama") {
             // Fallback to original skybox if world-specific not found
             scene.background.contents = fallbackImage
@@ -1301,7 +1298,7 @@ struct Arena3DView: NSViewRepresentable {
         cameraNode.position = cameraPos
         cameraNode.look(at: lookAtPos)
         
-        print("📷 Camera positioned for \(worldType.rawValue): \(cameraPos) → \(lookAtPos)")
+
         
         scene.rootNode.addChildNode(cameraNode)
         // ✅ FIX: Avoid state modification during view creation
@@ -1544,7 +1541,7 @@ struct Arena3DView: NSViewRepresentable {
     // MARK: - Continental Terrain Mesh Generation
     
     private func renderContinentalTerrainMesh(container: SCNNode) {
-        print("🏔️ Generating continental terrain mesh from height map...")
+
         
         let voxelWorld = simulationEngine.voxelWorld
         let heightMap = voxelWorld.heightMap
@@ -1580,7 +1577,7 @@ struct Arena3DView: NSViewRepresentable {
         
         container.addChildNode(terrainNode)
         
-        print("🌍 Continental terrain mesh generated successfully!")
+
     }
     
     private func createTerrainMeshFromHeightMap(heightMap: [[Double]], bounds: CGRect, resolution: Int) -> SCNGeometry {
@@ -1720,7 +1717,7 @@ struct Arena3DView: NSViewRepresentable {
         material.normal.intensity = 0.3  // Subtle surface detail
         material.ambientOcclusion.intensity = 0.2  // Add depth
         
-        print("🎨 Continental terrain material created with Minecraft-style crisp texturing!")
+
         return material
     }
     
@@ -1733,7 +1730,7 @@ struct Arena3DView: NSViewRepresentable {
         image.lockFocus()
         
         // 🌍 MINECRAFT-STYLE TERRAIN MAPPING: Map actual terrain heights to colors
-        print("🎨 Creating terrain texture from height map (resolution: \(resolution)x\(resolution))")
+
         
         for x in 0..<resolution {
             for z in 0..<resolution {
@@ -1764,12 +1761,12 @@ struct Arena3DView: NSViewRepresentable {
         
         image.unlockFocus()
         
-        print("🌍 Continental terrain texture created with realistic height-based colors!")
+
         return image
     }
     
     private func renderSelectiveVoxelFeatures(container: SCNNode) {
-        print("🌲 Adding selective surface features (trees, rocks, water effects)...")
+
         
         // Create features container for organization
         let featuresContainer = SCNNode()
@@ -1805,7 +1802,7 @@ struct Arena3DView: NSViewRepresentable {
             }
         }
         
-        print("🎨 Added \(featureCount) surface features to continental terrain")
+
     }
     
     private func shouldRenderAsFeature(_ voxel: Voxel) -> Bool {

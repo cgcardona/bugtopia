@@ -113,6 +113,34 @@ enum FoodType: String, CaseIterable {
         case .nuts: return "Nuts"
         }
     }
+    
+    /// Preferred biomes where this food naturally occurs
+    var preferredBiomes: [BiomeType] {
+        switch self {
+        case .plum: return [.temperateForest, .borealForest]
+        case .apple: return [.temperateForest, .temperateGrassland]
+        case .orange: return [.tropicalRainforest, .savanna]
+        case .melon: return [.temperateGrassland, .savanna]
+        case .meat: return [.tundra, .temperateGrassland, .savanna] // Where prey animals are
+        case .fish: return [.temperateForest] // Near water sources
+        case .seeds: return [.temperateGrassland, .desert, .savanna]
+        case .nuts: return [.temperateForest, .borealForest, .tropicalRainforest]
+        }
+    }
+    
+    /// Preferred seasons when this food is most abundant
+    var preferredSeasons: [Season] {
+        switch self {
+        case .plum: return [.summer, .fall] // Fruit ripening time
+        case .apple: return [.fall] // Classic harvest season
+        case .orange: return [.winter, .spring] // Citrus season
+        case .melon: return [.summer] // Peak summer fruit
+        case .meat: return [.fall, .winter] // Hunting season
+        case .fish: return [.spring, .summer] // Active fish season
+        case .seeds: return [.fall] // Seed collection time
+        case .nuts: return [.fall] // Nut gathering season
+        }
+    }
 }
 
 /// Food rarity levels affecting spawn frequency
@@ -159,6 +187,78 @@ extension FoodType {
         } else {
             // Fallback to any available food
             return availableFoods.randomElement() ?? .plum
+        }
+    }
+    
+    /// Randomly selects biome-appropriate food for a species type
+    static func randomFoodFor(species: SpeciesType, biome: BiomeType) -> FoodType {
+        let compatibleFoods = foodsFor(species: species)
+        let biomeFoods = compatibleFoods.filter { $0.preferredBiomes.contains(biome) }
+        
+        // If biome has preferred foods, use them with higher probability
+        if !biomeFoods.isEmpty && Double.random(in: 0...1) < 0.8 {
+            return randomFoodFromList(biomeFoods)
+        }
+        
+        // Otherwise, fall back to any compatible food
+        return randomFoodFor(species: species)
+    }
+    
+    /// Randomly selects seasonal food for a species type
+    static func randomFoodFor(species: SpeciesType, season: Season) -> FoodType {
+        let compatibleFoods = foodsFor(species: species)
+        let seasonalFoods = compatibleFoods.filter { $0.preferredSeasons.contains(season) }
+        
+        // If season has preferred foods, use them with higher probability
+        if !seasonalFoods.isEmpty && Double.random(in: 0...1) < 0.7 {
+            return randomFoodFromList(seasonalFoods)
+        }
+        
+        // Otherwise, fall back to any compatible food
+        return randomFoodFor(species: species)
+    }
+    
+    /// Randomly selects biome and season appropriate food for a species type
+    static func randomFoodFor(species: SpeciesType, biome: BiomeType, season: Season) -> FoodType {
+        let compatibleFoods = foodsFor(species: species)
+        let biomeFoods = compatibleFoods.filter { $0.preferredBiomes.contains(biome) }
+        let seasonalFoods = compatibleFoods.filter { $0.preferredSeasons.contains(season) }
+        
+        // Perfect match: both biome and season
+        let perfectMatch = biomeFoods.filter { seasonalFoods.contains($0) }
+        if !perfectMatch.isEmpty && Double.random(in: 0...1) < 0.9 {
+            return randomFoodFromList(perfectMatch)
+        }
+        
+        // Good match: biome preferred
+        if !biomeFoods.isEmpty && Double.random(in: 0...1) < 0.7 {
+            return randomFoodFromList(biomeFoods)
+        }
+        
+        // Decent match: season preferred
+        if !seasonalFoods.isEmpty && Double.random(in: 0...1) < 0.5 {
+            return randomFoodFromList(seasonalFoods)
+        }
+        
+        // Fallback to any compatible food
+        return randomFoodFor(species: species)
+    }
+    
+    /// Helper to select random food from list with rarity weighting
+    private static func randomFoodFromList(_ foods: [FoodType]) -> FoodType {
+        guard !foods.isEmpty else { return .plum }
+        
+        let commonFoods = foods.filter { $0.rarity == .common }
+        let rareFoods = foods.filter { $0.rarity == .rare }
+        
+        let random = Double.random(in: 0...1)
+        
+        if random < 0.7 && !commonFoods.isEmpty {
+            return commonFoods.randomElement()!
+        } else if !rareFoods.isEmpty {
+            return rareFoods.randomElement()!
+        } else {
+            return foods.randomElement() ?? .plum
         }
     }
 }

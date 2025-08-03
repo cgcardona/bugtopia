@@ -569,11 +569,7 @@ class VoxelWorld {
             }
         }
         
-        // 🔍 DEBUG: Log height range for continental terrain analysis
-        let heights = heightMap.flatMap { $0 }
-        let minHeight = heights.min() ?? 0.0
-        let maxHeight = heights.max() ?? 0.0
-        print("🌍 Continental heightmap range: \(String(format: "%.1f", minHeight)) to \(String(format: "%.1f", maxHeight))")
+
     }
     
     private func generateBiomeMap() {
