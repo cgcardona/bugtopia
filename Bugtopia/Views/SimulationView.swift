@@ -17,7 +17,7 @@ class SimulationEngineManager: ObservableObject {
         return Arena3DView(simulationEngine: engine)
     }()
     
-    init(worldSize: CGSize = CGSize(width: 800, height: 600)) {
+    init(worldSize: CGSize = CGSize(width: 2000, height: 1500)) {
         print("🔍 DEBUG: SimulationEngineManager.init() called - creating SimulationEngine")
         let bounds = CGRect(origin: .zero, size: worldSize)
         self.engine = SimulationEngine(worldBounds: bounds)

@@ -95,6 +95,7 @@ struct Arena3DView: NSViewRepresentable {
             }
             
             self.updateBugPositions(scene: scene)
+            self.updateFoodPositions(scene: scene)
             self.updateTerritoryVisualizations(scene: scene)
         }
     }
@@ -3790,13 +3791,10 @@ struct Arena3DView: NSViewRepresentable {
             addClimbingGear(to: bugNode, bug: bug)
         }
         
-        // 🔧 TERRAIN SURFACE POSITIONING FIX
-        // Use terrain mesh height instead of voxel world Z coordinates
-        let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
-        
+        // 🔧 CONTINENTAL WORLD: Use fixed height consistent with updateBugPositions
         let scnPosition = SCNVector3(
             Float(bug.position3D.x),
-            Float(terrainHeight + 0.5), // Position just above terrain surface for natural look
+            5.0, // Continental surface height - matches updateBugPositions system
             Float(bug.position3D.y)
         )
         
@@ -4649,26 +4647,27 @@ struct Arena3DView: NSViewRepresentable {
     // MARK: - 🎭 PHASE 3: BEHAVIORAL ANIMATION SYSTEM
     
     private func addBehavioralAnimations(to bugNode: SCNNode, bug: Bug) {
+        // ✅ FIXED: Re-enable behavioral animations with reduced intensity to prevent jumping
         // Set up behavioral animation tracking
         bugNode.name = "Bug_\(bug.id.uuidString)"
         
-        // Add subtle idle animation - breathing/pulsing
+        // Add subtle idle animation - breathing/pulsing (REDUCED INTENSITY)
         addIdleAnimation(to: bugNode, bug: bug)
         
-        // Check current behavioral state and add appropriate animations
+        // Check current behavioral state and add appropriate animations (SELECTIVE)
         if let decision = bug.lastDecision {
             addBehaviorSpecificAnimations(to: bugNode, bug: bug, decision: decision)
         }
         
-        // Add age-related animation effects
+        // Add age-related animation effects (REDUCED INTENSITY)
         addAgeRelatedAnimations(to: bugNode, bug: bug)
     }
     
     // 🌊 Idle Breathing/Pulsing Animation
     private func addIdleAnimation(to bugNode: SCNNode, bug: Bug) {
-        // Subtle breathing effect - slight scale pulsing
-        let breathingRate = 2.0 + bug.dna.speed * 0.5 // Faster bugs breathe faster
-        let breathingIntensity = 0.02 + bug.dna.size * 0.01 // Larger bugs have more noticeable breathing
+        // 🔧 REDUCED INTENSITY: Subtle breathing effect - very slight scale pulsing
+        let breathingRate = 3.0 + bug.dna.speed * 0.5 // Slower, more subtle breathing
+        let breathingIntensity = 0.005 + bug.dna.size * 0.003 // Much smaller breathing intensity (was 0.02)
         
         let breatheIn = SCNAction.scale(by: 1.0 + breathingIntensity, duration: breathingRate)
         let breatheOut = SCNAction.scale(by: 1.0 - breathingIntensity, duration: breathingRate)
@@ -4732,15 +4731,15 @@ struct Arena3DView: NSViewRepresentable {
     
     // 🦁 Hunting Animation - Predatory crouch and pounce preparation
     private func addHuntingAnimation(to bugNode: SCNNode, bug: Bug, intensity: Double) {
-        // Predatory crouch - lower body slightly
-        let crouch = SCNAction.scale(by: 0.8, duration: 0.5)
-        let rise = SCNAction.scale(by: 1.25, duration: 0.3)
+        // 🔧 REDUCED INTENSITY: Much subtler predatory stance
+        let crouch = SCNAction.scale(by: 0.98, duration: 1.0) // Was 0.8 - much too aggressive
+        let rise = SCNAction.scale(by: 1.02, duration: 0.8)   // Was 1.25 - much too aggressive
         
-        // Tension animation - slight back-and-forth rocking
+        // Tension animation - very slight back-and-forth rocking
         let tense = SCNAction.sequence([
-            SCNAction.rotateBy(x: CGFloat(intensity * 0.05), y: 0, z: 0, duration: 0.2),
-            SCNAction.rotateBy(x: CGFloat(-intensity * 0.1), y: 0, z: 0, duration: 0.4),
-            SCNAction.rotateBy(x: CGFloat(intensity * 0.05), y: 0, z: 0, duration: 0.2)
+            SCNAction.rotateBy(x: CGFloat(intensity * 0.02), y: 0, z: 0, duration: 0.4), // Reduced from 0.05
+            SCNAction.rotateBy(x: CGFloat(-intensity * 0.04), y: 0, z: 0, duration: 0.8), // Reduced from 0.1
+            SCNAction.rotateBy(x: CGFloat(intensity * 0.02), y: 0, z: 0, duration: 0.4)  // Reduced from 0.05
         ])
         
         let huntingCycle = SCNAction.sequence([crouch, tense, rise])
@@ -4750,7 +4749,7 @@ struct Arena3DView: NSViewRepresentable {
         
         // Enhanced wing readiness for flying predators
         if bug.canFly {
-            enhanceWingAnimationForBehavior(bugNode: bugNode, behavior: "hunt", multiplier: 1.5)
+            enhanceWingAnimationForBehavior(bugNode: bugNode, behavior: "hunt", multiplier: 1.2) // Reduced from 1.5
         }
     }
     
@@ -4958,8 +4957,9 @@ struct Arena3DView: NSViewRepresentable {
         energyNode.position = SCNVector3(0, 3.5, 0)
         energyNode.name = "EnergyBar"
         
-        // Pulse when critically low energy
-        if energyRatio < 0.2 {
+        // 🔧 CONTINENTAL WORLD FIX: Disable pulse animations to prevent jumping appearance
+        // Pulse when critically low energy (DISABLED to prevent visual jumping)
+        if false && energyRatio < 0.2 {
             let pulse = SCNAction.sequence([
                 SCNAction.scale(by: 1.3, duration: 0.3),
                 SCNAction.scale(by: 0.7, duration: 0.3)
@@ -4988,10 +4988,13 @@ struct Arena3DView: NSViewRepresentable {
         ageNode.position = SCNVector3(0, 0.2, 0)
         ageNode.name = "AgeRing"
         
-        // Gentle rotation to show life activity
-        let rotation = SCNAction.rotateBy(x: 0, y: CGFloat(Double.pi * 2), z: 0, duration: 10.0 - ageRatio * 5.0) // Slower rotation as they age
-        let ageAnimation = SCNAction.repeatForever(rotation)
-        ageNode.runAction(ageAnimation, forKey: "ageRotation")
+        // 🔧 CONTINENTAL WORLD FIX: Disable age rotation to prevent visual jumping
+        // Gentle rotation to show life activity (DISABLED to prevent visual jumping)
+        if false {
+            let rotation = SCNAction.rotateBy(x: 0, y: CGFloat(Double.pi * 2), z: 0, duration: 10.0 - ageRatio * 5.0) // Slower rotation as they age
+            let ageAnimation = SCNAction.repeatForever(rotation)
+            ageNode.runAction(ageAnimation, forKey: "ageRotation")
+        }
         
         bugNode.addChildNode(ageNode)
     }
@@ -6677,22 +6680,46 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func updateBugPositions(scene: SCNScene) {
+        // ✅ FIXED: Re-enabled visual positioning - jumping was caused by behavioral animations
         guard let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else { return }
         
         for bug in simulationEngine.bugs {
             if let bugNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false) {
-                // 🔧 TERRAIN SURFACE POSITIONING: Keep bugs on terrain during updates
+                // 🔧 CONTINENTAL WORLD FIX: Position bugs on actual terrain surface
+                // Use terrain height for proper surface positioning
                 let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
                 let targetPosition = SCNVector3(
                     Float(bug.position3D.x),
-                    Float(terrainHeight + 0.5), // Keep just above terrain surface
+                    Float(terrainHeight + 1.0), // Slightly above terrain surface
                     Float(bug.position3D.y)
                 )
                 
-                let moveAction = SCNAction.move(to: targetPosition, duration: 0.1)
-                bugNode.runAction(moveAction)
+                // Only check horizontal distance for movement animation
+                let currentPosition = bugNode.position
+                let horizontalDistance = sqrt(
+                    (targetPosition.x - currentPosition.x) * (targetPosition.x - currentPosition.x) +
+                    (targetPosition.z - currentPosition.z) * (targetPosition.z - currentPosition.z)
+                )
                 
-                // Update energy indicator
+                // 🔍 VISUAL COORDINATE DEBUG: Track logical vs visual coordinate mapping
+                let debugId = String(bug.id.uuidString.prefix(8))
+                
+                // Always log coordinate mapping for any movement to identify X-axis issues
+                if horizontalDistance > 0.5 && Int.random(in: 1...10) == 1 {
+                    print("🗺️ [COORD-MAP \(debugId)] Logical: X=\(String(format: "%.1f", bug.position3D.x)), Y=\(String(format: "%.1f", bug.position3D.y))")
+                    print("🗺️ [COORD-MAP \(debugId)] Visual:  X=\(String(format: "%.1f", targetPosition.x)), Z=\(String(format: "%.1f", targetPosition.z))")
+                    print("🗺️ [COORD-MAP \(debugId)] Movement: visual_distance=\(String(format: "%.2f", horizontalDistance))")
+                }
+                
+                if horizontalDistance > 0.5 { // Animate most movements (lowered threshold for better visibility)
+                    let moveAction = SCNAction.move(to: targetPosition, duration: 0.2)
+                    bugNode.runAction(moveAction)
+                } else {
+                    // Set position directly for tiny movements only
+                    bugNode.position = targetPosition
+                }
+                
+                // Update energy indicator (with threshold to prevent micro-updates)
                 updateEnergyIndicator(bugNode: bugNode, energy: bug.energy)
             } else {
                 // Bug node doesn't exist, create it with new Phase 3 visuals
@@ -6700,6 +6727,100 @@ struct Arena3DView: NSViewRepresentable {
                 bugContainer.addChildNode(newBugNode)
             }
         }
+    }
+    
+    // MARK: - 🍎 Food Rendering System
+    
+    private func updateFoodPositions(scene: SCNScene) {
+        // Get or create food container
+        var foodContainer = scene.rootNode.childNode(withName: "FoodContainer", recursively: false)
+        if foodContainer == nil {
+            foodContainer = SCNNode()
+            foodContainer!.name = "FoodContainer"
+            scene.rootNode.addChildNode(foodContainer!)
+        }
+        
+        // Get current food nodes
+        let existingFoodNodes = foodContainer!.childNodes.filter { $0.name?.hasPrefix("Food_") == true }
+        
+        // Remove nodes for food that no longer exists
+        for foodNode in existingFoodNodes {
+            let foodId = foodNode.name?.replacingOccurrences(of: "Food_", with: "") ?? ""
+            
+            // 🔧 FIX: Use exact position matching instead of integer truncation
+            let foodExists = simulationEngine.foods.contains { food in
+                let exactId = "\(String(format: "%.1f", food.x))_\(String(format: "%.1f", food.y))"
+                return exactId == foodId
+            }
+            if !foodExists {
+                foodNode.removeFromParentNode()
+                // 🔧 DEBUG: Log visual food removal to verify ghost food cleanup
+                if Int.random(in: 1...20) == 1 { // Sample 5% of removals
+                    print("🗑️ [VISUAL-REMOVE] Removing consumed food node: \(foodId)")
+                }
+            }
+        }
+        
+        // Add or update nodes for current food
+        for food in simulationEngine.foods {
+            // 🔧 FIX: Use exact position IDs to match removal system
+            let foodId = "\(String(format: "%.1f", food.x))_\(String(format: "%.1f", food.y))"
+            let existingNode = foodContainer!.childNode(withName: "Food_\(foodId)", recursively: false)
+            
+            if existingNode == nil {
+                // Create new food node with exact position ID
+                let foodNode = createFoodNode(position: food)
+                foodNode.name = "Food_\(foodId)"
+                foodContainer!.addChildNode(foodNode)
+            }
+        }
+    }
+    
+    private func createFoodNode(position: CGPoint) -> SCNNode {
+        let foodNode = SCNNode()
+        // 🔧 FIX: Name will be set by caller with exact position format
+        
+        // Create vibrant food sphere with Van Gogh-inspired colors
+        let sphere = SCNSphere(radius: 3.0)
+        let material = SCNMaterial()
+        
+        // Van Gogh-style vibrant green with golden life energy
+        let pulse = sin(position.x * 0.2) * cos(position.y * 0.2) * 0.3
+        let vibrantGreen = 0.6 + pulse * 0.3
+        let lifeGold = 0.2 + max(0, pulse * 0.4)
+        
+        material.diffuse.contents = NSColor(
+            red: CGFloat(lifeGold),
+            green: CGFloat(vibrantGreen), 
+            blue: 0.1,
+            alpha: 1.0
+        )
+        material.metalness.contents = 0.0
+        material.roughness.contents = 0.4
+        // Magical glow indicating nutritious life energy
+        material.emission.contents = NSColor(red: 0.15, green: 0.6, blue: 0.15, alpha: 0.3)
+        
+        sphere.firstMaterial = material
+        foodNode.geometry = sphere
+        
+        // Position the food on the actual terrain surface
+        let terrainHeight = getTerrainHeightAt(x: position.x, z: position.y)
+        let scnPosition = SCNVector3(
+            Float(position.x),
+            Float(terrainHeight + 2.0), // Slightly above terrain surface
+            Float(position.y)
+        )
+        foodNode.position = scnPosition
+        
+        // Add gentle pulsing animation to make food noticeable
+        let pulseAction = SCNAction.sequence([
+            SCNAction.scale(to: 1.2, duration: 1.0),
+            SCNAction.scale(to: 1.0, duration: 1.0)
+        ])
+        let repeatPulse = SCNAction.repeatForever(pulseAction)
+        foodNode.runAction(repeatPulse)
+        
+        return foodNode
     }
     
     // 🦋 PHASE 3: Force refresh of all bug visuals to apply new creature designs
@@ -6726,9 +6847,13 @@ struct Arena3DView: NSViewRepresentable {
                 let energyColor = energy > Bug.maxEnergy * 0.7 ? NSColor.green :
                                  energy > Bug.maxEnergy * 0.3 ? NSColor.yellow : NSColor.red
                 
-                geometry.height = newHeight
-                geometry.firstMaterial?.diffuse.contents = energyColor
-                geometry.firstMaterial?.emission.contents = energyColor
+                // 🔧 CONTINENTAL WORLD FIX: Only update energy bar if significant change
+                let heightDifference = abs(geometry.height - newHeight)
+                if heightDifference > 0.2 { // Only update if energy changed by ~4% of max
+                    geometry.height = newHeight
+                    geometry.firstMaterial?.diffuse.contents = energyColor
+                    geometry.firstMaterial?.emission.contents = energyColor
+                }
             }
         }
     }

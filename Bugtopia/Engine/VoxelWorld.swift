@@ -1553,6 +1553,19 @@ class VoxelWorld {
         return layerVoxels[layer] ?? []
     }
     
+    /// Get terrain height at world coordinates using the height map
+    func getHeightAt(x: Double, z: Double) -> Double {
+        // Convert world coordinates to grid coordinates
+        let gridX = Int((x - worldBounds.minX) / voxelSize)
+        let gridY = Int((z - worldBounds.minY) / voxelSize)
+        
+        // Clamp to valid range
+        let clampedX = max(0, min(heightMap.count - 1, gridX))
+        let clampedY = max(0, min(heightMap[0].count - 1, gridY))
+        
+        return heightMap[clampedX][clampedY]
+    }
+    
     func findSpawnPosition() -> Position3D {
         // Find a suitable spawn position on the surface with nearby open space
         let surfaceVoxels = getVoxelsInLayer(.surface).filter { $0.transitionType.isPassable }

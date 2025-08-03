@@ -81,7 +81,7 @@ class Bug: Identifiable, Hashable {
     
     static let maxEnergy: Double = 100.0
     static let initialEnergy: Double = 80.0  // Increased from 50 to give more survival time
-    static let energyLossPerTick: Double = 0.12  // Further reduced to 0.12 (3.6/sec)
+    static let energyLossPerTick: Double = 0.08  // Reduced to 0.08 for better sustainability (2.4/sec)
     static let reproductionThreshold: Double = 55.0  // Reduced to make reproduction easier
     static let reproductionCost: Double = 20.0  // Reduced from 30 to encourage reproduction
     static let maxAge: Int = 1000
@@ -106,8 +106,16 @@ class Bug: Identifiable, Hashable {
     
     /// Current movement speed based on DNA and energy
     var currentSpeed: Double {
-        let energyMultiplier = min(1.0, energy / 50.0) // Slower when low energy
-        return dna.speed * energyMultiplier * 2.0
+        let energyMultiplier = max(0.0, min(1.0, energy / 50.0)) // Slower when low energy, never negative
+        let speed = dna.speed * energyMultiplier * 2.0
+        
+        // 🚨 DEBUG: Track energy multiplier degradation
+        if energyMultiplier < 0.1 && Int.random(in: 1...10) == 1 {
+            let debugId = String(id.uuidString.prefix(8))
+            print("⚡ [ENERGY-MULT \(debugId)] LOW multiplier=\(String(format: "%.3f", energyMultiplier)), energy=\(String(format: "%.1f", energy)), speed=\(String(format: "%.3f", speed))")
+        }
+        
+        return speed
     }
     
     /// Visual radius for rendering
@@ -149,7 +157,7 @@ class Bug: Identifiable, Hashable {
     init(dna: BugDNA, position: CGPoint, generation: Int = 0) {
         self.dna = dna
         self.position = position
-        self.position3D = Position3D(from: position, z: 10.0)  // Start at mid-surface level (surface is 0-20)
+        self.position3D = Position3D(from: position, z: 5.0)  // Continental surface height - middle of surface range (-30 to 10)
         self.generation = generation
         self.velocity = CGPoint.zero
         self.velocity3D = Position3D(0, 0, 0)
@@ -239,6 +247,7 @@ class Bug: Identifiable, Hashable {
             efficiency: dna.neuralEnergyEfficiency
         )
         
+        let oldEnergy = energy
         energy -= disasterDrain + neuralEnergyCost
         
         // Apply weather-specific damage
@@ -247,10 +256,14 @@ class Bug: Identifiable, Hashable {
         // Apply disaster damage (direct health damage)
         energy -= disasterEffects.directDamage
         
-        // Performance optimization: Skip complex behaviors for very young bugs
-        if age < 3 {
-            // 🔍 DEBUG: Track young bug behavior
-            print("👶 Young bug (age \(age)) - skipping neural network, using random movement")
+        // 🔧 DEBUG: Track core energy drain sources
+        let coreEnergyLoss = oldEnergy - energy
+        
+        // 🔧 FIX: Clamp energy immediately after applying damage to prevent negative energy
+        energy = max(0, min(Self.maxEnergy, energy))
+        
+        // All bugs use neural networks immediately for consistent 3D movement
+        if false {  // Disabled: age < 3
             
             // Simple movement for newborns
             let safeSpeed = max(0.1, currentSpeed) // Ensure positive speed
@@ -261,7 +274,6 @@ class Bug: Identifiable, Hashable {
             position.x += velocity.x
             position.y += velocity.y
             handleBoundaryCollisions(arena: arena)
-            energy = max(0, min(Self.maxEnergy, energy))
             return
         }
         
@@ -282,8 +294,8 @@ class Bug: Identifiable, Hashable {
         
         // Execute decisions based on species and neural outputs
         updatePredatorPreyTargets(otherBugs: otherBugs)
-        // 🚶 MOVEMENT DISABLED: Using 3D voxel movement system instead of legacy 2D movement
-        // executeMovement(in: arena, modifiers: modifiers, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
+        // 🚶 CONTINENTAL WORLD: Re-enable 2D movement system (voxel pathfinding disabled)
+        executeMovement(in: arena, modifiers: modifiers, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
         
         // Species-specific behaviors
         if dna.speciesTraits.speciesType.canEatPlants {
@@ -307,6 +319,8 @@ class Bug: Identifiable, Hashable {
         
         // Edge proximity penalty - discourages clustering near boundaries
         applyEdgeProximityPenalty(arena: arena)
+        
+        // Energy management optimized - removed debug logging
         
         // Clamp energy
         energy = max(0, min(Self.maxEnergy, energy))
@@ -339,23 +353,22 @@ class Bug: Identifiable, Hashable {
         // Get neural network outputs
         let rawOutputs = neuralNetwork.predict(inputs: inputs)
         
-        // 🔍 DEBUG: Track neural network outputs
-        print("🧠 Neural Network Debug:")
-        print("   Inputs count: \(inputs.count)")
-        print("   Raw outputs: \(rawOutputs)")
-        
         lastDecision = BugOutputs(from: rawOutputs)
         
-        if let decision = lastDecision {
-            print("   BugOutputs: moveX=\(decision.moveX), moveY=\(decision.moveY), moveZ=\(decision.moveZ)")
-        } else {
-            print("   ⚠️ lastDecision is nil!")
+        // 🔧 DEBUG: Track neural decision consistency to understand stopping behavior
+        if let decision = lastDecision, age <= 10 { // Debug first 10 ticks for young bugs
+            let debugId = String(id.uuidString.prefix(8))
+            if Int.random(in: 1...10) == 1 { // Sample 10% of young bugs
+                print("🧠 [NEURAL-DECISION \(debugId)] AGE=\(age), moveX=\(String(format: "%.4f", decision.moveX)), moveY=\(String(format: "%.4f", decision.moveY))")
+                print("🧠 [NEURAL-DECISION \(debugId)] exploration=\(String(format: "%.3f", decision.exploration)), hunting=\(String(format: "%.3f", decision.hunting)), fleeing=\(String(format: "%.3f", decision.fleeing))")
+                print("🧠 [NEURAL-DECISION \(debugId)] targetFood=\(targetFood != nil ? "YES" : "NO"), energy=\(String(format: "%.1f", energy))")
+            }
         }
         
         // Neural network can override hardcoded food targeting
         if let decision = lastDecision {
-            // High exploration tendency means ignore current food and wander
-            if decision.exploration > 0.7 {
+            // More aggressive exploration: clear food targets more often to encourage neural movement
+            if decision.exploration > 0.4 {  // Lowered from 0.7 to 0.4
                 targetFood = nil
             } else if dna.speciesTraits.speciesType.canEatPlants {
                 // Use traditional food seeking when exploitation mode (for herbivores/omnivores)
@@ -366,9 +379,24 @@ class Bug: Identifiable, Hashable {
     
     /// Executes movement based on neural network decision
     private func executeMovement(in arena: Arena, modifiers: (speed: Double, vision: Double, energyCost: Double), seasonalManager: SeasonalManager, weatherManager: WeatherManager, disasterManager: DisasterManager) {
+        
+
         guard let decision = lastDecision else {
             // Fallback to random movement if no decision
             velocity = CGPoint(x: Double.random(in: -1...1), y: Double.random(in: -1...1))
+            return
+        }
+        
+        // Check for stuck bugs (very small neural outputs)
+        if abs(decision.moveX) < 0.01 && abs(decision.moveY) < 0.01 {
+            // 🐛 DEBUG: Log why bugs aren't moving  
+            let debugId = String(id.uuidString.prefix(8))
+            if Int.random(in: 1...20) == 1 { // More frequent logging to understand stopping
+                print("🚫 [STUCK \(debugId)] Neural outputs too small: moveX=\(String(format: "%.4f", decision.moveX)), moveY=\(String(format: "%.4f", decision.moveY)), energy=\(String(format: "%.1f", energy))")
+                print("🧠 [NEURAL \(debugId)] Last decision: hunting=\(String(format: "%.3f", decision.hunting)), fleeing=\(String(format: "%.3f", decision.fleeing))")
+            }
+            // Apply small random movement to unstick bugs
+            velocity = CGPoint(x: Double.random(in: -0.1...0.1), y: Double.random(in: -0.1...0.1))
             return
         }
         
@@ -377,13 +405,31 @@ class Bug: Identifiable, Hashable {
         let terrainSpeed = baseSpeed * modifiers.speed
         let weatherSpeed = terrainSpeed * weatherManager.currentEffects.movementSpeedModifier
         let disasterEffects = disasterManager.getDisasterEffectsAt(position)
-        let finalSpeed = weatherSpeed * disasterEffects.movementSpeedModifier
+        let rawFinalSpeed = weatherSpeed * disasterEffects.movementSpeedModifier
+        let finalSpeed = max(0.01, rawFinalSpeed) // 🔧 FIX: Prevent negative/zero speeds
         
-        // Neural network controls movement direction
+        // Neural network controls movement direction with enhanced X-axis exploration
         var neuralVelocity = CGPoint(
-            x: decision.moveX * finalSpeed,
-            y: decision.moveY * finalSpeed
+            x: decision.moveX * finalSpeed * 8.0, // Increased to 8x for more dramatic X movement
+            y: decision.moveY * finalSpeed * 5.0  // Keep Y at 5x for comparison
         )
+        
+        // 🚨 DEBUG: Track movement state to identify why bugs stop after initial movement
+        let debugId = String(id.uuidString.prefix(8))
+        
+        if Int.random(in: 1...20) == 1 || age <= 5 { // Always log for first 5 ticks
+            print("🔄 [MOVEMENT-STATE \(debugId)] AGE=\(age), ENERGY=\(String(format: "%.1f", energy)), ALIVE=\(isAlive)")
+            print("🔄 [MOVEMENT-STATE \(debugId)] Neural: X=\(String(format: "%.3f", decision.moveX)), Y=\(String(format: "%.3f", decision.moveY))")
+            print("🔄 [MOVEMENT-STATE \(debugId)] Speed: current=\(String(format: "%.3f", currentSpeed)), final=\(String(format: "%.3f", finalSpeed))")
+            print("🔄 [MOVEMENT-STATE \(debugId)] Position: (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y)))")
+            print("🔄 [MOVEMENT-STATE \(debugId)] Velocity: X=\(String(format: "%.2f", neuralVelocity.x)), Y=\(String(format: "%.2f", neuralVelocity.y))")
+            
+            // Check if this is a "stopped" bug
+            if abs(neuralVelocity.x) < 0.1 && abs(neuralVelocity.y) < 0.1 && age > 3 {
+                print("🚨 [STOPPED \(debugId)] Bug stopped moving! Age=\(age)")
+                print("🚨 [STOPPED \(debugId)] Decision magnitude: X=\(String(format: "%.4f", abs(decision.moveX))), Y=\(String(format: "%.4f", abs(decision.moveY)))")
+            }
+        }
         
         // Apply disaster displacement force (earthquakes, floods, etc.)
         let displacementForce = disasterManager.getDisplacementForce(at: position)
@@ -403,8 +449,8 @@ class Bug: Identifiable, Hashable {
             )
             finalVelocity = fleeVelocity
             
-            // Energy cost for fleeing
-            energy -= dna.speciesTraits.defensiveBehavior?.fleeEnergyCost ?? 1.5
+            // Energy cost for fleeing (reduced from 1.5 to 0.15 for sustainability)
+            energy -= (dna.speciesTraits.defensiveBehavior?.fleeEnergyCost ?? 1.5) * 0.1
         }
         // 2. HUNTING - second priority
         else if let prey = targetPrey, decision.hunting > 0.5, dna.speciesTraits.speciesType.canHunt {
@@ -421,8 +467,8 @@ class Bug: Identifiable, Hashable {
                 y: huntVelocity.y * 0.7 + neuralVelocity.y * 0.3
             )
         }
-        // 3. FOOD SEEKING - third priority
-        else if let target = targetFood, decision.exploration < 0.7 {
+        // 3. FOOD SEEKING - third priority (lowered threshold to encourage more exploration)
+        else if let target = targetFood, decision.exploration < 0.4 {
             let direction = normalize(CGPoint(x: target.x - position.x, y: target.y - position.y))
             let foodVelocity = CGPoint(
                 x: direction.x * terrainSpeed,
@@ -445,20 +491,63 @@ class Bug: Identifiable, Hashable {
             y: position.y + velocity.y
         )
         
+        // 🔧 DEBUG: Calculate movement distance for logging (before position changes)
+        let moved = sqrt((proposedPosition.x - position.x) * (proposedPosition.x - position.x) + 
+                       (proposedPosition.y - position.y) * (proposedPosition.y - position.y))
+        
         // Check if the proposed position is passable
         if arena.isPassable(proposedPosition, for: dna) {
+            let debugId = String(id.uuidString.prefix(8))
+            
+            // 🔧 CRITICAL DEBUG: Track X vs Y movement to identify the X-axis issue
+            let oldPos = position
+            let deltaX = abs(proposedPosition.x - oldPos.x)
+            let deltaY = abs(proposedPosition.y - oldPos.y)
+            
+            // Always log when there's significant X or Y movement to identify the pattern
+            if deltaX > 1.0 || deltaY > 1.0 {
+                print("🎯 [MOVE-ANALYSIS \(debugId)] DeltaX=\(String(format: "%.2f", deltaX)), DeltaY=\(String(format: "%.2f", deltaY))")
+                print("🎯 [MOVE-ANALYSIS \(debugId)] BEFORE: X=\(String(format: "%.1f", oldPos.x)), Y=\(String(format: "%.1f", oldPos.y))")
+                print("🎯 [MOVE-ANALYSIS \(debugId)] AFTER:  X=\(String(format: "%.1f", proposedPosition.x)), Y=\(String(format: "%.1f", proposedPosition.y))")
+                print("🎯 [MOVE-ANALYSIS \(debugId)] Neural: moveX=\(String(format: "%.3f", decision.moveX)), moveY=\(String(format: "%.3f", decision.moveY))")
+                print("🎯 [MOVE-ANALYSIS \(debugId)] Final velocity: X=\(String(format: "%.2f", finalVelocity.x)), Y=\(String(format: "%.2f", finalVelocity.y))")
+            }
+            
             position = proposedPosition
+            
+            // 🔧 DEBUG: Verify position actually changed
+            if moved > 0.5 && Int.random(in: 1...50) == 1 {
+                print("🔧 [POS \(debugId)] AFTER:  (\(String(format: "%.2f", position.x)), \(String(format: "%.2f", position.y)))")
+            }
+            
             // Update 3D position to keep in sync
             updatePosition3D(Position3D(from: position, z: position3D.z))
         } else {
             // Neural network should learn to avoid walls, but provide basic collision
+            let debugId = String(id.uuidString.prefix(8))
+            if Int.random(in: 1...100) == 1 { // Sample logging for blocked moves
+                print("🚫 [BLOCKED \(debugId)] Position not passable: (\(String(format: "%.2f", proposedPosition.x)), \(String(format: "%.2f", proposedPosition.y)))")
+            }
             velocity = CGPoint(x: velocity.x * -0.5, y: velocity.y * -0.5)
         }
         
         // Keep bug within arena bounds with bouncing behavior
+        let posBeforeBoundary = position
         handleBoundaryCollisions(arena: arena)
         
-        // Handle 3D movement and layer changes based on neural decision
+        // 🔧 DEBUG: Check if boundary collision is overriding movement
+        if moved > 0.5 && Int.random(in: 1...50) == 1 {
+            let debugId = String(id.uuidString.prefix(8))
+            let boundaryClamped = sqrt((position.x - posBeforeBoundary.x) * (position.x - posBeforeBoundary.x) + 
+                                     (position.y - posBeforeBoundary.y) * (position.y - posBeforeBoundary.y))
+            if boundaryClamped > 0.1 {
+                print("⚠️ [BOUNDARY \(debugId)] Position clamped by \(String(format: "%.2f", boundaryClamped)) units")
+                print("⚠️ [BOUNDARY \(debugId)] Arena bounds: \(arena.bounds)")
+                print("⚠️ [BOUNDARY \(debugId)] Final position: (\(String(format: "%.2f", position.x)), \(String(format: "%.2f", position.y)))")
+            }
+        }
+        
+        // Handle 3D movement and layer changes based on neural decision  
         handle3DMovement(decision: decision)
         
         // Keep bug within 3D terrain bounds (AFTER 3D movement to prevent falling through)
@@ -606,6 +695,16 @@ class Bug: Identifiable, Hashable {
             
             return cost1 < cost2
         }
+        
+        // 🐛 DEBUG: Log food targeting patterns to check for X-axis bias
+        if let target = targetFood, Int.random(in: 1...30) == 1 {
+            let debugId = String(id.uuidString.prefix(8))
+            let deltaX = target.x - position.x
+            let deltaY = target.y - position.y
+            print("🍯 [FOOD-DEBUG \(debugId)] Target: (\(String(format: "%.0f", target.x)), \(String(format: "%.0f", target.y)))")
+            print("🍯 [FOOD-DEBUG \(debugId)] Bug at: (\(String(format: "%.0f", position.x)), \(String(format: "%.0f", position.y)))")
+            print("🍯 [FOOD-DEBUG \(debugId)] Delta: X=\(String(format: "%.0f", deltaX)), Y=\(String(format: "%.0f", deltaY))")
+        }
     }
     
     /// Updates movement based on current target and terrain constraints
@@ -725,9 +824,9 @@ class Bug: Identifiable, Hashable {
             }
         }
         
-        // Moderate energy penalty for hitting boundaries (discourages edge clustering)
+        // Small energy penalty for hitting boundaries (reduced from 0.2 to 0.05)
         if bounced {
-            energy -= 0.2 // Reduced energy cost for hitting walls
+            energy -= 0.05 // Further reduced energy cost for hitting walls
             
             // Add randomization to prevent getting stuck in corners
             let randomAngle = Double.random(in: 0...(2 * Double.pi))
@@ -748,12 +847,12 @@ class Bug: Identifiable, Hashable {
             let newPosition = Position3D(position3D.x, position3D.y, minZ + 1.0)  // Slightly above minimum
             updatePosition3D(newPosition)
             velocity3D.z = max(0, abs(velocity3D.z) * 0.5)  // Bounce up with reduced speed
-            energy -= 0.1  // Small energy penalty
+            energy -= 0.02  // Reduced energy penalty (was 0.1)
         } else if position3D.z > maxZ {
             let newPosition = Position3D(position3D.x, position3D.y, maxZ - 1.0)  // Slightly below maximum
             updatePosition3D(newPosition)
             velocity3D.z = min(0, -abs(velocity3D.z) * 0.5)  // Bounce down with reduced speed
-            energy -= 0.1  // Small energy penalty
+            energy -= 0.02  // Reduced energy penalty (was 0.1)
         }
         
         // Second, ensure bugs stay within valid terrain layers based on their capabilities
@@ -838,17 +937,61 @@ class Bug: Identifiable, Hashable {
     
     /// Checks if bug is close enough to consume food
     private func checkFoodConsumption(foods: [CGPoint]) {
-        guard let target = targetFood,
-              dna.speciesTraits.speciesType.canEatPlants else { return }
+        guard dna.speciesTraits.speciesType.canEatPlants else { return }
         
-        if distance(to: target) < visualRadius {
-            // Mark this food as consumed so other bugs can't also eat it
-            consumedFood = target
+        // 🔍 CRITICAL DEBUG: Always log food array status for random sampling
+        let debugId = String(id.uuidString.prefix(8))
+        if Int.random(in: 1...200) == 1 { // Sample 0.5% of all calls
+            print("🥬 [FOOD-ARRAY \(debugId)] Bug at (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y)))")
+            print("🥬 [FOOD-ARRAY \(debugId)] Total foods in simulation: \(foods.count)")
+            if foods.count > 0 {
+                let nearestFood = foods.min(by: { distance(to: $0) < distance(to: $1) })!
+                let distToNearest = distance(to: nearestFood)
+                print("🥬 [FOOD-ARRAY \(debugId)] Nearest food: (\(String(format: "%.1f", nearestFood.x)), \(String(format: "%.1f", nearestFood.y))) at distance \(String(format: "%.1f", distToNearest))")
+            }
+        }
+        
+        // Find the closest food within consumption range (increased range for easier consumption)
+        let consumptionRange = max(15.0, visualRadius * 2.0) // Much larger consumption area for debugging
+        
+        // 🔍 ENHANCED FOOD DEBUG: Track all nearby food for stationary bugs
+        
+        // Find all food within larger radius for debugging
+        let nearbyFood = foods.filter { distance(to: $0) < consumptionRange * 2.0 }
+        
+        if nearbyFood.count > 0 && Int.random(in: 1...10) == 1 {
+            print("🍎 [FOOD-NEARBY \(debugId)] Bug at (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y)))")
+            print("🍎 [FOOD-NEARBY \(debugId)] \(nearbyFood.count) food items in \(String(format: "%.1f", consumptionRange * 2.0)) radius:")
+            for (i, food) in nearbyFood.prefix(3).enumerated() {
+                let dist = distance(to: food)
+                let canEat = dist < consumptionRange ? "✅" : "❌"
+                print("🍎 [FOOD-NEARBY \(debugId)]   \(i+1): (\(String(format: "%.1f", food.x)), \(String(format: "%.1f", food.y))) dist=\(String(format: "%.1f", dist)) \(canEat)")
+            }
+        }
+        
+        if let nearestFood = foods.min(by: { distance(to: $0) < distance(to: $1) }) {
+            let distanceToFood = distance(to: nearestFood)
             
-            // Consume food based on species
-            let energyGain = dna.speciesTraits.plantEnergyGain
-            energy += energyGain
-            targetFood = nil
+            if distanceToFood < consumptionRange {
+                // 🔧 DEBUG: Log ALL food consumption attempts with detailed coordinates
+                let debugId = String(id.uuidString.prefix(8))
+                print("🍽️ [CONSUME \(debugId)] SUCCESS! Eating food at (\(String(format: "%.1f", nearestFood.x)), \(String(format: "%.1f", nearestFood.y)))")
+                print("🍽️ [CONSUME \(debugId)] Bug position: (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y)))")
+                print("🍽️ [CONSUME \(debugId)] Distance: \(String(format: "%.1f", distanceToFood)) / \(String(format: "%.1f", consumptionRange))")
+                print("🍽️ [CONSUME \(debugId)] Energy: \(String(format: "%.1f", energy)) + \(String(format: "%.1f", dna.speciesTraits.plantEnergyGain))")
+                
+                // Mark this food as consumed so other bugs can't also eat it
+                consumedFood = nearestFood
+                
+                // Consume food based on species
+                let energyGain = dna.speciesTraits.plantEnergyGain
+                energy += energyGain
+                
+                // Clear target if this was the targeted food
+                if targetFood == nearestFood {
+                    targetFood = nil
+                }
+            }
         }
     }
     
@@ -1514,11 +1657,17 @@ class Bug: Identifiable, Hashable {
     
     /// Update 3D position maintaining 2D compatibility
     func updatePosition3D(_ newPosition: Position3D) {
-        position3D = newPosition
-        position = newPosition.position2D  // Keep 2D position in sync
+        // 🔧 CONTINENTAL WORLD FIX: Lock surface bugs to fixed height
+        if currentLayer == .surface {
+            // Force surface bugs to stay at fixed height - no Z changes allowed
+            position3D = Position3D(newPosition.x, newPosition.y, position3D.z)
+        } else {
+            position3D = newPosition
+        }
+        position = position3D.position2D  // Keep 2D position in sync
         
         // Update current layer based on Z coordinate
-        currentLayer = TerrainLayer.allCases.first { $0.heightRange.contains(newPosition.z) } ?? .surface
+        currentLayer = TerrainLayer.allCases.first { $0.heightRange.contains(position3D.z) } ?? .surface
     }
     
     /// Attempt to change terrain layer (fly up, dive down, etc.)
@@ -1622,6 +1771,12 @@ class Bug: Identifiable, Hashable {
     
     /// Handle 3D movement based on neural network decisions
     private func handle3DMovement(decision: BugOutputs) {
+        // 🚨 CONTINENTAL WORLD: Disable Z-axis movement for surface bugs
+        if currentLayer == .surface {
+            velocity3D.z = 0.0
+            return  // Skip all 3D movement logic for surface bugs
+        }
+        
         // Decrement vertical movement cooldown
         verticalMovementCooldown = max(0, verticalMovementCooldown - 1)
         
@@ -1653,8 +1808,8 @@ class Bug: Identifiable, Hashable {
                 // Update position and layer
                 updatePosition3D(newPosition3D)
                 
-                // Higher energy cost for vertical movement
-                energy -= abs(verticalMovement) * 0.05 * (2.0 - dna.energyEfficiency)
+                // Reduced energy cost for vertical movement (was 0.05, now 0.01)
+                energy -= abs(verticalMovement) * 0.01 * (2.0 - dna.energyEfficiency)
             } else {
                 // Can't move vertically - reset vertical velocity to prevent accumulation
                 velocity3D.z = 0.0

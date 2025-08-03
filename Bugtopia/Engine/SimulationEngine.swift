@@ -38,8 +38,8 @@ class SimulationEngine {
     let pathfinding: VoxelPathfinding
     private let maxPopulation = 180  // Tripled for more genetic diversity and faster evolution
     private let initialPopulation = 90   // Increased population to see more diverse creatures
-    private let maxFoodItems = 800  // Doubled to support much larger population (3x bugs need more food)
-    private let baseFoodSpawnRate = 0.8 // Base spawn rate, modified by seasons
+    private let maxFoodItems = 1200  // Increased for more abundant food distribution
+    private let baseFoodSpawnRate = 0.95 // Increased spawn rate to encourage exploration
     
     // MARK: - Evolution Parameters
     
@@ -156,7 +156,9 @@ class SimulationEngine {
             )
             
             // 🚶 SECOND: Use fresh neural decisions for voxel-based movement
-            bug.updateVoxelPosition(in: voxelWorld, pathfinding: pathfinding, decision: bug.lastDecision ?? BugOutputs.zero)
+            // 🔧 CONTINENTAL WORLD FIX: Disable voxel pathfinding to prevent Z-axis conflicts
+            // For Continental world, use only the 2D movement system in bug.update()
+            // bug.updateVoxelPosition(in: voxelWorld, pathfinding: pathfinding, decision: bug.lastDecision ?? BugOutputs.zero)
             
             // Let bug generate signals
             if let signal = bug.generateSignals(in: createVoxelArenaAdapter(), foods: foods, otherBugs: bugs) {
@@ -253,20 +255,12 @@ class SimulationEngine {
     
     /// Calculate proper surface position for spawning bugs
     private func calculateSurfaceSpawnPosition(_ position3D: Position3D) -> Position3D {
-        guard let voxel = voxelWorld.getVoxel(at: position3D) else {
-            return position3D // Fallback to original position
-        }
-        
-        // If it's passable terrain, spawn at voxel center
-        if voxel.transitionType.isPassable {
-            return position3D
-        }
-        
-        // For solid terrain, spawn on top of the voxel
+        // 🔧 CONTINENTAL WORLD FIX: Use consistent fixed height to prevent terrain jumping
+        // Variable terrain heights (-18 to +21) were causing visual jumping behavior
         return Position3D(
             position3D.x,
             position3D.y,
-            position3D.z + (voxelWorld.voxelSize / 2.0)
+            8.0  // Fixed height matching visual positioning - eliminates terrain-induced jumping
         )
     }
     

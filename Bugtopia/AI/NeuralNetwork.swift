@@ -350,6 +350,13 @@ struct BugSensors {
             let dy = (nearestFood.y - bug.position.y) / maxDistance
             inputs.append(max(-1.0, min(1.0, dx)))
             inputs.append(max(-1.0, min(1.0, dy)))
+            
+            // 🐛 DEBUG: Log food direction inputs to check for axis bias
+            if Int.random(in: 1...50) == 1 {
+                let debugId = String(bug.id.uuidString.prefix(8))
+                print("🧠 [INPUT-DEBUG \(debugId)] Food direction: dx=\(String(format: "%.3f", dx)), dy=\(String(format: "%.3f", dy))")
+                print("🧠 [INPUT-DEBUG \(debugId)] Bug: (\(String(format: "%.0f", bug.position.x)), \(String(format: "%.0f", bug.position.y))), Food: (\(String(format: "%.0f", nearestFood.x)), \(String(format: "%.0f", nearestFood.y)))")
+            }
         } else {
             inputs.append(1.0) // No food = max distance
             inputs.append(0.0)
@@ -458,7 +465,9 @@ struct BugSensors {
         inputs.append(bug.currentLayer == .aerial ? 1.0 : 0.0)
         
         // Current altitude (normalized -1 to 1)
-        let normalizedAltitude = (bug.position3D.z - (-100.0)) / (200.0 - (-100.0)) * 2.0 - 1.0
+        // 🔧 CONTINENTAL WORLD FIX: Use fixed surface altitude for all surface bugs
+        let altitude = bug.currentLayer == .surface ? 5.0 : bug.position3D.z
+        let normalizedAltitude = (altitude - (-100.0)) / (200.0 - (-100.0)) * 2.0 - 1.0
         inputs.append(max(-1.0, min(1.0, normalizedAltitude)))
         
         // 3D movement capabilities (3 inputs)
@@ -471,8 +480,9 @@ struct BugSensors {
         inputs.append(preferredLayer == bug.currentLayer ? 1.0 : 0.0)
         
         // Vertical movement cooldown (normalized)
-        let normalizedCooldown = Double(bug.verticalMovementCooldown) / 30.0  // 30 ticks max cooldown
-        inputs.append(max(0.0, min(1.0, normalizedCooldown)))
+        // 🔧 CONTINENTAL WORLD FIX: Surface bugs don't have vertical cooldown
+        let cooldownValue = bug.currentLayer == .surface ? 0.0 : Double(bug.verticalMovementCooldown) / 30.0
+        inputs.append(max(0.0, min(1.0, cooldownValue)))
         
         // Layer-specific movement speed
         let layerSpeed = bug.getMovementSpeed3D() / 2.0  // Normalize by max expected speed
@@ -480,17 +490,24 @@ struct BugSensors {
         
         // 3D food detection (if food exists in 3D space)
         if let nearestFood = foods.min(by: { bug.distance(to: $0) < bug.distance(to: $1) }) {
-            // Vertical distance to food (assuming food is at surface level)
-            let foodPosition3D = Position3D(from: nearestFood, z: 0.0)  // Food at surface
-            let verticalDistance = abs(bug.position3D.z - foodPosition3D.z)
-            let normalizedVerticalDistance = min(1.0, verticalDistance / 200.0)  // Max height difference
-            inputs.append(normalizedVerticalDistance)
-            
-            // 3D distance vs 2D distance ratio (helps understand vertical relationships)
-            let distance3D = bug.distance3D(to: foodPosition3D)
-            let distance2D = bug.distance(to: nearestFood)
-            let distanceRatio = distance2D > 0 ? min(2.0, distance3D / distance2D) : 1.0
-            inputs.append(max(0.0, min(1.0, (distanceRatio - 1.0))))  // Normalize to 0-1
+            // 🔧 CONTINENTAL WORLD FIX: For surface bugs, provide consistent inputs
+            if bug.currentLayer == .surface {
+                // Surface bugs: food is always at same level (no vertical distance)
+                inputs.append(0.0)  // No vertical distance for surface bugs
+                inputs.append(0.0)  // No 3D ratio difference for surface bugs
+            } else {
+                // Flying/swimming/climbing bugs: use actual 3D calculations
+                let foodPosition3D = Position3D(from: nearestFood, z: 0.0)  // Food at surface
+                let verticalDistance = abs(bug.position3D.z - foodPosition3D.z)
+                let normalizedVerticalDistance = min(1.0, verticalDistance / 200.0)  // Max height difference
+                inputs.append(normalizedVerticalDistance)
+                
+                // 3D distance vs 2D distance ratio (helps understand vertical relationships)
+                let distance3D = bug.distance3D(to: foodPosition3D)
+                let distance2D = bug.distance(to: nearestFood)
+                let distanceRatio = distance2D > 0 ? min(2.0, distance3D / distance2D) : 1.0
+                inputs.append(max(0.0, min(1.0, (distanceRatio - 1.0))))  // Normalize to 0-1
+            }
         } else {
             inputs.append(1.0)  // No food
             inputs.append(0.0)  // No ratio

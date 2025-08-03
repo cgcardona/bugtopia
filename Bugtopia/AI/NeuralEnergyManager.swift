@@ -15,14 +15,14 @@ class NeuralEnergyManager {
     
     // MARK: - Energy Cost Configuration
     
-    /// Base energy cost per neuron per tick
-    static let baseNeuronCost: Double = 0.002
+    /// Base energy cost per neuron per tick (reduced 10x for sustainability)
+    static let baseNeuronCost: Double = 0.0002
     
-    /// Energy cost per connection (weight) per tick
-    static let baseConnectionCost: Double = 0.0005
+    /// Energy cost per connection (weight) per tick (reduced 10x for sustainability)
+    static let baseConnectionCost: Double = 0.00005
     
-    /// Energy cost per layer (complexity penalty)
-    static let baseLayerCost: Double = 0.01
+    /// Energy cost per layer (complexity penalty) (reduced 10x for sustainability)
+    static let baseLayerCost: Double = 0.001
     
     /// Minimum energy threshold before brain pruning kicks in
     static let brainPruningThreshold: Double = 20.0
