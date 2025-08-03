@@ -119,6 +119,28 @@ Bugtopia currently uses a sophisticated but underutilized world generation syste
 **Impact**: Each world type now generates dramatically different terrain patterns  
 **Achievement**: Cavern = 80% underground caves, Archipelago = 70% water, Canyon = dramatic valleys, etc.  
 
+### **🚧 PHASE 2B: Continental World Focus - IN PROGRESS**
+**Status**: Hardcoded Continental world type for focused development  
+**Changes**: Resolution increased 32³→64³, height-based terrain logic, coherent features  
+**Goal**: Perfect one world type before returning to multi-world variety  
+
+#### **🔧 Continental World Improvements**
+- **Hardcoded World Type**: Switched from random selection to Continental focus
+- **4x Resolution Increase**: 32³ → 64³ voxels for coherent terrain features
+- **Height-Based Logic**: Terrain determined by elevation, not pure noise
+- **Coherent Features**: Lakes, forests, hills that span multiple voxels
+- **Logical Transitions**: Deep water → wetlands → plains → forests → hills → mountains
+
+#### **🌍 Continental Terrain System**
+```swift
+// Height-based terrain logic for coherent features
+if height < -20 { return .water }      // Deep lakes, rivers
+if height < -5  { return .wetlands }   // Coastal transitions  
+if height > 5 && height < 25 { return .forest }  // Forested mid-elevations
+if height > 30  { return .mountains }  // Rocky high elevations
+return .plains  // Default grassland majority
+```
+
 ### **⏳ PHASE 3: World-Specific Resource Distribution - PLANNED**
 ### **⏳ PHASE 4: Enhanced Visual Differentiation - PLANNED**
 ### **⏳ PHASE 5: World-Specific Bug Evolution - PLANNED**
