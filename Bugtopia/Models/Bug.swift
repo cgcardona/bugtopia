@@ -279,7 +279,8 @@ class Bug: Identifiable, Hashable {
         
         // Execute decisions based on species and neural outputs
         updatePredatorPreyTargets(otherBugs: otherBugs)
-        executeMovement(in: arena, modifiers: modifiers, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
+        // 🚶 MOVEMENT DISABLED: Using 3D voxel movement system instead of legacy 2D movement
+        // executeMovement(in: arena, modifiers: modifiers, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
         
         // Species-specific behaviors
         if dna.speciesTraits.speciesType.canEatPlants {

@@ -140,23 +140,23 @@ class SimulationEngine {
     private func tick() {
         tickCount += 1
         
-        // Update all bugs with voxel-based movement and communication
+        // Update all bugs with neural decisions first, then movement
         var newSignals: [Signal] = []
         for bug in bugs {
-            // Use new voxel-based movement system
-            bug.updateVoxelPosition(in: voxelWorld, pathfinding: pathfinding, decision: bug.lastDecision ?? BugOutputs.zero)
-            
-            // Traditional update for other behaviors
+            // 🧠 FIRST: Make neural network decisions and update behaviors
             bug.update(
-    in: createVoxelArenaAdapter(),
-    foods: foods,
-    otherBugs: bugs,
-    seasonalManager: seasonalManager,
-    weatherManager: weatherManager,
-    disasterManager: disasterManager,
-    ecosystemManager: ecosystemManager,
-    territoryManager: territoryManager
-)
+                in: createVoxelArenaAdapter(),
+                foods: foods,
+                otherBugs: bugs,
+                seasonalManager: seasonalManager,
+                weatherManager: weatherManager,
+                disasterManager: disasterManager,
+                ecosystemManager: ecosystemManager,
+                territoryManager: territoryManager
+            )
+            
+            // 🚶 SECOND: Use fresh neural decisions for voxel-based movement
+            bug.updateVoxelPosition(in: voxelWorld, pathfinding: pathfinding, decision: bug.lastDecision ?? BugOutputs.zero)
             
             // Let bug generate signals
             if let signal = bug.generateSignals(in: createVoxelArenaAdapter(), foods: foods, otherBugs: bugs) {
