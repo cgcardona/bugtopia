@@ -546,6 +546,9 @@ class SimulationEngine {
     
     /// Strategically spawns new food in appropriate areas (seasonally and disaster adjusted)
     private func spawnFood() {
+        // TOOL-FOOD INTEGRATION: Generate food from tools first
+        generateFoodFromTools()
+        
         let seasonalFoodSpawnRate = seasonalManager.adjustedFoodSpawnRate(baseRate: baseFoodSpawnRate)
         let weatherAdjustedSpawnRate = seasonalFoodSpawnRate * weatherManager.currentEffects.foodSpawnRateModifier
         // Ecosystem-adjusted spawn rate (resource depletion affects food availability)
@@ -639,6 +642,49 @@ class SimulationEngine {
         }
     }
     
+    // MARK: - Tool-Food Integration
+    
+    /// Generates food from tools that have food generation capabilities
+    private func generateFoodFromTools() {
+        for i in 0..<tools.count {
+            guard tools[i].canGenerateFood else { continue }
+            
+            // Get biome from voxel world at tool position
+            let toolPosition3D = Position3D(from: tools[i].position)
+            let voxel = voxelWorld.getVoxel(at: toolPosition3D) 
+            let biome = voxel?.biome ?? .temperateForest
+            let season = seasonalManager.currentSeason
+            
+            if let generatedFood = tools[i].generateFood(biome: biome, season: season) {
+                // Check if food should be stored in tool or released to world
+                if tools[i].canStoreFood && tools[i].hasStorageSpace {
+                    // Store food in the tool for later retrieval
+                    _ = tools[i].storeFood(generatedFood)
+                } else {
+                    // Release food to the world if tool can't store or is full
+                    foods.append(generatedFood)
+                }
+            }
+        }
+    }
+    
+    /// Calculate cultivation multiplier at a given position based on nearby cultivation tools
+    private func getCultivationMultiplier(at position: CGPoint) -> Double {
+        var maxMultiplier = 1.0
+        
+        for tool in tools {
+            guard tool.canCultivateFood else { continue }
+            
+            let distance = sqrt(pow(position.x - tool.position.x, 2) + pow(position.y - tool.position.y, 2))
+            if distance <= tool.cultivationRadius {
+                // Use the highest cultivation multiplier in range
+                maxMultiplier = max(maxMultiplier, tool.cultivationMultiplier)
+            }
+        }
+        
+        return maxMultiplier
+    }
+
     /// Removes food that has been consumed - FIXED: Only remove food that was actually consumed
     private func removeConsumedFood() {
         let consumedFoodPositions = Set(bugs.compactMap { $0.consumedFood })

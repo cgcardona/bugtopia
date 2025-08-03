@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 /// Represents different types of food with varying energy values, colors, and rarity
-struct FoodItem: Identifiable, Equatable {
+struct FoodItem: Identifiable, Codable, Hashable, Equatable {
     let id = UUID()
     let position: CGPoint
     let type: FoodType
@@ -30,7 +30,7 @@ struct FoodItem: Identifiable, Equatable {
 }
 
 /// Different food types with their properties
-enum FoodType: String, CaseIterable {
+enum FoodType: String, CaseIterable, Codable, Hashable {
     // Herbivore Foods
     case plum = "plum"
     case apple = "apple" 
@@ -144,7 +144,7 @@ enum FoodType: String, CaseIterable {
 }
 
 /// Food rarity levels affecting spawn frequency
-enum FoodRarity: String, CaseIterable {
+enum FoodRarity: String, CaseIterable, Codable, Hashable {
     case common = "common"      // 70% spawn chance
     case rare = "rare"          // 30% spawn chance
     case legendary = "legendary" // 5% spawn chance (future)

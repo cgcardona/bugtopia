@@ -14,12 +14,12 @@ import SwiftUI
 enum ToolType: String, CaseIterable, Codable, Equatable, Hashable {
     case bridge = "bridge"           // Spans water or gaps
     case tunnel = "tunnel"           // Goes through hills/walls
-    case shelter = "shelter"         // Provides protection/energy
-    case trap = "trap"               // Captures prey or resources
-    case marker = "marker"           // Navigation/territory marker
-    case lever = "lever"             // Moves heavy objects
+    case shelter = "shelter"         // Provides protection/energy, stores food
+    case trap = "trap"               // Captures prey or resources, generates food
+    case marker = "marker"           // Navigation/territory marker, marks fertile areas
+    case lever = "lever"             // Moves heavy objects, cultivates soil
     case ramp = "ramp"               // Helps climb steep terrain
-    case nest = "nest"               // Group reproduction site
+    case nest = "nest"               // Group reproduction site, food cache
     
     /// Visual representation
     var emoji: String {
@@ -88,6 +88,8 @@ struct Tool: Identifiable, Codable, Equatable, Hashable {
     var durability: Double         // 0.0 to 1.0, decreases over time
     var uses: Int                  // Number of times used
     let generation: Int            // Generation when created
+    var storedFood: [FoodItem] = []  // Food items stored in this tool
+    var lastFoodGeneration: TimeInterval = 0.0  // When food was last generated
     
     /// Size of the tool for collision detection
     var size: CGSize {
@@ -133,6 +135,151 @@ struct Tool: Identifiable, Codable, Equatable, Hashable {
         // Tools degrade with use
         let usageDecay = type.energyCost / 1000.0 // More expensive tools decay slower per use
         durability = max(0.0, durability - usageDecay)
+    }
+    
+    /// Whether this tool can generate food automatically
+    var canGenerateFood: Bool {
+        switch type {
+        case .trap, .nest, .shelter: return true
+        default: return false
+        }
+    }
+    
+    /// Food generation rate (food items per 100 ticks, when applicable)
+    var foodGenerationRate: Double {
+        guard canGenerateFood else { return 0.0 }
+        let baseRate = durability * 0.8 // Higher durability = better food generation
+        switch type {
+        case .trap: return baseRate * 0.15      // Traps catch prey/insects for meat
+        case .nest: return baseRate * 0.25      // Nests cultivate nearby food sources
+        case .shelter: return baseRate * 0.10   // Shelters store and preserve food
+        default: return 0.0
+        }
+    }
+    
+    /// Whether this tool can store food for later use
+    var canStoreFood: Bool {
+        switch type {
+        case .shelter, .nest: return true
+        default: return false
+        }
+    }
+    
+    /// Maximum food storage capacity
+    var foodStorageCapacity: Int {
+        guard canStoreFood else { return 0 }
+        switch type {
+        case .shelter: return 8  // Shelters can store moderate amounts
+        case .nest: return 12    // Nests are specialized for resource management
+        default: return 0
+        }
+    }
+    
+    /// Whether this tool can cultivate food sources (enhance nearby food spawn rates)
+    var canCultivateFood: Bool {
+        switch type {
+        case .lever, .marker: return true
+        default: return false
+        }
+    }
+    
+    /// Cultivation radius (area where food spawn rate is enhanced)
+    var cultivationRadius: Double {
+        guard canCultivateFood else { return 0.0 }
+        switch type {
+        case .lever: return 80.0   // Levers till soil in a wide area
+        case .marker: return 40.0  // Markers identify fertile zones
+        default: return 0.0
+        }
+    }
+    
+    /// Food spawn rate multiplier in cultivation area
+    var cultivationMultiplier: Double {
+        guard canCultivateFood else { return 1.0 }
+        let efficiency = durability * 0.9 // Better durability = better cultivation
+        switch type {
+        case .lever: return 1.0 + (efficiency * 1.5)  // Up to 2.5x food spawn rate
+        case .marker: return 1.0 + (efficiency * 0.8)  // Up to 1.8x food spawn rate
+        default: return 1.0
+        }
+    }
+    
+    // MARK: - Food Management
+    
+    /// Whether this tool has space to store more food
+    var hasStorageSpace: Bool {
+        guard canStoreFood else { return false }
+        return storedFood.count < foodStorageCapacity
+    }
+    
+    /// Store a food item in this tool (returns true if successful)
+    mutating func storeFood(_ food: FoodItem) -> Bool {
+        guard hasStorageSpace else { return false }
+        storedFood.append(food)
+        return true
+    }
+    
+    /// Retrieve a stored food item (returns nil if empty)
+    mutating func retrieveFood() -> FoodItem? {
+        guard !storedFood.isEmpty else { return nil }
+        return storedFood.removeFirst()
+    }
+    
+    /// Generate food based on tool type and generation rate
+    mutating func generateFood(biome: BiomeType, season: Season) -> FoodItem? {
+        guard canGenerateFood else { return nil }
+        
+        let currentTime = Date().timeIntervalSince1970
+        let timeSinceLastGeneration = currentTime - lastFoodGeneration
+        
+        // Check if enough time has passed for food generation (stochastic based on rate)
+        let generationInterval = 100.0 / max(0.01, foodGenerationRate) // Ticks between generations
+        guard timeSinceLastGeneration > generationInterval else { return nil }
+        
+        // Random chance for food generation
+        guard Double.random(in: 0...1) < (foodGenerationRate / 100.0) else { return nil }
+        
+        // Generate appropriate food type based on tool
+        let (foodType, targetSpecies) = generateFoodTypeForTool(biome: biome, season: season)
+        
+        // Create slight position offset for the generated food
+        let offsetPosition = CGPoint(
+            x: position.x + Double.random(in: -15...15),
+            y: position.y + Double.random(in: -15...15)
+        )
+        
+        lastFoodGeneration = currentTime
+        
+        return FoodItem(position: offsetPosition, type: foodType, targetSpecies: targetSpecies)
+    }
+    
+    /// Determines appropriate food type based on tool type and environment
+    private func generateFoodTypeForTool(biome: BiomeType, season: Season) -> (FoodType, SpeciesType) {
+        switch type {
+        case .trap:
+            // Traps catch prey - primarily meat and fish
+            let targetSpecies: SpeciesType = Double.random(in: 0...1) < 0.8 ? .carnivore : .scavenger
+            let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: biome, season: season)
+            return (foodType, targetSpecies)
+            
+        case .nest:
+            // Nests cultivate diverse food sources - all types
+            let allSpecies: [SpeciesType] = [.herbivore, .omnivore, .carnivore, .scavenger]
+            let targetSpecies = allSpecies.randomElement() ?? .herbivore
+            let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: biome, season: season)
+            return (foodType, targetSpecies)
+            
+        case .shelter:
+            // Shelters preserve food - primarily long-lasting foods
+            let targetSpecies: SpeciesType = Double.random(in: 0...1) < 0.7 ? .herbivore : .omnivore
+            let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: biome, season: season)
+            return (foodType, targetSpecies)
+            
+        default:
+            // Fallback
+            let foodType = FoodType.randomFoodFor(species: .herbivore, biome: biome, season: season)
+            return (foodType, .herbivore)
+        }
     }
 }
 
