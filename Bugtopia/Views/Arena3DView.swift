@@ -149,8 +149,8 @@ struct Arena3DView: NSViewRepresentable {
         // Debug physics world setup
         // Physics world configured
         
-        // Add invisible safety floor to catch anything that falls through
-        createSafetyFloor(scene: scene)
+        // 🗑️ SAFETY FLOOR DISABLED - not needed with terrain mesh collision system
+        // createSafetyFloor(scene: scene)
     }
     
     private func createSafetyFloor(scene: SCNScene) {
@@ -212,11 +212,9 @@ struct Arena3DView: NSViewRepresentable {
         sunNode.position = SCNVector3(300, 500, 300)
         sunNode.look(at: SCNVector3(0, 0, 0))
         
-        // Biome-appropriate visible sun
-        let sunGeometry = SCNSphere(radius: 20)
-        sunGeometry.firstMaterial?.diffuse.contents = sunConfig.color
-        sunGeometry.firstMaterial?.emission.contents = sunConfig.emissionColor
-        sunNode.geometry = sunGeometry
+        // 🔧 VISUAL FIX: Remove visible sun geometry (was creating white spheres in sky)
+        // Sun light still works for illumination, but no visible sphere geometry
+        sunNode.geometry = nil  // No visible geometry - removes white spheres
         scene.rootNode.addChildNode(sunNode)
         
         // 🌙 BIOME-ADAPTIVE AMBIENT: Sky lighting that matches biome mood
@@ -1054,13 +1052,12 @@ struct Arena3DView: NSViewRepresentable {
         // createGroundPlane(scene: scene)
         
         // 3️⃣ OPTIMIZED ATMOSPHERIC CLOUDS: Beautiful DALL-E clouds
-        createOptimizedAtmosphericClouds(scene: scene)
+        // 🔧 PERFORMANCE FIX: Disabled atmospheric clouds (were creating white spheres in sky)
+        // createOptimizedAtmosphericClouds(scene: scene)
         
-        // 4️⃣ HORIZON MARKERS: Add distant landmarks for navigation reference
-        createHorizonMarkers(scene: scene)
-        
-        // 5️⃣ COORDINATE GRID: Optional spatial reference system
-        createCoordinateGrid(scene: scene)
+        // 🗑️ LEGACY DEBUG SYSTEMS DISABLED - these created floating objects in sky
+        // createHorizonMarkers(scene: scene)      // Was creating colored floating boxes
+        // createCoordinateGrid(scene: scene)      // Was creating white grid lines
         
         // Environmental context active
     }
@@ -1386,13 +1383,12 @@ struct Arena3DView: NSViewRepresentable {
         // Adding navigation aids
         
         // 🎯 TERRAIN CENTER MARKER: Clear reference point
-        addTerrainCenterMarker(scene: scene)
+        // 🔧 VISUAL FIX: Disabled terrain center marker (white glowing sphere)
+        // addTerrainCenterMarker(scene: scene)
         
-        // 📏 SCALE REFERENCE: Help understand distances
-        addScaleReference(scene: scene)
-        
-        // 🔺 LAYER INDICATORS: Show the 4 terrain layers visually
-        addLayerIndicators(scene: scene)
+        // 🗑️ NAVIGATION AIDS DISABLED - these were creating floating objects in sky
+        // addScaleReference(scene: scene)          // Was creating yellow floating scale bars
+        // addLayerIndicators(scene: scene)         // Was creating cyan/green floating layer indicators
         
         // Navigation aids active
     }
@@ -1482,35 +1478,31 @@ struct Arena3DView: NSViewRepresentable {
     // MARK: - Epic Terrain Rendering
     
     private func renderTerrain(scene: SCNScene) {
-        // Rendering 3D Voxel Terrain
+        // 🌍 RENDERING CONTINENTAL TERRAIN MESH
         
-        // 🎨 VAN GOGH MATERIAL REFRESH
-        // Always ensure fresh Van Gogh materials by removing existing terrain
+        // 🎨 Clear previous terrain
         scene.rootNode.childNode(withName: "VoxelTerrainContainer", recursively: false)?.removeFromParentNode()
-        // Scene cleared for Van Gogh material application - will rebuild with new materials
+        scene.rootNode.childNode(withName: "ContinentalTerrainContainer", recursively: false)?.removeFromParentNode()
         
         // Create terrain container
         let terrainContainer = SCNNode()
-        terrainContainer.name = "VoxelTerrainContainer"
+        terrainContainer.name = "ContinentalTerrainContainer"
         scene.rootNode.addChildNode(terrainContainer)
         
-        // Render voxels with spectacular visuals
-        renderVoxelTerrain(container: terrainContainer)
+        // 🏔️ GENERATE CONTINENTAL TERRAIN MESH: Shows mountain ranges, rivers, lakes
+        renderContinentalTerrainMesh(container: terrainContainer)
+        
+        // 🗑️ LEGACY VOXEL RENDERING DISABLED - terrain mesh replaced individual voxel objects
+        // renderSelectiveVoxelFeatures(container: terrainContainer)
         
         // 🎨 INSTANT VAN GOGH MATERIALS: All terrain types get immediate artistic treatment!
         // No async processing needed - all materials applied instantly during voxel creation
         
-        // 🌊 ULTRA-SPECTACULAR WATER: Start continuous animation system
-        self.startSpectacularWaterAnimation(scene: scene)
-        
-        // Add particle effects for atmosphere
-        addAtmosphericEffects(scene: scene)
-        
-        // 🌍 PHASE 2: Enhanced biome-specific atmospheric effects
-        addBiomeSpecificAtmosphericEffects(scene: scene)
-        
-        // 🌦️ PHASE 2: Weather-responsive visual effects
-        addWeatherSpecificEffects(scene: scene)
+        // 🗑️ ATMOSPHERIC & WATER EFFECTS DISABLED - these were creating floating objects in sky
+        // self.startSpectacularWaterAnimation(scene: scene)    // Was creating floating water effects
+        // addAtmosphericEffects(scene: scene)                  // Was creating floating atmospheric objects
+        // addBiomeSpecificAtmosphericEffects(scene: scene)     // Was creating floating biome objects  
+        // addWeatherSpecificEffects(scene: scene)              // Was creating floating weather objects
     }
     
     private func renderVoxelTerrain(container: SCNNode) {
@@ -1525,20 +1517,386 @@ struct Arena3DView: NSViewRepresentable {
             layerContainers[layer] = layerContainer
         }
         
-        // Render voxels efficiently (only render visible/solid voxels)
-        for x in 0..<simulationEngine.voxelWorld.dimensions.width {
-            for y in 0..<simulationEngine.voxelWorld.dimensions.height {
-                for z in 0..<simulationEngine.voxelWorld.dimensions.depth {
+        // 🚀 PERFORMANCE FIX: Spatial sampling to reduce render count
+        // Only render every 2nd voxel in each dimension to prevent memory explosion
+        let samplingRate = 2  // Renders 1/8th of voxels (2³ = 8x reduction)
+        print("🎨 Rendering voxels with \(samplingRate)x spatial sampling for performance")
+        
+        var renderedCount = 0
+        for x in stride(from: 0, to: simulationEngine.voxelWorld.dimensions.width, by: samplingRate) {
+            for y in stride(from: 0, to: simulationEngine.voxelWorld.dimensions.height, by: samplingRate) {
+                for z in stride(from: 0, to: simulationEngine.voxelWorld.dimensions.depth, by: samplingRate) {
                     let voxel = simulationEngine.voxelWorld.voxels[x][y][z]
                     
                     // Only render solid/interesting voxels
                     if shouldRenderVoxel(voxel) {
                         let voxelNode = createVoxelNode(voxel: voxel)
                         layerContainers[voxel.layer]?.addChildNode(voxelNode)
+                        renderedCount += 1
                     }
                 }
             }
         }
+        
+        print("🎨 Actually rendered \(renderedCount) voxels (reduced from ~10k for performance)")        
+    }
+    
+    // MARK: - Continental Terrain Mesh Generation
+    
+    private func renderContinentalTerrainMesh(container: SCNNode) {
+        print("🏔️ Generating continental terrain mesh from height map...")
+        
+        let voxelWorld = simulationEngine.voxelWorld
+        let heightMap = voxelWorld.heightMap
+        let bounds = voxelWorld.worldBounds
+        
+        // Create terrain mesh geometry
+        let terrainMesh = createTerrainMeshFromHeightMap(
+            heightMap: heightMap,
+            bounds: bounds,
+            resolution: voxelWorld.dimensions.width
+        )
+        
+        // Create terrain node
+        let terrainNode = SCNNode(geometry: terrainMesh)
+        terrainNode.name = "ContinentalTerrainMesh"
+        
+        // 🔧 COORDINATE FIX: Position terrain at origin - vertices already in world coordinates
+        terrainNode.position = SCNVector3(0, 0, 0)
+        
+        // 🔧 COLLISION FIX: Add physics collision to terrain mesh
+        // This prevents bugs from walking through the terrain
+        print("🔧 Adding physics collision to terrain mesh...")
+        let terrainPhysicsShape = SCNPhysicsShape(geometry: terrainMesh, options: [
+            .type: SCNPhysicsShape.ShapeType.concavePolyhedron,  // For complex terrain mesh
+            .collisionMargin: 0.1                                // Small margin for accuracy
+        ])
+        terrainNode.physicsBody = SCNPhysicsBody(type: .static, shape: terrainPhysicsShape)
+        terrainNode.physicsBody?.categoryBitMask = 1      // Terrain category (matches voxel terrain)
+        terrainNode.physicsBody?.collisionBitMask = 2     // Collides with bugs
+        terrainNode.physicsBody?.contactTestBitMask = 2   // Detect contact with bugs
+        terrainNode.physicsBody?.friction = 1.0          // High friction for walking
+        terrainNode.physicsBody?.restitution = 0.0       // No bounce - bugs should stay grounded
+        
+        container.addChildNode(terrainNode)
+        
+        print("🌍 Continental terrain mesh generated successfully!")
+    }
+    
+    private func createTerrainMeshFromHeightMap(heightMap: [[Double]], bounds: CGRect, resolution: Int) -> SCNGeometry {
+        var vertices: [SCNVector3] = []
+        var normals: [SCNVector3] = []
+        var texCoords: [CGPoint] = []
+        var indices: [Int32] = []
+        
+        let width = resolution
+        let height = resolution
+        let stepX = Float(bounds.width) / Float(width - 1)
+        let stepZ = Float(bounds.height) / Float(height - 1)
+        
+        // Generate vertices  
+        for z in 0..<height {
+            for x in 0..<width {
+                let worldX = Float(bounds.minX) + Float(x) * stepX
+                let worldZ = Float(bounds.minY) + Float(z) * stepZ
+                
+                // 🔧 COORDINATE FIX: Voxel world uses Z-up, SceneKit uses Y-up
+                // Map voxel world Z (-50 to +50) to SceneKit Y axis
+                let heightMapValue = heightMap[x][z]  // -25.0 to 34.3
+                let worldY = Float(heightMapValue)    // Use height as Y (up) in SceneKit
+                
+                vertices.append(SCNVector3(worldX, worldY, worldZ))
+                
+                // Calculate normal (simplified - pointing up for now)
+                normals.append(SCNVector3(0, 1, 0))
+                
+                // Texture coordinates
+                texCoords.append(CGPoint(x: Double(x) / Double(width - 1), y: Double(z) / Double(height - 1)))
+            }
+        }
+        
+        // Generate triangle indices
+        for z in 0..<(height - 1) {
+            for x in 0..<(width - 1) {
+                let topLeft = z * width + x
+                let topRight = z * width + (x + 1)
+                let bottomLeft = (z + 1) * width + x
+                let bottomRight = (z + 1) * width + (x + 1)
+                
+                // First triangle
+                indices.append(Int32(topLeft))
+                indices.append(Int32(bottomLeft))
+                indices.append(Int32(topRight))
+                
+                // Second triangle
+                indices.append(Int32(topRight))
+                indices.append(Int32(bottomLeft))
+                indices.append(Int32(bottomRight))
+            }
+        }
+        
+        // Create geometry sources
+        let vertexSource = SCNGeometrySource(vertices: vertices)
+        let normalSource = SCNGeometrySource(normals: normals)
+        let texCoordSource = SCNGeometrySource(textureCoordinates: texCoords)
+        
+        // Create geometry element
+        let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        
+        // Create geometry with sources and elements
+        let geometry = SCNGeometry(sources: [vertexSource, normalSource, texCoordSource], elements: [element])
+        
+        // Apply continental terrain material
+        geometry.firstMaterial = createContinentalTerrainMaterial()
+        
+        return geometry
+    }
+    
+    /// Get terrain height at world coordinates for proper positioning
+    private func getTerrainHeightAt(x: Double, z: Double) -> Double {
+        let heightMap = simulationEngine.voxelWorld.heightMap
+        let bounds = simulationEngine.voxelWorld.worldBounds
+        let resolution = simulationEngine.voxelWorld.dimensions.width
+        
+        // 🔧 ENHANCED COORDINATE MAPPING: More precise height lookup
+        // Convert world coordinates to height map indices with better precision
+        let normalizedX = (x - bounds.minX) / bounds.width
+        let normalizedZ = (z - bounds.minY) / bounds.height
+        
+        // 🎯 BILINEAR INTERPOLATION: More accurate height between grid points
+        let exactX = normalizedX * Double(resolution - 1)
+        let exactZ = normalizedZ * Double(resolution - 1)
+        
+        let x0 = Int(floor(exactX))
+        let z0 = Int(floor(exactZ))
+        let x1 = min(x0 + 1, resolution - 1)
+        let z1 = min(z0 + 1, resolution - 1)
+        
+        // Bounds check
+        let clampedX0 = max(0, min(resolution - 1, x0))
+        let clampedZ0 = max(0, min(resolution - 1, z0))
+        let clampedX1 = max(0, min(resolution - 1, x1))
+        let clampedZ1 = max(0, min(resolution - 1, z1))
+        
+        // Get height values at grid corners
+        let h00 = heightMap[clampedX0][clampedZ0]  // Top-left
+        let h10 = heightMap[clampedX1][clampedZ0]  // Top-right  
+        let h01 = heightMap[clampedX0][clampedZ1]  // Bottom-left
+        let h11 = heightMap[clampedX1][clampedZ1]  // Bottom-right
+        
+        // Interpolation factors
+        let fx = exactX - Double(x0)
+        let fz = exactZ - Double(z0)
+        
+        // Bilinear interpolation
+        let h_top = h00 + fx * (h10 - h00)
+        let h_bottom = h01 + fx * (h11 - h01)
+        let interpolatedHeight = h_top + fz * (h_bottom - h_top)
+        
+        return interpolatedHeight
+    }
+    
+    private func createContinentalTerrainMaterial() -> SCNMaterial {
+        let material = SCNMaterial()
+        
+        // 🎮 MINECRAFT-STYLE TERRAIN MATERIAL
+        let terrainTexture = createHeightBasedTerrainTexture()
+        material.diffuse.contents = terrainTexture
+        
+        // 🔧 MATERIAL PROPERTIES for crisp, game-like appearance
+        material.roughness.contents = NSColor(white: 0.9, alpha: 1.0)     // Slightly rough for natural look
+        material.metalness.contents = NSColor(white: 0.0, alpha: 1.0)     // Non-metallic terrain
+        material.lightingModel = .physicallyBased
+        material.isDoubleSided = false
+        
+        // 🎯 TEXTURE FILTERING for crisp pixels (Minecraft-style)
+        material.diffuse.wrapS = .repeat
+        material.diffuse.wrapT = .repeat
+        material.diffuse.minificationFilter = .nearest  // Crisp pixel edges
+        material.diffuse.magnificationFilter = .nearest // No blurring
+        material.diffuse.mipFilter = .nearest           // Sharp detail levels
+        
+        // 🌟 VISUAL ENHANCEMENTS
+        material.normal.intensity = 0.3  // Subtle surface detail
+        material.ambientOcclusion.intensity = 0.2  // Add depth
+        
+        print("🎨 Continental terrain material created with Minecraft-style crisp texturing!")
+        return material
+    }
+    
+    private func createHeightBasedTerrainTexture() -> NSImage {
+        let heightMap = simulationEngine.voxelWorld.heightMap
+        let resolution = heightMap.count
+        let size = CGSize(width: resolution, height: resolution)
+        let image = NSImage(size: size)
+        
+        image.lockFocus()
+        
+        // 🌍 MINECRAFT-STYLE TERRAIN MAPPING: Map actual terrain heights to colors
+        print("🎨 Creating terrain texture from height map (resolution: \(resolution)x\(resolution))")
+        
+        for x in 0..<resolution {
+            for z in 0..<resolution {
+                let height = heightMap[x][z]
+                
+                // 🎯 HEIGHT-BASED TERRAIN COLORS (matches our terrain logic)
+                let terrainColor: NSColor
+                if height < -20 {
+                    terrainColor = NSColor.blue                                      // Deep water
+                } else if height < -5 {
+                    terrainColor = NSColor.cyan                                      // Wetlands
+                } else if height > 5 && height < 25 {
+                    terrainColor = NSColor(red: 0, green: 0.5, blue: 0, alpha: 1)  // Forest (dark green)
+                } else if height > 30 {
+                    terrainColor = NSColor.gray                                      // Mountains
+                } else if height > 15 {
+                    terrainColor = NSColor.brown                                     // Hills
+                } else {
+                    terrainColor = NSColor.green                                     // Plains (default)
+                }
+                
+                // Set pixel color using Core Graphics
+                let pixelRect = CGRect(x: x, y: z, width: 1, height: 1)
+                terrainColor.setFill()
+                pixelRect.fill()
+            }
+        }
+        
+        image.unlockFocus()
+        
+        print("🌍 Continental terrain texture created with realistic height-based colors!")
+        return image
+    }
+    
+    private func renderSelectiveVoxelFeatures(container: SCNNode) {
+        print("🌲 Adding selective surface features (trees, rocks, water effects)...")
+        
+        // Create features container for organization
+        let featuresContainer = SCNNode()
+        featuresContainer.name = "SurfaceFeatures"
+        container.addChildNode(featuresContainer)
+        
+        var featureCount = 0
+        let samplingRate = 4  // Even sparser for features - only every 4th voxel
+        
+        // Only render surface layer features that add visual interest
+        for x in stride(from: 0, to: simulationEngine.voxelWorld.dimensions.width, by: samplingRate) {
+            for y in stride(from: 0, to: simulationEngine.voxelWorld.dimensions.height, by: samplingRate) {
+                for z in stride(from: 0, to: simulationEngine.voxelWorld.dimensions.depth, by: samplingRate) {
+                    let voxel = simulationEngine.voxelWorld.voxels[x][y][z]
+                    
+                    // Only render interesting surface features
+                    if shouldRenderAsFeature(voxel) {
+                        let featureNode = createFeatureNode(voxel: voxel)
+                        
+                        // 🔧 TERRAIN SURFACE POSITIONING: Align features with terrain mesh
+                        let terrainHeight = getTerrainHeightAt(x: voxel.position.x, z: voxel.position.y)
+                        let surfacePosition = SCNVector3(
+                            Float(voxel.position.x),
+                            Float(terrainHeight), // Place on terrain surface
+                            Float(voxel.position.y)
+                        )
+                        featureNode.position = surfacePosition
+                        
+                        featuresContainer.addChildNode(featureNode)
+                        featureCount += 1
+                    }
+                }
+            }
+        }
+        
+        print("🎨 Added \(featureCount) surface features to continental terrain")
+    }
+    
+    private func shouldRenderAsFeature(_ voxel: Voxel) -> Bool {
+        // Only render specific terrain types as features on top of the terrain mesh
+        switch voxel.terrainType {
+        case .forest:
+            return voxel.layer == .surface || voxel.layer == .canopy  // Trees
+        case .wall:
+            return voxel.layer == .surface  // Rock outcroppings
+        case .water:
+            return voxel.layer == .surface && voxel.position.z > -10  // Water features above deep water
+        default:
+            return false  // Everything else is handled by the terrain mesh
+        }
+    }
+    
+    private func createFeatureNode(voxel: Voxel) -> SCNNode {
+        let node = SCNNode()
+        node.name = "Feature_\(voxel.terrainType)_\(voxel.gridPosition.x)_\(voxel.gridPosition.y)_\(voxel.gridPosition.z)"
+        
+        // Create appropriate geometry for the feature type
+        let geometry = createFeatureGeometry(for: voxel)
+        node.geometry = geometry
+        
+        // Position the feature
+        let scnPosition = SCNVector3(
+            Float(voxel.position.x),
+            Float(voxel.position.z), // Use Z as height
+            Float(voxel.position.y)
+        )
+        node.position = scnPosition
+        
+        return node
+    }
+    
+    private func createFeatureGeometry(for voxel: Voxel) -> SCNGeometry {
+        let baseSize = Float(simulationEngine.voxelWorld.voxelSize) * 1.5
+        
+        switch voxel.terrainType {
+        case .forest:
+            // Create simple tree representation
+            return createTreeGeometry(size: baseSize)
+        case .wall:
+            // Create rock outcropping
+            return createRockGeometry(size: baseSize)
+        case .water:
+            // Create water feature (smaller, animated)
+            return createWaterFeatureGeometry(size: baseSize * 0.8)
+        default:
+            // Fallback to simple box
+            let box = SCNBox(width: CGFloat(baseSize), height: CGFloat(baseSize), length: CGFloat(baseSize), chamferRadius: 0.02)
+            box.firstMaterial?.diffuse.contents = NSColor.gray
+            return box
+        }
+    }
+    
+    private func createTreeGeometry(size: Float) -> SCNGeometry {
+        // Simple tree representation as a brown cylinder (trunk)
+        // TODO: Could combine trunk + crown geometries for more realistic trees
+        
+        let trunk = SCNCylinder(radius: CGFloat(size * 0.1), height: CGFloat(size * 0.8))
+        trunk.firstMaterial?.diffuse.contents = NSColor.brown
+        trunk.firstMaterial?.roughness.contents = NSColor(white: 0.8, alpha: 1.0)
+        
+        return trunk
+    }
+    
+    private func createRockGeometry(size: Float) -> SCNGeometry {
+        let rock = SCNBox(
+            width: CGFloat(size * 1.2), 
+            height: CGFloat(size * 0.6), 
+            length: CGFloat(size * 0.9), 
+            chamferRadius: 0.1
+        )
+        rock.firstMaterial?.diffuse.contents = NSColor.darkGray
+        rock.firstMaterial?.roughness.contents = NSColor(white: 0.9, alpha: 1.0)
+        return rock
+    }
+    
+    private func createWaterFeatureGeometry(size: Float) -> SCNGeometry {
+        let water = SCNBox(
+            width: CGFloat(size), 
+            height: CGFloat(size * 0.2), 
+            length: CGFloat(size), 
+            chamferRadius: 0.02
+        )
+        water.firstMaterial?.diffuse.contents = NSColor.blue
+        water.firstMaterial?.transparency = 0.7
+        water.firstMaterial?.metalness.contents = NSColor(white: 0.0, alpha: 1.0)
+        water.firstMaterial?.roughness.contents = NSColor(white: 0.1, alpha: 1.0)
+        return water
     }
     
     private func shouldRenderVoxel(_ voxel: Voxel) -> Bool {
@@ -1602,7 +1960,9 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func createVoxelGeometry(for voxel: Voxel) -> SCNGeometry {
-        let voxelSize = Float(simulationEngine.voxelWorld.voxelSize)
+        // 🚀 PERFORMANCE FIX: Larger voxels to compensate for spatial sampling
+        let baseVoxelSize = Float(simulationEngine.voxelWorld.voxelSize)
+        let voxelSize = baseVoxelSize * 1.8  // Larger voxels to fill gaps from sampling
         
         // Create appropriate geometry based on voxel properties
         switch voxel.transitionType {
@@ -3430,26 +3790,15 @@ struct Arena3DView: NSViewRepresentable {
             addClimbingGear(to: bugNode, bug: bug)
         }
         
-        // Position bug in 3D space with surface correction
-        var scnPosition = SCNVector3(
+        // 🔧 TERRAIN SURFACE POSITIONING FIX
+        // Use terrain mesh height instead of voxel world Z coordinates
+        let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
+        
+        let scnPosition = SCNVector3(
             Float(bug.position3D.x),
-            Float(bug.position3D.z),
+            Float(terrainHeight + 0.5), // Position just above terrain surface for natural look
             Float(bug.position3D.y)
         )
-        
-        // Ensure bug is positioned above any solid terrain at this location
-        if let scene = sceneView?.scene {
-            let rayStart = SCNVector3(scnPosition.x, scnPosition.y + 50, scnPosition.z)
-            let rayEnd = SCNVector3(scnPosition.x, scnPosition.y - 50, scnPosition.z)
-            
-            let raycastResults = scene.physicsWorld.rayTestWithSegment(from: rayStart, to: rayEnd, options: [:])
-            
-            if let firstHit = raycastResults.first {
-                // Position bug slightly above the terrain surface
-                scnPosition.y = firstHit.worldCoordinates.y + 2.0  // 2 units above surface
-                // Bug positioned on terrain surface
-            }
-        }
         
         bugNode.position = scnPosition
         
@@ -6332,10 +6681,11 @@ struct Arena3DView: NSViewRepresentable {
         
         for bug in simulationEngine.bugs {
             if let bugNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false) {
-                // Smooth position interpolation
+                // 🔧 TERRAIN SURFACE POSITIONING: Keep bugs on terrain during updates
+                let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
                 let targetPosition = SCNVector3(
                     Float(bug.position3D.x),
-                    Float(bug.position3D.z),
+                    Float(terrainHeight + 0.5), // Keep just above terrain surface
                     Float(bug.position3D.y)
                 )
                 

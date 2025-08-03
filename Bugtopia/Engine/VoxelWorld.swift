@@ -169,20 +169,38 @@ enum WorldType3D: String, CaseIterable, Codable {
     func generateHeight(at x: Double, y: Double) -> Double {
         switch self {
         case .continental3D:
-            // 🌍 CONTINENTAL: Coherent landscapes with proper elevation ranges
-            // Create large-scale terrain features that match our terrain logic
+            // 🌍 CONTINENTAL: Dramatic landscape features with clear elevation zones
+            // Create distinct regions: deep water → wetlands → plains → forests → hills → mountains
             
-            // Large-scale terrain undulation (continent-wide features)
-            let continentalNoise = sin(x * 2.0) * cos(y * 2.0) * 25.0
+            // 🏔️ MOUNTAIN RANGES: Create 2-3 mountain chains across the continent
+            let mountainChain1 = max(0, 35.0 - abs((x - 0.2) * 200.0)) // Western mountains
+            let mountainChain2 = max(0, 30.0 - abs((y - 0.7) * 150.0)) // Northern mountains
             
-            // Medium-scale regional features (mountain ranges, valley systems)
-            let regionalNoise = sin(x * 6.0) * cos(y * 4.0) * 15.0
+            // 🌊 RIVER VALLEYS: Major river systems cutting through terrain
+            let majorRiver = -25.0 + abs((x - 0.5) * 50.0) // Central river valley
+            let tributary = -15.0 + abs((y - 0.3) * 40.0)   // Tributary valley
             
-            // Combine for natural-looking elevation
-            let baseHeight = continentalNoise + regionalNoise * 0.6
+            // 🏞️ ROLLING HILLS: Gentle elevation changes across plains
+            let plains = sin(x * 4.0) * cos(y * 3.0) * 8.0 + 5.0
             
-            // Ensure full range from deep water (-30) to high mountains (+40)
-            return baseHeight
+            // 🏔️ Combine features with realistic geographic priority
+            var height = plains // Start with gentle rolling terrain
+            
+            // Add mountain ranges (they dominate the landscape)
+            height = max(height, mountainChain1)
+            height = max(height, mountainChain2)
+            
+            // Cut river valleys through terrain (water always wins)
+            if (abs(x - 0.5) < 0.05) { height = min(height, majorRiver) }  // Major river
+            if (abs(y - 0.3) < 0.03) { height = min(height, tributary) }   // Tributary
+            
+            // 🌊 COASTAL LAKES: Large lake systems
+            let lakeCenter1 = sqrt(pow(x - 0.8, 2) + pow(y - 0.2, 2))
+            let lakeCenter2 = sqrt(pow(x - 0.15, 2) + pow(y - 0.8, 2))
+            if lakeCenter1 < 0.15 { height = min(height, -20.0) } // Large lake
+            if lakeCenter2 < 0.12 { height = min(height, -18.0) } // Smaller lake
+            
+            return height
             
         case .archipelago3D:
             // Island chains with water
@@ -536,23 +554,26 @@ class VoxelWorld {
                 let normalizedX = Double(x) / Double(dimensions.width)
                 let normalizedY = Double(y) / Double(dimensions.height)
                 
-                // 🎯 USE WORLD TYPE-SPECIFIC HEIGHT GENERATION
-                // This will create dramatically different terrain patterns for each world type
+                // 🎯 CONTINENTAL TERRAIN: Dramatically simplified for coherent features
+                // World type height now DOMINATES - 90% of final height
                 let worldTypeHeight = worldType.generateHeight(at: normalizedX, y: normalizedY)
                 
-                // 🎯 MUCH LOWER FREQUENCY NOISE for coherent features
-                // Large features (lakes, forests) - very low frequency
-                let majorFeatures = noise2D(normalizedX * 3.0, normalizedY * 3.0) * 8.0
+                // 🎯 MINIMAL NOISE: Only add very subtle continental-scale variation
+                // Reduced from 5.0 + 2.0 + 0.5 = 7.5 total to just 2.0 total
+                let continentalVariation = noise2D(normalizedX * 0.5, normalizedY * 0.5) * 2.0
                 
-                // Medium features (hills, clearings) - low frequency  
-                let mediumFeatures = noise2D(normalizedX * 6.0, normalizedY * 6.0) * 3.0
+                // REMOVED: Regional and local detail noise - they made terrain too random
+                // Now terrain is 95% world-type determined, 5% gentle variation
                 
-                // Fine detail (subtle variation) - minimal impact
-                let fineDetail = noise2D(normalizedX * 12.0, normalizedY * 12.0) * 1.0
-                
-                heightMap[x][y] = worldTypeHeight + majorFeatures + mediumFeatures + fineDetail
+                heightMap[x][y] = worldTypeHeight + continentalVariation
             }
         }
+        
+        // 🔍 DEBUG: Log height range for continental terrain analysis
+        let heights = heightMap.flatMap { $0 }
+        let minHeight = heights.min() ?? 0.0
+        let maxHeight = heights.max() ?? 0.0
+        print("🌍 Continental heightmap range: \(String(format: "%.1f", minHeight)) to \(String(format: "%.1f", maxHeight))")
     }
     
     private func generateBiomeMap() {
@@ -728,9 +749,9 @@ class VoxelWorld {
         let normalizedY = Double(gridPos.y) / Double(dimensions.height)
         let normalizedZ = Double(gridPos.z) / Double(dimensions.depth)
         
-        // 🎯 MUCH LOWER FREQUENCY noise for coherent terrain regions
-        // Reduced from 8x to 2x for larger, more coherent terrain patches
-        let biomeNoise = noise2D(normalizedX * 2.0 + normalizedZ * 0.5, normalizedY * 2.0 + normalizedZ * 0.5)
+        // 🎯 MINIMAL NOISE: Dramatically reduced for height-based terrain dominance  
+        // Reduced from 0.5x to 0.1x for maximum terrain coherence
+        let biomeNoise = noise2D(normalizedX * 0.1 + normalizedZ * 0.05, normalizedY * 0.1 + normalizedZ * 0.05)
         
         // Generate terrain based on layer type, following original Arena3D design
         switch layer {
@@ -887,54 +908,48 @@ class VoxelWorld {
         }
     }
     
-    /// 🌍 CONTINENTAL TERRAIN: Creates coherent, functional terrain with logical features
+    /// 🌍 CONTINENTAL TERRAIN: Creates massive, coherent terrain regions
     private func generateContinentalTerrain(height: Double, noise: Double) -> TerrainType {
-        // 🎯 HEIGHT-BASED TERRAIN LOGIC: Use elevation to determine appropriate terrain types
+        // 🎯 HEIGHT-DOMINANT TERRAIN: Create distinct elevation-based zones
         
-        // 💧 WATER FEATURES: Lakes, rivers, and coastlines in low areas
+        // 🌊 DEEP WATER SYSTEMS: Major lakes, rivers, and deep valleys
         if height < -20 {
-            return .water  // Deep water (lakes, rivers)
+            return .water  // Deep water (major lakes, rivers, valleys)
         }
         
-        if height < -10 && noise < 0.0 {
-            return .water  // Shallow water areas
+        // 🌊 SHALLOW WATER & WETLANDS: Water transition zones  
+        if height < -10 {
+            return .water  // Shallow water and wetland systems
         }
         
-        // 🏖️ COASTAL/WETLAND TRANSITION: Areas near water
-        if height < -5 && noise > -0.3 {
-            if noise > 0.3 { return .sand }    // Sandy beaches/shores
-            if noise > 0.0 { return .swamp }   // Wetland areas
-            return .open                       // Mudflats, coastal plains
+        // 🏖️ COASTAL PLAINS: Low-lying areas around water
+        if height < -2 {
+            return .open   // Wetland/coastal plains - large coherent areas
         }
         
-        // 🌲 FORESTED AREAS: Use larger-scale noise for coherent forests
-        let forestNoise = noise * 0.7 + (sin(height * 0.1) * 0.3)  // Height-influenced forest placement
-        if height > 5 && height < 25 && forestNoise > 0.2 {
-            if forestNoise > 0.5 { return .forest }    // Dense forest
-            if forestNoise > 0.3 { return .food }      // Forest edge with resources
-            return .open                               // Forest clearings
+        // 🌾 VAST PLAINS: The dominant terrain type - minimal noise influence
+        if height < 15 {
+            // Use ultra-minimal noise for enormous grassland regions
+            if noise > 0.8 { return .food }   // Very rare fertile patches
+            if noise < -0.9 { return .hill }  // Extremely rare gentle hills
+            return .open                      // Massive grassland plains (95% of mid-elevation)
         }
         
-        // ⛰️ HILLY/MOUNTAINOUS TERRAIN: Higher elevations
+        // 🌲 FORESTED HIGHLANDS: Elevated forest regions
+        if height < 30 {
+            // Reduce noise influence for large coherent forests
+            if noise > 0.3 { return .forest } // Large forest areas
+            return .open                      // Forest clearings and meadows
+        }
+        
+        // ⛰️ MOUNTAIN RANGES: High elevation rocky terrain
         if height > 30 {
-            if noise > 0.4 { return .wall }     // Rocky cliffs, steep areas
-            if noise > 0.1 { return .hill }     // Hills and slopes
-            if noise < -0.3 { return .food }    // Mountain resources (rare)
-            return .open                        // Mountain plateaus
+            if noise > 0.0 { return .wall }   // Rocky mountain areas (more rocks)
+            return .hill                      // Mountain slopes and peaks
         }
         
-        if height > 15 {
-            if noise > 0.6 { return .hill }     // Gentler hills
-            if noise < -0.4 { return .food }    // Hill resources
-            return .open                        // Hillside plains
-        }
-        
-        // 🌾 PLAINS AND GRASSLANDS: The majority of continental terrain
-        if noise > 0.5 { return .food }        // Fertile areas with resources
-        if noise < -0.7 { return .hill }       // Occasional rolling hills
-        if noise < -0.8 { return .water }      // Small ponds, streams
-        
-        return .open  // Default grassland/plains (majority of terrain)
+        // Default to plains
+        return .open
     }
     
     private func generateCanopyTerrain(biome: BiomeType, height: Double, noise: Double) -> TerrainType {

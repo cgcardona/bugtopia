@@ -64,8 +64,9 @@ class SimulationEngine {
         print("🔍 DEBUG: SimulationEngine.init() called - creating world type: \(worldType.rawValue)")
         print("🌍 Generating CONTINENTAL world (hardcoded for development)")
         
-        // 🔧 INCREASED RESOLUTION: 64x64x64 for more coherent terrain features
-        self.voxelWorld = VoxelWorld(bounds: worldBounds, worldType: worldType, resolution: 64)
+        // 🔧 STABLE RESOLUTION: 32x32x32 for reliable performance
+        // NOTE: Higher resolutions (48³+) cause rendering hangs - need async/LOD system first
+        self.voxelWorld = VoxelWorld(bounds: worldBounds, worldType: worldType, resolution: 32)
         self.pathfinding = VoxelPathfinding(voxelWorld: voxelWorld)
         ecosystemManager.setWorldBounds(worldBounds)
         setupInitialPopulation()
