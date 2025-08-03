@@ -439,9 +439,7 @@ class Bug: Identifiable, Hashable {
             energy -= fleeCost
             
             // ✅ DEBUG: Log energy costs that might stop movement
-            if Int.random(in: 1...100) == 1 {
-                print("⚡ [ENERGY-COST \(debugId)] Fleeing cost: \(String(format: "%.2f", fleeCost)), Energy after: \(String(format: "%.1f", energy))")
-            }
+
         }
         // 2. HUNTING - second priority
         else if let prey = targetPrey, decision.hunting > 0.5, dna.speciesTraits.speciesType.canHunt {
@@ -528,13 +526,11 @@ class Bug: Identifiable, Hashable {
             // Position updated
             
             // Update 3D position to keep in sync
-            let oldPosition3D = position3D
+
             updatePosition3D(Position3D(from: position, z: position3D.z))
             
             // CRITICAL: 3D position sync debug - only for significant movement
-            if moved > 2.0 && Int.random(in: 1...200) == 1 {
-                print("🌐 [3D-SYNC \(debugId)] 2D→3D: (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y))) → (\(String(format: "%.1f", position3D.x)), \(String(format: "%.1f", position3D.y)))")
-            }
+
         } else {
             // Neural network should learn to avoid walls, but provide basic collision
             // Position blocked - no debug spam
@@ -550,11 +546,7 @@ class Bug: Identifiable, Hashable {
             let debugId = String(id.uuidString.prefix(8))
             let boundaryClamped = sqrt((position.x - posBeforeBoundary.x) * (position.x - posBeforeBoundary.x) + 
                                      (position.y - posBeforeBoundary.y) * (position.y - posBeforeBoundary.y))
-            if boundaryClamped > 0.1 {
-                print("⚠️ [BOUNDARY \(debugId)] Position clamped by \(String(format: "%.2f", boundaryClamped)) units")
-                print("⚠️ [BOUNDARY \(debugId)] Arena bounds: \(arena.bounds)")
-                print("⚠️ [BOUNDARY \(debugId)] Final position: (\(String(format: "%.2f", position.x)), \(String(format: "%.2f", position.y)))")
-            }
+
         }
         
         // Handle 3D movement and layer changes based on neural decision  
@@ -711,9 +703,7 @@ class Bug: Identifiable, Hashable {
             let debugId = String(id.uuidString.prefix(8))
             let deltaX = target.x - position.x
             let deltaY = target.y - position.y
-            print("🍯 [FOOD-DEBUG \(debugId)] Target: (\(String(format: "%.0f", target.x)), \(String(format: "%.0f", target.y)))")
-            print("🍯 [FOOD-DEBUG \(debugId)] Bug at: (\(String(format: "%.0f", position.x)), \(String(format: "%.0f", position.y)))")
-            print("🍯 [FOOD-DEBUG \(debugId)] Delta: X=\(String(format: "%.0f", deltaX)), Y=\(String(format: "%.0f", deltaY))")
+
         }
     }
     
@@ -850,7 +840,7 @@ class Bug: Identifiable, Hashable {
     private func handle3DBoundaryCollisions() {
         let minZ = -100.0  // Underground limit (matches TerrainLayer.underground.lowerBound)
         let maxZ = 200.0   // Aerial limit (matches TerrainLayer.aerial.upperBound)
-        let damping = 0.7  // Energy loss on bounce
+        _ = 0.7  // Energy loss on bounce
         
         // First, enforce absolute world bounds
         if position3D.z < minZ {

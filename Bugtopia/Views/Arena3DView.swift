@@ -6719,17 +6719,9 @@ struct Arena3DView: NSViewRepresentable {
                 // 🔍 VISUAL COORDINATE DEBUG: Track logical vs visual coordinate mapping
                 let debugId = String(bug.id.uuidString.prefix(8))
                 
-                // Only log significant visual coordinate issues
-                if horizontalDistance > 5.0 && Int.random(in: 1...100) == 1 {
-                    print("🗺️ [COORD-MAP \(debugId)] Large movement: visual_distance=\(String(format: "%.2f", horizontalDistance))")
-                }
+
                 
-                // 🔍 ENHANCED VISUAL DEBUG: Track animation attempts
-                if horizontalDistance > 1.0 && Int.random(in: 1...100) == 1 {
-                    print("🎬 [VISUAL-MOVE \(debugId)] Distance=\(String(format: "%.2f", horizontalDistance)), Threshold=0.2")
-                    print("🎬 [VISUAL-MOVE \(debugId)] Current: (\(String(format: "%.1f", currentPosition.x)), \(String(format: "%.1f", currentPosition.z)))")
-                    print("🎬 [VISUAL-MOVE \(debugId)] Target:  (\(String(format: "%.1f", targetPosition.x)), \(String(format: "%.1f", targetPosition.z)))")
-                }
+
                 
                 if horizontalDistance > 0.2 { // ✅ LOWERED threshold from 0.5 to 0.2 for better movement visibility
                     // ✅ DRAMATIC ANIMATION: Much slower for obvious visibility
@@ -6750,8 +6742,7 @@ struct Arena3DView: NSViewRepresentable {
                     
                     // ✅ FORCE ANIMATION DEBUG: More frequent logging to catch missing animations 
                     if horizontalDistance > 1.0 && Int.random(in: 1...8) == 1 {
-                        print("🎬 [ANIMATION \(debugId)] TRIGGERED: Distance=\(String(format: "%.2f", horizontalDistance)), Duration=\(String(format: "%.2f", animationDuration))s")
-                        print("🎬 [ANIMATION \(debugId)] FROM: (\(String(format: "%.1f", currentPosition.x)), \(String(format: "%.1f", currentPosition.z))) TO: (\(String(format: "%.1f", targetPosition.x)), \(String(format: "%.1f", targetPosition.z)))")
+                        
                     }
                 } else {
                     // Set position directly for tiny movements only
@@ -6803,10 +6794,7 @@ struct Arena3DView: NSViewRepresentable {
             })
             if !foodExists {
                 foodNode.removeFromParentNode()
-                // 🔧 DEBUG: Log visual food removal to verify ghost food cleanup
-                if Int.random(in: 1...20) == 1 { // Sample 5% of removals
-                    print("🗑️ [VISUAL-REMOVE] Removing consumed food node: \(foodId)")
-                }
+
             }
         }
         
