@@ -503,7 +503,7 @@ class VoxelWorld {
         
         // 🎲 RANDOM SEED for truly unique worlds each time
         self.noiseSeed = Double.random(in: 0...10000)
-        print("🌍 Using random seed: \(String(format: "%.2f", noiseSeed)) for \(worldType.rawValue)")
+
         
         // Calculate dimensions - higher resolution for true voxel detail
         self.dimensions = (width: resolution, height: resolution, depth: resolution)
@@ -547,7 +547,7 @@ class VoxelWorld {
         heightMap = Array(repeating: Array(repeating: 0.0, count: dimensions.height), count: dimensions.width)
         
         // 🌍 WORLD TYPE-SPECIFIC HEIGHT GENERATION
-        print("🏔️ Generating heightmap for \(worldType.rawValue)")
+
         
         for x in 0..<dimensions.width {
             for y in 0..<dimensions.height {
@@ -655,36 +655,7 @@ class VoxelWorld {
             }
         }
         
-        // 🔍 COMPREHENSIVE DEBUG LOGGING - Enhanced Van Gogh Terrain Analysis
-        print("\n🌍 =================================")
-        print("🌍 VOXEL WORLD GENERATION COMPLETE")
-        print("🌍 =================================")
-        
-        print("\n🎨 TERRAIN TYPE DISTRIBUTION:")
-        for (terrainType, count) in terrainCounts.sorted(by: { $0.value > $1.value }) {
-            let percentage = Double(count) / Double(getTotalVoxelCount()) * 100
-            print("   \(terrainType): \(count) voxels (\(String(format: "%.1f", percentage))%)")
-        }
-        
-        print("\n🔄 TRANSITION TYPE DISTRIBUTION:")
-        for (transitionType, count) in transitionCounts.sorted(by: { $0.value > $1.value }) {
-            let percentage = Double(count) / Double(getTotalVoxelCount()) * 100
-            print("   \(transitionType): \(count) voxels (\(String(format: "%.1f", percentage))%)")
-        }
-        
-        // Calculate actual renderables based on Arena3DView shouldRenderVoxel logic
-        // Only solid, swim, climb, ramp, tunnel, bridge are rendered - air and flight are navigable
-        let renderableTypes = ["solid", "swim", "climb", "ramp", "tunnel", "bridge"]
-        let renderableCount = transitionCounts.filter { renderableTypes.contains($0.key.split(separator: "(").first?.trimmingCharacters(in: .whitespaces) ?? "") }.values.reduce(0, +)
-        let navigableCount = transitionCounts["air", default: 0] + transitionCounts.filter { $0.key.hasPrefix("flight(") }.values.reduce(0, +)
-        let renderablePercentage = Double(renderableCount) / Double(getTotalVoxelCount()) * 100
-        let navigablePercentage = Double(navigableCount) / Double(getTotalVoxelCount()) * 100
-        
-        print("\n🎨 RENDERABLE VOXELS: \(renderableCount) (\(String(format: "%.1f", renderablePercentage))%)")
-        print("🌬️ NAVIGABLE SPACE: \(navigableCount) (\(String(format: "%.1f", navigablePercentage))%)")
-        print("   ├─ Air spaces: \(transitionCounts["air", default: 0]) voxels")
-        print("   └─ Flight zones: \(transitionCounts.filter { $0.key.hasPrefix("flight(") }.values.reduce(0, +)) voxels")
-        print("🌍 =================================\n")
+
     }
     
     private func createVoxel(at gridPos: (x: Int, y: Int, z: Int)) -> Voxel {
@@ -1097,7 +1068,7 @@ class VoxelWorld {
     
     private func createHorizontalConnectivity() {
         // 🔧 OPTIMIZED: Create horizontal connections without the for-loop-ception
-        print("🔗 Creating horizontal connectivity (optimized approach)...")
+
         
         // Process horizontal edges only (avoid redundant iterations)
         for z in 0..<dimensions.depth {
@@ -1128,7 +1099,7 @@ class VoxelWorld {
             }
         }
         
-        print("✅ Horizontal connectivity established (no more for-loop inception)!")
+
     }
     
     private func createVerticalConnectivity(at pos: (x: Int, y: Int)) {

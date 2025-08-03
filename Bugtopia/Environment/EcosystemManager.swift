@@ -136,7 +136,7 @@ class EcosystemManager {
     /// Update ecosystem dynamics each simulation tick
     func update(
         bugs: [Bug],
-        foods: [CGPoint],
+        foods: [FoodItem],
         generationCount: Int,
         deltaTime: TimeInterval = 1.0/30.0
     ) {
@@ -180,7 +180,7 @@ class EcosystemManager {
         carryingCapacityUtilization = Double(bugs.count) / Double(baseCarryingCapacity)
     }
     
-    private func updateResourceZones(bugs: [Bug], foods: [CGPoint], deltaTime: TimeInterval) {
+    private func updateResourceZones(bugs: [Bug], foods: [FoodItem], deltaTime: TimeInterval) {
         for i in 0..<resourceZones.count {
             var zone = resourceZones[i]
             
@@ -308,10 +308,10 @@ class EcosystemManager {
 
 extension Bug {
     /// Check if bug is currently near food sources
-    func isNearFood(_ foods: [CGPoint]) -> Bool {
+    func isNearFood(_ foods: [FoodItem]) -> Bool {
         return foods.contains { food in
-            let dx = position.x - food.x
-            let dy = position.y - food.y
+            let dx = position.x - food.position.x
+            let dy = position.y - food.position.y
             return sqrt(dx * dx + dy * dy) < 30.0
         }
     }

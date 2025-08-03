@@ -16,7 +16,7 @@ class SimulationEngine {
     // MARK: - Simulation State
     
     var bugs: [Bug] = []
-    var foods: [CGPoint] = []
+    var foods: [FoodItem] = []
     var signals: [Signal] = []     // Active signals in the world
     var groups: [BugGroup] = []    // Active bug groups
     var tools: [Tool] = []         // Constructed tools in the world
@@ -36,10 +36,10 @@ class SimulationEngine {
     
     let voxelWorld: VoxelWorld
     let pathfinding: VoxelPathfinding
-    private let maxPopulation = 180  // Tripled for more genetic diversity and faster evolution
-    private let initialPopulation = 90   // Increased population to see more diverse creatures
-    private let maxFoodItems = 1200  // Increased for more abundant food distribution
-    private let baseFoodSpawnRate = 0.95 // Increased spawn rate to encourage exploration
+    private let maxPopulation = 800  // MASSIVE INCREASE: 4.4x more bugs for extensive debugging
+    private let initialPopulation = 100   // ✅ REDUCED: Better for debugging individual movement visibility
+    private let maxFoodItems = 5000  // MASSIVE INCREASE: 4.2x more food to eliminate food scarcity
+    private let baseFoodSpawnRate = 0.99 // MAXIMUM: Near-constant food spawning for abundant resources
     
     // MARK: - Evolution Parameters
     
@@ -61,8 +61,7 @@ class SimulationEngine {
     init(worldBounds: CGRect) {
         // 🎯 HARDCODED CONTINENTAL WORLD: Focus on perfecting one world type first
         let worldType = WorldType3D.continental3D
-        print("🔍 DEBUG: SimulationEngine.init() called - creating world type: \(worldType.rawValue)")
-        print("🌍 Generating CONTINENTAL world (hardcoded for development)")
+
         
         // 🔧 STABLE RESOLUTION: 32x32x32 for reliable performance
         // NOTE: Higher resolutions (48³+) cause rendering hangs - need async/LOD system first
@@ -481,9 +480,12 @@ class SimulationEngine {
     
     // MARK: - Food Management
     
-    /// Spawns initial food distribution, prioritizing food zones and open areas
+    /// Spawns initial food distribution with diverse food types based on species population
     private func spawnInitialFood() {
-        var newFoods: [CGPoint] = []
+        var newFoods: [FoodItem] = []
+        
+        // Determine dominant species for food type distribution
+        let herbivoreFoodRatio = 0.8 // 80% herbivore foods for now
         
         // Spawn food in designated food zones (limited to prevent oversaturation)
         let foodVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .food }
@@ -496,7 +498,12 @@ class SimulationEngine {
                 x: voxel.position.x + randomOffset.x,
                 y: voxel.position.y + randomOffset.y
             )
-            newFoods.append(foodPosition)
+            
+            // Generate appropriate food type
+            let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
+            let foodType = FoodType.randomFoodFor(species: targetSpecies)
+            let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+            newFoods.append(foodItem)
         }
         
         // Spawn majority of food distributed in open areas AND hills for better distribution
@@ -525,7 +532,12 @@ class SimulationEngine {
                     x: voxel.position.x + randomOffset.x,
                     y: voxel.position.y + randomOffset.y
                 )
-                newFoods.append(foodPosition)
+                
+                // Generate appropriate food type
+                let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
+                let foodType = FoodType.randomFoodFor(species: targetSpecies)
+                let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+                newFoods.append(foodItem)
             }
         }
         
@@ -551,8 +563,8 @@ class SimulationEngine {
                 // Count existing food near each food zone to prevent oversaturation
                 let availableFoodVoxels = foodVoxels.filter { voxel in
                     let nearbyFood = foods.filter { food in
-                        let dx = food.x - voxel.position.x
-                        let dy = food.y - voxel.position.y
+                        let dx = food.position.x - voxel.position.x
+                        let dy = food.position.y - voxel.position.y
                         return sqrt(dx * dx + dy * dy) < 60.0  // 60 pixel radius
                     }
                     return nearbyFood.count < 8  // Max 8 food items per zone
@@ -563,13 +575,18 @@ class SimulationEngine {
                         x: Double.random(in: -15...15),
                         y: Double.random(in: -15...15)
                     )
-                    let newFood = CGPoint(
+                    let foodPosition = CGPoint(
                         x: voxel.position.x + randomOffset.x,
                         y: voxel.position.y + randomOffset.y
                     )
                     // Check if disasters would destroy this food immediately
-                    if !disasterManager.shouldDestroyFood(at: newFood) {
-                        foods.append(newFood)
+                    if !disasterManager.shouldDestroyFood(at: foodPosition) {
+                        // Generate appropriate food type with higher herbivore ratio
+                        let herbivoreFoodRatio = 0.8 // 80% herbivore foods
+                        let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
+                        let foodType = FoodType.randomFoodFor(species: targetSpecies)
+                        let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+                        foods.append(foodItem)
                     }
                 }
             } else {
@@ -590,13 +607,18 @@ class SimulationEngine {
                             x: Double.random(in: -20...20),
                             y: Double.random(in: -20...20)
                         )
-                        let newFood = CGPoint(
+                        let foodPosition = CGPoint(
                             x: voxel.position.x + randomOffset.x,
                             y: voxel.position.y + randomOffset.y
                         )
                         // Check if disasters would destroy this food immediately
-                        if !disasterManager.shouldDestroyFood(at: newFood) {
-                            foods.append(newFood)
+                        if !disasterManager.shouldDestroyFood(at: foodPosition) {
+                            // Generate appropriate food type with higher herbivore ratio
+                            let herbivoreFoodRatio = 0.8 // 80% herbivore foods
+                            let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
+                            let foodType = FoodType.randomFoodFor(species: targetSpecies)
+                            let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+                            foods.append(foodItem)
                         }
                     }
                 }
@@ -605,8 +627,8 @@ class SimulationEngine {
         
         // Destroy existing food due to disasters
         let foodCountBefore = foods.count
-        foods.removeAll { foodPosition in
-            disasterManager.shouldDestroyFood(at: foodPosition)
+        foods.removeAll { foodItem in
+            disasterManager.shouldDestroyFood(at: foodItem.position)
         }
         
         if foods.count < foodCountBefore {
@@ -619,11 +641,11 @@ class SimulationEngine {
     
     /// Removes food that has been consumed - FIXED: Only remove food that was actually consumed
     private func removeConsumedFood() {
-        let consumedFoodItems = Set(bugs.compactMap { $0.consumedFood })
+        let consumedFoodPositions = Set(bugs.compactMap { $0.consumedFood })
         
-        foods.removeAll { food in
-            // Only remove if this specific food item was consumed by a bug
-            consumedFoodItems.contains(food)
+        foods.removeAll { foodItem in
+            // Only remove if this specific food item position was consumed by a bug
+            consumedFoodPositions.contains(foodItem.position)
         }
     }
     

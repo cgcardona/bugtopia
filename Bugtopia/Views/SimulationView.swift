@@ -13,15 +13,13 @@ class SimulationEngineManager: ObservableObject {
     
     // Lazy initialization ensures Arena3DView is created only once when first accessed
     lazy var arena3DView: Arena3DView = {
-        print("🔍 DEBUG: Creating single Arena3DView instance (lazy)")
+
         return Arena3DView(simulationEngine: engine)
     }()
     
     init(worldSize: CGSize = CGSize(width: 2000, height: 1500)) {
-        print("🔍 DEBUG: SimulationEngineManager.init() called - creating SimulationEngine")
         let bounds = CGRect(origin: .zero, size: worldSize)
         self.engine = SimulationEngine(worldBounds: bounds)
-        print("🔍 DEBUG: SimulationEngineManager.init() completed")
     }
 }
 

@@ -275,7 +275,7 @@ extension Bug {
         let validMoves = pathfinding.getValidMoves(from: position3D, for: dna.speciesTraits.speciesType, with: dna)
         
         if validMoves.isEmpty {
-            print("⚠️ Bug STUCK at (\(position3D.x), \(position3D.y)) - no valid moves!")
+    
             // Stuck! Try to find escape route
             handleStuckPosition(in: voxelWorld, pathfinding: pathfinding)
             return

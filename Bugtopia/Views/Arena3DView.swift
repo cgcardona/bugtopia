@@ -20,7 +20,6 @@ struct Arena3DView: NSViewRepresentable {
     let simulationEngine: SimulationEngine
     
     init(simulationEngine: SimulationEngine) {
-        print("🔍 DEBUG: Arena3DView.init() called")
         self.simulationEngine = simulationEngine
     }
     @State private var sceneView: SCNView?
@@ -3778,6 +3777,9 @@ struct Arena3DView: NSViewRepresentable {
         // Create detailed multi-part bug body based on species
         createDetailedBugBody(for: bug, parentNode: bugNode)
         
+        // ✅ TEMPORARY DEBUG:Increase bug scale for better movement visibility
+        bugNode.scale = SCNVector3(2.0, 2.0, 2.0) // 2x larger for visibility
+        
         // Add movement capabilities indicators
         if bug.canFly {
             addWings(to: bugNode, bug: bug)
@@ -6681,7 +6683,16 @@ struct Arena3DView: NSViewRepresentable {
     
     private func updateBugPositions(scene: SCNScene) {
         // ✅ FIXED: Re-enabled visual positioning - jumping was caused by behavioral animations
-        guard let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else { return }
+        guard let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else { 
+            print("🚨 [VISUAL-UPDATE] BugContainer not found!")
+            return 
+        }
+        
+        // ✅ CRITICAL DEBUG: Force log every call to see if visual updates stopped
+        if Int.random(in: 1...10) == 1 { // Much more frequent logging
+            print("🔄 [VISUAL-UPDATE] updateBugPositions called - processing \(simulationEngine.bugs.count) bugs")
+            print("🔄 [VISUAL-UPDATE] SimulationEngine running: \(simulationEngine.isRunning)")
+        }
         
         for bug in simulationEngine.bugs {
             if let bugNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false) {
@@ -6701,27 +6712,68 @@ struct Arena3DView: NSViewRepresentable {
                     (targetPosition.z - currentPosition.z) * (targetPosition.z - currentPosition.z)
                 )
                 
+                // ✅ CRITICAL DEBUG: Log positioning attempts
+                if horizontalDistance > 0.1 && Int.random(in: 1...50) == 1 {
+                    print("🎯 [POSITION-UPDATE] Bug \(String(bug.id.uuidString.prefix(8))): distance=\(String(format: "%.2f", horizontalDistance))")
+                    print("🎯 [POSITION-UPDATE] Current: (\(String(format: "%.1f", currentPosition.x)), \(String(format: "%.1f", currentPosition.z)))")
+                    print("🎯 [POSITION-UPDATE] Target:  (\(String(format: "%.1f", targetPosition.x)), \(String(format: "%.1f", targetPosition.z)))")
+                }
+                
                 // 🔍 VISUAL COORDINATE DEBUG: Track logical vs visual coordinate mapping
                 let debugId = String(bug.id.uuidString.prefix(8))
                 
-                // Always log coordinate mapping for any movement to identify X-axis issues
-                if horizontalDistance > 0.5 && Int.random(in: 1...10) == 1 {
-                    print("🗺️ [COORD-MAP \(debugId)] Logical: X=\(String(format: "%.1f", bug.position3D.x)), Y=\(String(format: "%.1f", bug.position3D.y))")
-                    print("🗺️ [COORD-MAP \(debugId)] Visual:  X=\(String(format: "%.1f", targetPosition.x)), Z=\(String(format: "%.1f", targetPosition.z))")
-                    print("🗺️ [COORD-MAP \(debugId)] Movement: visual_distance=\(String(format: "%.2f", horizontalDistance))")
+                // Only log significant visual coordinate issues
+                if horizontalDistance > 5.0 && Int.random(in: 1...100) == 1 {
+                    print("🗺️ [COORD-MAP \(debugId)] Large movement: visual_distance=\(String(format: "%.2f", horizontalDistance))")
                 }
                 
-                if horizontalDistance > 0.5 { // Animate most movements (lowered threshold for better visibility)
-                    let moveAction = SCNAction.move(to: targetPosition, duration: 0.2)
-                    bugNode.runAction(moveAction)
+                // 🔍 ENHANCED VISUAL DEBUG: Track animation attempts
+                if horizontalDistance > 1.0 && Int.random(in: 1...100) == 1 {
+                    print("🎬 [VISUAL-MOVE \(debugId)] Distance=\(String(format: "%.2f", horizontalDistance)), Threshold=0.2")
+                    print("🎬 [VISUAL-MOVE \(debugId)] Current: (\(String(format: "%.1f", currentPosition.x)), \(String(format: "%.1f", currentPosition.z)))")
+                    print("🎬 [VISUAL-MOVE \(debugId)] Target:  (\(String(format: "%.1f", targetPosition.x)), \(String(format: "%.1f", targetPosition.z)))")
+                }
+                
+                if horizontalDistance > 0.2 { // ✅ LOWERED threshold from 0.5 to 0.2 for better movement visibility
+                    // ✅ DRAMATIC ANIMATION: Much slower for obvious visibility
+                    let animationDuration = min(3.0, max(1.5, horizontalDistance * 0.1)) // 1.5-3.0 seconds - very slow!
+                    let moveAction = SCNAction.move(to: targetPosition, duration: animationDuration)
+                    
+                    // ✅ ADD VISUAL EFFECT: Bouncy animation for obvious movement
+                    moveAction.timingMode = .easeInEaseOut
+                    bugNode.runAction(moveAction, forKey: "movement") // ✅ Added key to prevent conflicts
+                    
+                    // ✅ EXTRA VISIBILITY: Add a scaling pulse during movement
+                    if horizontalDistance > 5.0 {
+                        let scaleUp = SCNAction.scale(to: 6.0, duration: animationDuration * 0.3)
+                        let scaleDown = SCNAction.scale(to: 5.0, duration: animationDuration * 0.7)
+                        let pulseAction = SCNAction.sequence([scaleUp, scaleDown])
+                        bugNode.runAction(pulseAction, forKey: "movementPulse")
+                    }
+                    
+                    // ✅ FORCE ANIMATION DEBUG: More frequent logging to catch missing animations 
+                    if horizontalDistance > 1.0 && Int.random(in: 1...8) == 1 {
+                        print("🎬 [ANIMATION \(debugId)] TRIGGERED: Distance=\(String(format: "%.2f", horizontalDistance)), Duration=\(String(format: "%.2f", animationDuration))s")
+                        print("🎬 [ANIMATION \(debugId)] FROM: (\(String(format: "%.1f", currentPosition.x)), \(String(format: "%.1f", currentPosition.z))) TO: (\(String(format: "%.1f", targetPosition.x)), \(String(format: "%.1f", targetPosition.z)))")
+                    }
                 } else {
                     // Set position directly for tiny movements only
                     bugNode.position = targetPosition
+                    
+                    // Log small movements being set directly
+                    if horizontalDistance > 0.1 && Int.random(in: 1...200) == 1 {
+                        print("🎬 [DIRECT-POS \(debugId)] Small movement: \(String(format: "%.2f", horizontalDistance)) units")
+                    }
                 }
                 
                 // Update energy indicator (with threshold to prevent micro-updates)
                 updateEnergyIndicator(bugNode: bugNode, energy: bug.energy)
             } else {
+                // ✅ DEBUG: Log when bug nodes are missing
+                if Int.random(in: 1...100) == 1 {
+                    print("🚨 [VISUAL-UPDATE] Bug node missing for bug \(String(bug.id.uuidString.prefix(8))) - creating new node")
+                }
+                
                 // Bug node doesn't exist, create it with new Phase 3 visuals
                 let newBugNode = createBugNode(bug: bug)
                 bugContainer.addChildNode(newBugNode)
@@ -6748,10 +6800,10 @@ struct Arena3DView: NSViewRepresentable {
             let foodId = foodNode.name?.replacingOccurrences(of: "Food_", with: "") ?? ""
             
             // 🔧 FIX: Use exact position matching instead of integer truncation
-            let foodExists = simulationEngine.foods.contains { food in
-                let exactId = "\(String(format: "%.1f", food.x))_\(String(format: "%.1f", food.y))"
+            let foodExists = simulationEngine.foods.contains(where: { food in
+                let exactId = "\(String(format: "%.1f", food.position.x))_\(String(format: "%.1f", food.position.y))"
                 return exactId == foodId
-            }
+            })
             if !foodExists {
                 foodNode.removeFromParentNode()
                 // 🔧 DEBUG: Log visual food removal to verify ghost food cleanup
@@ -6764,12 +6816,12 @@ struct Arena3DView: NSViewRepresentable {
         // Add or update nodes for current food
         for food in simulationEngine.foods {
             // 🔧 FIX: Use exact position IDs to match removal system
-            let foodId = "\(String(format: "%.1f", food.x))_\(String(format: "%.1f", food.y))"
+            let foodId = "\(String(format: "%.1f", food.position.x))_\(String(format: "%.1f", food.position.y))"
             let existingNode = foodContainer!.childNode(withName: "Food_\(foodId)", recursively: false)
             
             if existingNode == nil {
                 // Create new food node with exact position ID
-                let foodNode = createFoodNode(position: food)
+                let foodNode = createFoodNode(position: food.position)
                 foodNode.name = "Food_\(foodId)"
                 foodContainer!.addChildNode(foodNode)
             }
