@@ -13,15 +13,19 @@
 - ✅ Territory control updating
 - ✅ Bug animations (breathing pulses, fear shaking)
 
-### 🔍 **Visual Sync Status (Updated Analysis)**
+### 🔍 **Visual Sync Status (Latest Analysis)**
+- ✅ **Bug selection with enhanced neural stats** - **FULLY IMPLEMENTED**! 
+  - Click any bug to see comprehensive neural network architecture
+  - Real-time neural activity monitoring (10 behavioral outputs)
+  - 3D movement capabilities with clear indicators (Can Fly/Swim/Climb)
+  - Genetic traits, behavioral state, and brain complexity metrics
 - ❓ **Bugs move briefly then stop/shake** - **ANALYSIS**: This is **correct AI behavior**! 
   - Neural networks detecting threats → `decision.fleeing > 0.7` → panic shake animation
   - Bugs showing realistic survival instincts (cautious movement, fear responses)
   - **Breathing/pulsing** - Normal life signs (subtle scale animation every 3+ seconds)
+- 🔧 **Dead bugs don't disappear** - **ENHANCED DETECTION**: Now tracks orphaned nodes, alive→dead transitions, and dead-in-simulation bugs with comprehensive logging
+- 🔧 **"Next Gen" button doesn't visually regenerate bugs** - **ENHANCED DETECTION**: Added ID-based population replacement detection (80%+ change) plus generation number tracking
 - ❌ **Bugs don't seek/consume food** - Food system disabled due to performance issues
-- ❌ **"Next Gen" button doesn't visually regenerate bugs** - Needs generation lifecycle sync
-- ❌ **No visual reflection of evolutionary changes** - Node-model mapping issue
-- ✅ **Bug selection restored** - Click bugs to view detailed stats and neural network activity (**IMPLEMENTED**)
 
 ### ✅ **SOLVED: Loading Sequence Issues (Performance Bottlenecks)**
 **Original 3-Phase Loading Pattern (FIXED):**
@@ -42,12 +46,25 @@
 - ✅ **Water animation disabled** - was enumerating all scene nodes 10x/second
 - ✅ **Verbose logging cleanup** - production-level quiet operation
 
-**🎯 BUG SELECTION SYSTEM IMPLEMENTED:**
+**🎯 BUG SELECTION SYSTEM FULLY ENHANCED:**
 - ✅ **Click detection** - `NavigationResponderView` handles mouse clicks via `mouseDown`
 - ✅ **Hit testing** - SceneKit hit detection finds clicked bug nodes
 - ✅ **Node-to-bug mapping** - `bugNodeToBugMapping` links 3D nodes to `Bug` models
-- ✅ **Stats display** - Left panel shows selected bug's stats, neural activity, and behavioral state
+- ✅ **Enhanced stats display** - Comprehensive neural network architecture, 3D movement capabilities, genetic traits
+- ✅ **Real-time neural activity** - Live monitoring of 10 behavioral outputs and brain complexity
 - ✅ **Real-time sync** - Selected bug stats update live with simulation state
+
+**💀 DEAD BUG REMOVAL SYSTEM IMPLEMENTED:**
+- ✅ **State transition tracking** - Monitors each bug's `isAlive` status changes (alive → dead)
+- ✅ **Death animations** - 2-second dramatic fade, scale, and spin effects
+- ✅ **Automatic cleanup** - Removes nodes and mappings after animation completes
+- ✅ **Performance optimized** - Only triggers on actual death events, not every frame
+
+**🧬 GENERATION LIFECYCLE SYSTEM IMPLEMENTED:**
+- ✅ **Generation change detection** - Monitors `simulationEngine.currentGeneration` changes
+- ✅ **Complete visual regeneration** - Removes all old generation bug nodes when evolution occurs
+- ✅ **Mapping cleanup** - Clears all node-to-bug mappings for fresh generation start
+- ✅ **Automatic bug recreation** - New generation bugs get new visual representations
 
 ## 🎯 Root Cause Hypothesis
 

@@ -362,6 +362,9 @@ class SimulationEngine {
     private func evolvePopulation() {
         currentGeneration += 1
         
+        print("🧬 [EVOLUTION] Starting evolution to generation \(currentGeneration)")
+        print("🧬 [EVOLUTION] Pre-evolution population: \(bugs.count)")
+        
         // Calculate fitness for all bugs
         let bugsWithFitness = bugs.map { bug in
             (bug, calculateFitness(for: bug))
@@ -424,6 +427,13 @@ class SimulationEngine {
         }
         
         bugs = newPopulation
+        
+        print("🧬 [EVOLUTION] Evolution complete!")
+        print("🧬 [EVOLUTION] Target population: \(initialPopulation)")
+        print("🧬 [EVOLUTION] Actual population: \(bugs.count)")
+        print("🧬 [EVOLUTION] Survivors: \(survivors.count)")
+        print("🧬 [EVOLUTION] Elite count: \(eliteCount)")
+        print("🧬 [EVOLUTION] Survival count: \(survivalCount)")
         
         // Update statistics for new generation
         updateGenerationStatistics()

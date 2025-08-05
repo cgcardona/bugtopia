@@ -47,6 +47,15 @@ struct Arena3DView: NSViewRepresentable {
     
     // 🎯 Bug Selection Mapping
     @State private var bugNodeToBugMapping: [SCNNode: Bug] = [:]
+    
+    // Track previous alive state to detect death transitions
+    @State private var previousBugAliveState: [UUID: Bool] = [:]
+    
+    // Track previous generation to detect generation changes
+    @State private var previousGeneration: Int = -1 // Start at -1 to catch first generation
+    
+    // Track individual bug IDs to detect population replacements
+    @State private var previousBugIds: Set<UUID> = []
     @State private var navigationResponder: NavigationResponderView?
     
     // 🎮 AAA PERFORMANCE MONITORING
@@ -193,6 +202,10 @@ struct Arena3DView: NSViewRepresentable {
         // Store sceneView reference after SwiftUI cycle completes
         DispatchQueue.main.async {
             self.sceneView = sceneView
+            
+            // 🚨 PERFORMANCE FIX: Disable 30 FPS timer - it was causing 6+ second lag!
+            // We'll use event-driven detection instead
+            print("🔄 [PERF-FIX] Skipping 30 FPS timer to prevent performance issues")
         }
         
         // Create the 3D scene
@@ -248,8 +261,8 @@ struct Arena3DView: NSViewRepresentable {
             
             self.updateBugPositions(scene: scene)
             
-            // 🚨 FOOD SYSTEM DISABLED: Caused 6.5s beach ball delays
-            // self.updateFoodPositions(scene: scene)
+            // 🚨 FOOD SYSTEM RE-ENABLED: Now with performance throttling
+            self.updateFoodPositionsThrottled(scene: scene)
             
             self.updateTerritoryVisualizations(scene: scene)
         }
@@ -3944,6 +3957,7 @@ struct Arena3DView: NSViewRepresentable {
     /// PHASE 1 DEBUG: Track update frequency and position changes
     @State private var lastUpdateTime: TimeInterval = 0
     @State private var updateCallCount: Int = 0
+    @State private var syncCallCount: Int = 0  // Track synchronizeWorldState calls
     @State private var lastKnownBugPositions: [UUID: Position3D] = [:]
     
     private func debugBugUpdates() {
@@ -4010,13 +4024,10 @@ struct Arena3DView: NSViewRepresentable {
     
     // MARK: - Phase 1: Real-Time State Synchronization
     
-    /// PHASE 1: Start synchronization system when 3D view is created
-    private func startStateSynchronization() {
-        // Start sync timer - 30 FPS sync rate
-        syncTimer = Timer.scheduledTimer(withTimeInterval: 1.0/30.0, repeats: true) { _ in
-            self.synchronizeWorldState()
-        }
-        print("🔄 [PHASE1-SYNC] State synchronization started (30 FPS)")
+    /// PHASE 1: Event-driven synchronization (replaces timer-based approach for performance)
+    private func triggerStateSynchronization() {
+        // This will be called by existing update methods instead of using a timer
+        synchronizeWorldState()
     }
     
     /// PHASE 1: Stop synchronization system
@@ -4028,8 +4039,17 @@ struct Arena3DView: NSViewRepresentable {
     
     /// PHASE 1: Core synchronization method - updates 3D scene from simulation state
     private func synchronizeWorldState() {
+        // 🚨 DEBUG: Track that this method is being called
+        syncCallCount += 1
+        if syncCallCount % 30 == 0 { // Log every second (30 FPS)
+            print("🔄 [SYNC-FREQUENCY] synchronizeWorldState called \(syncCallCount) times")
+        }
+        
         guard let sceneView = sceneView,
-              let scene = sceneView.scene else { return }
+              let scene = sceneView.scene else { 
+            print("🚨 [SYNC-ERROR] No sceneView or scene available!")
+            return 
+        }
         
         // 1. Update bug positions and states (existing comprehensive function)
         updateBugPositions(scene: scene)
@@ -7050,6 +7070,12 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func updateBugPositionsInternal(scene: SCNScene) {
+        // 🚨 MANDATORY DEBUG: Track method call frequency for debugging ghost bugs
+        updateCallCount += 1
+        if updateCallCount % 10 == 0 {
+            print("🔄 [UPDATE-FREQUENCY] updateBugPositionsInternal called \(updateCallCount) times")
+        }
+        
         // PHASE 1 DEBUG: Call verification methods
         debugBugUpdates()
         
@@ -7065,14 +7091,78 @@ struct Arena3DView: NSViewRepresentable {
             return 
         }
         
-        // ✅ CRITICAL DEBUG: Force log every call to see if visual updates stopped
-        if Int.random(in: 1...10) == 1 { // Much more frequent logging
-            print("🔄 [VISUAL-UPDATE] updateBugPositions called - processing \(simulationEngine.bugs.count) bugs")
-            print("🔄 [VISUAL-UPDATE] SimulationEngine running: \(simulationEngine.isRunning)")
+        // ✅ CRITICAL DEBUG: Force log every call and check for mismatches
+        let visualNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }.count
+        let aliveBugs = simulationEngine.bugs.filter { $0.isAlive }
+        let deadBugs = simulationEngine.bugs.filter { !$0.isAlive }
+        
+        // 🚨 MANDATORY ZERO-ENERGY CHECK: Run every single update regardless of other conditions
+        let zeroEnergyBugs = simulationEngine.bugs.filter { $0.energy <= 0 }
+        
+        // 🚨 FORCE AGGRESSIVE DETECTION: Always check if counts don't match OR if dead bugs exist
+        if visualNodes != simulationEngine.bugs.count || deadBugs.count > 0 {
+            print("🚨 [MISMATCH-DETECTED] Visual: \(visualNodes), Sim: \(simulationEngine.bugs.count), Dead: \(deadBugs.count)")
+            print("🚨 [FORCE-DEATH-CHECK] Running aggressive death detection")
+            
+            // 🚨 EMERGENCY: If we have 0 visual nodes but bugs exist, force immediate recreation
+            if visualNodes == 0 && simulationEngine.bugs.count > 0 {
+                print("🚨 [EMERGENCY-RECREATION] 0 visual nodes but \(simulationEngine.bugs.count) simulation bugs! Force creating all missing nodes")
+                for bug in simulationEngine.bugs {
+                    let newBugNode = createBugNode(bug: bug)
+                    bugContainer.addChildNode(newBugNode)
+                    print("🚨 [EMERGENCY-CREATE] Created visual node for bug \(String(bug.id.uuidString.prefix(8)))")
+                }
+                return // Skip normal processing, let next frame handle positioning
+            }
+            
+            // Force immediate death detection when mismatch detected
+            checkForOrphanedNodes(bugContainer: bugContainer)
         }
         
-        // 🧹 DEAD BUG CLEANUP: Remove visual nodes for bugs that have died
-        removeDeadBugNodes(bugContainer: bugContainer, aliveBugs: simulationEngine.bugs)
+        // 🚨 PROCESS ALL ZERO-ENERGY BUGS: Always run this check
+        if zeroEnergyBugs.count > 0 {
+            print("🚨 [ZERO-ENERGY-DETECTED] Found \(zeroEnergyBugs.count) bugs with 0 energy!")
+            for bug in zeroEnergyBugs {
+                print("🚨 [ZERO-ENERGY] Bug \(String(bug.id.uuidString.prefix(8))): energy=\(bug.energy), age=\(bug.age), isAlive=\(bug.isAlive)")
+                
+                // 🚨 EMERGENCY: Force remove 0-energy bugs immediately regardless of isAlive status
+                let bugIdString = String(bug.id.uuidString.prefix(8))
+                if let visualNode = bugContainer.childNodes.first(where: { 
+                    $0.name?.contains(bugIdString) == true 
+                }) {
+                    print("💀 [EMERGENCY-REMOVAL] Force removing 0-energy bug \(bugIdString)")
+                    
+                    addDeathAnimation(to: visualNode) {
+                        // Remove from scene after animation
+                        visualNode.removeFromParentNode()
+                        
+                        // Clean up mappings
+                        self.bugNodeToBugMapping.removeValue(forKey: visualNode)
+                        self.navigationResponder?.bugNodeToBugMapping.removeValue(forKey: visualNode)
+                        
+                        print("🪦 [EMERGENCY-COMPLETE] Zero-energy bug \(bugIdString) removed from scene")
+                    }
+                }
+            }
+            
+            // Force immediate cleanup of 0-energy bugs
+            checkForOrphanedNodes(bugContainer: bugContainer)
+        }
+        
+        if Int.random(in: 1...5) == 1 { // Very frequent logging for debugging
+            print("🔄 [VISUAL-UPDATE] Sim bugs: \(simulationEngine.bugs.count), Visual nodes: \(visualNodes)")
+            print("🔄 [VISUAL-UPDATE] Generation: \(simulationEngine.currentGeneration), Running: \(simulationEngine.isRunning)")
+            print("🔄 [VISUAL-UPDATE] In simulation - Alive: \(aliveBugs.count), Dead: \(deadBugs.count)")
+        }
+        
+        // 🧹 GENERATION CHANGE DETECTION: Check if we need to regenerate all bugs
+        checkForGenerationChange(bugContainer: bugContainer)
+        
+        // 🧹 DEAD BUG CLEANUP: Always run aggressive death detection
+        checkForNewlyDeadBugs(bugContainer: bugContainer)
+        
+        // 🚨 EMERGENCY DETECTION: Also check for any visual bugs that don't exist in simulation
+        checkForOrphanedNodes(bugContainer: bugContainer)
         
         for bug in simulationEngine.bugs {
             if let bugNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false) {
@@ -7081,8 +7171,8 @@ struct Arena3DView: NSViewRepresentable {
                 let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
                 let targetPosition = SCNVector3(
                     Float(bug.position3D.x),
-                    Float(terrainHeight + 1.0), // Slightly above terrain surface
-                    Float(bug.position3D.y)
+                    Float(terrainHeight + 1.0), // Slightly above terrain surface - Y is height
+                    Float(bug.position3D.y)     // Z is depth/forward-back movement
                 )
                 
                 // Only check horizontal distance for movement animation
@@ -7148,18 +7238,138 @@ struct Arena3DView: NSViewRepresentable {
                 // Bug node doesn't exist, create it with new Phase 3 visuals
                 let newBugNode = createBugNode(bug: bug)
                 bugContainer.addChildNode(newBugNode)
+                
+                // Initialize tracking state for new bug
+                previousBugAliveState[bug.id] = bug.isAlive
             }
         }
     }
     
-    // 🧹 Dead Bug Cleanup: Remove visual nodes for bugs that have died
-    private func removeDeadBugNodes(bugContainer: SCNNode, aliveBugs: [Bug]) {
-        // Get IDs of all currently alive bugs
-        let aliveBugIds = Set(aliveBugs.map { $0.id.uuidString })
+            // 🧹 Dead Bug Detection: Find orphaned visual nodes (bugs removed from simulation)
+    private func checkForNewlyDeadBugs(bugContainer: SCNNode) {
+        // Get current simulation bug IDs and their alive status
+        let currentBugIds = Set(simulationEngine.bugs.map { $0.id })
+        let currentBugStates = Dictionary(simulationEngine.bugs.map { ($0.id, $0.isAlive) }, uniquingKeysWith: { first, _ in first })
         
-        // Find bug nodes that represent dead bugs
+        // 🚨 DETAILED ANALYSIS: Check each bug's energy and alive status
+        for bug in simulationEngine.bugs {
+            if bug.energy <= 0 {
+                print("💀 [CRITICAL-DEAD] Bug \(String(bug.id.uuidString.prefix(8))) has energy \(bug.energy), isAlive: \(bug.isAlive)")
+            }
+        }
+        
+        // Find all visual bug nodes
         let allBugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
-        var removedCount = 0
+        
+        print("💀 [DEATH-DEBUG] Simulation bugs: \(currentBugIds.count), Visual nodes: \(allBugNodes.count)")
+        
+        var orphanedNodes: [SCNNode] = []
+        var deadButVisibleNodes: [SCNNode] = []
+        
+        // Check each visual node to see if its bug still exists or died
+        for bugNode in allBugNodes {
+            guard let nodeName = bugNode.name,
+                  let bugIdRange = nodeName.range(of: "[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}", options: .regularExpression) else {
+                continue
+            }
+            
+            let bugIdString = String(nodeName[bugIdRange])
+            if let bugId = UUID(uuidString: bugIdString) {
+                
+                if !currentBugIds.contains(bugId) {
+                    // Bug completely removed from simulation - it died
+                    print("💀 [ORPHANED-NODE] Bug completely removed: \(bugIdString.prefix(8))")
+                    orphanedNodes.append(bugNode)
+                } else if let currentAlive = currentBugStates[bugId], 
+                          let previousAlive = previousBugAliveState[bugId],
+                          previousAlive && !currentAlive {
+                    // Bug still in simulation but transitioned from alive to dead
+                    print("💀 [DEATH-TRANSITION] Bug died: \(bugIdString.prefix(8)) (alive→dead)")
+                    deadButVisibleNodes.append(bugNode)
+                } else if let currentAlive = currentBugStates[bugId], !currentAlive {
+                    // Bug is dead in simulation and we haven't removed it yet
+                    print("💀 [FOUND-DEAD] Bug is dead in simulation: \(bugIdString.prefix(8))")
+                    deadButVisibleNodes.append(bugNode)
+                } else {
+                    // 🚨 EXTRA CHECK: Manually check if bug should be dead based on energy
+                    if let bug = simulationEngine.bugs.first(where: { $0.id == bugId }) {
+                        if bug.energy <= 0 && bug.isAlive {
+                            print("💀 [ENERGY-DEAD] Bug \(bugIdString.prefix(8)) has 0 energy but isAlive=true! Force removing.")
+                            deadButVisibleNodes.append(bugNode)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Process orphaned nodes (completely removed from simulation)
+        for bugNode in orphanedNodes {
+            guard let nodeName = bugNode.name,
+                  let bugIdRange = nodeName.range(of: "[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}", options: .regularExpression) else {
+                continue
+            }
+            
+            let bugIdString = String(nodeName[bugIdRange])
+            let bugId = UUID(uuidString: bugIdString)
+            
+            print("💀 [DEATH-ANIMATION] Starting death animation for orphaned \(bugIdString.prefix(8))")
+            
+            addDeathAnimation(to: bugNode) {
+                // Remove from scene after animation
+                bugNode.removeFromParentNode()
+                
+                // Clean up mappings
+                self.bugNodeToBugMapping.removeValue(forKey: bugNode)
+                self.navigationResponder?.bugNodeToBugMapping.removeValue(forKey: bugNode)
+                
+                if let bugId = bugId {
+                    self.previousBugAliveState.removeValue(forKey: bugId)
+                }
+                
+                print("🪦 [DEATH-COMPLETE] Orphaned bug \(bugIdString.prefix(8)) removed from scene")
+            }
+        }
+        
+        // Process dead bugs (still in simulation but dead)
+        for bugNode in deadButVisibleNodes {
+            guard let nodeName = bugNode.name,
+                  let bugIdRange = nodeName.range(of: "[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}", options: .regularExpression) else {
+                continue
+            }
+            
+            let bugIdString = String(nodeName[bugIdRange])
+            
+            print("💀 [DEATH-ANIMATION] Starting death animation for dead \(bugIdString.prefix(8))")
+            
+            addDeathAnimation(to: bugNode) {
+                // Remove from scene after animation
+                bugNode.removeFromParentNode()
+                
+                // Clean up mappings
+                self.bugNodeToBugMapping.removeValue(forKey: bugNode)
+                self.navigationResponder?.bugNodeToBugMapping.removeValue(forKey: bugNode)
+                
+                print("🪦 [DEATH-COMPLETE] Dead bug \(bugIdString.prefix(8)) removed from scene")
+            }
+        }
+        
+        let totalDeadNodes = orphanedNodes.count + deadButVisibleNodes.count
+        if totalDeadNodes > 0 {
+            print("💀 [DEATH-BATCH] Triggered death animations for \(totalDeadNodes) dead bugs (\(orphanedNodes.count) orphaned + \(deadButVisibleNodes.count) dead)")
+        }
+        
+        // Update tracking state for all current bugs
+        for bug in simulationEngine.bugs {
+            previousBugAliveState[bug.id] = bug.isAlive
+        }
+    }
+    
+    // 🚨 Emergency Orphaned Node Detection: Direct check for visual bugs without simulation counterparts
+    private func checkForOrphanedNodes(bugContainer: SCNNode) {
+        let currentBugIds = Set(simulationEngine.bugs.map { $0.id })
+        let allBugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
+        
+        var orphanedCount = 0
         
         for bugNode in allBugNodes {
             guard let nodeName = bugNode.name,
@@ -7168,48 +7378,248 @@ struct Arena3DView: NSViewRepresentable {
             }
             
             let bugIdString = String(nodeName[bugIdRange])
-            
-            // If this bug ID is not in the alive bugs, remove it
-            if !aliveBugIds.contains(bugIdString) {
-                // 🎭 Add death animation before removal
-                addDeathAnimation(to: bugNode) {
-                    // Remove from scene after animation
-                    bugNode.removeFromParentNode()
+            if let bugId = UUID(uuidString: bugIdString) {
+                if !currentBugIds.contains(bugId) {
+                    orphanedCount += 1
+                    print("🚨 [EMERGENCY-ORPHAN] Found orphaned visual bug: \(bugIdString.prefix(8))")
                     
-                    // Clean up mappings
-                    self.bugNodeToBugMapping.removeValue(forKey: bugNode)
+                    // Immediate removal with death animation
+                    print("💀 [EMERGENCY-DEATH] Starting emergency death animation for \(bugIdString.prefix(8))")
                     
-                    // Also clean up NavigationResponder mappings if available
-                    self.navigationResponder?.bugNodeToBugMapping.removeValue(forKey: bugNode)
+                    addDeathAnimation(to: bugNode) {
+                        bugNode.removeFromParentNode()
+                        self.bugNodeToBugMapping.removeValue(forKey: bugNode)
+                        self.navigationResponder?.bugNodeToBugMapping.removeValue(forKey: bugNode)
+                        
+                        self.previousBugAliveState.removeValue(forKey: bugId)
+                        
+                        print("🪦 [EMERGENCY-COMPLETE] Emergency removal of orphaned bug \(bugIdString.prefix(8))")
+                    }
                 }
-                
-                removedCount += 1
-                print("🪦 [DEAD-BUG] Removing dead bug node: \(bugIdString.prefix(8))")
             }
         }
         
-        if removedCount > 0 {
-            print("🧹 [CLEANUP] Removed \(removedCount) dead bug nodes from scene")
+        if orphanedCount > 0 {
+            print("🚨 [EMERGENCY-BATCH] Found \(orphanedCount) orphaned visual bugs, starting emergency cleanup")
+        }
+    }
+    
+    // 🧬 Generation Change Detection: Handle evolution to new generation
+    private func checkForGenerationChange(bugContainer: SCNNode) {
+        let currentGeneration = simulationEngine.currentGeneration
+        let currentBugCount = simulationEngine.bugs.count
+        let visualNodeCount = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }.count
+        
+        // Get current bug IDs (needed for all checks)
+        let currentBugIds = Set(simulationEngine.bugs.map { $0.id })
+        
+        // 🚨 FORCE LOG generation check every time for debugging
+        print("🧬 [GENERATION-DEBUG] Gen: \(currentGeneration), PrevGen: \(previousGeneration), Same: \(currentGeneration == previousGeneration)")
+        print("🧬 [GENERATION-DEBUG] Bugs: \(currentBugCount), Visual: \(visualNodeCount), Jump: \(currentBugCount > visualNodeCount + 5)")
+        print("🧬 [GENERATION-DEBUG] Sim IDs: \(currentBugIds.map { String($0.uuidString.prefix(8)) }.joined(separator: ","))")
+        
+        // 🚨 EMERGENCY: If we see evolution logs but no generation change, force detection
+        if currentGeneration == previousGeneration && currentBugCount == 20 && visualNodeCount == 20 {
+            // Check if all bug IDs are different (indicates evolution happened but generation number didn't update)
+            let allBugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
+            var nodeIdMismatches = 0
+            var visualBugIds: [String] = []
+            
+            for bugNode in allBugNodes {
+                guard let nodeName = bugNode.name,
+                      let bugIdRange = nodeName.range(of: "[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}", options: .regularExpression) else {
+                    continue
+                }
+                
+                let bugIdString = String(nodeName[bugIdRange])
+                visualBugIds.append(String(bugIdString.prefix(8)))
+                
+                if let bugId = UUID(uuidString: bugIdString) {
+                    // Check if this visual bug ID exists in current simulation
+                    if !currentBugIds.contains(bugId) {
+                        nodeIdMismatches += 1
+                    }
+                }
+            }
+            
+            print("🧬 [GENERATION-DEBUG] Visual IDs: \(visualBugIds.joined(separator: ","))")
+            print("🧬 [GENERATION-DEBUG] ID Mismatches: \(nodeIdMismatches)/\(visualBugIds.count)")
+            
+            if nodeIdMismatches > 10 { // If more than half don't match, assume evolution happened
+                print("🚨 [EMERGENCY-EVOLUTION] Detected stealth evolution! \(nodeIdMismatches) visual bugs don't match simulation")
+                print("🚨 [FORCE-GENERATION-CHANGE] Forcing generation reset despite same numbers")
+            }
+        }
+        
+        // Check for generation change OR massive population replacement (indicates evolution)
+        let generationChanged = currentGeneration != previousGeneration
+        let populationJumped = currentBugCount > visualNodeCount + 5 // Big population increase suggests evolution
+        
+        // ID-based detection: If 80%+ of bug IDs changed, it's likely a generation change
+        let commonIds = previousBugIds.intersection(currentBugIds)
+        let replacementRatio = previousBugIds.isEmpty ? 0.0 : (1.0 - Double(commonIds.count) / Double(previousBugIds.count))
+        let massiveReplacement = replacementRatio > 0.8 && !previousBugIds.isEmpty
+        
+        print("🧬 [GENERATION-DEBUG] Replacement ratio: \(String(format: "%.2f", replacementRatio)), Massive: \(massiveReplacement)")
+        print("🧬 [GENERATION-DEBUG] Common IDs: \(commonIds.count), Previous: \(previousBugIds.count), Current: \(currentBugIds.count)")
+        
+        if generationChanged || populationJumped || massiveReplacement {
+            print("🧬 [GENERATION-CHANGE] Evolution detected!")
+            print("🧬 [GENERATION-CHANGE] Gen: \(previousGeneration) → \(currentGeneration)")
+            print("🧬 [GENERATION-CHANGE] Pop: \(visualNodeCount) → \(currentBugCount)")
+            print("🧬 [GENERATION-CHANGE] Reason: \(generationChanged ? "Gen change" : "Population jump")")
+            
+            // Remove all existing bug nodes (they represent the old generation)
+            let allBugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
+            print("🧬 [GENERATION-CHANGE] Removing \(allBugNodes.count) old generation nodes")
+            
+            for bugNode in allBugNodes {
+                // No death animation for generation change - instant removal
+                bugNode.removeFromParentNode()
+            }
+            
+            // Clear all mappings (old generation data)
+            bugNodeToBugMapping.removeAll()
+            previousBugAliveState.removeAll()
+            
+            // Clear NavigationResponder mappings too
+            navigationResponder?.bugNodeToBugMapping.removeAll()
+            
+            print("🧹 [GENERATION-CLEANUP] Removed \(allBugNodes.count) nodes from previous generation")
+            
+            // Update generation tracking
+            previousGeneration = currentGeneration
+            previousBugIds = currentBugIds
+            
+            // Note: New bug nodes will be created automatically in the main loop
+            // when it detects missing nodes for the current bugs
+            
+            print("✨ [GENERATION-READY] Ready to create \(simulationEngine.bugs.count) new bugs for generation \(currentGeneration)")
+            
+            // Force initialization of new bug tracking states
+            for bug in simulationEngine.bugs {
+                previousBugAliveState[bug.id] = bug.isAlive
+            }
+            
+            print("✨ [GENERATION-COMPLETE] Evolution visual update complete")
+        } else {
+            // No generation change detected, but update tracking for next time
+            previousBugIds = currentBugIds
         }
     }
     
     // 🎭 Add death animation to bug node before removal
     private func addDeathAnimation(to bugNode: SCNNode, completion: @escaping () -> Void) {
-        // Create dramatic death animation
-        let fadeOut = SCNAction.fadeOut(duration: 2.0)
-        let scaleDown = SCNAction.scale(to: 0.1, duration: 2.0)
-        let spinAction = SCNAction.rotateBy(x: 0, y: CGFloat.pi * 4, z: 0, duration: 2.0)
+        // Create dramatic but faster death animation for better testing
+        let fadeOut = SCNAction.fadeOut(duration: 1.0)
+        let scaleDown = SCNAction.scale(to: 0.1, duration: 1.0)
+        let spinAction = SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 1.0)
         
         // Combine animations
         let deathAnimation = SCNAction.group([fadeOut, scaleDown, spinAction])
         
+        print("🎭 [DEATH-ANIMATION] Starting 1-second death animation for node")
+        
         // Run animation and then call completion
         bugNode.runAction(deathAnimation) {
+            print("🎭 [DEATH-ANIMATION] Death animation completed, removing node")
             completion()
         }
     }
     
     // MARK: - 🍎 Food Rendering System
+    
+    @State private var foodProcessingIndex: Int = 0  // Track which foods we've processed
+    @State private var lastFoodUpdateTime: TimeInterval = 0
+    
+    /// High-performance throttled food system - only processes 10 foods per frame
+    private func updateFoodPositionsThrottled(scene: SCNScene) {
+        let currentTime = CACurrentMediaTime()
+        
+        // Limit food updates to 20 FPS (every 50ms) instead of 60 FPS
+        if currentTime - lastFoodUpdateTime < 0.05 {
+            return
+        }
+        lastFoodUpdateTime = currentTime
+        
+        // 🎮 AAA PERFORMANCE: Measure throttled food system
+        return performanceLogger.measure("updateFoodPositionsThrottled") {
+            updateFoodPositionsThrottledInternal(scene: scene)
+        }
+    }
+    
+    private func updateFoodPositionsThrottledInternal(scene: SCNScene) {
+        // Get or create food container
+        var foodContainer = scene.rootNode.childNode(withName: "FoodContainer", recursively: false)
+        if foodContainer == nil {
+            foodContainer = SCNNode()
+            foodContainer!.name = "FoodContainer"
+            scene.rootNode.addChildNode(foodContainer!)
+        }
+        
+        let foods = simulationEngine.foods
+        guard !foods.isEmpty else { return }
+        
+        // 🚀 PERFORMANCE OPTIMIZATION: Only process 5 foods per frame
+        let foodsPerFrame = 5
+        let startIndex = foodProcessingIndex
+        let endIndex = min(startIndex + foodsPerFrame, foods.count)
+        
+        // Process only a small batch of foods this frame
+        let foodBatch = Array(foods[startIndex..<endIndex])
+        
+        for food in foodBatch {
+            let foodId = "\(String(format: "%.1f", food.position.x))_\(String(format: "%.1f", food.position.y))"
+            let existingNode = foodContainer!.childNode(withName: "Food_\(foodId)", recursively: false)
+            
+            if existingNode == nil {
+                // Create new food node with simplified geometry for better performance
+                let foodNode = createSimpleFoodNode(position: food.position)
+                foodNode.name = "Food_\(foodId)"
+                foodContainer!.addChildNode(foodNode)
+            }
+        }
+        
+        // Update processing index for next frame
+        foodProcessingIndex = endIndex >= foods.count ? 0 : endIndex
+        
+        // Cleanup pass: Remove 1 orphaned food node per frame to prevent buildup
+        let existingFoodNodes = foodContainer!.childNodes.filter { $0.name?.hasPrefix("Food_") == true }
+        if let randomNode = existingFoodNodes.randomElement() {
+            let foodId = randomNode.name?.replacingOccurrences(of: "Food_", with: "") ?? ""
+            let foodExists = foods.contains { food in
+                let exactId = "\(String(format: "%.1f", food.position.x))_\(String(format: "%.1f", food.position.y))"
+                return exactId == foodId
+            }
+            if !foodExists {
+                randomNode.removeFromParentNode()
+            }
+        }
+    }
+    
+    /// Create simplified food node for better performance
+    private func createSimpleFoodNode(position: CGPoint) -> SCNNode {
+        let foodNode = SCNNode()
+        
+        // Simple sphere with basic material (no complex calculations)
+        let sphere = SCNSphere(radius: 2.0)  // Smaller than original
+        let material = SCNMaterial()
+        material.diffuse.contents = NSColor.green
+        material.metalness.contents = 0.0
+        material.roughness.contents = 0.5
+        sphere.firstMaterial = material
+        foodNode.geometry = sphere
+        
+        // Simple positioning without expensive terrain calculations
+        let scnPosition = SCNVector3(
+            Float(position.x),
+            10.0,  // Fixed height instead of expensive getTerrainHeightAt()
+            Float(position.y)
+        )
+        foodNode.position = scnPosition
+        
+        return foodNode
+    }
     
     private func updateFoodPositions(scene: SCNScene) {
         // 🎮 AAA PERFORMANCE: Measure food system performance
