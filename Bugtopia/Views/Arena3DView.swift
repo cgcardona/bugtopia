@@ -7346,8 +7346,8 @@ class NavigationResponderView: NSView {
     override func mouseDragged(with event: NSEvent) {
         // Mouse dragged
         let sensitivity: Float = 0.005
-        let yaw = -Float(event.deltaX) * sensitivity
-        let pitch = -Float(event.deltaY) * sensitivity
+        let yaw = Float(event.deltaX) * sensitivity    // 🎯 FIXED: Reversed for intuitive camera control
+        let pitch = Float(event.deltaY) * sensitivity  // 🎯 FIXED: Reversed for intuitive camera control
         
         navigationController?.rotateCamera(yaw: yaw, pitch: pitch)
     }
@@ -7378,8 +7378,8 @@ class NavigationResponderView: NSView {
         // Scroll wheel event
         // Use scroll for camera rotation as backup
         let sensitivity: Float = 0.01
-        let yaw = -Float(event.deltaX) * sensitivity
-        let pitch = -Float(event.deltaY) * sensitivity
+        let yaw = Float(event.deltaX) * sensitivity    // 🎯 FIXED: Reversed for intuitive trackpad control
+        let pitch = Float(event.deltaY) * sensitivity  // 🎯 FIXED: Reversed for intuitive trackpad control
         
         if abs(event.deltaX) > 0.1 || abs(event.deltaY) > 0.1 {
             navigationController?.rotateCamera(yaw: yaw, pitch: pitch)

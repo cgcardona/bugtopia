@@ -47,18 +47,47 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Evolutionary Arms Race**: Predators vs prey intelligence co-evolution
 
 ### 🗣️ Communication & Cooperation System
-- **8 Signal Types**: Food alerts, danger warnings, hunt calls, group formation, help requests
-- **Evolvable Communication**: Signal strength, sensitivity, trust levels, social response rates
-- **Pack Behaviors**: Coordinated hunting, group formation, collective danger responses
+- **9 Signal Types**: 
+  - 🍃 **Food Found** - Share food locations with group
+  - ⚠️ **Danger Alert** - Warn of predator threats
+  - 🎯 **Hunt Call** - Coordinate pack hunting (+75% success bonus)
+  - 💕 **Mate Call** - Attract reproductive partners
+  - 🏴 **Territory Mark** - Claim territorial boundaries
+  - 🆘 **Help Request** - Request assistance from group
+  - 🤝 **Group Form** - Initiate group formation
+  - 🏃 **Retreat** - Emergency evacuation signal
+  - 🍯 **Food Share** - **NEW** - Share energy with group members
+- **Evolvable Communication**: Signal strength, sensitivity, trust levels, social response rates, memory duration
+- **Pack Behaviors**: Coordinated hunting, group formation, collective danger responses, resource sharing
 - **Social Intelligence**: Neural-driven communication decisions and cooperation strategies
 - **Information Networks**: Knowledge sharing about food sources, threats, and territories
 
 ### 🔧 Environmental Modification & Tool Use
-- **8 Tool Types**: Bridges, tunnels, shelters, traps, markers, levers, ramps, nests
-- **Resource Economy**: 5 resource types with weight-based carrying and regeneration
+- **8 Tool Types**:
+  - 🌉 **Bridge** - Spans water gaps and terrain obstacles
+  - 🕳️ **Tunnel** - Creates passages through hills and walls
+  - 🏠 **Shelter** - Provides protection and energy storage
+  - 🪤 **Trap** - Captures prey and generates food resources
+  - 📍 **Marker** - Navigation aids and territory markers
+  - ⚙️ **Lever** - Moves heavy objects and cultivates soil
+  - 📐 **Ramp** - Enables climbing steep terrain
+  - 🪹 **Nest** - Group reproduction sites and food caches
+- **Resource Economy**: 5 resource types (stick, stone, mud, fiber, food) with weight-based carrying and regeneration
 - **Construction Intelligence**: Environmental analysis, multi-stage building, cooperative projects
 - **Engineering Evolution**: 8 evolvable tool traits including crafting, proficiency, and collaboration
 - **Infrastructure Networks**: Tools persist across generations, creating technological heritage
+
+### 🍎 Advanced Food System
+- **8 Food Types**:
+  - 🟢 **Plants**: Plum, Apple, Orange, Melon - for herbivores/omnivores
+  - 🔴 **Proteins**: Meat, Fish - for carnivores/omnivores  
+  - 🟤 **Gatherable**: Nuts, Seeds - for scavengers/omnivores
+- **3 Rarity Levels**: Common, Rare, Legendary (with increasing energy values)
+- **4 Species Compatibility**: Herbivore, Carnivore, Omnivore, Scavenger dietary restrictions
+- **Biome-Specific Distribution**: Different foods spawn in appropriate biomes
+- **Seasonal Availability**: Food types appear/disappear based on seasons
+- **Tool Integration**: Tools can generate, store, and cultivate food sources
+- **Resource Sharing**: Social bugs share food energy with group members
 
 ### 🌍 3D Procedural World Generation
 - **7 3D World Types**: Continental, Archipelago, Canyon, Wetlands, Volcanic, Plains, Maze with full vertical complexity
@@ -68,6 +97,34 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Procedural Biomes**: Temperature and moisture-based biome generation with vegetation density
 - **Natural 3D Boundaries**: Terrain flows organically in all three dimensions
 - **Immersive 3D Visualization**: Real-time SceneKit rendering with realistic lighting and shadows
+
+### 🗿 Voxel Resource System
+- **8 Resource Types**:
+  - 🌱 **Vegetation** - Renewable plant matter for herbivores
+  - ⛰️ **Minerals** - Stone and metals for tool construction
+  - 💧 **Water** - Essential liquid resource for survival
+  - 🐛 **Insects** - Micro-fauna for protein and energy
+  - 🌸 **Nectar** - High-energy floral resources
+  - 🌰 **Seeds** - Plantable resources for agriculture
+  - 🍄 **Fungi** - Decomposer organisms for scavengers
+  - 🍂 **Detritus** - Organic waste matter for recycling
+- **Biome Distribution**: Resources spawn based on realistic biome preferences
+- **Harvesting Mechanics**: Species-specific gathering abilities and tool requirements
+- **Regeneration Cycles**: Resources replenish based on environmental health
+
+### 🚀 3D Movement & Transition System
+- **8 Transition Types**:
+  - 🧱 **Solid** - Impassable terrain requiring detours
+  - 💨 **Air** - Open space for free movement
+  - 📐 **Ramp** - Gradual slopes (0.0-1.0 difficulty)
+  - 🧗 **Climb** - Vertical surfaces (0.0-1.0 difficulty)
+  - 🏊 **Swim** - Water navigation (0.0-1.0 depth)
+  - 🕳️ **Tunnel** - Underground passages (0.0-1.0 width)
+  - 🕊️ **Flight** - Aerial movement (0.0-1.0 clearance)
+  - 🌉 **Bridge** - Constructed connections (0.0-1.0 stability)
+- **Species-Specific Abilities**: Different movement capabilities per species type
+- **3D Navigation Intelligence**: Neural networks learn optimal path selection
+- **Dynamic Pathfinding**: Real-time route calculation through complex terrain
 
 ### 🧬 Population Dynamics & Speciation
 - **Automatic Population Tracking**: Bugs organized into genetically similar populations
@@ -120,6 +177,8 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Multi-Modal 3D Fitness**: Survival, reproduction, 3D terrain adaptation, predator success, social cooperation, tool use, neural efficiency, layer mastery
 
 ### 🌍 3D Environmental Arena
+
+#### Terrain Layers & Challenges
 | Terrain Layer | Challenge | 3D Adaptation Required |
 |---------------|-----------|----------------------|
 | 🕳️ **Underground** | Cave navigation | Climbing grip + pressure tolerance |
@@ -132,6 +191,18 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 | 🦁 **Predator** | Multi-layer danger | Aggression + layer-changing ability |
 | 💨 **Wind** | 3D movement disruption | Size + stability + pressure tolerance |
 | 🌱 **Food Zones** | 3D resource abundance | 3D exploration + layer preferences |
+
+#### Biome Types & Characteristics
+| Biome | Temperature | Moisture | Dominant Resources | Species Advantages |
+|-------|-------------|----------|-------------------|-------------------|
+| 🌲 **Temperate Forest** | Moderate | High | Vegetation, Seeds, Fungi | Herbivores, climbing specialists |
+| 🌾 **Grassland** | Moderate | Medium | Seeds, Insects, Vegetation | Fast runners, seed gatherers |
+| 🏜️ **Desert** | High | Low | Minerals, rare Water | Heat-resistant, efficient metabolism |
+| ❄️ **Tundra** | Low | Low | Detritus, scarce resources | Cold adaptation, energy conservation |
+| 🌧️ **Rainforest** | High | Very High | Nectar, Vegetation, Insects | Climbers, diverse omnivores |
+| 🏔️ **Mountain** | Low | Medium | Minerals, Water, sparse Vegetation | Strong climbers, altitude adaptation |
+| 💧 **Wetland** | Moderate | Very High | Fish, Water, Aquatic vegetation | Swimmers, amphibious species |
+| 🌊 **Coastal** | Moderate | High | Fish, Water, Minerals | Diving specialists, salt tolerance |
 
 ### 🎯 Emergent 3D AI Behaviors
 - **3D Neural Decision Making**: AI-driven 3D movement, layer changes, altitude management, hunting, fleeing, and construction
@@ -340,6 +411,7 @@ git push origin feature/amazing-new-trait
 - **[🌍 Terrain System](docs/features/terrain-system.md)**: World generation, terrain types, and environmental challenges  
 - **[🧠 Neural Network System](docs/features/neural-network-system.md)**: Evolvable AI brains with 3D spatial awareness and decision making
 - **[🦁 Predator-Prey System](docs/features/predator-prey-system.md)**: Species interactions and hunting mechanics
+- **[🗣️ Signal & Communication System](docs/features/signal-communication-system.md)**: **NEW** - 9 signal types, social intelligence, pack coordination, and emergent cooperation
 - **[🌦️ Weather & Seasons System](docs/features/weather-seasons-system.md)**: Environmental cycles and survival challenges
 - **[🧬 Genetic System](docs/features/genetic-system.md)**: DNA, mutations, and inheritance
 - **[🔨 Tool System](docs/features/tool-system.md)**: Construction, resources, and environmental modification
@@ -348,6 +420,9 @@ git push origin feature/amazing-new-trait
 - **[📊 GUI Interface System](docs/features/gui-interface-system.md)**: User interface, statistics panels, and visual indicators
 - **[🌱 Ecosystem Health System](docs/features/ecosystem-health-system.md)**: Resource zones, population dynamics, and ecological cycles
 - **[🌍 Territory System](docs/features/territory-system.md)**: Population-based territories, migration, and spatial behaviors
+
+### Future Development
+- **[🕸️ Web3 Integration Brainstorm](docs/features/bugtopia-web3-brainstorm.md)**: **NEW** - NFT tokenomics, $BUG token utility, competitive game modes, and blockchain evolution
 
 ## 📚 Technical Details
 

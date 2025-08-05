@@ -20,6 +20,7 @@ enum SignalType: String, CaseIterable, Codable, Equatable, Hashable {
     case helpRequest = "help_request"       // "I need assistance"
     case groupForm = "group_form"           // "Let's form a group"
     case retreat = "retreat"                // "Everyone scatter!"
+    case foodShare = "food_share"           // "I'm sharing food with the group!"
     
     /// Visual representation for debugging
     var emoji: String {
@@ -32,6 +33,7 @@ enum SignalType: String, CaseIterable, Codable, Equatable, Hashable {
         case .helpRequest: return "🆘"
         case .groupForm: return "🤝"
         case .retreat: return "🏃"
+        case .foodShare: return "🍯"
         }
     }
     
@@ -40,7 +42,7 @@ enum SignalType: String, CaseIterable, Codable, Equatable, Hashable {
         switch self {
         case .retreat, .dangerAlert: return 1.0        // Highest priority
         case .helpRequest, .huntCall: return 0.8       // High priority
-        case .foodFound, .groupForm: return 0.6        // Medium priority
+        case .foodFound, .groupForm, .foodShare: return 0.6        // Medium priority
         case .mateCall, .territoryMark: return 0.4     // Lower priority
         }
     }
@@ -77,10 +79,10 @@ struct Signal: Identifiable, Codable, Equatable, Hashable {
 
 /// Additional data that can be attached to signals
 struct SignalData: Codable, Equatable, Hashable {
-    let foodPosition: CGPoint?      // For food_found signals
+    let foodPosition: CGPoint?      // For food_found and food_share signals
     let threatId: UUID?             // For danger_alert signals
     let huntTargetId: UUID?         // For hunt_call signals
-    let energyLevel: Double?        // For help_request signals
+    let energyLevel: Double?        // For help_request and food_share signals
     let groupSize: Int?             // For group_form signals
     
     init(foodPosition: CGPoint? = nil, 

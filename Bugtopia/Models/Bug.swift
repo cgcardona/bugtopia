@@ -616,18 +616,42 @@ class Bug: Identifiable, Hashable {
         if let closestPrey = nearbyPrey.min(by: { distance(to: $0.position) < distance(to: $1.position) }) {
             let huntDistance = distance(to: closestPrey.position)
             
+            // PACK HUNTING: Identify pack members hunting the same target
+            let packMembers = otherBugs.filter { packmate in
+                packmate.id != self.id &&
+                packmate.currentGroup == self.currentGroup &&
+                packmate.currentGroup != nil &&
+                (packmate.groupRole == .hunter || packmate.groupRole == .leader) &&
+                packmate.targetPrey?.id == closestPrey.id &&
+                distance(to: packmate.position) < 150.0  // Pack coordination range
+            }
+            
+            // Pack hunting coordination - closer = more effective
+            let packCoordinationRange = 75.0 
+            let closePackMembers = packMembers.filter { distance(to: $0.position) < packCoordinationRange }
+            
             // Successful hunt if close enough and conditions are met
             if huntDistance < visualRadius * 0.5 {
-                let huntSuccess = calculateHuntSuccess(prey: closestPrey, huntingBehavior: huntingBehavior)
+                let huntSuccess = calculateHuntSuccess(prey: closestPrey, huntingBehavior: huntingBehavior, packMembers: closePackMembers)
                 
                 if Double.random(in: 0...1) < huntSuccess {
-                    // Successful hunt! - FIXED: Energy conservation
+                    // Successful hunt! - PACK ENERGY SHARING
                     let energyGained = min(dna.speciesTraits.huntEnergyGain, 50.0) // Cap energy gain
                     let actualEnergyTransfer = min(energyGained, closestPrey.energy) // Can't drain more than prey has
                     
-                    energy += actualEnergyTransfer
+                    // Pack sharing: distribute energy among pack members  
+                    let totalHunters = closePackMembers.count + 1 // Include self
+                    let energyPerHunter = actualEnergyTransfer / Double(totalHunters)
                     
-                    // Prey loses EXACTLY what predator gains (no energy creation)
+                    // Give energy to self
+                    energy += energyPerHunter
+                    
+                    // Share energy with pack members (they get automatic rewards for participation!)
+                    for packmate in closePackMembers {
+                        packmate.energy += energyPerHunter
+                    }
+                    
+                    // Prey loses EXACTLY what all predators gain (no energy creation)
                     closestPrey.energy -= actualEnergyTransfer
                     
                     huntingCooldown = Self.huntingCooldownTime
@@ -640,16 +664,30 @@ class Bug: Identifiable, Hashable {
         }
     }
     
-    /// Calculates hunting success probability
-    private func calculateHuntSuccess(prey: Bug, huntingBehavior: HuntingBehavior) -> Double {
+    /// Calculates hunting success probability with pack hunting bonuses
+    private func calculateHuntSuccess(prey: Bug, huntingBehavior: HuntingBehavior, packMembers: [Bug] = []) -> Double {
         let sizeAdvantage = (dna.size / prey.dna.size) * 0.3
         let speedAdvantage = (dna.speed / prey.dna.speed) * 0.2
         let stealthBonus = huntingBehavior.stealthLevel * 0.2
         let preyDefense = prey.dna.speciesTraits.defensiveBehavior?.counterAttackSkill ?? 0.0
         let preyCamouflage = prey.dna.camouflage * 0.15
         
+        // PACK HUNTING BONUSES - coordinated attacks are MUCH more effective!
+        let packSize = packMembers.count + 1 // Include self
+        let packBonus: Double
+        switch packSize {
+        case 1: packBonus = 0.0                    // Solo hunting (baseline)
+        case 2: packBonus = 0.25                   // Duo: +25% success
+        case 3: packBonus = 0.45                   // Trio: +45% success  
+        case 4: packBonus = 0.60                   // Squad: +60% success
+        default: packBonus = 0.75                  // Large pack: +75% success (max)
+        }
+        
+        // Pack coordination bonus based on communication DNA
+        let coordinationBonus = dna.communicationDNA.socialResponseRate * 0.2 * Double(packSize - 1)
+        
         let baseSuccess = huntingBehavior.huntingIntensity * 0.4
-        let totalSuccess = baseSuccess + sizeAdvantage + speedAdvantage + stealthBonus - preyDefense - preyCamouflage
+        let totalSuccess = baseSuccess + sizeAdvantage + speedAdvantage + stealthBonus + packBonus + coordinationBonus - preyDefense - preyCamouflage
         
         return max(0.05, min(0.95, totalSuccess)) // Clamp between 5% and 95%
     }
@@ -935,29 +973,42 @@ class Bug: Identifiable, Hashable {
         }
     }
     
-    /// Checks if bug is close enough to consume food
+    /// Checks if bug is close enough to consume food with resource sharing mechanics
     private func checkFoodConsumption(foods: [FoodItem]) {
         guard dna.speciesTraits.speciesType.canEatPlants else { return }
         
-
-        
-        // Find the closest food within consumption range (increased range for easier consumption)
-        let consumptionRange = max(15.0, visualRadius * 2.0) // Much larger consumption area for debugging
-        
-
+        // Find the closest food within consumption range
+        let consumptionRange = max(15.0, visualRadius * 2.0)
         
         if let nearestFood = foods.min(by: { distance(to: $0.position) < distance(to: $1.position) }) {
             let distanceToFood = distance(to: nearestFood.position)
             
             if distanceToFood < consumptionRange {
-
-                
                 // Mark this food as consumed so other bugs can't also eat it
                 consumedFood = nearestFood.position
                 
-                // 🍎 NEW: Use food-specific energy value instead of species trait
-                let energyGain = nearestFood.energyValue
-                energy += energyGain
+                // 🍯 RESOURCE SHARING: Share with group members if social enough
+                let shouldShare = currentGroup != nil && 
+                                dna.communicationDNA.socialResponseRate > 0.7 &&
+                                energy > 50.0 // Only share if we have spare energy
+                
+                if shouldShare {
+                    // GENEROUS SHARING: Split food energy with nearby group members
+                    let shareableEnergy = nearestFood.energyValue * 0.6 // Keep 60% for self
+                    let personalEnergy = nearestFood.energyValue * 0.4  // Share 40% with group
+                    
+                    energy += personalEnergy
+                    
+                    // Signal that food is being shared
+                    _ = emitSignal(
+                        type: .foodShare,
+                        strength: 0.6,
+                        data: SignalData(foodPosition: nearestFood.position, energyLevel: shareableEnergy)
+                    )
+                } else {
+                    // Normal consumption - keep all energy
+                    energy += nearestFood.energyValue
+                }
                 
                 // Clear target if this was the targeted food
                 if targetFood == nearestFood.position {
@@ -1189,8 +1240,22 @@ class Bug: Identifiable, Hashable {
                    dna.communicationDNA.socialResponseRate > 0.5,
                    let huntTargetId = signal.data?.huntTargetId,
                    let huntTarget = otherBugs.first(where: { $0.id == huntTargetId }) {
+                    
+                    // PACK HUNTING COORDINATION: Join the pack hunt
                     targetPrey = huntTarget
                     huntingCooldown = 0 // Ready to hunt immediately
+                    
+                    // Form hunting pack if not already in one
+                    if currentGroup == nil {
+                        currentGroup = signal.emitterId // Join caller's hunting pack
+                        groupRole = .hunter
+                    }
+                    
+                    // If already in a hunting group, prioritize this target
+                    if let group = currentGroup, 
+                       groupRole == .hunter || groupRole == .leader {
+                        targetPrey = huntTarget
+                    }
                 }
                 
             case .groupForm:
@@ -1204,6 +1269,25 @@ class Bug: Identifiable, Hashable {
                    energy > 60 { // Only help if we have spare energy
                     // Move toward the bug requesting help
                     targetFood = signal.position
+                }
+                
+            case .foodShare:
+                // RESOURCE SHARING: Receive shared food energy from group members
+                if currentGroup == signal.emitterId || 
+                   (currentGroup != nil && currentGroup == otherBugs.first(where: { $0.id == signal.emitterId })?.currentGroup),
+                   dna.communicationDNA.socialResponseRate > 0.6,
+                   let sharedEnergy = signal.data?.energyLevel {
+                    
+                    // Only take shared food if we're nearby and hungry
+                    let distanceToShare = distance(to: signal.position)
+                    if distanceToShare < 50.0 && energy < 70.0 {
+                        // Take a portion of the shared energy
+                        let energyPortion = min(sharedEnergy * 0.3, 20.0) // Max 20 energy from sharing
+                        energy += energyPortion
+                        
+                        // Show gratitude by increasing social bonds (future feature)
+                        // This could enhance group cohesion over time
+                    }
                 }
                 
             default:
@@ -1268,13 +1352,20 @@ class Bug: Identifiable, Hashable {
             )
         }
         
-        // Hunt call for carnivores
+        // Hunt call for carnivores - enhanced pack hunting
         if decision.hunting > 0.7,
            let prey = targetPrey,
            dna.speciesTraits.speciesType.canHunt {
+            
+            // Become pack leader if not already in a group
+            if currentGroup == nil {
+                currentGroup = id // Use own ID as pack identifier
+                groupRole = .leader
+            }
+            
             return emitSignal(
                 type: .huntCall,
-                strength: 0.7,
+                strength: min(0.9, 0.7 + dna.communicationDNA.signalStrength * 0.2), // Stronger signal for pack coordination
                 data: SignalData(huntTargetId: prey.id)
             )
         }
