@@ -11,10 +11,15 @@ import SwiftUI
 class SimulationEngineManager: ObservableObject {
     @Published var engine: SimulationEngine
     
+    // 🎯 Bug Selection Callback
+    var onBugSelected: ((Bug?) -> Void)?
+    
     // Lazy initialization ensures Arena3DView is created only once when first accessed
     lazy var arena3DView: Arena3DView = {
-
-        return Arena3DView(simulationEngine: engine)
+        return Arena3DView(simulationEngine: engine, onBugSelected: { [weak self] bug in
+            // Dynamic callback that uses the current onBugSelected value
+            self?.onBugSelected?(bug)
+        })
     }()
     
     init(worldSize: CGSize = CGSize(width: 2000, height: 1500)) {
@@ -33,6 +38,111 @@ struct SimulationView: View {
     
     private var simulationEngine: SimulationEngine {
         engineManager.engine
+    }
+    
+    // 🎯 Bug Selection Handler
+    private func handleBugSelection(_ bug: Bug?) {
+        selectedBug = bug
+        if let bug = bug {
+            print("🎯 [UI] Selected bug: \(bug.id.uuidString.prefix(8)) - Age: \(bug.age), Energy: \(String(format: "%.1f", bug.energy))")
+        } else {
+            print("🎯 [UI] Deselected bug")
+        }
+    }
+    
+    // 🎯 Selected Bug Display
+    @ViewBuilder
+    private func selectedBugView(bug: Bug) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Bug Header
+            HStack {
+                Text("🐛 Selected Bug")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+                Button("Deselect") {
+                    selectedBug = nil
+                }
+                .font(.caption)
+                .buttonStyle(.plain)
+                .foregroundColor(.blue)
+            }
+            
+            // Basic Stats
+            VStack(alignment: .leading, spacing: 6) {
+                StatRow(label: "ID", value: bug.id.uuidString.prefix(8).description)
+                StatRow(label: "🧬 Species", value: bug.dna.speciesTraits.speciesType.rawValue.capitalized)
+                StatRow(label: "📅 Age", value: "\(bug.age)")
+                StatRow(label: "⚡ Energy", value: String(format: "%.1f/%.0f", bug.energy, Bug.maxEnergy))
+                StatRow(label: "🔋 Status", value: bug.isAlive ? "Alive" : "Dead")
+                StatRow(label: "🧬 Generation", value: "\(bug.generation)")
+            }
+            
+            // Physical & 3D Movement Traits
+            VStack(alignment: .leading, spacing: 4) {
+                Text("🏃 Physical Traits")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                StatRow(label: "Size", value: String(format: "%.2f", bug.dna.size))
+                StatRow(label: "Speed", value: String(format: "%.2f", bug.dna.speed))
+                StatRow(label: "Vision", value: String(format: "%.1f", bug.dna.visionRadius))
+                StatRow(label: "Strength", value: String(format: "%.2f", bug.dna.strength))
+                StatRow(label: "Memory", value: String(format: "%.2f", bug.dna.memory))
+                StatRow(label: "Aggression", value: String(format: "%.2f", bug.dna.aggression))
+                StatRow(label: "Curiosity", value: String(format: "%.2f", bug.dna.curiosity))
+            }
+            
+            // 3D Movement Capabilities
+            VStack(alignment: .leading, spacing: 4) {
+                Text("🌍 3D Movement")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                StatRow(label: "🕊️ Wing Span", value: String(format: "%.2f %@", bug.dna.wingSpan, bug.canFly ? "(Can Fly)" : ""))
+                StatRow(label: "🏊 Diving Depth", value: String(format: "%.2f %@", bug.dna.divingDepth, bug.canSwim ? "(Can Swim)" : ""))
+                StatRow(label: "🧗 Climbing Grip", value: String(format: "%.2f %@", bug.dna.climbingGrip, bug.canClimb ? "(Can Climb)" : ""))
+                StatRow(label: "⛰️ Altitude Pref", value: String(format: "%.2f", bug.dna.altitudePreference))
+                StatRow(label: "💨 Pressure Tol", value: String(format: "%.2f", bug.dna.pressureTolerance))
+            }
+            
+            // Neural Network Architecture & Stats
+            neuralNetworkStatsView(for: bug)
+            
+            // Current Neural Activity
+            if let decision = bug.lastDecision {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("⚡ Current Neural Activity")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    
+                    StatRow(label: "🏃 Movement X", value: String(format: "%.2f", decision.moveX))
+                    StatRow(label: "🏃 Movement Y", value: String(format: "%.2f", decision.moveY))
+                    StatRow(label: "🕊️ Movement Z", value: String(format: "%.2f", decision.moveZ))
+                    StatRow(label: "🌍 Layer Change", value: String(format: "%.2f", decision.layerChange))
+                    StatRow(label: "😱 Fleeing", value: String(format: "%.2f", decision.fleeing))
+                    StatRow(label: "🦁 Hunting", value: String(format: "%.2f", decision.hunting))
+                    StatRow(label: "🔍 Exploration", value: String(format: "%.2f", decision.exploration))
+                    StatRow(label: "👥 Social", value: String(format: "%.2f", decision.social))
+                    StatRow(label: "💕 Reproduction", value: String(format: "%.2f", decision.reproduction))
+                    StatRow(label: "⚔️ Aggression", value: String(format: "%.2f", decision.aggression))
+                }
+            }
+            
+            // Behavioral State
+            VStack(alignment: .leading, spacing: 4) {
+                Text("🎭 Behavior")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                StatRow(label: "Has Target", value: bug.targetFood != nil ? "Yes" : "No")
+                StatRow(label: "Threat", value: bug.predatorThreat != nil ? "Detected" : "None")
+                StatRow(label: "Layer", value: bug.currentLayer.rawValue.capitalized)
+            }
+        }
+        .padding()
+        .background(Color(NSColor.controlAccentColor).opacity(0.1))
+        .cornerRadius(8)
     }
     
     var body: some View {
@@ -73,11 +183,58 @@ struct SimulationView: View {
                             .frame(width: 280)
                             .background(Color(NSColor.controlBackgroundColor))
                             .transition(.move(edge: .trailing))
-                    }
-                }
+                                    }
             }
         }
+        .onAppear {
+            // 🎯 Set up bug selection callback
+            print("🎯 [UI-SETUP] Setting up bug selection callback")
+            engineManager.onBugSelected = handleBugSelection
+            print("🎯 [UI-SETUP] Bug selection callback connected")
+        }
+    }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    // 🧠 Neural Network Stats View
+    @ViewBuilder
+    private func neuralNetworkStatsView(for bug: Bug) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("🧠 Neural Network")
+                .font(.subheadline)
+                .fontWeight(.medium)
+            
+            let neuralDNA = bug.dna.neuralDNA
+            let complexityScore = NeuralEnergyManager.calculateComplexityScore(for: neuralDNA)
+            let totalNeurons = neuralDNA.topology.reduce(0, +)
+            
+            // Calculate total connections manually since the method is private
+            let totalConnections = calculateNeuralConnections(topology: neuralDNA.topology)
+            
+            StatRow(label: "🏗️ Layers", value: "\(neuralDNA.topology.count) (\(neuralDNA.topology.count - 2) hidden)")
+            StatRow(label: "🔬 Neurons", value: "\(totalNeurons)")
+            StatRow(label: "🔗 Connections", value: "\(totalConnections)")
+            StatRow(label: "🎯 Complexity", value: String(format: "%.1f", complexityScore))
+            StatRow(label: "⚡ Neural Energy", value: String(format: "%.2f", bug.dna.neuralEnergyEfficiency))
+            StatRow(label: "🧠 Plasticity", value: String(format: "%.2f", bug.dna.brainPlasticity))
+            
+            // Network topology visualization
+            let topologyStr = neuralDNA.topology.map(String.init).joined(separator: "→")
+            StatRow(label: "📊 Architecture", value: topologyStr)
+            
+            // Activation functions
+            let activationStr = neuralDNA.activations.map { $0.rawValue }.joined(separator: ", ")
+            StatRow(label: "🎛️ Activations", value: activationStr)
+        }
+    }
+    
+    // Helper function to calculate neural network connections
+    private func calculateNeuralConnections(topology: [Int]) -> Int {
+        var totalConnections = 0
+        for i in 0..<(topology.count - 1) {
+            totalConnections += topology[i] * topology[i + 1]
+        }
+        return totalConnections
     }
     
     // MARK: - Control Panel
@@ -121,6 +278,30 @@ struct SimulationView: View {
                         .fontWeight(.semibold)
                 }
                 .buttonStyle(.borderedProminent)
+                
+                // PHASE 1 DEBUG: Manual debug trigger
+                Button(action: {
+                    engineManager.arena3DView.triggerPhase1Debug()
+                }) {
+                    Text("🔍 Debug")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                }
+                .buttonStyle(.bordered)
+                .foregroundColor(.orange)
+                
+                // 🎮 AAA PERFORMANCE: Performance report
+                Button(action: {
+                    engineManager.arena3DView.triggerPerformanceAnalysis()
+                }) {
+                    Text("📊 Perf")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                }
+                .buttonStyle(.bordered)
+                .foregroundColor(.red)
+                
+
             }
             
             Divider()
@@ -224,6 +405,18 @@ struct SimulationView: View {
                         .font(.title2)
                         .fontWeight(.bold)
                     Spacer()
+                }
+                
+                // 🎯 Selected Bug Display
+                if let selectedBug = selectedBug {
+                    selectedBugView(bug: selectedBug)
+                    Divider()
+                } else {
+                    Text("🎯 Click a bug to select it")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .italic()
+                        .padding(.vertical, 4)
                 }
                 
                 Divider()

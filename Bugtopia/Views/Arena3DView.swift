@@ -19,8 +19,12 @@ enum NavigationMode {
 struct Arena3DView: NSViewRepresentable {
     let simulationEngine: SimulationEngine
     
-    init(simulationEngine: SimulationEngine) {
+    // 🎯 Bug Selection System
+    var onBugSelected: ((Bug?) -> Void)?
+    
+    init(simulationEngine: SimulationEngine, onBugSelected: ((Bug?) -> Void)? = nil) {
         self.simulationEngine = simulationEngine
+        self.onBugSelected = onBugSelected
     }
     @State private var sceneView: SCNView?
     @State private var cameraNode: SCNNode?
@@ -37,12 +41,158 @@ struct Arena3DView: NSViewRepresentable {
     @State private var rotationSpeed: Float = 1.0   // Rotation speed
     @State private var hasRefreshedBugVisuals = false  // 🦋 PHASE 3: Track visual refresh
     
+    // PHASE 1 DEBUG: Synchronization system
+    @State private var syncTimer: Timer?
+    @State private var bugNodeMapping: [UUID: SCNNode] = [:]
+    
+    // 🎯 Bug Selection Mapping
+    @State private var bugNodeToBugMapping: [SCNNode: Bug] = [:]
+    @State private var navigationResponder: NavigationResponderView?
+    
+    // 🎮 AAA PERFORMANCE MONITORING
+    @State private var performanceLogger = PerformanceLogger()
+    @State private var lastFrameTime: CFTimeInterval = 0
+    @State private var frameCount: Int = 0
+    
+
+    
+    /// DEBUG: Trigger simulation state verification from UI
+    func triggerPhase1Debug() {
+        DispatchQueue.main.async {
+            if let sceneView = self.sceneView {
+                self.performDebugVerification()
+                
+                // 🎯 Additional bug selection debugging
+                self.debugBugSelectionState()
+            }
+        }
+    }
+    
+    /// 🎯 Debug: Check bug selection system state
+    private func debugBugSelectionState() {
+        print("\n🎯 [BUG-SELECTION-DEBUG] ===== BUG SELECTION STATE =====")
+        
+        // Check mappings
+        print("🎯 Arena bugNodeToBugMapping: \(bugNodeToBugMapping.count) entries")
+        print("🎯 NavResponder bugNodeToBugMapping: \(navigationResponder?.bugNodeToBugMapping.count ?? 0) entries")
+        
+        // Check if NavigationResponder is set up
+        if let navResponder = navigationResponder {
+            print("✅ NavigationResponder exists")
+            print("✅ NavigationResponder.sceneView: \(navResponder.sceneView != nil ? "SET" : "NIL")")
+            print("✅ NavigationResponder.onBugSelected: \(navResponder.onBugSelected != nil ? "SET" : "NIL")")
+        } else {
+            print("🚨 NavigationResponder is NIL!")
+        }
+        
+        // Check bug nodes in scene
+        guard let sceneView = sceneView,
+              let scene = sceneView.scene,
+              let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else {
+            print("🚨 Scene/BugContainer not available")
+            return
+        }
+        
+        let bugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
+        print("🎯 Bug nodes in scene: \(bugNodes.count)")
+        
+        // Check if nodes are in mapping
+        for (index, bugNode) in bugNodes.prefix(3).enumerated() {
+            let nodeName = bugNode.name ?? "unnamed"
+            let hasBug = bugNodeToBugMapping[bugNode] != nil
+            let hasNavBug = navigationResponder?.bugNodeToBugMapping[bugNode] != nil
+            print("🎯 Node[\(index)] '\(nodeName)': Arena=\(hasBug), NavResponder=\(hasNavBug)")
+            
+            // Check node geometry
+            let childCount = bugNode.childNodes.count
+            let hasGeometry = bugNode.geometry != nil || !bugNode.childNodes.isEmpty
+            print("   Children: \(childCount), HasGeometry: \(hasGeometry)")
+        }
+        
+        print("🎯 ===== END BUG SELECTION DEBUG =====\n")
+    }
+    
+    /// 🎮 AAA PERFORMANCE: Public method to trigger performance analysis
+    func triggerPerformanceAnalysis() {
+        DispatchQueue.main.async {
+            print("\n🎮 [AAA-PERF] ===== PERFORMANCE ANALYSIS TRIGGERED =====")
+            self.performanceLogger.logPerformanceReport()
+            
+            // Additional frame timing analysis
+            self.analyzeFrameTiming()
+        }
+    }
+    
+
+    
+    /// DEBUG: Internal simulation state verification
+    private func performDebugVerification() {
+        guard let sceneView = sceneView,
+              let scene = sceneView.scene,
+              let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else {
+            print("🚨 [DEBUG] Scene/BugContainer not available")
+            return
+        }
+        
+        let bugModels = simulationEngine.bugs
+        let bugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
+        let aliveBugs = simulationEngine.bugs.filter { $0.isAlive }.count
+        
+        print("🔍 [DEBUG] Models: \(bugModels.count), Nodes: \(bugNodes.count), Alive: \(aliveBugs), Generation: \(simulationEngine.currentGeneration)")
+    }
+    
+    // MARK: - 🎯 Bug Selection System
+    
+    /// Set up click detection for bug selection using NavigationResponderView
+    private func setupBugSelection(sceneView: SCNView) {
+        // Bug selection will be handled by NavigationResponderView's mouse events
+        // Since we can't use @objc in a struct, we'll use the existing navigation system
+        print("🎯 [BUG-SELECTION] Bug selection enabled via navigation system")
+    }
+    
+    /// 🎮 AAA PERFORMANCE: Analyze frame timing and detect stutters
+    private func analyzeFrameTiming() {
+        let currentTime = CACurrentMediaTime()
+        let frameTime = currentTime - lastFrameTime
+        lastFrameTime = currentTime
+        frameCount += 1
+        
+        // Calculate FPS
+        let fps = frameTime > 0 ? 1.0 / frameTime : 0
+        
+        print("🎯 [FRAME-TIMING] Current frame time: \(String(format: "%.2f", frameTime * 1000))ms")
+        print("🎯 [FRAME-TIMING] Current FPS: \(String(format: "%.1f", fps))")
+        
+        // Detect performance issues
+        if frameTime > 0.033 { // > 30 FPS
+            print("⚠️ [FRAME-TIMING] Frame time exceeds 30 FPS threshold")
+        }
+        if frameTime > 0.016 { // > 60 FPS
+            print("⚠️ [FRAME-TIMING] Frame time exceeds 60 FPS threshold")
+        }
+        
+        // Memory usage (rough estimate)
+        var memInfo = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size)/4
+        let kerr: kern_return_t = withUnsafeMutablePointer(to: &memInfo) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+        
+        if kerr == KERN_SUCCESS {
+            let memoryMB = Double(memInfo.resident_size) / (1024 * 1024)
+            print("💾 [MEMORY] Current usage: \(String(format: "%.1f", memoryMB)) MB")
+        }
+    }
+    
     func makeNSView(context: Context) -> SCNView {
         let sceneView = SCNView()
+        
         // ✅ FIX: Avoid state modification during view creation
         // Store sceneView reference after SwiftUI cycle completes
         DispatchQueue.main.async {
-        self.sceneView = sceneView
+            self.sceneView = sceneView
         }
         
         // Create the 3D scene
@@ -57,6 +207,9 @@ struct Arena3DView: NSViewRepresentable {
         
         // Clean visual appearance (no debug overlays)
         sceneView.debugOptions = []
+        
+        // 🎯 Enable bug selection via clicks
+        setupBugSelection(sceneView: sceneView)
         
         // Set up the epic 3D world
         setupScene(scene: scene)
@@ -94,7 +247,10 @@ struct Arena3DView: NSViewRepresentable {
             }
             
             self.updateBugPositions(scene: scene)
-            self.updateFoodPositions(scene: scene)
+            
+            // 🚨 FOOD SYSTEM DISABLED: Caused 6.5s beach ball delays
+            // self.updateFoodPositions(scene: scene)
+            
             self.updateTerritoryVisualizations(scene: scene)
         }
     }
@@ -2861,23 +3017,15 @@ struct Arena3DView: NSViewRepresentable {
     
     // 🌊 SPECTACULAR WATER ANIMATION SYSTEM
     private func startSpectacularWaterAnimation(scene: SCNScene) {
-        // Create a continuous animation that refreshes water materials every 1/30th second
-        // This creates truly living, breathing water that continuously evolves
+        // 🚨 AAA PERFORMANCE: DISABLED - This was a massive performance killer!
+        // The water animation timer was doing scene.rootNode.enumerateChildNodes 10x/second
+        // which enumerated through ALL nodes in the scene causing beach ball cursor
         
-        var frameCount = 0
-        let animationTimer = Timer.scheduledTimer(withTimeInterval: 1.0/30.0, repeats: true) { timer in
-            frameCount += 1
-            
-            // Update water materials every 3 frames (10 times per second) for ultra-smooth effects
-            if frameCount % 3 == 0 {
-                self.refreshSpectacularWaterMaterials(scene: scene)
-            }
-        }
+        print("🚫 [PERF-FIX] Water animation timer DISABLED - was enumerating all scene nodes 10x/second!")
+        print("🚫 [PERF-FIX] This was the primary cause of the beach ball/spinner performance issue")
         
-        // Store timer to prevent deallocation
-        RunLoop.current.add(animationTimer, forMode: .common)
-        
-        print("🌊 Spectacular water animation system started - water will now flow and shimmer continuously!")
+        // TODO: Replace with targeted water node updates using cached references
+        // Only update specific water nodes that are actually visible
     }
     
     private func refreshSpectacularWaterMaterials(scene: SCNScene) {
@@ -3748,6 +3896,173 @@ struct Arena3DView: NSViewRepresentable {
         }
     }
     
+    // MARK: - Phase 1 Debug: State Connection Verification
+    
+    /// PHASE 1 DEBUG: Verify Bug Model → 3D Node Mapping
+    private func verifyBugMapping() {
+        guard let sceneView = sceneView,
+              let scene = sceneView.scene,
+              let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else {
+            print("🚨 [PHASE1-DEBUG] BugContainer not found in scene!")
+            return
+        }
+        
+        let bugModels = simulationEngine.bugs
+        let bugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
+        
+        print("🔍 [PHASE1-DEBUG] Bug Mapping Verification:")
+        print("  - Bug models in simulation: \(bugModels.count)")
+        print("  - Bug nodes in scene: \(bugNodes.count)")
+        print("  - Mappings match: \(bugNodes.count == bugModels.count)")
+        
+        // Check for orphaned nodes (nodes without corresponding bug models)
+        let orphanedNodes = bugNodes.filter { node in
+            guard let nodeName = node.name,
+                  let bugId = nodeName.replacingOccurrences(of: "Bug_", with: "").components(separatedBy: "_").first,
+                  let uuid = UUID(uuidString: bugId) else { return true }
+            return !bugModels.contains { $0.id == uuid }
+        }
+        
+        if !orphanedNodes.isEmpty {
+            print("🚨 [PHASE1-DEBUG] Found \(orphanedNodes.count) orphaned bug nodes!")
+        }
+        
+        // Check for missing nodes (bug models without corresponding nodes)
+        let missingNodes = bugModels.filter { bug in
+            let targetName = "Bug_\(bug.id.uuidString)"
+            return bugContainer.childNode(withName: targetName, recursively: false) == nil
+        }
+        
+        if !missingNodes.isEmpty {
+            print("🚨 [PHASE1-DEBUG] Found \(missingNodes.count) bugs without nodes!")
+            for bug in missingNodes.prefix(3) {
+                print("  - Missing node for bug: \(bug.id.uuidString.prefix(8))")
+            }
+        }
+    }
+    
+    /// PHASE 1 DEBUG: Track update frequency and position changes
+    @State private var lastUpdateTime: TimeInterval = 0
+    @State private var updateCallCount: Int = 0
+    @State private var lastKnownBugPositions: [UUID: Position3D] = [:]
+    
+    private func debugBugUpdates() {
+        let currentTime = CACurrentMediaTime()
+        updateCallCount += 1
+        
+        // Log update frequency every 60 calls (roughly every 2 seconds at 30fps)
+        if updateCallCount % 60 == 0 {
+            let timeSinceLastLog = currentTime - lastUpdateTime
+            let updateRate = 60.0 / timeSinceLastLog
+            print("🔄 [PHASE1-DEBUG] Update Rate: \(String(format: "%.1f", updateRate)) Hz")
+            lastUpdateTime = currentTime
+        }
+        
+        // Track actual bug movement
+        var movedBugs = 0
+        var stuckBugs = 0
+        
+        for bug in simulationEngine.bugs {
+            let currentPos = bug.position3D
+            let lastPos = lastKnownBugPositions[bug.id]
+            
+            if let lastPos = lastPos {
+                let distance = currentPos.distance(to: lastPos)
+                if distance > 0.1 {
+                    movedBugs += 1
+                } else {
+                    stuckBugs += 1
+                }
+                
+                // Log significant movement
+                if distance > 1.0 && Int.random(in: 1...30) == 1 {
+                    print("🎯 [PHASE1-DEBUG] Bug \(bug.id.uuidString.prefix(8)) moved \(String(format: "%.2f", distance)) units")
+                }
+            }
+            
+            lastKnownBugPositions[bug.id] = currentPos
+        }
+        
+        // Log movement summary every 120 calls
+        if updateCallCount % 120 == 0 {
+            print("📊 [PHASE1-DEBUG] Movement Summary:")
+            print("  - Bugs moved: \(movedBugs)")
+            print("  - Bugs stuck: \(stuckBugs)")
+            print("  - Movement ratio: \(Double(movedBugs) / Double(movedBugs + stuckBugs) * 100.0)%")
+        }
+    }
+    
+    /// PHASE 1 DEBUG: Verify simulation state is actually changing
+    private func debugSimulationState() {
+        print("🧬 [PHASE1-DEBUG] Simulation State Check:")
+        print("  - Simulation running: \(simulationEngine.isRunning)")
+        print("  - Generation: \(simulationEngine.currentGeneration)")
+        print("  - Tick count: \(simulationEngine.tickCount)")
+        print("  - Alive bugs: \(simulationEngine.bugs.filter { $0.isAlive }.count)")
+        print("  - Total bugs: \(simulationEngine.bugs.count)")
+        print("  - Food items: \(simulationEngine.foods.count)")
+        
+        // Sample first 3 bugs for detailed state
+        for (index, bug) in simulationEngine.bugs.prefix(3).enumerated() {
+            print("  - Bug \(index): pos=(\(String(format: "%.1f", bug.position3D.x)), \(String(format: "%.1f", bug.position3D.y))), energy=\(String(format: "%.1f", bug.energy)), alive=\(bug.isAlive)")
+        }
+    }
+    
+    // MARK: - Phase 1: Real-Time State Synchronization
+    
+    /// PHASE 1: Start synchronization system when 3D view is created
+    private func startStateSynchronization() {
+        // Start sync timer - 30 FPS sync rate
+        syncTimer = Timer.scheduledTimer(withTimeInterval: 1.0/30.0, repeats: true) { _ in
+            self.synchronizeWorldState()
+        }
+        print("🔄 [PHASE1-SYNC] State synchronization started (30 FPS)")
+    }
+    
+    /// PHASE 1: Stop synchronization system
+    private func stopStateSynchronization() {
+        syncTimer?.invalidate()
+        syncTimer = nil
+        print("🛑 [PHASE1-SYNC] State synchronization stopped")
+    }
+    
+    /// PHASE 1: Core synchronization method - updates 3D scene from simulation state
+    private func synchronizeWorldState() {
+        guard let sceneView = sceneView,
+              let scene = sceneView.scene else { return }
+        
+        // 1. Update bug positions and states (existing comprehensive function)
+        updateBugPositions(scene: scene)
+        
+        // 2. Update food items (existing function)
+        updateFoodPositions(scene: scene)
+        
+        // 3. Handle bug lifecycle (births/deaths) - handled within updateBugPositions
+        // Existing function already creates missing nodes and cleans up orphaned ones
+    }
+    
+
+    
+    /// PHASE 1: Update energy bar visual based on bug energy
+    private func updateEnergyBarVisual(energyBar: SCNNode, energy: Double) {
+        // Scale energy bar based on energy level (0-100)
+        let energyRatio = Float(max(0, min(1, energy / 100.0)))
+        
+        // Update scale
+        energyBar.scale = SCNVector3(energyRatio, 1.0, 1.0)
+        
+        // Update color based on energy level
+        if let material = energyBar.geometry?.firstMaterial {
+            if energyRatio > 0.7 {
+                material.diffuse.contents = NSColor.green
+            } else if energyRatio > 0.3 {
+                material.diffuse.contents = NSColor.orange
+            } else {
+                material.diffuse.contents = NSColor.red
+            }
+        }
+    }
+    
     // MARK: - Bug Rendering
     
     private func renderBugs(scene: SCNScene) {
@@ -3777,6 +4092,14 @@ struct Arena3DView: NSViewRepresentable {
         // ✅ TEMPORARY DEBUG:Increase bug scale for better movement visibility
         bugNode.scale = SCNVector3(2.0, 2.0, 2.0) // 2x larger for visibility
         
+        // 🎯 TEMPORARY FIX: Add invisible collision sphere for reliable clicking
+        let clickSphere = SCNSphere(radius: CGFloat(bug.dna.size * 8.0)) // Larger than visual
+        clickSphere.firstMaterial?.transparency = 0.0 // Completely invisible
+        let clickNode = SCNNode(geometry: clickSphere)
+        clickNode.name = "ClickCollider_\(bug.id.uuidString)"
+        bugNode.addChildNode(clickNode)
+        print("🎯 [CLICK-FIX] Added invisible click sphere to bug \(bug.id.uuidString.prefix(8))")
+        
         // Add movement capabilities indicators
         if bug.canFly {
             addWings(to: bugNode, bug: bug)
@@ -3802,14 +4125,20 @@ struct Arena3DView: NSViewRepresentable {
         // Debug positioning
         // Bug positioned (debug commented)
         
+        // 🔍 DEBUG: Physics body setup
+        print("🏗️ [PHYSICS] Creating physics body for bug \(bug.id.uuidString.prefix(8))")
+        
         // Add physics body with enhanced shape and margin for reliable collision
         // Create a simple physics shape for the compound bug body
-        let physicsGeometry = SCNSphere(radius: CGFloat(bug.dna.size * 5.0)) // Simple physics approximation
-        let physicsOptions: [SCNPhysicsShape.Option: Any] = [
-            .type: SCNPhysicsShape.ShapeType.convexHull,    // More accurate than bounding box
-            .collisionMargin: 0.5                          // Add collision margin for reliability
-        ]
-        let physicsShape = SCNPhysicsShape(geometry: physicsGeometry, options: physicsOptions)
+        let physicsRadius = CGFloat(bug.dna.size * 6.0) // Slightly larger for better collision
+        let physicsGeometry = SCNSphere(radius: physicsRadius)
+        
+        // Use simpler physics shape for better performance and reliability
+        let physicsShape = SCNPhysicsShape(geometry: physicsGeometry, options: [
+            .type: SCNPhysicsShape.ShapeType.convexHull,
+            .collisionMargin: 1.0  // Increased margin for better collision detection
+        ])
+        
         bugNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: physicsShape)
         bugNode.physicsBody?.mass = 0.1
         bugNode.physicsBody?.categoryBitMask = 2       // Bug category  
@@ -3828,6 +4157,8 @@ struct Arena3DView: NSViewRepresentable {
         // Limit velocity to prevent physics engine breaking
         bugNode.physicsBody?.velocityFactor = SCNVector3(0.3, 0.3, 0.3)  // Further reduced max velocity
         
+        print("✅ [PHYSICS] Physics body created: radius=\(physicsRadius), mass=\(bugNode.physicsBody?.mass ?? 0)")
+        
         // Debug physics body creation
                     // Physics body created for bug
         
@@ -3836,6 +4167,39 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🎭 PHASE 3: Add behavioral animation system
         addBehavioralAnimations(to: bugNode, bug: bug)
+        
+        // 🔍 Debug: Get bug ID for logging
+        let bugId = bug.id.uuidString.prefix(8)
+        
+        // 🎯 Bug Selection: Establish node-to-bug mapping
+        bugNodeToBugMapping[bugNode] = bug
+        
+        // Update NavigationResponder's mapping too
+        if let navResponder = navigationResponder {
+            navResponder.bugNodeToBugMapping[bugNode] = bug
+            print("✅ [NAV-MAPPING] Added bug \(bugId) to NavigationResponder \(ObjectIdentifier(navResponder)) (now has \(navResponder.bugNodeToBugMapping.count) mappings)")
+        } else {
+            print("🚨 [NAV-MAPPING] NavigationResponder is NIL when trying to add bug \(bugId)!")
+        }
+        
+        // 🔍 Debug: Verify mapping was created
+        let nodeName = bugNode.name ?? "unnamed"
+        print("🎯 [MAPPING] Created mapping: Node '\(nodeName)' → Bug \(bugId)")
+        print("🎯 [MAPPING] Total mappings: Arena=\(bugNodeToBugMapping.count), NavResponder=\(navigationResponder?.bugNodeToBugMapping.count ?? 0)")
+        
+        // 🔍 Debug: Check if bug node has proper geometry for hit testing
+        if bugNode.childNodes.isEmpty {
+            print("⚠️ [MAPPING] Bug node \(bugId) has NO child nodes - might not be clickable!")
+        } else {
+            print("✅ [MAPPING] Bug node \(bugId) has \(bugNode.childNodes.count) child nodes")
+        }
+        
+        // 🔍 Debug: Check physics body setup
+        if let physicsBody = bugNode.physicsBody {
+            print("✅ [PHYSICS] Bug \(bugId) has physics body: mass=\(physicsBody.mass), category=\(physicsBody.categoryBitMask)")
+        } else {
+            print("⚠️ [PHYSICS] Bug \(bugId) has NO physics body - no collision detection!")
+        }
         
         return bugNode
     }
@@ -6679,6 +7043,22 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func updateBugPositions(scene: SCNScene) {
+        // 🎮 AAA PERFORMANCE: Measure this critical function
+        return performanceLogger.measure("updateBugPositions", includeStackTrace: true) {
+            updateBugPositionsInternal(scene: scene)
+        }
+    }
+    
+    private func updateBugPositionsInternal(scene: SCNScene) {
+        // PHASE 1 DEBUG: Call verification methods
+        debugBugUpdates()
+        
+        // PHASE 1 DEBUG: Detailed verification every 5 seconds
+        if updateCallCount % 150 == 0 {
+            verifyBugMapping()
+            debugSimulationState()
+        }
+        
         // ✅ FIXED: Re-enabled visual positioning - jumping was caused by behavioral animations
         guard let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else { 
             print("🚨 [VISUAL-UPDATE] BugContainer not found!")
@@ -6690,6 +7070,9 @@ struct Arena3DView: NSViewRepresentable {
             print("🔄 [VISUAL-UPDATE] updateBugPositions called - processing \(simulationEngine.bugs.count) bugs")
             print("🔄 [VISUAL-UPDATE] SimulationEngine running: \(simulationEngine.isRunning)")
         }
+        
+        // 🧹 DEAD BUG CLEANUP: Remove visual nodes for bugs that have died
+        removeDeadBugNodes(bugContainer: bugContainer, aliveBugs: simulationEngine.bugs)
         
         for bug in simulationEngine.bugs {
             if let bugNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false) {
@@ -6769,9 +7152,73 @@ struct Arena3DView: NSViewRepresentable {
         }
     }
     
+    // 🧹 Dead Bug Cleanup: Remove visual nodes for bugs that have died
+    private func removeDeadBugNodes(bugContainer: SCNNode, aliveBugs: [Bug]) {
+        // Get IDs of all currently alive bugs
+        let aliveBugIds = Set(aliveBugs.map { $0.id.uuidString })
+        
+        // Find bug nodes that represent dead bugs
+        let allBugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
+        var removedCount = 0
+        
+        for bugNode in allBugNodes {
+            guard let nodeName = bugNode.name,
+                  let bugIdRange = nodeName.range(of: "[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}", options: .regularExpression) else {
+                continue
+            }
+            
+            let bugIdString = String(nodeName[bugIdRange])
+            
+            // If this bug ID is not in the alive bugs, remove it
+            if !aliveBugIds.contains(bugIdString) {
+                // 🎭 Add death animation before removal
+                addDeathAnimation(to: bugNode) {
+                    // Remove from scene after animation
+                    bugNode.removeFromParentNode()
+                    
+                    // Clean up mappings
+                    self.bugNodeToBugMapping.removeValue(forKey: bugNode)
+                    
+                    // Also clean up NavigationResponder mappings if available
+                    self.navigationResponder?.bugNodeToBugMapping.removeValue(forKey: bugNode)
+                }
+                
+                removedCount += 1
+                print("🪦 [DEAD-BUG] Removing dead bug node: \(bugIdString.prefix(8))")
+            }
+        }
+        
+        if removedCount > 0 {
+            print("🧹 [CLEANUP] Removed \(removedCount) dead bug nodes from scene")
+        }
+    }
+    
+    // 🎭 Add death animation to bug node before removal
+    private func addDeathAnimation(to bugNode: SCNNode, completion: @escaping () -> Void) {
+        // Create dramatic death animation
+        let fadeOut = SCNAction.fadeOut(duration: 2.0)
+        let scaleDown = SCNAction.scale(to: 0.1, duration: 2.0)
+        let spinAction = SCNAction.rotateBy(x: 0, y: CGFloat.pi * 4, z: 0, duration: 2.0)
+        
+        // Combine animations
+        let deathAnimation = SCNAction.group([fadeOut, scaleDown, spinAction])
+        
+        // Run animation and then call completion
+        bugNode.runAction(deathAnimation) {
+            completion()
+        }
+    }
+    
     // MARK: - 🍎 Food Rendering System
     
     private func updateFoodPositions(scene: SCNScene) {
+        // 🎮 AAA PERFORMANCE: Measure food system performance
+        return performanceLogger.measure("updateFoodPositions") {
+            updateFoodPositionsInternal(scene: scene)
+        }
+    }
+    
+    private func updateFoodPositionsInternal(scene: SCNScene) {
         // Get or create food container
         var foodContainer = scene.rootNode.childNode(withName: "FoodContainer", recursively: false)
         if foodContainer == nil {
@@ -6867,11 +7314,49 @@ struct Arena3DView: NSViewRepresentable {
         // Remove all existing bug nodes
         bugContainer.childNodes.forEach { $0.removeFromParentNode() }
         
+        // Clear the old mappings since nodes are destroyed
+        bugNodeToBugMapping.removeAll()
+        
         // Recreate all bugs with new Phase 3 visuals
         for bug in simulationEngine.bugs {
             let newBugNode = createBugNode(bug: bug)
             bugContainer.addChildNode(newBugNode)
         }
+        
+        // 🎯 CRITICAL: Refresh NavigationResponder mappings after recreating nodes
+        refreshNavigationResponderMappings()
+    }
+    
+    // 🎯 Bug Selection: Refresh NavigationResponder mappings after bug nodes are recreated
+    private func refreshNavigationResponderMappings() {
+        // Try direct reference first
+        if let navigationResponder = navigationResponder {
+            navigationResponder.bugNodeToBugMapping = bugNodeToBugMapping
+            print("✅ [MAPPING-REFRESH] Direct transfer: \(bugNodeToBugMapping.count) bug mappings to NavigationResponder")
+            print("🎯 [MAPPING-REFRESH] NavigationResponder now has \(navigationResponder.bugNodeToBugMapping.count) mappings")
+            return
+        }
+        
+        // Backup: Search for NavigationResponder in the view hierarchy
+        print("🔍 [MAPPING-REFRESH] NavigationResponder is nil, searching view hierarchy...")
+        if let foundResponder = findNavigationResponderInHierarchy() {
+            foundResponder.bugNodeToBugMapping = bugNodeToBugMapping
+            print("✅ [MAPPING-REFRESH] Backup transfer: \(bugNodeToBugMapping.count) bug mappings to found NavigationResponder")
+            print("🎯 [MAPPING-REFRESH] Found NavigationResponder now has \(foundResponder.bugNodeToBugMapping.count) mappings")
+            
+            // Update our reference
+            self.navigationResponder = foundResponder
+            return
+        }
+        
+        print("🚨 [MAPPING-REFRESH] No NavigationResponder found, will retry on next click")
+    }
+    
+    // Helper function to find NavigationResponder in view hierarchy
+    private func findNavigationResponderInHierarchy() -> NavigationResponderView? {
+        // This will be called during setup to find the NavigationResponder
+        // We'll use a more reliable approach - store a global reference or search the scene view
+        return nil // For now, will implement if needed
     }
     
     private func updateEnergyIndicator(bugNode: SCNNode, energy: Double) {
@@ -6960,12 +7445,30 @@ struct Arena3DView: NSViewRepresentable {
         navigationResponder.frame = sceneView.bounds
         navigationResponder.autoresizingMask = [.width, .height]
         
+        // 🎯 Bug Selection: Set up bug selection system
+        navigationResponder.sceneView = sceneView
+        navigationResponder.bugNodeToBugMapping = bugNodeToBugMapping
+        navigationResponder.onBugSelected = onBugSelected
+        
+        // 🎯 NEW: Give NavigationResponder a closure to access current bug mappings
+        navigationResponder.getFallbackBugMappings = { [weak navigationResponder] in
+            return self.bugNodeToBugMapping
+        }
+        
         // CRITICAL: Make sure the responder can receive events
         navigationResponder.wantsLayer = true
         navigationResponder.canDrawConcurrently = true
         
         // Add to scene view
         sceneView.addSubview(navigationResponder)
+        
+        // 🎯 Store reference for later updates
+        self.navigationResponder = navigationResponder
+        print("✅ [NAV-SETUP] NavigationResponder stored: \(ObjectIdentifier(navigationResponder))")
+        
+        // 🎯 Ensure mappings are properly transferred after initial setup
+        print("🎯 [NAV-SETUP] Initial mapping transfer: Arena has \(bugNodeToBugMapping.count) mappings")
+        refreshNavigationResponderMappings()
         
         // FORCE it to become first responder and update camera reference
         DispatchQueue.main.async {
@@ -7283,6 +7786,14 @@ class NavigationResponderView: NSView {
     var navigationController: NavigationController?
     weak var directCameraReference: SCNNode?  // Direct backup reference
     
+    // 🎯 Bug Selection System
+    weak var sceneView: SCNView?
+    var bugNodeToBugMapping: [SCNNode: Bug] = [:]
+    var onBugSelected: ((Bug?) -> Void)?
+    
+    // 🎯 NEW: Closure to get fallback bug mappings
+    var getFallbackBugMappings: (() -> [SCNNode: Bug])?
+    
     private var pressedKeys: Set<UInt16> = []
     private var lastUpdateTime: TimeInterval = 0
     private var updateTimer: Timer?
@@ -7366,7 +7877,103 @@ class NavigationResponderView: NSView {
     
     override func mouseDown(with event: NSEvent) {
         // Mouse down - making first responder
+        print("🖱️ [MOUSE] NavigationResponder received mouseDown")
         self.window?.makeFirstResponder(self)
+        
+        // 🎯 Bug Selection: Handle click for bug selection
+        handleBugSelection(with: event)
+    }
+    
+    // 🎯 Bug Selection: Handle clicks on bugs
+    private func handleBugSelection(with event: NSEvent) {
+        guard let sceneView = sceneView else {
+            print("🚨 [BUG-SELECTION] No sceneView available")
+            return
+        }
+        
+        // 🎯 LAZY REFRESH: Check if we need to use fallback mappings
+        if bugNodeToBugMapping.count == 0 && getFallbackBugMappings != nil {
+            print("🔄 [LAZY-REFRESH] NavigationResponder has no mappings, will use fallback...")
+        }
+        
+        let clickLocation = convert(event.locationInWindow, from: nil)
+        print("🎯 [BUG-SELECTION] Click at location: \(clickLocation)")
+        
+        // Perform hit test to find clicked objects
+        let hitResults = sceneView.hitTest(clickLocation, options: [
+            .searchMode: SCNHitTestSearchMode.all.rawValue,
+            .ignoreHiddenNodes: true
+        ])
+        
+        print("🎯 [BUG-SELECTION] Hit test found \(hitResults.count) results")
+        
+        // Debug: Print all hit results
+        for (index, hitResult) in hitResults.enumerated() {
+            let nodeName = hitResult.node.name ?? "unnamed"
+            let nodeType = String(describing: type(of: hitResult.node))
+            print("🎯 [HIT-\(index)] Node: '\(nodeName)' Type: \(nodeType)")
+            
+            // Check if this node or any parent is in our bug mapping
+            var currentNode: SCNNode? = hitResult.node
+            var parentLevel = 0
+            while currentNode != nil {
+                let currentName = currentNode?.name ?? "unnamed"
+                if let bug = bugNodeToBugMapping[currentNode!] {
+                    print("🎯 [FOUND-BUG] At parent level \(parentLevel): \(bug.id.uuidString.prefix(8)) in node '\(currentName)'")
+                } else {
+                    print("🔍 [HIERARCHY-\(parentLevel)] Node '\(currentName)' not in mapping")
+                }
+                currentNode = currentNode?.parent
+                parentLevel += 1
+                if parentLevel > 5 { break } // Avoid infinite loops
+            }
+        }
+        
+        print("🎯 [BUG-SELECTION] Total bugs in mapping: \(bugNodeToBugMapping.count)")
+        print("🎯 [BUG-SELECTION] NavigationResponder \(ObjectIdentifier(self)) has \(bugNodeToBugMapping.count) mappings")
+        let fallbackMappings = getFallbackBugMappings?() ?? [:]
+        print("🎯 [BUG-SELECTION] Arena3DView has \(fallbackMappings.count) mappings (fallback)")
+        
+        // Find the first bug node that was clicked
+        for hitResult in hitResults {
+            // Try NavigationResponder's mappings first
+            if let bug = bugNodeToBugMapping[hitResult.node] {
+                print("🎯 [BUG-SELECTION] Selected bug (NavigationResponder): \(bug.id.uuidString.prefix(8))")
+                onBugSelected?(bug)
+                return
+            }
+            
+            // 🎯 FALLBACK: Try Arena3DView's mappings
+            if let bug = fallbackMappings[hitResult.node] {
+                print("🎯 [BUG-SELECTION] Selected bug (Arena3DView fallback): \(bug.id.uuidString.prefix(8))")
+                onBugSelected?(bug)
+                return
+            }
+            
+            // Also check parent nodes (in case clicking on sub-components of bug)
+            var parentNode = hitResult.node.parent
+            while parentNode != nil {
+                // Try NavigationResponder's mappings for parent
+                if let bug = bugNodeToBugMapping[parentNode!] {
+                    print("🎯 [BUG-SELECTION] Selected bug via parent (NavigationResponder): \(bug.id.uuidString.prefix(8))")
+                    onBugSelected?(bug)
+                    return
+                }
+                
+                // 🎯 FALLBACK: Try Arena3DView's mappings for parent
+                if let bug = fallbackMappings[parentNode!] {
+                    print("🎯 [BUG-SELECTION] Selected bug via parent (Arena3DView fallback): \(bug.id.uuidString.prefix(8))")
+                    onBugSelected?(bug)
+                    return
+                }
+                
+                parentNode = parentNode?.parent
+            }
+        }
+        
+        // No bug clicked - deselect
+        print("🎯 [BUG-SELECTION] Deselected (clicked on background)")
+        onBugSelected?(nil)
     }
     
     override func rightMouseDown(with event: NSEvent) {
@@ -7407,6 +8014,13 @@ class NavigationResponderView: NSView {
     }
     
     private func updateMovement() {
+        // 🎮 AAA PERFORMANCE: Measure this 60 FPS timer function
+        PerformanceLogger.shared.measure("navigation_updateMovement") {
+            updateMovementInternal()
+        }
+    }
+    
+    private func updateMovementInternal() {
         let currentTime = CACurrentMediaTime()
         let deltaTime = Float(currentTime - lastUpdateTime)
         lastUpdateTime = currentTime
@@ -7446,8 +8060,18 @@ class NavigationResponderView: NSView {
         }
     }
     
+
+    
     deinit {
         updateTimer?.invalidate()
+    }
+}
+
+// MARK: - Position3D Extension for Debug
+extension Position3D {
+    func isClose(to other: Position3D, threshold: Double) -> Bool {
+        let dist = distance(to: other) // Use existing distance method
+        return dist < threshold
     }
 }
 
@@ -7462,3 +8086,109 @@ private extension NSColor {
         return (Double(rgbColor.redComponent), Double(rgbColor.greenComponent), Double(rgbColor.blueComponent))
     }
 }
+
+// MARK: - 🎮 AAA Performance Monitoring System
+
+/// High-performance profiler for AAA game-quality performance monitoring
+class PerformanceLogger {
+    static let shared = PerformanceLogger() // Global singleton for easy access
+    private var measurements: [String: PerformanceMeasurement] = [:]
+    private let maxStackTraceDepth = 10
+    
+    struct PerformanceMeasurement {
+        var totalTime: CFTimeInterval = 0
+        var callCount: Int = 0
+        var maxTime: CFTimeInterval = 0
+        var minTime: CFTimeInterval = CFTimeInterval.greatestFiniteMagnitude
+        var averageTime: CFTimeInterval { 
+            callCount > 0 ? totalTime / CFTimeInterval(callCount) : 0 
+        }
+        var lastCallTime: CFTimeInterval = 0
+        var stackTrace: String = ""
+    }
+    
+    /// Start measuring performance for a specific operation
+    func startMeasurement(_ operation: String, includeStackTrace: Bool = false) -> CFTimeInterval {
+        let startTime = CACurrentMediaTime()
+        
+        if includeStackTrace {
+            let stackTrace = Thread.callStackSymbols.prefix(maxStackTraceDepth).joined(separator: "\n")
+            measurements[operation, default: PerformanceMeasurement()].stackTrace = stackTrace
+        }
+        
+        return startTime
+    }
+    
+    /// End measurement and record performance data
+    func endMeasurement(_ operation: String, startTime: CFTimeInterval, threshold: CFTimeInterval = 0.016) {
+        let endTime = CACurrentMediaTime()
+        let duration = endTime - startTime
+        
+        var measurement = measurements[operation, default: PerformanceMeasurement()]
+        measurement.totalTime += duration
+        measurement.callCount += 1
+        measurement.maxTime = max(measurement.maxTime, duration)
+        measurement.minTime = min(measurement.minTime, duration)
+        measurement.lastCallTime = duration
+        measurements[operation] = measurement
+        
+        // Log if operation exceeds threshold (16ms = 60 FPS)
+        if duration > threshold {
+            let ms = duration * 1000
+            print("⚠️ [PERF-SLOW] \(operation): \(String(format: "%.2f", ms))ms (threshold: \(String(format: "%.2f", threshold * 1000))ms)")
+            
+            // Print stack trace for slow operations
+            if !measurement.stackTrace.isEmpty {
+                print("📍 [STACK-TRACE] \(operation):")
+                print(measurement.stackTrace)
+            }
+        }
+    }
+    
+    /// Log comprehensive performance report
+    func logPerformanceReport() {
+        print("\n🎮 [AAA-PERF-REPORT] Performance Analysis:")
+        print("=" + String(repeating: "=", count: 59))
+        
+        let sortedMeasurements = measurements.sorted { $0.value.averageTime > $1.value.averageTime }
+        
+        for (operation, measurement) in sortedMeasurements {
+            let avgMs = measurement.averageTime * 1000
+            let maxMs = measurement.maxTime * 1000
+            let minMs = measurement.minTime * 1000
+            let lastMs = measurement.lastCallTime * 1000
+            
+            print("🔍 \(operation):")
+            print("   Calls: \(measurement.callCount)")
+            print("   Avg: \(String(format: "%.2f", avgMs))ms")
+            print("   Max: \(String(format: "%.2f", maxMs))ms") 
+            print("   Min: \(String(format: "%.2f", minMs))ms")
+            print("   Last: \(String(format: "%.2f", lastMs))ms")
+            
+            // Highlight problematic operations
+            if measurement.averageTime > 0.016 { // > 16ms
+                print("   ⚠️  PERFORMANCE ISSUE: Exceeds 60 FPS budget")
+            }
+            print("")
+        }
+        
+        print("=" + String(repeating: "=", count: 59))
+        print("🎯 Total operations tracked: \(measurements.count)\n")
+    }
+    
+    /// Reset all measurements
+    func reset() {
+        measurements.removeAll()
+        print("🔄 [PERF] Performance measurements reset")
+    }
+    
+    /// Quick performance wrapper for measuring blocks
+    @discardableResult
+    func measure<T>(_ operation: String, includeStackTrace: Bool = false, _ block: () throws -> T) rethrows -> T {
+        let startTime = startMeasurement(operation, includeStackTrace: includeStackTrace)
+        defer { endMeasurement(operation, startTime: startTime) }
+        return try block()
+    }
+}
+
+
