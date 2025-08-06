@@ -91,11 +91,6 @@ class SimulationEngine {
             survivalTime: survivalTime
         )
         weightAnalysisData.append(csvRow)
-        
-        // Log population averages every generation
-        if weightAnalysisData.count % max(1, Int(speedMultiplier * 10)) == 0 {
-            logPopulationAnalytics()
-        }
     }
     
     /// Log population-level neural network analytics
@@ -484,6 +479,9 @@ class SimulationEngine {
         
         print("🧬 [EVOLUTION] Starting evolution to generation \(currentGeneration)")
         print("🧬 [EVOLUTION] Pre-evolution population: \(bugs.count)")
+        
+        // Always log population analytics every generation
+        logPopulationAnalytics()
         
         // Calculate fitness for all bugs
         let bugsWithFitness = bugs.map { bug in

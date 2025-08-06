@@ -146,8 +146,8 @@ struct WeightAnalysis {
 - **Weight Extraction**: `NeuralNetwork.getCriticalWeights()` extracts key behavioral weights
 - **Detailed Logging**: `logNetworkAnalysis()` provides comprehensive neural structure analysis
 - **CSV Export**: `exportWeightsCSV()` for external data analysis (R, Python, Excel)
-- **Population Analytics**: Automatic population-level statistics every generation
-- **Weight Distribution Analysis**: Tracks evolutionary changes in critical neural patterns
+- **Population Analytics**: ✅ **FIXED - Always runs every generation** (was previously tied to weight logging)
+- **Weight Distribution Analysis**: ✅ **FIXED - Runs every 10 generations** (independent of weight logging status)
 
 #### **High-Speed Evolution Controls**
 - **Speed Multiplier**: 1x to 100x simulation speed (UI slider control)
