@@ -37,7 +37,7 @@ class SimulationEngine {
     let voxelWorld: VoxelWorld
     let pathfinding: VoxelPathfinding
     private let maxPopulation = 800  // MASSIVE INCREASE: 4.4x more bugs for extensive debugging
-    private let initialPopulation = 20    // 🐛 DEBUG: Drastically reduced population for easier debugging
+    private let initialPopulation = 60    // 🐛 DEBUG: Increased population for easier energy observation
     private let maxFoodItems = 5000  // MASSIVE INCREASE: 4.2x more food to eliminate food scarcity
     private let baseFoodSpawnRate = 0.99 // MAXIMUM: Near-constant food spawning for abundant resources
     
