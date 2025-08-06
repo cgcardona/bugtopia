@@ -358,13 +358,13 @@ class NeuralNetwork {
         let weights = getCriticalWeights()
         let complexity = Double(dna.weights.count + dna.biases.count)
         
-        print("🧠 [NEURAL-ANALYSIS \(bugId)] Gen=\(generation)")
-        print("🧠 [NEURAL-TOPOLOGY \(bugId)] \(dna.topology.map(String.init).joined(separator: "→"))")
-        print("🧠 [NEURAL-COMPLEXITY \(bugId)] Weights=\(dna.weights.count), Biases=\(dna.biases.count), Total=\(Int(complexity))")
-        print("🧠 [NEURAL-ACTIVATIONS \(bugId)] \(dna.activations.map(\.rawValue).joined(separator: ", "))")
+
+
+
+
         
         for (key, value) in weights.sorted(by: { $0.key < $1.key }) {
-            print("🧠 [NEURAL-WEIGHT \(bugId)] \(key)=\(String(format: "%.3f", value))")
+
         }
     }
     

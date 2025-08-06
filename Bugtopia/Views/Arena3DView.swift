@@ -79,52 +79,39 @@ struct Arena3DView: NSViewRepresentable {
     
     /// 🎯 Debug: Check bug selection system state
     private func debugBugSelectionState() {
-        print("\n🎯 [BUG-SELECTION-DEBUG] ===== BUG SELECTION STATE =====")
         
         // Check mappings
-        print("🎯 Arena bugNodeToBugMapping: \(bugNodeToBugMapping.count) entries")
-        print("🎯 NavResponder bugNodeToBugMapping: \(navigationResponder?.bugNodeToBugMapping.count ?? 0) entries")
         
         // Check if NavigationResponder is set up
         if let navResponder = navigationResponder {
-            print("✅ NavigationResponder exists")
-            print("✅ NavigationResponder.sceneView: \(navResponder.sceneView != nil ? "SET" : "NIL")")
-            print("✅ NavigationResponder.onBugSelected: \(navResponder.onBugSelected != nil ? "SET" : "NIL")")
         } else {
-            print("🚨 NavigationResponder is NIL!")
         }
         
         // Check bug nodes in scene
         guard let sceneView = sceneView,
               let scene = sceneView.scene,
               let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else {
-            print("🚨 Scene/BugContainer not available")
             return
         }
         
         let bugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
-        print("🎯 Bug nodes in scene: \(bugNodes.count)")
         
         // Check if nodes are in mapping
         for (index, bugNode) in bugNodes.prefix(3).enumerated() {
             let nodeName = bugNode.name ?? "unnamed"
             let hasBug = bugNodeToBugMapping[bugNode] != nil
             let hasNavBug = navigationResponder?.bugNodeToBugMapping[bugNode] != nil
-            print("🎯 Node[\(index)] '\(nodeName)': Arena=\(hasBug), NavResponder=\(hasNavBug)")
             
             // Check node geometry
             let childCount = bugNode.childNodes.count
             let hasGeometry = bugNode.geometry != nil || !bugNode.childNodes.isEmpty
-            print("   Children: \(childCount), HasGeometry: \(hasGeometry)")
         }
         
-        print("🎯 ===== END BUG SELECTION DEBUG =====\n")
     }
     
     /// 🎮 AAA PERFORMANCE: Public method to trigger performance analysis
     func triggerPerformanceAnalysis() {
         DispatchQueue.main.async {
-            print("\n🎮 [AAA-PERF] ===== PERFORMANCE ANALYSIS TRIGGERED =====")
             self.performanceLogger.logPerformanceReport()
             
             // Additional frame timing analysis
@@ -139,7 +126,6 @@ struct Arena3DView: NSViewRepresentable {
         guard let sceneView = sceneView,
               let scene = sceneView.scene,
               let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else {
-            print("🚨 [DEBUG] Scene/BugContainer not available")
             return
         }
         
@@ -147,7 +133,6 @@ struct Arena3DView: NSViewRepresentable {
         let bugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
         let aliveBugs = simulationEngine.bugs.filter { $0.isAlive }.count
         
-        print("🔍 [DEBUG] Models: \(bugModels.count), Nodes: \(bugNodes.count), Alive: \(aliveBugs), Generation: \(simulationEngine.currentGeneration)")
     }
     
     // MARK: - 🎯 Bug Selection System
@@ -156,7 +141,6 @@ struct Arena3DView: NSViewRepresentable {
     private func setupBugSelection(sceneView: SCNView) {
         // Bug selection will be handled by NavigationResponderView's mouse events
         // Since we can't use @objc in a struct, we'll use the existing navigation system
-        print("🎯 [BUG-SELECTION] Bug selection enabled via navigation system")
     }
     
     /// 🎮 AAA PERFORMANCE: Analyze frame timing and detect stutters
@@ -169,15 +153,11 @@ struct Arena3DView: NSViewRepresentable {
         // Calculate FPS
         let fps = frameTime > 0 ? 1.0 / frameTime : 0
         
-        print("🎯 [FRAME-TIMING] Current frame time: \(String(format: "%.2f", frameTime * 1000))ms")
-        print("🎯 [FRAME-TIMING] Current FPS: \(String(format: "%.1f", fps))")
         
         // Detect performance issues
         if frameTime > 0.033 { // > 30 FPS
-            print("⚠️ [FRAME-TIMING] Frame time exceeds 30 FPS threshold")
         }
         if frameTime > 0.016 { // > 60 FPS
-            print("⚠️ [FRAME-TIMING] Frame time exceeds 60 FPS threshold")
         }
         
         // Memory usage (rough estimate)
@@ -191,7 +171,6 @@ struct Arena3DView: NSViewRepresentable {
         
         if kerr == KERN_SUCCESS {
             let memoryMB = Double(memInfo.resident_size) / (1024 * 1024)
-            print("💾 [MEMORY] Current usage: \(String(format: "%.1f", memoryMB)) MB")
         }
     }
     
@@ -205,7 +184,6 @@ struct Arena3DView: NSViewRepresentable {
             
             // 🚨 PERFORMANCE FIX: Disable 30 FPS timer - it was causing 6+ second lag!
             // We'll use event-driven detection instead
-            print("🔄 [PERF-FIX] Skipping 30 FPS timer to prevent performance issues")
         }
         
         // Create the 3D scene
@@ -251,20 +229,16 @@ struct Arena3DView: NSViewRepresentable {
         // 🚨 DEBUG: Track SwiftUI update frequency to debug ghost bugs  
         swiftuiUpdateCount += 1
         if swiftuiUpdateCount % 10 == 0 {
-            print("🔄 [SWIFTUI-UPDATE] updateNSView called \(swiftuiUpdateCount) times (trigger: \(forceUpdateTrigger))")
         }
         
         // ✅ FIX: Move scene updates out of SwiftUI update cycle to prevent violations
         guard let scene = nsView.scene else { 
-            print("🚨 [SWIFTUI-ERROR] No scene available in updateNSView!")
             return 
         }
         
         // 🎮 AAA GAME DEV: Debug SwiftUI-SceneKit bridge
         let currentTime = CACurrentMediaTime()
         if Int(currentTime) % 2 == 0 && Int(currentTime * 10) % 10 == 0 { // Log every 2 seconds
-            print("🎮 [SWIFTUI-BRIDGE] updateNSView called - SwiftUI updating SceneKit")
-            print("🎮 [SWIFTUI-BRIDGE] Scene has \(scene.rootNode.childNodes.count) root child nodes")
         }
         
         // Dispatch scene updates asynchronously to avoid SwiftUI violations
@@ -370,7 +344,6 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🌍 DYNAMIC BIOME DETECTION: Analyze actual world biomes for adaptive lighting
         let primaryBiome = detectPrimaryBiome()
-        print("🎨 Detected primary biome for lighting: \(primaryBiome.rawValue)")
         
         // Apply biome lighting preset
         setupBiomeLighting(scene: scene, biome: primaryBiome)
@@ -1265,10 +1238,8 @@ struct Arena3DView: NSViewRepresentable {
             scene.background.contents = fallbackImage
             scene.lightingEnvironment.contents = fallbackImage
             scene.lightingEnvironment.intensity = 2.5
-            print("⚠️ World skybox not found, using fallback: epic-skybox-panorama")
         } else {
             // Final fallback to procedural skybox
-            print("⚠️ No skybox assets found, generating procedural skybox")
             let skybox = MDLSkyCubeTexture(name: nil,
                                           channelEncoding: .uInt8,
                                           textureDimensions: vector_int2(Int32(256), Int32(256)),
@@ -1705,7 +1676,6 @@ struct Arena3DView: NSViewRepresentable {
         // 🚀 PERFORMANCE FIX: Spatial sampling to reduce render count
         // Only render every 2nd voxel in each dimension to prevent memory explosion
         let samplingRate = 2  // Renders 1/8th of voxels (2³ = 8x reduction)
-        print("🎨 Rendering voxels with \(samplingRate)x spatial sampling for performance")
         
         var renderedCount = 0
         for x in stride(from: 0, to: simulationEngine.voxelWorld.dimensions.width, by: samplingRate) {
@@ -1723,7 +1693,6 @@ struct Arena3DView: NSViewRepresentable {
             }
         }
         
-        print("🎨 Actually rendered \(renderedCount) voxels (reduced from ~10k for performance)")        
     }
     
     // MARK: - Continental Terrain Mesh Generation
@@ -1751,7 +1720,6 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🔧 COLLISION FIX: Add physics collision to terrain mesh
         // This prevents bugs from walking through the terrain
-        print("🔧 Adding physics collision to terrain mesh...")
         let terrainPhysicsShape = SCNPhysicsShape(geometry: terrainMesh, options: [
             .type: SCNPhysicsShape.ShapeType.concavePolyhedron,  // For complex terrain mesh
             .collisionMargin: 0.1                                // Small margin for accuracy
@@ -3053,8 +3021,6 @@ struct Arena3DView: NSViewRepresentable {
         // The water animation timer was doing scene.rootNode.enumerateChildNodes 10x/second
         // which enumerated through ALL nodes in the scene causing beach ball cursor
         
-        print("🚫 [PERF-FIX] Water animation timer DISABLED - was enumerating all scene nodes 10x/second!")
-        print("🚫 [PERF-FIX] This was the primary cause of the beach ball/spinner performance issue")
         
         // TODO: Replace with targeted water node updates using cached references
         // Only update specific water nodes that are actually visible
@@ -3935,17 +3901,12 @@ struct Arena3DView: NSViewRepresentable {
         guard let sceneView = sceneView,
               let scene = sceneView.scene,
               let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else {
-            print("🚨 [PHASE1-DEBUG] BugContainer not found in scene!")
             return
         }
         
         let bugModels = simulationEngine.bugs
         let bugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
         
-        print("🔍 [PHASE1-DEBUG] Bug Mapping Verification:")
-        print("  - Bug models in simulation: \(bugModels.count)")
-        print("  - Bug nodes in scene: \(bugNodes.count)")
-        print("  - Mappings match: \(bugNodes.count == bugModels.count)")
         
         // Check for orphaned nodes (nodes without corresponding bug models)
         let orphanedNodes = bugNodes.filter { node in
@@ -3956,7 +3917,6 @@ struct Arena3DView: NSViewRepresentable {
         }
         
         if !orphanedNodes.isEmpty {
-            print("🚨 [PHASE1-DEBUG] Found \(orphanedNodes.count) orphaned bug nodes!")
         }
         
         // Check for missing nodes (bug models without corresponding nodes)
@@ -3966,9 +3926,7 @@ struct Arena3DView: NSViewRepresentable {
         }
         
         if !missingNodes.isEmpty {
-            print("🚨 [PHASE1-DEBUG] Found \(missingNodes.count) bugs without nodes!")
             for bug in missingNodes.prefix(3) {
-                print("  - Missing node for bug: \(bug.id.uuidString.prefix(8))")
             }
         }
     }
@@ -4004,7 +3962,6 @@ struct Arena3DView: NSViewRepresentable {
         if updateCallCount % 60 == 0 {
             let timeSinceLastLog = currentTime - lastUpdateTime
             let updateRate = 60.0 / timeSinceLastLog
-            print("🔄 [PHASE1-DEBUG] Update Rate: \(String(format: "%.1f", updateRate)) Hz")
             lastUpdateTime = currentTime
         }
         
@@ -4026,7 +3983,6 @@ struct Arena3DView: NSViewRepresentable {
                 
                 // Log significant movement
                 if distance > 1.0 && Int.random(in: 1...30) == 1 {
-                    print("🎯 [PHASE1-DEBUG] Bug \(bug.id.uuidString.prefix(8)) moved \(String(format: "%.2f", distance)) units")
                 }
             }
             
@@ -4035,26 +3991,14 @@ struct Arena3DView: NSViewRepresentable {
         
         // Log movement summary every 120 calls
         if updateCallCount % 120 == 0 {
-            print("📊 [PHASE1-DEBUG] Movement Summary:")
-            print("  - Bugs moved: \(movedBugs)")
-            print("  - Bugs stuck: \(stuckBugs)")
-            print("  - Movement ratio: \(Double(movedBugs) / Double(movedBugs + stuckBugs) * 100.0)%")
         }
     }
     
     /// PHASE 1 DEBUG: Verify simulation state is actually changing
     private func debugSimulationState() {
-        print("🧬 [PHASE1-DEBUG] Simulation State Check:")
-        print("  - Simulation running: \(simulationEngine.isRunning)")
-        print("  - Generation: \(simulationEngine.currentGeneration)")
-        print("  - Tick count: \(simulationEngine.tickCount)")
-        print("  - Alive bugs: \(simulationEngine.bugs.filter { $0.isAlive }.count)")
-        print("  - Total bugs: \(simulationEngine.bugs.count)")
-        print("  - Food items: \(simulationEngine.foods.count)")
         
         // Sample first 3 bugs for detailed state
         for (index, bug) in simulationEngine.bugs.prefix(3).enumerated() {
-            print("  - Bug \(index): pos=(\(String(format: "%.1f", bug.position3D.x)), \(String(format: "%.1f", bug.position3D.y))), energy=\(String(format: "%.1f", bug.energy)), alive=\(bug.isAlive)")
         }
     }
     
@@ -4077,10 +4021,6 @@ struct Arena3DView: NSViewRepresentable {
                 let simPos2D = "(%.1f, %.1f)"
                 let visPos2D = "(%.1f, %.1f)"
                 
-                print("🎯 [MOVEMENT-SYNC] Bug \(String(bug.id.uuidString.prefix(8)))")
-                print("  📊 Simulation: \(String(format: simPos2D, simPosition.x, simPosition.y))")
-                print("  🎬 Visual:     \(String(format: visPos2D, visualPosition.x, visualPosition.z))")
-                print("  ⚡ Energy:     \(String(format: "%.1f", bug.energy)) | Neural Movement: X=\(String(format: "%.2f", bug.lastDecision?.moveX ?? 0)), Y=\(String(format: "%.2f", bug.lastDecision?.moveY ?? 0))")
                 
                 // Check for movement over last 30 frames
                 if trackedBugSimPositions.count >= 30 {
@@ -4093,24 +4033,18 @@ struct Arena3DView: NSViewRepresentable {
                         (visualPosition.z - oldVisPos.z) * (visualPosition.z - oldVisPos.z)
                     )
                     
-                    print("  🏃 Movement:   Sim=\(String(format: "%.2f", simDistance)) units, Visual=\(String(format: "%.2f", visDistance)) units")
                     
                     // Alert if major sync disconnect
                     if simDistance > 1.0 && visDistance < 0.1 {
-                        print("🚨 [SYNC-DISCONNECT] Simulation moving (\(String(format: "%.2f", simDistance))) but visual static (\(String(format: "%.2f", visDistance)))!")
                     } else if simDistance < 0.1 && visDistance > 1.0 {
-                        print("🚨 [SYNC-DISCONNECT] Visual moving (\(String(format: "%.2f", visDistance))) but simulation static (\(String(format: "%.2f", simDistance)))!")
                     } else if simDistance > 0.5 || visDistance > 0.5 {
-                        print("✅ [SYNC-GOOD] Both systems show movement")
                     } else {
-                        print("😴 [SYNC-STATIC] Both systems show no movement")
                     }
                 }
             }
         } else {
             // Visual node missing
             if updateCallCount % 60 == 0 {
-                print("🚨 [MOVEMENT-TRACKING] Visual node missing for tracked bug \(String(bug.id.uuidString.prefix(8)))")
             }
         }
         
@@ -4122,7 +4056,6 @@ struct Arena3DView: NSViewRepresentable {
         
         // Stop tracking after 2 minutes or if bug dies
         if trackingDuration > 120.0 || bug.energy <= 0 {
-            print("🎯 [MOVEMENT-TRACKING] Ending tracking for bug \(String(bug.id.uuidString.prefix(8))) after \(String(format: "%.1f", trackingDuration))s")
             trackedBugId = nil
             trackedBugSimPositions.removeAll()
             trackedBugVisualPositions.removeAll()
@@ -4141,7 +4074,6 @@ struct Arena3DView: NSViewRepresentable {
     private func stopStateSynchronization() {
         syncTimer?.invalidate()
         syncTimer = nil
-        print("🛑 [PHASE1-SYNC] State synchronization stopped")
     }
     
     /// PHASE 1: Core synchronization method - updates 3D scene from simulation state
@@ -4149,12 +4081,10 @@ struct Arena3DView: NSViewRepresentable {
         // 🚨 DEBUG: Track that this method is being called
         syncCallCount += 1
         if syncCallCount % 30 == 0 { // Log every second (30 FPS)
-            print("🔄 [SYNC-FREQUENCY] synchronizeWorldState called \(syncCallCount) times")
         }
         
         guard let sceneView = sceneView,
               let scene = sceneView.scene else { 
-            print("🚨 [SYNC-ERROR] No sceneView or scene available!")
             return 
         }
         
@@ -4227,7 +4157,6 @@ struct Arena3DView: NSViewRepresentable {
         bugNode.addChildNode(clickNode)
         // Only log click sphere creation for every 10th bug to reduce noise
         if Int.random(in: 1...10) == 1 {
-            print("🎯 [CLICK-FIX] Added invisible click sphere to bug \(bug.id.uuidString.prefix(8))")
         }
         
         // Add movement capabilities indicators
@@ -4256,7 +4185,6 @@ struct Arena3DView: NSViewRepresentable {
         // Bug positioned (debug commented)
         
         // 🔍 DEBUG: Physics body setup
-        print("🏗️ [PHYSICS] Creating physics body for bug \(bug.id.uuidString.prefix(8))")
         
         // Add physics body with enhanced shape and margin for reliable collision
         // Create a simple physics shape for the compound bug body
@@ -4289,7 +4217,6 @@ struct Arena3DView: NSViewRepresentable {
         
         // Only log physics creation for every 20th bug to reduce noise
         if Int.random(in: 1...20) == 1 {
-            print("✅ [PHYSICS] Physics body created: radius=\(physicsRadius), mass=\(bugNode.physicsBody?.mass ?? 0)")
         }
         
         // 🌟 PHASE 3: Enhanced Health & Age Indicators
@@ -4309,34 +4236,26 @@ struct Arena3DView: NSViewRepresentable {
             navResponder.bugNodeToBugMapping[bugNode] = bug
             // Only log navigation mapping for every 20th bug to reduce noise
             if Int.random(in: 1...20) == 1 {
-                print("✅ [NAV-MAPPING] Added bug \(bugId) to NavigationResponder (now has \(navResponder.bugNodeToBugMapping.count) mappings)")
             }
         } else {
             // Only log missing NavigationResponder for every 20th bug
             if Int.random(in: 1...20) == 1 {
-                print("🚨 [NAV-MAPPING] NavigationResponder is NIL when trying to add bug \(bugId)!")
             }
         }
         
         // Only log mapping creation for every 20th bug to reduce noise
         if Int.random(in: 1...20) == 1 {
             let nodeName = bugNode.name ?? "unnamed"
-            print("🎯 [MAPPING] Created mapping: Node '\(nodeName)' → Bug \(bugId)")
-            print("🎯 [MAPPING] Total mappings: Arena=\(bugNodeToBugMapping.count), NavResponder=\(navigationResponder?.bugNodeToBugMapping.count ?? 0)")
         }
         
         // 🔍 Debug: Check if bug node has proper geometry for hit testing
         if bugNode.childNodes.isEmpty {
-            print("⚠️ [MAPPING] Bug node \(bugId) has NO child nodes - might not be clickable!")
         } else {
-            print("✅ [MAPPING] Bug node \(bugId) has \(bugNode.childNodes.count) child nodes")
         }
         
         // 🔍 Debug: Check physics body setup
         if let physicsBody = bugNode.physicsBody {
-            print("✅ [PHYSICS] Bug \(bugId) has physics body: mass=\(physicsBody.mass), category=\(physicsBody.categoryBitMask)")
         } else {
-            print("⚠️ [PHYSICS] Bug \(bugId) has NO physics body - no collision detection!")
         }
         
         return bugNode
@@ -7184,7 +7103,6 @@ struct Arena3DView: NSViewRepresentable {
         // 🚨 DEBUG: Track updateBugPositions call frequency to debug ghost bugs
         updateBugPositionsCount += 1
         if updateBugPositionsCount % 10 == 0 {
-            print("🔄 [UPDATE-BUG-POSITIONS] updateBugPositions called \(updateBugPositionsCount) times")
         }
         
         // 🎮 AAA PERFORMANCE: Measure this critical function
@@ -7199,7 +7117,6 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🚨 HEARTBEAT: Verify this method is running every 10 frames for immediate feedback
         if updateCallCount % 10 == 0 {
-            print("💗 [HEARTBEAT] updateBugPositionsInternal running - call #\(updateCallCount)")
         }
         
         // 🚨 IMMEDIATE GHOST BUG KILLER: Run before ANY other logic!
@@ -7208,44 +7125,35 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🚨 Track dying bugs immediately
         if lowEnergyBugs.count > 0 {
-            print("⚠️ [DYING-SOON] \(lowEnergyBugs.count) bugs with energy ≤ 1.0!")
             for dyingBug in lowEnergyBugs {
                 let dyingId = String(dyingBug.id.uuidString.prefix(8))
-                print("⚠️ [DYING-BUG \(dyingId)] energy=\(String(format: "%.1f", dyingBug.energy)), age=\(dyingBug.age)")
             }
         }
         
         if zeroEnergyBugsImmediate.count > 0 {
-            print("🚨 [IMMEDIATE-GHOST-KILLER] Found \(zeroEnergyBugsImmediate.count) DEAD bugs!")
             
             // Get BugContainer immediately for removal
             if let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) {
                 for deadBug in zeroEnergyBugsImmediate {
                     let deadId = String(deadBug.id.uuidString.prefix(8))
-                    print("💀 [IMMEDIATE-REMOVAL] Dead bug \(deadId): energy=\(deadBug.energy), age=\(deadBug.age)")
                     
                     // 🚨 FORCE REMOVE the visual node immediately
                     if let deadNode = bugContainer.childNode(withName: "Bug_\(deadBug.id.uuidString)", recursively: false) {
-                        print("💀 [FORCE-REMOVAL] Removing visual node for dead bug \(deadId)")
                         deadNode.removeFromParentNode()
                         bugNodeToBugMapping.removeValue(forKey: deadNode)
-                        print("✅ [GHOST-ELIMINATED] Dead bug \(deadId) visual node removed successfully")
                     } else {
-                        print("🚨 [GHOST-MYSTERY] Dead bug \(deadId) has no visual node found!")
                     }
                 }
             }
         }
         // Only log update frequency every 120 frames (4 seconds) to reduce noise
         if updateCallCount % 120 == 0 {
-            print("🔄 [UPDATE-FREQUENCY] updateBugPositionsInternal called \(updateCallCount) times")
             
             // 🚨 SPEED DIAGNOSIS: Check why bugs aren't moving
             let stuckBugs = simulationEngine.bugs.filter { 
                 let decision = $0.lastDecision
                 return decision != nil && (abs(decision!.moveX) < 0.01 && abs(decision!.moveY) < 0.01)
             }
-            print("🔄 [SPEED-DIAGNOSIS] Total bugs: \(simulationEngine.bugs.count), Stuck (no neural movement): \(stuckBugs.count)")
         }
         
         // PHASE 1 DEBUG: Call verification methods
@@ -7259,7 +7167,6 @@ struct Arena3DView: NSViewRepresentable {
         
         // ✅ FIXED: Re-enabled visual positioning - jumping was caused by behavioral animations
         guard let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else { 
-            print("🚨 [VISUAL-UPDATE] BugContainer not found!")
             return 
         }
         
@@ -7275,29 +7182,23 @@ struct Arena3DView: NSViewRepresentable {
         let bugEnergies = simulationEngine.bugs.map { "\(String($0.id.uuidString.prefix(8))):\(String(format: "%.1f", $0.energy))" }
         
         if updateCallCount % 30 == 0 {
-            print("🚨 [ENERGY-DEBUG] All bug energies: \(bugEnergies.joined(separator: ", "))")
-            print("🚨 [ENERGY-DEBUG] Zero energy: \(zeroEnergyBugsSecondary.count), Low energy tracking handled above")
         }
         
         // 🚨 IMMEDIATE: Log any bug with energy ≤ 1.0 (using lowEnergyBugs defined above)
         for bug in lowEnergyBugs {
             let bugId = String(bug.id.uuidString.prefix(8))
             if updateCallCount % 10 == 0 { // Every 10 frames for low energy
-                print("🚨 [DYING-BUG \(bugId)] energy=\(String(format: "%.1f", bug.energy)), isAlive=\(bug.isAlive), age=\(bug.age)")
             }
         }
         
         // 🚨 IMMEDIATE GHOST KILLER: Force remove any bug with negative energy
         let negativeEnergyBugs = simulationEngine.bugs.filter { $0.energy < 0 }
         if negativeEnergyBugs.count > 0 {
-            print("🚨 [GHOST-KILLER] Found \(negativeEnergyBugs.count) bugs with NEGATIVE energy!")
             for ghostBug in negativeEnergyBugs {
                 let ghostId = String(ghostBug.id.uuidString.prefix(8))
-                print("💀 [GHOST-KILLER] CRITICAL: Bug \(ghostId) has energy \(ghostBug.energy) - FORCE REMOVING!")
                 
                 // Find and remove the visual node immediately
                 if let ghostNode = bugContainer.childNode(withName: "Bug_\(ghostBug.id.uuidString)", recursively: false) {
-                    print("💀 [GHOST-KILLER] Removing visual node for ghost bug \(ghostId)")
                     ghostNode.removeFromParentNode()
                     bugNodeToBugMapping.removeValue(forKey: ghostNode)
                 }
@@ -7311,7 +7212,6 @@ struct Arena3DView: NSViewRepresentable {
             // 🚨 FORCE ENERGY TRACKING: Run every 30 frames to see energy changes
             if updateCallCount % 30 == 0 { // Log every 30 frames (1 second)
                 let consumedFoodPos = bug.consumedFood != nil ? "(\(String(format: "%.1f", bug.consumedFood!.x)), \(String(format: "%.1f", bug.consumedFood!.y)))" : "none"
-                print("🍎 [ENERGY-TRACK \(bugId)] Energy: \(String(format: "%.2f", bug.energy)), Age: \(bug.age), Consumed: \(consumedFoodPos)")
                 
                 // Check if bug is near food
                 let nearbyFood = simulationEngine.foods.filter { food in
@@ -7320,29 +7220,23 @@ struct Arena3DView: NSViewRepresentable {
                 }
                 
                 if !nearbyFood.isEmpty {
-                    print("🍎 [FOOD-NEARBY \(bugId)] \(nearbyFood.count) food items within 20 units")
                 }
                 
                 // Log neural movement intent
                 if let decision = bug.lastDecision {
                     let movement = sqrt(decision.moveX * decision.moveX + decision.moveY * decision.moveY)
-                    print("🧠 [NEURAL-INTENT \(bugId)] Movement: \(String(format: "%.3f", movement)), X: \(String(format: "%.3f", decision.moveX)), Y: \(String(format: "%.3f", decision.moveY))")
                 }
             }
         }
         
         // 🚨 FORCE AGGRESSIVE DETECTION: Always check if counts don't match OR if dead bugs exist
         if visualNodes != simulationEngine.bugs.count || deadBugs.count > 0 {
-            print("🚨 [MISMATCH-DETECTED] Visual: \(visualNodes), Sim: \(simulationEngine.bugs.count), Dead: \(deadBugs.count)")
-            print("🚨 [FORCE-DEATH-CHECK] Running aggressive death detection")
             
             // 🚨 EMERGENCY: If we have 0 visual nodes but bugs exist, force immediate recreation
             if visualNodes == 0 && simulationEngine.bugs.count > 0 {
-                print("🚨 [EMERGENCY-RECREATION] 0 visual nodes but \(simulationEngine.bugs.count) simulation bugs! Force creating all missing nodes")
                 for bug in simulationEngine.bugs {
                     let newBugNode = createBugNode(bug: bug)
                     bugContainer.addChildNode(newBugNode)
-                    print("🚨 [EMERGENCY-CREATE] Created visual node for bug \(String(bug.id.uuidString.prefix(8)))")
                 }
                 return // Skip normal processing, let next frame handle positioning
             }
@@ -7354,29 +7248,23 @@ struct Arena3DView: NSViewRepresentable {
         // 🚨 COMPREHENSIVE DEAD BUG CHECK: Look for ANY bugs that should be dead
         let potentiallyDeadBugs = simulationEngine.bugs.filter { $0.energy <= 5.0 } // Check bugs with very low energy
         if !potentiallyDeadBugs.isEmpty {
-            print("🚨 [LOW-ENERGY-SCAN] Found \(potentiallyDeadBugs.count) bugs with energy <= 5.0:")
             for bug in potentiallyDeadBugs {
                 let bugId = String(bug.id.uuidString.prefix(8))
-                print("🚨 [LOW-ENERGY-BUG \(bugId)] energy=\(String(format: "%.1f", bug.energy)), isAlive=\(bug.isAlive), age=\(bug.age)")
                 
                 if bug.energy <= 0 {
-                    print("🚨 [ZERO-ENERGY-FOUND \(bugId)] This bug should be REMOVED immediately!")
                 }
             }
         }
         
         // 🚨 PROCESS ALL ZERO-ENERGY BUGS: Always run this check
         if zeroEnergyBugsSecondary.count > 0 {
-            print("🚨 [ZERO-ENERGY-DETECTED] Found \(zeroEnergyBugsSecondary.count) bugs with 0 energy!")
             for bug in zeroEnergyBugsSecondary {
-                print("🚨 [ZERO-ENERGY] Bug \(String(bug.id.uuidString.prefix(8))): energy=\(bug.energy), age=\(bug.age), isAlive=\(bug.isAlive)")
                 
                 // 🚨 EMERGENCY: Force remove 0-energy bugs immediately regardless of isAlive status
                 let bugIdString = String(bug.id.uuidString.prefix(8))
                 if let visualNode = bugContainer.childNodes.first(where: { 
                     $0.name?.contains(bugIdString) == true 
                 }) {
-                    print("💀 [EMERGENCY-REMOVAL] Force removing 0-energy bug \(bugIdString)")
                     
                     addDeathAnimation(to: visualNode) {
                         // Remove from scene after animation
@@ -7386,7 +7274,6 @@ struct Arena3DView: NSViewRepresentable {
                         self.bugNodeToBugMapping.removeValue(forKey: visualNode)
                         self.navigationResponder?.bugNodeToBugMapping.removeValue(forKey: visualNode)
                         
-                        print("🪦 [EMERGENCY-COMPLETE] Zero-energy bug \(bugIdString) removed from scene")
                     }
                 }
             }
@@ -7396,9 +7283,6 @@ struct Arena3DView: NSViewRepresentable {
         }
         
         if Int.random(in: 1...5) == 1 { // Very frequent logging for debugging
-            print("🔄 [VISUAL-UPDATE] Sim bugs: \(simulationEngine.bugs.count), Visual nodes: \(visualNodes)")
-            print("🔄 [VISUAL-UPDATE] Generation: \(simulationEngine.currentGeneration), Running: \(simulationEngine.isRunning)")
-            print("🔄 [VISUAL-UPDATE] In simulation - Alive: \(aliveBugs.count), Dead: \(deadBugs.count)")
         }
         
         // 🧹 GENERATION CHANGE DETECTION: Check if we need to regenerate all bugs
@@ -7421,7 +7305,6 @@ struct Arena3DView: NSViewRepresentable {
                 let moved = sqrt(pow(currentPos.x - previousPos.x, 2) + pow(currentPos.y - previousPos.y, 2))
                 
                 if moved > 0.5 { // Only log significant movement
-                    print("🔬 [MOVEMENT-TRACKED \(firstBugId)] Sim Position: (\(String(format: "%.1f", currentPos.x)), \(String(format: "%.1f", currentPos.y))) moved \(String(format: "%.1f", moved)) units")
                     
                     // Check if visual node reflects this movement
                     if let visualNode = bugContainer.childNode(withName: "Bug_\(firstBug.id.uuidString)", recursively: false) {
@@ -7429,7 +7312,6 @@ struct Arena3DView: NSViewRepresentable {
                         let visualDistance = sqrt(pow(Double(visualPos.x) - currentPos.x, 2) + pow(Double(visualPos.z) - currentPos.y, 2))
                         
                         if visualDistance > 5.0 {
-                            print("🚨 [POSITION-DESYNC \(firstBugId)] Sim=(\(String(format: "%.1f", currentPos.x)), \(String(format: "%.1f", currentPos.y))) Visual=(\(String(format: "%.1f", visualPos.x)), \(String(format: "%.1f", visualPos.z))) Distance=\(String(format: "%.1f", visualDistance))")
                         }
                     }
                 }
@@ -7438,7 +7320,6 @@ struct Arena3DView: NSViewRepresentable {
             } else {
                 // Initialize tracking
                 bugPositionTracker[firstBug.id] = firstBug.position3D
-                print("🔬 [MOVEMENT-INIT \(firstBugId)] Starting position tracking at (\(String(format: "%.1f", firstBug.position3D.x)), \(String(format: "%.1f", firstBug.position3D.y)))")
             }
         }
         
@@ -7446,7 +7327,6 @@ struct Arena3DView: NSViewRepresentable {
         if trackedBugId == nil && !simulationEngine.bugs.isEmpty {
             trackedBugId = simulationEngine.bugs.first?.id
             movementTrackingStartTime = CACurrentMediaTime()
-            print("🎯 [MOVEMENT-TRACKING] Started tracking bug \(String(trackedBugId?.uuidString.prefix(8) ?? "NONE"))")
         }
         
         for bug in simulationEngine.bugs {
@@ -7474,9 +7354,6 @@ struct Arena3DView: NSViewRepresentable {
                 
                 // Only log position updates for significant movement and reduce frequency 
                 if horizontalDistance > 5.0 && Int.random(in: 1...100) == 1 {
-                    print("🎯 [POSITION-UPDATE] Bug \(String(bug.id.uuidString.prefix(8))): distance=\(String(format: "%.2f", horizontalDistance))")
-                    print("🎯 [POSITION-UPDATE] Current: (\(String(format: "%.1f", currentPosition.x)), \(String(format: "%.1f", currentPosition.z)))")
-                    print("🎯 [POSITION-UPDATE] Target:  (\(String(format: "%.1f", targetPosition.x)), \(String(format: "%.1f", targetPosition.z)))")
                 }
                 
                 // 🔍 VISUAL COORDINATE DEBUG: Track logical vs visual coordinate mapping
@@ -7488,8 +7365,6 @@ struct Arena3DView: NSViewRepresentable {
                 
                 if horizontalDistance > 0.05 { // 🎮 ULTRA-LOW threshold to catch ANY movement
                     // 🎮 AAA GAME DEV FIX: Make movement DRAMATICALLY OBVIOUS for debugging
-                    print("🚨 [POSITION-FIX \(debugId)] FORCE setting position immediately - distance: \(String(format: "%.2f", horizontalDistance))")
-                    print("🚨 [POSITION-FIX \(debugId)] From: (\(String(format: "%.1f", currentPosition.x)), \(String(format: "%.1f", currentPosition.z))) To: (\(String(format: "%.1f", targetPosition.x)), \(String(format: "%.1f", targetPosition.z)))")
                     
                     // Remove any existing animations that might conflict
                     bugNode.removeAllActions()
@@ -7519,14 +7394,11 @@ struct Arena3DView: NSViewRepresentable {
                     
                     // Verify position was set
                     let verifyPosition = bugNode.position
-                    print("🚨 [POSITION-VERIFY \(debugId)] Position after setting: (\(String(format: "%.1f", verifyPosition.x)), \(String(format: "%.1f", verifyPosition.z)))")
-                    print("🎮 [VISUAL-MOVEMENT \(debugId)] Bug should FLASH RED and get BIGGER for movement!")
                     
                     // 🎮 AAA GAME DEV: Track movement frequency
                     movementUpdateCount += 1
                     let currentTime = CACurrentMediaTime()
                     if currentTime - lastMovementLogTime > 1.0 { // Every second
-                        print("🎮 [MOVEMENT-FREQUENCY] \(movementUpdateCount) position updates in last second")
                         movementUpdateCount = 0
                         lastMovementLogTime = currentTime
                     }
@@ -7558,7 +7430,6 @@ struct Arena3DView: NSViewRepresentable {
                     
                     // Log small movements being set directly
                     if horizontalDistance > 0.1 && Int.random(in: 1...200) == 1 {
-                        print("🎬 [DIRECT-POS \(debugId)] Small movement: \(String(format: "%.2f", horizontalDistance)) units")
                     }
                 }
                 
@@ -7567,7 +7438,6 @@ struct Arena3DView: NSViewRepresentable {
             } else {
                 // ✅ DEBUG: Log when bug nodes are missing
                 if Int.random(in: 1...100) == 1 {
-                    print("🚨 [VISUAL-UPDATE] Bug node missing for bug \(String(bug.id.uuidString.prefix(8))) - creating new node")
                 }
                 
                 // Bug node doesn't exist, create it with new Phase 3 visuals
@@ -7589,14 +7459,12 @@ struct Arena3DView: NSViewRepresentable {
         // 🚨 DETAILED ANALYSIS: Check each bug's energy and alive status
         for bug in simulationEngine.bugs {
             if bug.energy <= 0 {
-                print("💀 [CRITICAL-DEAD] Bug \(String(bug.id.uuidString.prefix(8))) has energy \(bug.energy), isAlive: \(bug.isAlive)")
             }
         }
         
         // Find all visual bug nodes
         let allBugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
         
-        print("💀 [DEATH-DEBUG] Simulation bugs: \(currentBugIds.count), Visual nodes: \(allBugNodes.count)")
         
         var orphanedNodes: [SCNNode] = []
         var deadButVisibleNodes: [SCNNode] = []
@@ -7613,23 +7481,19 @@ struct Arena3DView: NSViewRepresentable {
                 
                 if !currentBugIds.contains(bugId) {
                     // Bug completely removed from simulation - it died
-                    print("💀 [ORPHANED-NODE] Bug completely removed: \(bugIdString.prefix(8))")
                     orphanedNodes.append(bugNode)
                 } else if let currentAlive = currentBugStates[bugId], 
                           let previousAlive = previousBugAliveState[bugId],
                           previousAlive && !currentAlive {
                     // Bug still in simulation but transitioned from alive to dead
-                    print("💀 [DEATH-TRANSITION] Bug died: \(bugIdString.prefix(8)) (alive→dead)")
                     deadButVisibleNodes.append(bugNode)
                 } else if let currentAlive = currentBugStates[bugId], !currentAlive {
                     // Bug is dead in simulation and we haven't removed it yet
-                    print("💀 [FOUND-DEAD] Bug is dead in simulation: \(bugIdString.prefix(8))")
                     deadButVisibleNodes.append(bugNode)
                 } else {
                     // 🚨 EXTRA CHECK: Manually check if bug should be dead based on energy
                     if let bug = simulationEngine.bugs.first(where: { $0.id == bugId }) {
                         if bug.energy <= 0 && bug.isAlive {
-                            print("💀 [ENERGY-DEAD] Bug \(bugIdString.prefix(8)) has 0 energy but isAlive=true! Force removing.")
                             deadButVisibleNodes.append(bugNode)
                         }
                     }
@@ -7647,7 +7511,6 @@ struct Arena3DView: NSViewRepresentable {
             let bugIdString = String(nodeName[bugIdRange])
             let bugId = UUID(uuidString: bugIdString)
             
-            print("💀 [DEATH-ANIMATION] Starting death animation for orphaned \(bugIdString.prefix(8))")
             
             addDeathAnimation(to: bugNode) {
                 // Remove from scene after animation
@@ -7661,7 +7524,6 @@ struct Arena3DView: NSViewRepresentable {
                     self.previousBugAliveState.removeValue(forKey: bugId)
                 }
                 
-                print("🪦 [DEATH-COMPLETE] Orphaned bug \(bugIdString.prefix(8)) removed from scene")
             }
         }
         
@@ -7674,7 +7536,6 @@ struct Arena3DView: NSViewRepresentable {
             
             let bugIdString = String(nodeName[bugIdRange])
             
-            print("💀 [DEATH-ANIMATION] Starting death animation for dead \(bugIdString.prefix(8))")
             
             addDeathAnimation(to: bugNode) {
                 // Remove from scene after animation
@@ -7684,13 +7545,11 @@ struct Arena3DView: NSViewRepresentable {
                 self.bugNodeToBugMapping.removeValue(forKey: bugNode)
                 self.navigationResponder?.bugNodeToBugMapping.removeValue(forKey: bugNode)
                 
-                print("🪦 [DEATH-COMPLETE] Dead bug \(bugIdString.prefix(8)) removed from scene")
             }
         }
         
         let totalDeadNodes = orphanedNodes.count + deadButVisibleNodes.count
         if totalDeadNodes > 0 {
-            print("💀 [DEATH-BATCH] Triggered death animations for \(totalDeadNodes) dead bugs (\(orphanedNodes.count) orphaned + \(deadButVisibleNodes.count) dead)")
         }
         
         // Update tracking state for all current bugs
@@ -7716,10 +7575,8 @@ struct Arena3DView: NSViewRepresentable {
             if let bugId = UUID(uuidString: bugIdString) {
                 if !currentBugIds.contains(bugId) {
                     orphanedCount += 1
-                    print("🚨 [EMERGENCY-ORPHAN] Found orphaned visual bug: \(bugIdString.prefix(8))")
                     
                     // Immediate removal with death animation
-                    print("💀 [EMERGENCY-DEATH] Starting emergency death animation for \(bugIdString.prefix(8))")
                     
                     addDeathAnimation(to: bugNode) {
                         bugNode.removeFromParentNode()
@@ -7728,14 +7585,12 @@ struct Arena3DView: NSViewRepresentable {
                         
                         self.previousBugAliveState.removeValue(forKey: bugId)
                         
-                        print("🪦 [EMERGENCY-COMPLETE] Emergency removal of orphaned bug \(bugIdString.prefix(8))")
                     }
                 }
             }
         }
         
         if orphanedCount > 0 {
-            print("🚨 [EMERGENCY-BATCH] Found \(orphanedCount) orphaned visual bugs, starting emergency cleanup")
         }
     }
     
@@ -7751,8 +7606,6 @@ struct Arena3DView: NSViewRepresentable {
         // Only log generation debug every 60 frames (2 seconds) unless there's a change
         let shouldLogGenDebug = updateCallCount % 60 == 0 || currentGeneration != previousGeneration || currentBugCount != visualNodeCount
         if shouldLogGenDebug {
-            print("🧬 [GENERATION-DEBUG] Gen: \(currentGeneration), PrevGen: \(previousGeneration), Same: \(currentGeneration == previousGeneration)")
-            print("🧬 [GENERATION-DEBUG] Bugs: \(currentBugCount), Visual: \(visualNodeCount), Jump: \(currentBugCount > visualNodeCount + 5)")
         }
         
         // 🚨 EMERGENCY: If we see evolution logs but no generation change, force detection
@@ -7780,13 +7633,9 @@ struct Arena3DView: NSViewRepresentable {
             }
             
             if shouldLogGenDebug {
-                print("🧬 [GENERATION-DEBUG] Visual IDs: \(visualBugIds.joined(separator: ","))")
-                print("🧬 [GENERATION-DEBUG] ID Mismatches: \(nodeIdMismatches)/\(visualBugIds.count)")
             }
             
             if nodeIdMismatches > 10 { // If more than half don't match, assume evolution happened
-                print("🚨 [EMERGENCY-EVOLUTION] Detected stealth evolution! \(nodeIdMismatches) visual bugs don't match simulation")
-                print("🚨 [FORCE-GENERATION-CHANGE] Forcing generation reset despite same numbers")
             }
         }
         
@@ -7800,19 +7649,12 @@ struct Arena3DView: NSViewRepresentable {
         let massiveReplacement = replacementRatio > 0.8 && !previousBugIds.isEmpty
         
         if shouldLogGenDebug {
-            print("🧬 [GENERATION-DEBUG] Replacement ratio: \(String(format: "%.2f", replacementRatio)), Massive: \(massiveReplacement)")
-            print("🧬 [GENERATION-DEBUG] Common IDs: \(commonIds.count), Previous: \(previousBugIds.count), Current: \(currentBugIds.count)")
         }
         
         if generationChanged || populationJumped || massiveReplacement {
-            print("🧬 [GENERATION-CHANGE] Evolution detected!")
-            print("🧬 [GENERATION-CHANGE] Gen: \(previousGeneration) → \(currentGeneration)")
-            print("🧬 [GENERATION-CHANGE] Pop: \(visualNodeCount) → \(currentBugCount)")
-            print("🧬 [GENERATION-CHANGE] Reason: \(generationChanged ? "Gen change" : "Population jump")")
             
             // Remove all existing bug nodes (they represent the old generation)
             let allBugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
-            print("🧬 [GENERATION-CHANGE] Removing \(allBugNodes.count) old generation nodes")
             
             for bugNode in allBugNodes {
                 // No death animation for generation change - instant removal
@@ -7826,7 +7668,6 @@ struct Arena3DView: NSViewRepresentable {
             // Clear NavigationResponder mappings too
             navigationResponder?.bugNodeToBugMapping.removeAll()
             
-            print("🧹 [GENERATION-CLEANUP] Removed \(allBugNodes.count) nodes from previous generation")
             
             // Update generation tracking
             previousGeneration = currentGeneration
@@ -7835,14 +7676,12 @@ struct Arena3DView: NSViewRepresentable {
             // Note: New bug nodes will be created automatically in the main loop
             // when it detects missing nodes for the current bugs
             
-            print("✨ [GENERATION-READY] Ready to create \(simulationEngine.bugs.count) new bugs for generation \(currentGeneration)")
             
             // Force initialization of new bug tracking states
             for bug in simulationEngine.bugs {
                 previousBugAliveState[bug.id] = bug.isAlive
             }
             
-            print("✨ [GENERATION-COMPLETE] Evolution visual update complete")
         } else {
             // No generation change detected, but update tracking for next time
             previousBugIds = currentBugIds
@@ -7859,11 +7698,9 @@ struct Arena3DView: NSViewRepresentable {
         // Combine animations
         let deathAnimation = SCNAction.group([fadeOut, scaleDown, spinAction])
         
-        print("🎭 [DEATH-ANIMATION] Starting 1-second death animation for node")
         
         // Run animation and then call completion
         bugNode.runAction(deathAnimation) {
-            print("🎭 [DEATH-ANIMATION] Death animation completed, removing node")
             completion()
         }
     }
@@ -8083,24 +7920,18 @@ struct Arena3DView: NSViewRepresentable {
         // Try direct reference first
         if let navigationResponder = navigationResponder {
             navigationResponder.bugNodeToBugMapping = bugNodeToBugMapping
-            print("✅ [MAPPING-REFRESH] Direct transfer: \(bugNodeToBugMapping.count) bug mappings to NavigationResponder")
-            print("🎯 [MAPPING-REFRESH] NavigationResponder now has \(navigationResponder.bugNodeToBugMapping.count) mappings")
             return
         }
         
         // Backup: Search for NavigationResponder in the view hierarchy
-        print("🔍 [MAPPING-REFRESH] NavigationResponder is nil, searching view hierarchy...")
         if let foundResponder = findNavigationResponderInHierarchy() {
             foundResponder.bugNodeToBugMapping = bugNodeToBugMapping
-            print("✅ [MAPPING-REFRESH] Backup transfer: \(bugNodeToBugMapping.count) bug mappings to found NavigationResponder")
-            print("🎯 [MAPPING-REFRESH] Found NavigationResponder now has \(foundResponder.bugNodeToBugMapping.count) mappings")
             
             // Update our reference
             self.navigationResponder = foundResponder
             return
         }
         
-        print("🚨 [MAPPING-REFRESH] No NavigationResponder found, will retry on next click")
     }
     
     // Helper function to find NavigationResponder in view hierarchy
@@ -8215,10 +8046,8 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🎯 Store reference for later updates
         self.navigationResponder = navigationResponder
-        print("✅ [NAV-SETUP] NavigationResponder stored: \(ObjectIdentifier(navigationResponder))")
         
         // 🎯 Ensure mappings are properly transferred after initial setup
-        print("🎯 [NAV-SETUP] Initial mapping transfer: Arena has \(bugNodeToBugMapping.count) mappings")
         refreshNavigationResponderMappings()
         
         // FORCE it to become first responder and update camera reference
@@ -8628,7 +8457,6 @@ class NavigationResponderView: NSView {
     
     override func mouseDown(with event: NSEvent) {
         // Mouse down - making first responder
-        print("🖱️ [MOUSE] NavigationResponder received mouseDown")
         self.window?.makeFirstResponder(self)
         
         // 🎯 Bug Selection: Handle click for bug selection
@@ -8638,17 +8466,14 @@ class NavigationResponderView: NSView {
     // 🎯 Bug Selection: Handle clicks on bugs
     private func handleBugSelection(with event: NSEvent) {
         guard let sceneView = sceneView else {
-            print("🚨 [BUG-SELECTION] No sceneView available")
             return
         }
         
         // 🎯 LAZY REFRESH: Check if we need to use fallback mappings
         if bugNodeToBugMapping.count == 0 && getFallbackBugMappings != nil {
-            print("🔄 [LAZY-REFRESH] NavigationResponder has no mappings, will use fallback...")
         }
         
         let clickLocation = convert(event.locationInWindow, from: nil)
-        print("🎯 [BUG-SELECTION] Click at location: \(clickLocation)")
         
         // Perform hit test to find clicked objects
         let hitResults = sceneView.hitTest(clickLocation, options: [
@@ -8656,13 +8481,11 @@ class NavigationResponderView: NSView {
             .ignoreHiddenNodes: true
         ])
         
-        print("🎯 [BUG-SELECTION] Hit test found \(hitResults.count) results")
         
         // Debug: Print all hit results
         for (index, hitResult) in hitResults.enumerated() {
             let nodeName = hitResult.node.name ?? "unnamed"
             let nodeType = String(describing: type(of: hitResult.node))
-            print("🎯 [HIT-\(index)] Node: '\(nodeName)' Type: \(nodeType)")
             
             // Check if this node or any parent is in our bug mapping
             var currentNode: SCNNode? = hitResult.node
@@ -8670,9 +8493,7 @@ class NavigationResponderView: NSView {
             while currentNode != nil {
                 let currentName = currentNode?.name ?? "unnamed"
                 if let bug = bugNodeToBugMapping[currentNode!] {
-                    print("🎯 [FOUND-BUG] At parent level \(parentLevel): \(bug.id.uuidString.prefix(8)) in node '\(currentName)'")
                 } else {
-                    print("🔍 [HIERARCHY-\(parentLevel)] Node '\(currentName)' not in mapping")
                 }
                 currentNode = currentNode?.parent
                 parentLevel += 1
@@ -8680,23 +8501,18 @@ class NavigationResponderView: NSView {
             }
         }
         
-        print("🎯 [BUG-SELECTION] Total bugs in mapping: \(bugNodeToBugMapping.count)")
-        print("🎯 [BUG-SELECTION] NavigationResponder \(ObjectIdentifier(self)) has \(bugNodeToBugMapping.count) mappings")
         let fallbackMappings = getFallbackBugMappings?() ?? [:]
-        print("🎯 [BUG-SELECTION] Arena3DView has \(fallbackMappings.count) mappings (fallback)")
         
         // Find the first bug node that was clicked
         for hitResult in hitResults {
             // Try NavigationResponder's mappings first
             if let bug = bugNodeToBugMapping[hitResult.node] {
-                print("🎯 [BUG-SELECTION] Selected bug (NavigationResponder): \(bug.id.uuidString.prefix(8))")
                 onBugSelected?(bug)
                 return
             }
             
             // 🎯 FALLBACK: Try Arena3DView's mappings
             if let bug = fallbackMappings[hitResult.node] {
-                print("🎯 [BUG-SELECTION] Selected bug (Arena3DView fallback): \(bug.id.uuidString.prefix(8))")
                 onBugSelected?(bug)
                 return
             }
@@ -8706,14 +8522,12 @@ class NavigationResponderView: NSView {
             while parentNode != nil {
                 // Try NavigationResponder's mappings for parent
                 if let bug = bugNodeToBugMapping[parentNode!] {
-                    print("🎯 [BUG-SELECTION] Selected bug via parent (NavigationResponder): \(bug.id.uuidString.prefix(8))")
                     onBugSelected?(bug)
                     return
                 }
                 
                 // 🎯 FALLBACK: Try Arena3DView's mappings for parent
                 if let bug = fallbackMappings[parentNode!] {
-                    print("🎯 [BUG-SELECTION] Selected bug via parent (Arena3DView fallback): \(bug.id.uuidString.prefix(8))")
                     onBugSelected?(bug)
                     return
                 }
@@ -8723,7 +8537,6 @@ class NavigationResponderView: NSView {
         }
         
         // No bug clicked - deselect
-        print("🎯 [BUG-SELECTION] Deselected (clicked on background)")
         onBugSelected?(nil)
     }
     
@@ -8886,20 +8699,15 @@ class PerformanceLogger {
         // Log if operation exceeds threshold (16ms = 60 FPS)
         if duration > threshold {
             let ms = duration * 1000
-            print("⚠️ [PERF-SLOW] \(operation): \(String(format: "%.2f", ms))ms (threshold: \(String(format: "%.2f", threshold * 1000))ms)")
             
             // Print stack trace for slow operations
             if !measurement.stackTrace.isEmpty {
-                print("📍 [STACK-TRACE] \(operation):")
-                print(measurement.stackTrace)
             }
         }
     }
     
     /// Log comprehensive performance report
     func logPerformanceReport() {
-        print("\n🎮 [AAA-PERF-REPORT] Performance Analysis:")
-        print("=" + String(repeating: "=", count: 59))
         
         let sortedMeasurements = measurements.sorted { $0.value.averageTime > $1.value.averageTime }
         
@@ -8909,28 +8717,17 @@ class PerformanceLogger {
             let minMs = measurement.minTime * 1000
             let lastMs = measurement.lastCallTime * 1000
             
-            print("🔍 \(operation):")
-            print("   Calls: \(measurement.callCount)")
-            print("   Avg: \(String(format: "%.2f", avgMs))ms")
-            print("   Max: \(String(format: "%.2f", maxMs))ms") 
-            print("   Min: \(String(format: "%.2f", minMs))ms")
-            print("   Last: \(String(format: "%.2f", lastMs))ms")
             
             // Highlight problematic operations
             if measurement.averageTime > 0.016 { // > 16ms
-                print("   ⚠️  PERFORMANCE ISSUE: Exceeds 60 FPS budget")
             }
-            print("")
         }
         
-        print("=" + String(repeating: "=", count: 59))
-        print("🎯 Total operations tracked: \(measurements.count)\n")
     }
     
     /// Reset all measurements
     func reset() {
         measurements.removeAll()
-        print("🔄 [PERF] Performance measurements reset")
     }
     
     /// Quick performance wrapper for measuring blocks

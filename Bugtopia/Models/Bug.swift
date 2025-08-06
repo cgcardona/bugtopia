@@ -400,7 +400,7 @@ class Bug: Identifiable, Hashable {
         // Only log critical speed problems
         let debugId = String(id.uuidString.prefix(8))
         if rawFinalSpeed <= 0.01 {
-            print("🚨 [SPEED-PROBLEM \(debugId)] CRITICAL: Speed=\(String(format: "%.3f", rawFinalSpeed)) → final=\(String(format: "%.3f", finalSpeed))")
+
         }
         
         // Neural network controls movement direction with enhanced X-axis exploration
@@ -411,9 +411,9 @@ class Bug: Identifiable, Hashable {
         
         // ✅ ENHANCED DEBUG: Log when bugs stop moving after successful movement
         if abs(neuralVelocity.x) < 0.1 && abs(neuralVelocity.y) < 0.1 && Int.random(in: 1...50) == 1 {
-            print("🛑 [MOVEMENT-STOPPED \(debugId)] Age=\(age), Energy=\(String(format: "%.1f", energy))")
-            print("🛑 [MOVEMENT-STOPPED \(debugId)] Neural: X=\(String(format: "%.3f", decision.moveX)), Y=\(String(format: "%.3f", decision.moveY))")
-            print("🛑 [MOVEMENT-STOPPED \(debugId)] Speed: base=\(String(format: "%.3f", baseSpeed)), terrain=\(String(format: "%.3f", terrainSpeed)), weather=\(String(format: "%.3f", weatherSpeed)), final=\(String(format: "%.3f", finalSpeed))")
+
+
+
         }
         
         // Apply disaster displacement force (earthquakes, floods, etc.)

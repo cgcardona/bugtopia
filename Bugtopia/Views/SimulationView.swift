@@ -45,9 +45,9 @@ struct SimulationView: View {
     private func handleBugSelection(_ bug: Bug?) {
         selectedBug = bug
         if let bug = bug {
-            print("🎯 [UI] Selected bug: \(bug.id.uuidString.prefix(8)) - Age: \(bug.age), Energy: \(String(format: "%.1f", bug.energy))")
+
         } else {
-            print("🎯 [UI] Deselected bug")
+
         }
     }
     
@@ -189,9 +189,9 @@ struct SimulationView: View {
         }
         .onAppear {
             // 🎯 Set up bug selection callback
-            print("🎯 [UI-SETUP] Setting up bug selection callback")
+
             engineManager.onBugSelected = handleBugSelection
-            print("🎯 [UI-SETUP] Bug selection callback connected")
+
         }
     }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -241,7 +241,7 @@ struct SimulationView: View {
     // 🧠 Export neural weight analysis data
     private func exportWeights() {
         let csvData = simulationEngine.exportWeightAnalysis()
-        
+      
         // Use file save dialog
         let savePanel = NSSavePanel()
         savePanel.title = "Export Neural Weight Analysis"
@@ -253,9 +253,9 @@ struct SimulationView: View {
             
             do {
                 try csvData.write(to: url, atomically: true, encoding: .utf8)
-                print("📊 [EXPORT] Neural weight data exported to: \(url.path)")
+
             } catch {
-                print("❌ [EXPORT] Failed to export weight data: \(error)")
+
             }
         }
     }

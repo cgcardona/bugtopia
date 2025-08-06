@@ -37,7 +37,7 @@ class SimulationEngine {
     let voxelWorld: VoxelWorld
     let pathfinding: VoxelPathfinding
     private let maxPopulation = 800  // MASSIVE INCREASE: 4.4x more bugs for extensive debugging
-    private let initialPopulation = 60    // 🐛 DEBUG: Increased population for easier energy observation
+    private let initialPopulation = 1     // 🐛 FOCUS: Single bug for simulation-visual sync debugging
     private let maxFoodItems = 5000  // MASSIVE INCREASE: 4.2x more food to eliminate food scarcity
     private let baseFoodSpawnRate = 0.99 // MAXIMUM: Near-constant food spawning for abundant resources
     
@@ -105,9 +105,9 @@ class SimulationEngine {
             result[species, default: 0] += 1
         }
         
-        print("📊 [POPULATION-ANALYTICS] Gen=\(currentGeneration) Pop=\(bugs.count)")
-        print("📊 [NEURAL-AVERAGES] Complexity=\(String(format: "%.1f", averageComplexity)) Layers=\(String(format: "%.1f", averageLayers))")
-        print("📊 [SPECIES-DISTRIBUTION] \(speciesBreakdown)")
+
+
+
         
         // Every 10 generations, log weight distributions
         if currentGeneration % 10 == 0 {
@@ -134,12 +134,12 @@ class SimulationEngine {
         
         if !energyWeights.isEmpty {
             let avgEnergy = energyWeights.reduce(0, +) / Double(energyWeights.count)
-            print("📊 [WEIGHT-DISTRIBUTION] Energy→Hidden avg=\(String(format: "%.3f", avgEnergy)) range=[\(String(format: "%.3f", energyWeights.min() ?? 0))...\(String(format: "%.3f", energyWeights.max() ?? 0))]")
+
         }
         
         if !movementWeights.isEmpty {
             let avgMovement = movementWeights.reduce(0, +) / Double(movementWeights.count)
-            print("📊 [WEIGHT-DISTRIBUTION] Final→MoveX avg=\(String(format: "%.3f", avgMovement)) range=[\(String(format: "%.3f", movementWeights.min() ?? 0))...\(String(format: "%.3f", movementWeights.max() ?? 0))]")
+
         }
     }
     
@@ -257,6 +257,8 @@ class SimulationEngine {
         // Update all bugs with neural decisions first, then movement
         var newSignals: [Signal] = []
         for bug in bugs {
+            // 🎯 MOVEMENT TRACKING: Capture position before update
+            let positionBefore = bug.position3D
             // 🧠 FIRST: Make neural network decisions and update behaviors
             bug.update(
                 in: createVoxelArenaAdapter(),
@@ -268,6 +270,74 @@ class SimulationEngine {
                 ecosystemManager: ecosystemManager,
                 territoryManager: territoryManager
             )
+            
+            // 🎯 EXTENSIVE SINGLE BUG LOGGING - Track every aspect of our test bug
+            if bugs.count == 1 { // Only log when we have our single test bug
+                let bugId = String(bug.id.uuidString.prefix(8))
+                print("\n🐛 ============ BUG STATE ANALYSIS [Tick \(tickCount)] ============")
+                print("🆔 Bug ID: \(bugId) | Generation: \(bug.generation) | Age: \(bug.age)")
+                print("⚡ Energy: \(String(format: "%.2f", bug.energy)) | Alive: \(bug.isAlive)")
+                print("📍 Position: (\(String(format: "%.1f", bug.position3D.x)), \(String(format: "%.1f", bug.position3D.y)), \(String(format: "%.1f", bug.position3D.z)))")
+                
+                // Neural decision analysis
+                if let decision = bug.lastDecision {
+                    print("🧠 Neural Outputs:")
+                    print("   MoveX: \(String(format: "%.3f", decision.moveX)) | MoveY: \(String(format: "%.3f", decision.moveY)) | MoveZ: \(String(format: "%.3f", decision.moveZ))")
+                    print("   Hunt: \(String(format: "%.3f", decision.hunt)) | Social: \(String(format: "%.3f", decision.social)) | Rest: \(String(format: "%.3f", decision.rest))")
+                    print("   Reproduce: \(String(format: "%.3f", decision.reproduce)) | Signal: \(String(format: "%.3f", decision.emitSignal)) | Tool: \(String(format: "%.3f", decision.toolUse))")
+                    print("   Explore: \(String(format: "%.3f", decision.explore))")
+                } else {
+                    print("🚨 No neural decision recorded!")
+                }
+                
+                // Food awareness analysis
+                print("🍎 Food Analysis:")
+                let nearbyFoods = foods.filter { bug.distance(to: $0.position) < 100.0 }.sorted { bug.distance(to: $0.position) < bug.distance(to: $1.position) }
+                if nearbyFoods.isEmpty {
+                    print("   No food within 100 units")
+                } else {
+                    print("   Found \(nearbyFoods.count) food items within 100 units:")
+                    for (index, food) in nearbyFoods.prefix(3).enumerated() {
+                        let distance = bug.distance(to: food.position)
+                        let direction = atan2(food.position.y - bug.position3D.y, food.position.x - bug.position3D.x) * 180 / .pi
+                        print("     [\(index+1)] \(food.type.rawValue) at distance \(String(format: "%.1f", distance)), angle \(String(format: "%.0f", direction))°")
+                    }
+                }
+                
+                // Species and traits
+                print("🧬 Species: \(bug.dna.speciesTraits.speciesType.rawValue)")
+                print("🎭 Traits: Diet=\(bug.dna.speciesTraits.dietPreference), Size=\(bug.dna.speciesTraits.size), Social=\(bug.dna.speciesTraits.socialBehavior)")
+                
+                // Movement intention vs actual
+                if let decision = bug.lastDecision {
+                    let intendedMovement = sqrt(decision.moveX * decision.moveX + decision.moveY * decision.moveY)
+                    if intendedMovement > 0.1 {
+                        print("🏃 MOVEMENT INTENTION: \(String(format: "%.3f", intendedMovement)) units")
+                        print("   Direction: \(String(format: "%.0f", atan2(decision.moveY, decision.moveX) * 180 / .pi))° (0°=East, 90°=North)")
+                    } else {
+                        print("😴 RESTING: No significant movement intention")
+                    }
+                }
+                
+                // 🎯 MOVEMENT VERIFICATION: Compare positions before/after update
+                let positionAfter = bug.position3D
+                let actualMovement = sqrt(
+                    pow(positionAfter.x - positionBefore.x, 2) + 
+                    pow(positionAfter.y - positionBefore.y, 2) + 
+                    pow(positionAfter.z - positionBefore.z, 2)
+                )
+                
+                if actualMovement > 0.001 { // Threshold for meaningful movement
+                    print("✅ ACTUAL MOVEMENT: \(String(format: "%.3f", actualMovement)) units")
+                    print("   From: (\(String(format: "%.2f", positionBefore.x)), \(String(format: "%.2f", positionBefore.y)), \(String(format: "%.2f", positionBefore.z)))")
+                    print("   To:   (\(String(format: "%.2f", positionAfter.x)), \(String(format: "%.2f", positionAfter.y)), \(String(format: "%.2f", positionAfter.z)))")
+                    print("   Delta: (\(String(format: "%.3f", positionAfter.x - positionBefore.x)), \(String(format: "%.3f", positionAfter.y - positionBefore.y)), \(String(format: "%.3f", positionAfter.z - positionBefore.z)))")
+                } else {
+                    print("❌ NO MOVEMENT: Position unchanged (delta: \(String(format: "%.6f", actualMovement)))")
+                }
+                
+                print("🐛 ============ END BUG ANALYSIS ============\n")
+            }
             
             // 🚶 SECOND: Use fresh neural decisions for voxel-based movement
             // 🔧 CONTINENTAL WORLD FIX: Disable voxel pathfinding to prevent Z-axis conflicts
@@ -354,17 +424,20 @@ class SimulationEngine {
     
     /// Sets up the initial random population using voxel world spawn points
     private func setupInitialPopulation() {
-        // SimulationEngine: Creating initial population
+        // 🎯 FOCUSED DEBUGGING: Single bug positioned directly in front of camera
         bugs = (0..<initialPopulation).map { index in
-            let spawnPosition3D = voxelWorld.findSpawnPosition()
-            let surfacePosition = calculateSurfaceSpawnPosition(spawnPosition3D)
-            let bug = Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: 0)
-            if index < 3 {
-                // Bug spawned at surface position
-            }
+            // Position bug at world center where camera is looking
+            let bounds = voxelWorld.worldBounds
+            let centerPosition = Position3D(
+                x: bounds.midX,           // Center X (camera looks here)
+                y: bounds.midY,           // Center Y (camera looks here) 
+                z: -5.0                   // Surface level (camera looks at z=-5)
+            )
+            
+            let bug = Bug(dna: BugDNA.random(), position3D: centerPosition, generation: 0)
             return bug
         }
-        // SimulationEngine: Created bugs successfully
+        // 🎯 Single bug created at camera focus point
     }
     
     /// Calculate proper surface position for spawning bugs
@@ -477,8 +550,8 @@ class SimulationEngine {
     private func evolvePopulation() {
         currentGeneration += 1
         
-        print("🧬 [EVOLUTION] Starting evolution to generation \(currentGeneration)")
-        print("🧬 [EVOLUTION] Pre-evolution population: \(bugs.count)")
+
+
         
         // Always log population analytics every generation
         logPopulationAnalytics()
@@ -555,12 +628,12 @@ class SimulationEngine {
         
         bugs = newPopulation
         
-        print("🧬 [EVOLUTION] Evolution complete!")
-        print("🧬 [EVOLUTION] Target population: \(initialPopulation)")
-        print("🧬 [EVOLUTION] Actual population: \(bugs.count)")
-        print("🧬 [EVOLUTION] Survivors: \(survivors.count)")
-        print("🧬 [EVOLUTION] Elite count: \(eliteCount)")
-        print("🧬 [EVOLUTION] Survival count: \(survivalCount)")
+
+
+
+
+
+
         
         // Update statistics for new generation
         updateGenerationStatistics()
@@ -621,7 +694,30 @@ class SimulationEngine {
     private func spawnInitialFood() {
         var newFoods: [FoodItem] = []
         
-        // Determine dominant species for food type distribution
+        // 🎯 FOCUSED DEBUGGING: Place food near the center bug for easy testing
+        let bounds = voxelWorld.worldBounds
+        let centerX = bounds.midX
+        let centerY = bounds.midY
+        
+        // Spawn several food items in a circle around the center bug
+        let foodCount = 5
+        for i in 0..<foodCount {
+            let angle = Double(i) * (2.0 * .pi / Double(foodCount))
+            let radius = 30.0 // Close but not too close
+            let foodPosition = CGPoint(
+                x: centerX + radius * cos(angle),
+                y: centerY + radius * sin(angle)
+            )
+            
+            // Mix of herbivore and carnivore foods for testing
+            let isHerbivoreFood = i % 2 == 0
+            let targetSpecies: SpeciesType = isHerbivoreFood ? .herbivore : .carnivore
+            let foodType = isHerbivoreFood ? .berries : .corpse
+            let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+            newFoods.append(foodItem)
+        }
+        
+        // Original logic (reduced for focused debugging)
         let herbivoreFoodRatio = 0.8 // 80% herbivore foods for now
         
         // Spawn food in designated food zones (limited to prevent oversaturation)
