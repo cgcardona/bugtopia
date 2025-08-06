@@ -41,6 +41,17 @@ class SimulationEngine {
     private let maxFoodItems = 5000  // MASSIVE INCREASE: 4.2x more food to eliminate food scarcity
     private let baseFoodSpawnRate = 0.99 // MAXIMUM: Near-constant food spawning for abundant resources
     
+    // MARK: - Simulation Speed & Analysis
+    
+    /// Current simulation speed multiplier (1x = normal, 10x = fast evolution)
+    var speedMultiplier: Double = 1.0
+    
+    /// Weight analysis logging enabled
+    var enableWeightLogging: Bool = false
+    
+    /// Generation to start detailed logging
+    var logStartGeneration: Int = 0
+    
     // MARK: - Evolution Parameters
     
     let generationLength = 500 // Ticks per generation (public for UI)
@@ -50,6 +61,106 @@ class SimulationEngine {
     // MARK: - Statistics
     
     private(set) var statistics = SimulationStatistics()
+    
+    // MARK: - Neural Network Analysis
+    
+    /// CSV header for weight data export
+    private let csvHeader = "BugID,Generation,Species,SurvivalTime,Complexity,energy_to_hidden1_n1,energy_to_hidden1_n2,age_to_hidden1_n1,age_to_hidden1_n2,food_distance_influence,food_dirX_influence,food_dirY_influence,final_to_moveX,final_to_moveY,final_to_moveZ"
+    
+    /// Collected weight analysis data
+    private var weightAnalysisData: [String] = []
+    
+    // MARK: - Neural Network Analysis Methods
+    
+    /// Log neural network weights for detailed analysis
+    private func logNeuralWeights(for bug: Bug, survivalTime: Int = 0) {
+        guard enableWeightLogging && currentGeneration >= logStartGeneration else { return }
+        
+        let bugId = String(bug.id.uuidString.prefix(8))
+        let species = bug.dna.speciesTraits.speciesType.rawValue
+        let neuralNetwork = NeuralNetwork(dna: bug.dna.neuralDNA)
+        
+        // Log to console
+        neuralNetwork.logNetworkAnalysis(bugId: bugId, generation: currentGeneration)
+        
+        // Collect CSV data
+        let csvRow = neuralNetwork.exportWeightsCSV(
+            bugId: bugId,
+            generation: currentGeneration,
+            species: species,
+            survivalTime: survivalTime
+        )
+        weightAnalysisData.append(csvRow)
+        
+        // Log population averages every generation
+        if weightAnalysisData.count % max(1, Int(speedMultiplier * 10)) == 0 {
+            logPopulationAnalytics()
+        }
+    }
+    
+    /// Log population-level neural network analytics
+    private func logPopulationAnalytics() {
+        guard !bugs.isEmpty else { return }
+        
+        let averageComplexity = bugs.map { Double($0.dna.neuralDNA.weights.count + $0.dna.neuralDNA.biases.count) }.reduce(0, +) / Double(bugs.count)
+        let averageLayers = bugs.map { Double($0.dna.neuralDNA.topology.count) }.reduce(0, +) / Double(bugs.count)
+        
+        let speciesBreakdown = bugs.reduce(into: [String: Int]()) { result, bug in
+            let species = bug.dna.speciesTraits.speciesType.rawValue
+            result[species, default: 0] += 1
+        }
+        
+        print("📊 [POPULATION-ANALYTICS] Gen=\(currentGeneration) Pop=\(bugs.count)")
+        print("📊 [NEURAL-AVERAGES] Complexity=\(String(format: "%.1f", averageComplexity)) Layers=\(String(format: "%.1f", averageLayers))")
+        print("📊 [SPECIES-DISTRIBUTION] \(speciesBreakdown)")
+        
+        // Every 10 generations, log weight distributions
+        if currentGeneration % 10 == 0 {
+            logWeightDistributions()
+        }
+    }
+    
+    /// Analyze weight distributions across the population
+    private func logWeightDistributions() {
+        var energyWeights: [Double] = []
+        var movementWeights: [Double] = []
+        
+        for bug in bugs {
+            let neuralNetwork = NeuralNetwork(dna: bug.dna.neuralDNA)
+            let weights = neuralNetwork.getCriticalWeights()
+            
+            if let energyWeight = weights["energy_to_hidden1_n1"] {
+                energyWeights.append(energyWeight)
+            }
+            if let moveXWeight = weights["final_to_moveX"] {
+                movementWeights.append(moveXWeight)
+            }
+        }
+        
+        if !energyWeights.isEmpty {
+            let avgEnergy = energyWeights.reduce(0, +) / Double(energyWeights.count)
+            print("📊 [WEIGHT-DISTRIBUTION] Energy→Hidden avg=\(String(format: "%.3f", avgEnergy)) range=[\(String(format: "%.3f", energyWeights.min() ?? 0))...\(String(format: "%.3f", energyWeights.max() ?? 0))]")
+        }
+        
+        if !movementWeights.isEmpty {
+            let avgMovement = movementWeights.reduce(0, +) / Double(movementWeights.count)
+            print("📊 [WEIGHT-DISTRIBUTION] Final→MoveX avg=\(String(format: "%.3f", avgMovement)) range=[\(String(format: "%.3f", movementWeights.min() ?? 0))...\(String(format: "%.3f", movementWeights.max() ?? 0))]")
+        }
+    }
+    
+    /// Export collected weight analysis data
+    func exportWeightAnalysis() -> String {
+        var export = csvHeader + "\n"
+        for row in weightAnalysisData {
+            export += row + "\n"
+        }
+        return export
+    }
+    
+    /// Clear collected weight analysis data
+    func clearWeightAnalysis() {
+        weightAnalysisData.removeAll()
+    }
     
     // MARK: - Timer
     
@@ -137,6 +248,15 @@ class SimulationEngine {
     
     /// Executes one simulation tick
     private func tick() {
+        // Apply speed multiplier - run multiple internal ticks for faster evolution
+        let ticksToRun = max(1, Int(speedMultiplier))
+        for _ in 0..<ticksToRun {
+            performSingleTick()
+        }
+    }
+    
+    /// Perform a single simulation tick (extracted for speed control)
+    private func performSingleTick() {
         tickCount += 1
         
         // Update all bugs with neural decisions first, then movement
@@ -397,6 +517,9 @@ class SimulationEngine {
             let refreshedBug = Bug(dna: survivor.dna, position3D: survivor.position3D, generation: currentGeneration)
             refreshedBug.energy = Bug.initialEnergy
             newPopulation.append(refreshedBug)
+            
+            // Log neural weights for survivors
+            logNeuralWeights(for: refreshedBug, survivalTime: survivor.age)
         }
         
         // Fill rest of population with offspring
@@ -406,7 +529,9 @@ class SimulationEngine {
                 // If no survivors, create random bug
                 let randomPosition3D = voxelWorld.findSpawnPosition()
                 let surfacePosition = calculateSurfaceSpawnPosition(randomPosition3D)
-                newPopulation.append(Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: currentGeneration))
+                let newBug = Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: currentGeneration)
+                newPopulation.append(newBug)
+                logNeuralWeights(for: newBug, survivalTime: 0)
                 continue
             }
             
@@ -415,7 +540,9 @@ class SimulationEngine {
                 let mutatedDNA = parent1.dna.mutated(mutationRate: 0.2, mutationStrength: 0.3)
                 let childPosition3D = voxelWorld.findSpawnPosition()
                 let surfacePosition = calculateSurfaceSpawnPosition(childPosition3D)
-                newPopulation.append(Bug(dna: mutatedDNA, position3D: surfacePosition, generation: currentGeneration))
+                let newBug = Bug(dna: mutatedDNA, position3D: surfacePosition, generation: currentGeneration)
+                newPopulation.append(newBug)
+                logNeuralWeights(for: newBug, survivalTime: 0)
                 continue
             }
             
@@ -423,7 +550,9 @@ class SimulationEngine {
             let childPosition3D = voxelWorld.findSpawnPosition()
             let surfacePosition = calculateSurfaceSpawnPosition(childPosition3D)
             
-            newPopulation.append(Bug(dna: childDNA, position3D: surfacePosition, generation: currentGeneration))
+            let newBug = Bug(dna: childDNA, position3D: surfacePosition, generation: currentGeneration)
+            newPopulation.append(newBug)
+            logNeuralWeights(for: newBug, survivalTime: 0)
         }
         
         bugs = newPopulation

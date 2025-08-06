@@ -306,6 +306,87 @@ class NeuralNetwork {
         
         return layers.last ?? []
     }
+    
+    // MARK: - Weight Analysis & Debugging
+    
+    /// Extract critical behavioral weights for analysis
+    func getCriticalWeights() -> [String: Double] {
+        var criticalWeights: [String: Double] = [:]
+        
+        // Energy conservation patterns (first few weights from energy input)
+        if dna.weights.count > 0 {
+            criticalWeights["energy_to_hidden1_n1"] = dna.weights[0]
+            criticalWeights["energy_to_hidden1_n2"] = dna.weights.count > 1 ? dna.weights[1] : 0.0
+        }
+        
+        // Age influence (second input)
+        if dna.weights.count > dna.topology[1] {
+            criticalWeights["age_to_hidden1_n1"] = dna.weights[dna.topology[1]]
+            criticalWeights["age_to_hidden1_n2"] = dna.weights.count > dna.topology[1] + 1 ? dna.weights[dna.topology[1] + 1] : 0.0
+        }
+        
+        // Food detection weights (inputs 5-7)
+        let foodStartIndex = 5 * dna.topology[1]
+        if dna.weights.count > foodStartIndex + 2 {
+            criticalWeights["food_distance_influence"] = dna.weights[foodStartIndex]
+            criticalWeights["food_dirX_influence"] = dna.weights[foodStartIndex + 1]
+            criticalWeights["food_dirY_influence"] = dna.weights[foodStartIndex + 2]
+        }
+        
+        // Output layer movement weights (last layer connections)
+        if dna.topology.count >= 2 {
+            let outputLayerStart = dna.weights.count - (dna.topology[dna.topology.count - 2] * dna.topology.last!)
+            if outputLayerStart >= 0 && outputLayerStart < dna.weights.count {
+                // Movement X weights
+                criticalWeights["final_to_moveX"] = dna.weights[outputLayerStart]
+                // Movement Y weights  
+                if outputLayerStart + dna.topology[dna.topology.count - 2] < dna.weights.count {
+                    criticalWeights["final_to_moveY"] = dna.weights[outputLayerStart + dna.topology[dna.topology.count - 2]]
+                }
+                // Movement Z weights
+                if outputLayerStart + 2 * dna.topology[dna.topology.count - 2] < dna.weights.count {
+                    criticalWeights["final_to_moveZ"] = dna.weights[outputLayerStart + 2 * dna.topology[dna.topology.count - 2]]
+                }
+            }
+        }
+        
+        return criticalWeights
+    }
+    
+    /// Log detailed network structure and key weights
+    func logNetworkAnalysis(bugId: String, generation: Int) {
+        let weights = getCriticalWeights()
+        let complexity = Double(dna.weights.count + dna.biases.count)
+        
+        print("🧠 [NEURAL-ANALYSIS \(bugId)] Gen=\(generation)")
+        print("🧠 [NEURAL-TOPOLOGY \(bugId)] \(dna.topology.map(String.init).joined(separator: "→"))")
+        print("🧠 [NEURAL-COMPLEXITY \(bugId)] Weights=\(dna.weights.count), Biases=\(dna.biases.count), Total=\(Int(complexity))")
+        print("🧠 [NEURAL-ACTIVATIONS \(bugId)] \(dna.activations.map(\.rawValue).joined(separator: ", "))")
+        
+        for (key, value) in weights.sorted(by: { $0.key < $1.key }) {
+            print("🧠 [NEURAL-WEIGHT \(bugId)] \(key)=\(String(format: "%.3f", value))")
+        }
+    }
+    
+    /// Export all weights as CSV-friendly format
+    func exportWeightsCSV(bugId: String, generation: Int, species: String, survivalTime: Int) -> String {
+        let criticalWeights = getCriticalWeights()
+        let complexity = Double(dna.weights.count + dna.biases.count)
+        
+        var csv = "\(bugId),\(generation),\(species),\(survivalTime),\(Int(complexity))"
+        
+        // Add critical weights in consistent order
+        let keyOrder = ["energy_to_hidden1_n1", "energy_to_hidden1_n2", "age_to_hidden1_n1", "age_to_hidden1_n2", 
+                       "food_distance_influence", "food_dirX_influence", "food_dirY_influence",
+                       "final_to_moveX", "final_to_moveY", "final_to_moveZ"]
+        
+        for key in keyOrder {
+            let value = criticalWeights[key] ?? 0.0
+            csv += ",\(String(format: "%.6f", value))"
+        }
+        
+        return csv
+    }
 }
 
 /// Input/Output definitions for bug neural networks

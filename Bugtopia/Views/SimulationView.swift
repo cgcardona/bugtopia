@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit  // For NSSavePanel and file operations
 
 /// Wrapper class to manage SimulationEngine lifecycle properly with SwiftUI
 class SimulationEngineManager: ObservableObject {
@@ -237,6 +238,28 @@ struct SimulationView: View {
         return totalConnections
     }
     
+    // 🧠 Export neural weight analysis data
+    private func exportWeights() {
+        let csvData = simulationEngine.exportWeightAnalysis()
+        
+        // Use file save dialog
+        let savePanel = NSSavePanel()
+        savePanel.title = "Export Neural Weight Analysis"
+        savePanel.nameFieldStringValue = "bugtopia_weights_gen\(simulationEngine.currentGeneration).csv"
+        savePanel.allowedContentTypes = [.commaSeparatedText]
+        
+        if savePanel.runModal() == .OK {
+            guard let url = savePanel.url else { return }
+            
+            do {
+                try csvData.write(to: url, atomically: true, encoding: .utf8)
+                print("📊 [EXPORT] Neural weight data exported to: \(url.path)")
+            } catch {
+                print("❌ [EXPORT] Failed to export weight data: \(error)")
+            }
+        }
+    }
+    
     // MARK: - Control Panel
     
     private var controlPanel: some View {
@@ -300,9 +323,69 @@ struct SimulationView: View {
                 }
                 .buttonStyle(.bordered)
                 .foregroundColor(.red)
-                
-
             }
+            
+            Divider()
+                .frame(height: 20)
+            
+            // 🧠 Neural Analysis Controls
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Speed: \(String(format: "%.0fx", simulationEngine.speedMultiplier))")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.orange)
+                    Slider(value: Binding(
+                        get: { simulationEngine.speedMultiplier },
+                        set: { simulationEngine.speedMultiplier = $0 }
+                    ), in: 1...100, step: 1)
+                        .frame(width: 100)
+                        .accentColor(.orange)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text("Neural Log")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.green)
+                        Toggle("", isOn: Binding(
+                            get: { simulationEngine.enableWeightLogging },
+                            set: { simulationEngine.enableWeightLogging = $0 }
+                        ))
+                        .toggleStyle(SwitchToggleStyle(tint: .green))
+                        .scaleEffect(0.7)
+                    }
+                    
+                    if simulationEngine.enableWeightLogging {
+                        Text("Gen \(simulationEngine.logStartGeneration)+")
+                            .font(.caption2)
+                            .foregroundColor(.green)
+                    } else {
+                        Text(" ")
+                            .font(.caption2)
+                    }
+                }
+                
+                VStack(spacing: 2) {
+                    Button("Export") {
+                        exportWeights()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .font(.caption2)
+                    .disabled(!simulationEngine.enableWeightLogging)
+                    
+                    Button("Clear") {
+                        simulationEngine.clearWeightAnalysis()
+                    }
+                    .buttonStyle(.bordered)
+                    .font(.caption2)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.black.opacity(0.05))
+            .cornerRadius(6)
             
             Divider()
                 .frame(height: 30)
