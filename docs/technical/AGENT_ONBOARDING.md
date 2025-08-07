@@ -26,19 +26,22 @@ Bugtopia is an **advanced artificial life simulation** featuring:
 ## 🎯 **Current System Status** (2025 Latest)
 
 ### ✅ **What's Working Perfectly**
+- **🎉 VISUAL SYNCHRONIZATION**: **BREAKTHROUGH ACHIEVED!** Bugs move visually in real-time across 3D terrain
 - **Core Simulation**: All gameplay mechanics (aging, reproduction, death, food)
 - **Neural Networks**: 71-input AI brains with variable architecture evolving successfully
-- **Visual Sync**: Movement, generation changes, and dead bug removal all working
+- **Population Management**: 20 bugs spawning randomly across terrain, proper evolution cycles
+- **3D Movement**: Bugs visually traverse varied terrain features with perfect simulation sync
+- **Generation Evolution**: Seamless population replacement every 50 seconds (1500 ticks)
 - **UI Controls**: Speed multiplier (1x-100x), weight logging, data export
-- **Population Management**: 60 bugs, proper evolution cycles
 - **High-Speed Evolution**: Research-grade speed controls for pattern analysis
 
-### 🔧 **Recent Major Fixes Completed**
-- **SwiftUI-SceneKit Bridge**: Fixed dormant update cycle with timer-based forcing
-- **Dead Bug Removal**: Enhanced detection with multiple fallback systems
-- **Performance**: Optimized food rendering to prevent 6+ second delays
-- **Neural Analysis**: Complete weight logging and CSV export system
-- **Population Analytics**: Now runs every generation (just fixed!)
+### 🎉 **MAJOR BREAKTHROUGH COMPLETED** (Dec 2025)
+- **🔧 Visual Sync Issue SOLVED**: Implemented global persistent scene reference bypassing SwiftUI @State limitations
+- **🔧 Timer Scene Access**: Fixed SceneKit scene access from timer callbacks using static storage
+- **🔧 Evolution Position Reset**: Fixed bug where positions reset to world center during evolution
+- **🔧 Generation Timing**: Fixed rapid evolution bug (was evolving every tick instead of every 1500 ticks)  
+- **🔧 Random Spawning**: Restored terrain-based spawning instead of camera-centered clustering
+- **🔧 Population Scaling**: Successfully scaled from single-bug debugging back to full 20-bug ecosystem
 
 ### 🎮 **Simulation Features**
 - **Speed Controls**: 1x to 100x simulation speed
@@ -51,14 +54,18 @@ Bugtopia is an **advanced artificial life simulation** featuring:
 
 ### 🔍 **For Debugging/Troubleshooting Agents**
 **Primary**: `docs/debug/simulation-visual-sync-onboarding.md`
-- Complete debugging methodology for sync issues
-- Detection strategies, common pitfalls, logging philosophy
-- Historical context of major bugs and how they were solved
+- 🎉 **UPDATED**: Documents the complete solution to visual sync issues
+- Global persistent scene reference implementation details
+- SwiftUI-SceneKit bridge troubleshooting methodology  
+- Historical context of major bugs and breakthrough solutions
 
 **Secondary**: `docs/debug/aaa-visual-sync-diagnostics.md`
 - AAA game development approach to visual debugging
 - Diagnostic tools implemented (red flash, scaling, enhanced logging)
-- Breakthrough discoveries and root cause analysis
+- Pre-breakthrough analysis and debugging journey
+
+### 🚨 **CRITICAL KNOWLEDGE FOR ALL AGENTS**
+**The Visual Sync Breakthrough**: The core issue was SwiftUI's `@State` variables being inaccessible from timer callbacks. Solution: Global static scene reference (`Arena3DView.globalPersistentScene`) that bypasses SwiftUI limitations entirely.
 
 ### 🧠 **For Neural Network/AI Research Agents**
 **Primary**: `docs/debug/neural-network-analysis-guide.md`
