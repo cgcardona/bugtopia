@@ -37,7 +37,7 @@ class SimulationEngine {
     let voxelWorld: VoxelWorld
     let pathfinding: VoxelPathfinding
     private let maxPopulation = 800  // MASSIVE INCREASE: 4.4x more bugs for extensive debugging
-    private let initialPopulation = 1     // 🐛 FOCUS: Single bug for simulation-visual sync debugging
+    private let initialPopulation = 20    // 🎉 FULL SIMULATION: Back to 20 bugs with visual sync fixed!
     private let maxFoodItems = 5000  // MASSIVE INCREASE: 4.2x more food to eliminate food scarcity
     private let baseFoodSpawnRate = 0.99 // MAXIMUM: Near-constant food spawning for abundant resources
     
@@ -414,31 +414,28 @@ class SimulationEngine {
             evolvePopulation()
         }
         
-        // 🐛 DISABLED: Single bug debugging - no repopulation allowed
+        // 🎉 RE-ENABLED: Repopulation for full simulation with visual sync fixed
         // Only repopulate if population is extremely critically low
-        // if bugs.count < 2 { // Almost never repopulate - let natural selection work
-        //     repopulateFromSurvivors()
-        // }
+        if bugs.count < 2 { // Almost never repopulate - let natural selection work
+            repopulateFromSurvivors()
+        }
     }
     
     // MARK: - Population Management
     
     /// Sets up the initial random population using voxel world spawn points
     private func setupInitialPopulation() {
-        // 🎯 FOCUSED DEBUGGING: Single bug positioned directly in front of camera
+        // 🎉 FULL SIMULATION: Random spawn positions across the terrain
         bugs = (0..<initialPopulation).map { index in
-            // Position bug at world center where camera is looking
-            let bounds = voxelWorld.worldBounds
-            let centerPosition = Position3D(
-                bounds.midX,           // Center X (camera looks here)
-                bounds.midY,           // Center Y (camera looks here) 
-                -5.0                   // Surface level (camera looks at z=-5)
-            )
+            // Use voxel world to find random spawn positions across terrain
+            let randomPosition3D = voxelWorld.findSpawnPosition()
+            let surfacePosition = calculateSurfaceSpawnPosition(randomPosition3D)
             
-            let bug = Bug(dna: BugDNA.random(), position3D: centerPosition, generation: 0)
+            let bug = Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: currentGeneration)
+            logNeuralWeights(for: bug, survivalTime: 0)
             return bug
         }
-        // 🎯 Single bug created at camera focus point
+        // 🎉 Bugs spawned randomly across terrain
     }
     
     /// Calculate proper surface position for spawning bugs
@@ -545,9 +542,8 @@ class SimulationEngine {
     
     /// Determines if the current generation should end
     private func shouldEndGeneration() -> Bool {
-        // 🐛 SINGLE BUG DEBUG: Only end generation on time, not population size
-        // With 1 bug, bugs.count < 2 is always true, causing evolution every tick!
-        return tickCount % generationLength == 0 // || bugs.count < 1 // Only if ALL bugs are dead
+        // 🎉 FULL SIMULATION: Re-enable population-based generation ending + repopulation
+        return tickCount % generationLength == 0 || bugs.count < 2 // Allow natural population decline to trigger evolution
     }
     
     /// Evolves the population to the next generation

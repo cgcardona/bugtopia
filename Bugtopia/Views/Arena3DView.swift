@@ -1490,9 +1490,9 @@ struct Arena3DView: NSViewRepresentable {
         
         switch worldType {
         case .continental3D:
-            // 🐛 SINGLE BUG DEBUG: Close-up view focused directly on the bug at world center
-            let cameraPos = SCNVector3(centerX + 15, 10, centerY + 20)  // Much closer to the bug
-            let lookAt = SCNVector3(centerX, -5, centerY)                // Look directly at bug position
+            // 🎉 FULL SIMULATION: Overview position for observing 20 bugs across the terrain
+            let cameraPos = SCNVector3(centerX + 30, 20, centerY + 40)  // Higher overview for multiple bugs
+            let lookAt = SCNVector3(centerX, -5, centerY)                // Look at world center
             return (cameraPos, lookAt)
             
         case .archipelago3D:
