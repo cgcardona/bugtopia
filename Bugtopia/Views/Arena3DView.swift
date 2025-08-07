@@ -4220,10 +4220,11 @@ struct Arena3DView: NSViewRepresentable {
             addClimbingGear(to: bugNode, bug: bug)
         }
         
-        // 🔧 CONTINENTAL WORLD: Use fixed height consistent with updateBugPositions
+        // 🌍 TERRAIN FOLLOWING: Use actual terrain height for initial bug positioning
+        let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
         let scnPosition = SCNVector3(
             Float(bug.position3D.x),
-            5.0, // Continental surface height - matches updateBugPositions system
+            Float(terrainHeight + 2.0), // Place bug above terrain surface for proper positioning
             Float(bug.position3D.y)
         )
         
@@ -7391,8 +7392,8 @@ struct Arena3DView: NSViewRepresentable {
                 // 🌍 TERRAIN FOLLOWING: Position bugs using their actual 3D position with terrain following
                 let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
                 
-                // Use bug's actual Z coordinate for height, but ensure it's not below terrain
-                let bugHeight = max(bug.position3D.z, terrainHeight + 0.5)
+                // Ensure bugs are always clearly above terrain surface
+                let bugHeight = terrainHeight + 2.0  // Always 2 units above terrain to prevent clipping
                 
                 let targetPosition = SCNVector3(
                     Float(bug.position3D.x),     // X position
