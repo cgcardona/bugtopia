@@ -1059,6 +1059,7 @@ class VoxelWorld {
         createCaveEntrances()      // Underground ↔ Surface
         createTreeClimbingRoutes() // Surface ↔ Canopy  
         createAerialAccess()       // Canopy ↔ Aerial
+        createInterLayerRamps()    // 🌍 NEW: Systematic ramps connecting all 4 layers
         createVerticalShafts()     // Direct multi-layer connections
     }
     
@@ -1243,6 +1244,112 @@ class VoxelWorld {
                         transitionType: .flight(clearance: 0.8),
                         biome: voxels[x][y][z].biome
                     )
+                }
+            }
+        }
+    }
+    
+    // MARK: - 🌍 MULTI-LAYER RAMP SYSTEM
+    
+    private func createInterLayerRamps() {
+        /// Create systematic gentle ramps connecting all 4 terrain layers
+        /// This ensures bugs can traverse between underground, surface, canopy, and aerial zones
+        
+        let rampCount = dimensions.width / 4  // Multiple ramps across the world
+        
+        for _ in 0..<rampCount {
+            let centerX = Int.random(in: 5..<dimensions.width-5)
+            let centerY = Int.random(in: 5..<dimensions.height-5)
+            
+            // Create a multi-layer ramp system at this location
+            createRampSpiral(centerX: centerX, centerY: centerY)
+        }
+    }
+    
+    private func createRampSpiral(centerX: Int, centerY: Int) {
+        /// Creates a spiral ramp connecting all 4 layers
+        /// Underground (-50 to -30) → Surface (-30 to 10) → Canopy (10 to 30) → Aerial (30+)
+        
+        let rampRadius = 3  // Ramp extends 3 voxels from center
+        let _ = 8  // How many Z levels per layer transition (reserved for future use)
+        
+        // Calculate grid Z ranges for each layer
+        let undergroundStart = 0
+        let undergroundEnd = Int(Double(dimensions.depth) * 0.2)    // ~6 for depth=32
+        let surfaceStart = undergroundEnd
+        let surfaceEnd = Int(Double(dimensions.depth) * 0.6)        // ~19 for depth=32  
+        let canopyStart = surfaceEnd
+        let canopyEnd = Int(Double(dimensions.depth) * 0.85)        // ~27 for depth=32
+        let aerialStart = canopyEnd
+        let _ = dimensions.depth - 1  // aerialEnd (reserved for future use)
+        
+        // Create ramp from underground to surface
+        createLayerRamp(
+            centerX: centerX, centerY: centerY, 
+            startZ: undergroundStart, endZ: surfaceStart,
+            rampRadius: rampRadius, 
+            targetLayers: [.underground, .surface]
+        )
+        
+        // Create ramp from surface to canopy  
+        createLayerRamp(
+            centerX: centerX + 1, centerY: centerY + 1,  // Slight offset
+            startZ: surfaceStart, endZ: canopyStart,
+            rampRadius: rampRadius,
+            targetLayers: [.surface, .canopy]
+        )
+        
+        // Create ramp from canopy to aerial
+        createLayerRamp(
+            centerX: centerX - 1, centerY: centerY - 1,  // Slight offset
+            startZ: canopyStart, endZ: aerialStart,
+            rampRadius: rampRadius,
+            targetLayers: [.canopy, .aerial]
+        )
+    }
+    
+    private func createLayerRamp(centerX: Int, centerY: Int, startZ: Int, endZ: Int, 
+                               rampRadius: Int, targetLayers: [TerrainLayer]) {
+        /// Creates a gentle ramp between two Z levels
+        
+        guard startZ < endZ && endZ < dimensions.depth else { return }
+        
+        let rampLength = endZ - startZ
+        
+        for dx in -rampRadius...rampRadius {
+            for dy in -rampRadius...rampRadius {
+                let x = centerX + dx
+                let y = centerY + dy
+                
+                // Check bounds
+                guard x >= 0 && x < dimensions.width && 
+                      y >= 0 && y < dimensions.height else { continue }
+                
+                // Calculate distance from center for ramp slope
+                let distance = sqrt(Double(dx * dx + dy * dy))
+                let maxDistance = Double(rampRadius)
+                
+                if distance <= maxDistance {
+                    // Create ramp voxels
+                    for z in startZ..<endZ {
+                        let _ = Double(z - startZ) / Double(rampLength)  // progress (reserved for gradient calculation)
+                        let rampAngle = min(0.4, distance / maxDistance * 0.3)  // Gentle slope
+                        
+                        let worldZ = (Double(z) / Double(dimensions.depth - 1)) * 100.0 - 50.0
+                        let layer = determineLayer(z: worldZ)
+                        
+                        // Only create ramp in target layers
+                        if targetLayers.contains(layer) {
+                            voxels[x][y][z] = Voxel(
+                                gridPosition: (x, y, z),
+                                worldPosition: voxels[x][y][z].position,
+                                terrainType: .hill,
+                                layer: layer,
+                                transitionType: .ramp(angle: rampAngle),
+                                biome: voxels[x][y][z].biome
+                            )
+                        }
+                    }
                 }
             }
         }
