@@ -97,10 +97,10 @@ class SimulationEngine {
     private func logPopulationAnalytics() {
         guard !bugs.isEmpty else { return }
         
-        let averageComplexity = bugs.map { Double($0.dna.neuralDNA.weights.count + $0.dna.neuralDNA.biases.count) }.reduce(0, +) / Double(bugs.count)
-        let averageLayers = bugs.map { Double($0.dna.neuralDNA.topology.count) }.reduce(0, +) / Double(bugs.count)
+        let _ = bugs.map { Double($0.dna.neuralDNA.weights.count + $0.dna.neuralDNA.biases.count) }.reduce(0, +) / Double(bugs.count)
+        let _ = bugs.map { Double($0.dna.neuralDNA.topology.count) }.reduce(0, +) / Double(bugs.count)
         
-        let speciesBreakdown = bugs.reduce(into: [String: Int]()) { result, bug in
+        let _ = bugs.reduce(into: [String: Int]()) { result, bug in
             let species = bug.dna.speciesTraits.speciesType.rawValue
             result[species, default: 0] += 1
         }
@@ -133,12 +133,12 @@ class SimulationEngine {
         }
         
         if !energyWeights.isEmpty {
-            let avgEnergy = energyWeights.reduce(0, +) / Double(energyWeights.count)
+            let _ = energyWeights.reduce(0, +) / Double(energyWeights.count)
 
         }
         
         if !movementWeights.isEmpty {
-            let avgMovement = movementWeights.reduce(0, +) / Double(movementWeights.count)
+            let _ = movementWeights.reduce(0, +) / Double(movementWeights.count)
 
         }
     }
@@ -283,9 +283,9 @@ class SimulationEngine {
                 if let decision = bug.lastDecision {
                     print("🧠 Neural Outputs:")
                     print("   MoveX: \(String(format: "%.3f", decision.moveX)) | MoveY: \(String(format: "%.3f", decision.moveY)) | MoveZ: \(String(format: "%.3f", decision.moveZ))")
-                    print("   Hunt: \(String(format: "%.3f", decision.hunt)) | Social: \(String(format: "%.3f", decision.social)) | Rest: \(String(format: "%.3f", decision.rest))")
-                    print("   Reproduce: \(String(format: "%.3f", decision.reproduce)) | Signal: \(String(format: "%.3f", decision.emitSignal)) | Tool: \(String(format: "%.3f", decision.toolUse))")
-                    print("   Explore: \(String(format: "%.3f", decision.explore))")
+                    print("   Hunt: \(String(format: "%.3f", decision.hunting)) | Social: \(String(format: "%.3f", decision.social)) | Fleeing: \(String(format: "%.3f", decision.fleeing))")
+                    print("   Reproduce: \(String(format: "%.3f", decision.reproduction)) | Aggression: \(String(format: "%.3f", decision.aggression)) | LayerChange: \(String(format: "%.3f", decision.layerChange))")
+                    print("   Explore: \(String(format: "%.3f", decision.exploration))")
                 } else {
                     print("🚨 No neural decision recorded!")
                 }
@@ -306,7 +306,7 @@ class SimulationEngine {
                 
                 // Species and traits
                 print("🧬 Species: \(bug.dna.speciesTraits.speciesType.rawValue)")
-                print("🎭 Traits: Diet=\(bug.dna.speciesTraits.dietPreference), Size=\(bug.dna.speciesTraits.size), Social=\(bug.dna.speciesTraits.socialBehavior)")
+                print("🎭 Traits: Size=\(String(format: "%.2f", bug.dna.speciesTraits.sizeModifier)), Metabolic=\(String(format: "%.2f", bug.dna.speciesTraits.metabolicRate))")
                 
                 // Movement intention vs actual
                 if let decision = bug.lastDecision {
@@ -429,9 +429,9 @@ class SimulationEngine {
             // Position bug at world center where camera is looking
             let bounds = voxelWorld.worldBounds
             let centerPosition = Position3D(
-                x: bounds.midX,           // Center X (camera looks here)
-                y: bounds.midY,           // Center Y (camera looks here) 
-                z: -5.0                   // Surface level (camera looks at z=-5)
+                bounds.midX,           // Center X (camera looks here)
+                bounds.midY,           // Center Y (camera looks here) 
+                -5.0                   // Surface level (camera looks at z=-5)
             )
             
             let bug = Bug(dna: BugDNA.random(), position3D: centerPosition, generation: 0)
@@ -712,7 +712,7 @@ class SimulationEngine {
             // Mix of herbivore and carnivore foods for testing
             let isHerbivoreFood = i % 2 == 0
             let targetSpecies: SpeciesType = isHerbivoreFood ? .herbivore : .carnivore
-            let foodType = isHerbivoreFood ? .berries : .corpse
+            let foodType: FoodType = isHerbivoreFood ? .apple : .meat
             let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
             newFoods.append(foodItem)
         }

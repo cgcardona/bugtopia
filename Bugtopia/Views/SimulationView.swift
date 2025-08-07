@@ -44,10 +44,10 @@ struct SimulationView: View {
     // 🎯 Bug Selection Handler
     private func handleBugSelection(_ bug: Bug?) {
         selectedBug = bug
-        if let bug = bug {
-
+        if bug != nil {
+            // Bug selected
         } else {
-
+            // No bug selected
         }
     }
     
@@ -241,7 +241,6 @@ struct SimulationView: View {
     // 🧠 Export neural weight analysis data
     private func exportWeights() {
         let csvData = simulationEngine.exportWeightAnalysis()
-      
         // Use file save dialog
         let savePanel = NSSavePanel()
         savePanel.title = "Export Neural Weight Analysis"
