@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="bugtopia-icon.png" alt="Bugtopia App Icon" width="256" height="256" />
+</div>
+
 # 🧬 Bugtopia: Evolutionary Arena Simulator
 
 > **An AI-powered evolutionary simulation where digital organisms adapt to complex environmental challenges through genetic algorithms and natural selection.**
