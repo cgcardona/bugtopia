@@ -291,7 +291,7 @@ extension Bug {
 
         
         if let targetVoxel = validMoves[intendedDirection] {
-            let oldPos = position3D
+            let _ = position3D
             // Move to the target voxel
             moveToVoxel(targetVoxel, in: voxelWorld)
 
