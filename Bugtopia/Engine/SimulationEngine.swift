@@ -442,7 +442,7 @@ class SimulationEngine {
     private func calculateSurfaceSpawnPosition(_ position3D: Position3D) -> Position3D {
         // 🌍 TERRAIN FOLLOWING: Use actual terrain height for proper surface positioning
         // Query the voxel world for the actual surface height at this position
-        let terrainHeight = voxelWorld.getTerrainHeight(at: CGPoint(x: position3D.x, y: position3D.y))
+        let terrainHeight = voxelWorld.getHeightAt(x: position3D.x, z: position3D.y)
         
         return Position3D(
             position3D.x,
