@@ -438,14 +438,16 @@ class SimulationEngine {
         // 🎉 Bugs spawned randomly across terrain
     }
     
-    /// Calculate proper surface position for spawning bugs
+    /// Calculate proper surface position for spawning bugs with terrain following
     private func calculateSurfaceSpawnPosition(_ position3D: Position3D) -> Position3D {
-        // 🔧 CONTINENTAL WORLD FIX: Use consistent fixed height to prevent terrain jumping
-        // Variable terrain heights (-18 to +21) were causing visual jumping behavior
+        // 🌍 TERRAIN FOLLOWING: Use actual terrain height for proper surface positioning
+        // Query the voxel world for the actual surface height at this position
+        let terrainHeight = voxelWorld.getTerrainHeight(at: CGPoint(x: position3D.x, y: position3D.y))
+        
         return Position3D(
             position3D.x,
             position3D.y,
-            8.0  // Fixed height matching visual positioning - eliminates terrain-induced jumping
+            terrainHeight + 1.0  // Slightly above terrain surface for proper positioning
         )
     }
     

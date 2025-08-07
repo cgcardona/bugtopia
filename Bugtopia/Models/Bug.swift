@@ -525,9 +525,16 @@ class Bug: Identifiable, Hashable {
             
             // Position updated
             
-            // Update 3D position to keep in sync
-
-            updatePosition3D(Position3D(from: position, z: position3D.z))
+            // 🌍 TERRAIN FOLLOWING: Update 3D position with terrain height following
+            if currentLayer == .surface {
+                // For surface bugs, calculate terrain height at new position
+                let terrainHeight = arena.getTerrainHeight(at: position)
+                let newZ = max(terrainHeight + 0.5, position3D.z - 2.0) // Gradual descent to terrain, minimum 0.5 above
+                updatePosition3D(Position3D(from: position, z: newZ))
+            } else {
+                // Non-surface bugs keep their Z coordinate
+                updatePosition3D(Position3D(from: position, z: position3D.z))
+            }
             
             // CRITICAL: 3D position sync debug - only for significant movement
 
@@ -1718,14 +1725,25 @@ class Bug: Identifiable, Hashable {
     
     // MARK: - 3D Movement & Positioning
     
-    /// Update 3D position maintaining 2D compatibility
+    /// Update 3D position maintaining 2D compatibility with proper terrain following
     func updatePosition3D(_ newPosition: Position3D) {
-        // 🔧 CONTINENTAL WORLD FIX: Lock surface bugs to fixed height
+        // 🌍 TERRAIN FOLLOWING: Allow surface bugs to follow terrain height changes
         if currentLayer == .surface {
-            // Force surface bugs to stay at fixed height - no Z changes allowed
-            position3D = Position3D(newPosition.x, newPosition.y, position3D.z)
+            // Surface bugs should follow terrain contours instead of fixed height
+            // Allow Z changes for terrain following, but limit extreme changes
+            let maxHeightChange = 5.0  // Prevent teleporting through terrain
+            let heightDelta = abs(newPosition.z - position3D.z)
+            
+            if heightDelta <= maxHeightChange {
+                position3D = newPosition  // Allow natural terrain following
+            } else {
+                // Gradual height adjustment for large terrain changes
+                let direction = newPosition.z > position3D.z ? 1.0 : -1.0
+                let adjustedZ = position3D.z + (direction * maxHeightChange)
+                position3D = Position3D(newPosition.x, newPosition.y, adjustedZ)
+            }
         } else {
-            position3D = newPosition
+            position3D = newPosition  // Non-surface layers can move freely
         }
         position = position3D.position2D  // Keep 2D position in sync
         

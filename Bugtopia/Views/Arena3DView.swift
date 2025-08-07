@@ -7388,13 +7388,16 @@ struct Arena3DView: NSViewRepresentable {
             
             if let bugNode = bugContainer.childNode(withName: bugNodeName, recursively: false) {
                 print("✅ [NODE-FOUND] Bug \(bugId): Found visual node '\(bugNodeName)', current pos=(\(String(format: "%.2f", bugNode.position.x)), \(String(format: "%.2f", bugNode.position.y)), \(String(format: "%.2f", bugNode.position.z)))")
-                // 🔧 CONTINENTAL WORLD FIX: Position bugs on actual terrain surface
-                // Use terrain height for proper surface positioning
+                // 🌍 TERRAIN FOLLOWING: Position bugs using their actual 3D position with terrain following
                 let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
+                
+                // Use bug's actual Z coordinate for height, but ensure it's not below terrain
+                let bugHeight = max(bug.position3D.z, terrainHeight + 0.5)
+                
                 let targetPosition = SCNVector3(
-                    Float(bug.position3D.x),
-                    Float(terrainHeight + 1.0), // Slightly above terrain surface - Y is height
-                    Float(bug.position3D.y)     // Z is depth/forward-back movement
+                    Float(bug.position3D.x),     // X position
+                    Float(bugHeight),            // Y is height - use bug's actual height or terrain minimum
+                    Float(bug.position3D.y)      // Z is depth/forward-back movement  
                 )
                 
                 // Only check horizontal distance for movement animation
@@ -7798,8 +7801,8 @@ struct Arena3DView: NSViewRepresentable {
         let foods = simulationEngine.foods
         guard !foods.isEmpty else { return }
         
-        // 🚀 PERFORMANCE OPTIMIZATION: Only process 5 foods per frame
-        let foodsPerFrame = 5
+        // 🚀 PERFORMANCE OPTIMIZATION: Process more foods per frame for better ecosystem visibility
+        let foodsPerFrame = 20  // Increased from 5 to show more variety quickly
         let startIndex = foodProcessingIndex
         let endIndex = min(startIndex + foodsPerFrame, foods.count)
         
@@ -7835,26 +7838,68 @@ struct Arena3DView: NSViewRepresentable {
         }
     }
     
-    /// Create simplified food node for better performance
+    /// Create simplified food node for better performance with proper terrain positioning and food variety
     private func createSimpleFoodNode(position: CGPoint) -> SCNNode {
         let foodNode = SCNNode()
         
-        // Simple sphere with basic material (no complex calculations)
-        let sphere = SCNSphere(radius: 2.0)  // Smaller than original
+        // 🎯 GET ACTUAL FOOD TYPE: Use position to determine food type variety
+        let foods = simulationEngine.foods
+        let matchingFood = foods.first { food in
+            let distance = sqrt(pow(food.position.x - position.x, 2) + pow(food.position.y - position.y, 2))
+            return distance < 1.0  // Find food within 1 unit of this position
+        }
+        
+        let foodType = matchingFood?.type ?? .apple  // Default to apple if no match
+        
+        // 🍎 FOOD VARIETY: Create different visuals for different food types
+        let sphere = SCNSphere(radius: 2.5)  // Slightly larger for better visibility
         let material = SCNMaterial()
-        material.diffuse.contents = NSColor.green
+        
+        // Set color and properties based on food type
+        switch foodType {
+        case .apple:
+            material.diffuse.contents = NSColor.red
+        case .orange: 
+            material.diffuse.contents = NSColor.orange
+        case .plum:
+            material.diffuse.contents = NSColor.purple
+        case .melon:
+            material.diffuse.contents = NSColor.green
+        case .meat:
+            material.diffuse.contents = NSColor.brown
+        case .fish:
+            material.diffuse.contents = NSColor.blue
+        case .seeds:
+            material.diffuse.contents = NSColor.yellow
+        case .nuts:
+            material.diffuse.contents = NSColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 1.0) // Brown
+        }
+        
         material.metalness.contents = 0.0
-        material.roughness.contents = 0.5
+        material.roughness.contents = 0.4
+        
+        // Add slight glow for food energy
+        material.emission.contents = NSColor(calibratedRed: 0.1, green: 0.1, blue: 0.1, alpha: 0.2)
+        
         sphere.firstMaterial = material
         foodNode.geometry = sphere
         
-        // Simple positioning without expensive terrain calculations
+        // 🌍 TERRAIN POSITIONING: Use actual terrain height instead of fixed height
+        let terrainHeight = getTerrainHeightAt(x: position.x, z: position.y)
         let scnPosition = SCNVector3(
             Float(position.x),
-            10.0,  // Fixed height instead of expensive getTerrainHeightAt()
+            Float(terrainHeight + 1.5),  // Slightly above terrain surface (was fixed 10.0)
             Float(position.y)
         )
         foodNode.position = scnPosition
+        
+        // Add gentle pulsing to make food more noticeable
+        let pulseAction = SCNAction.sequence([
+            SCNAction.scale(to: 1.2, duration: 1.5),
+            SCNAction.scale(to: 1.0, duration: 1.5)
+        ])
+        let repeatPulse = SCNAction.repeatForever(pulseAction)
+        foodNode.runAction(repeatPulse)
         
         return foodNode
     }

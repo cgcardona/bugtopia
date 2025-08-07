@@ -477,6 +477,12 @@ class Arena {
         return result
     }
     
+    /// Gets the terrain height at a specific position (for 3D terrain following)
+    func getTerrainHeight(at position: CGPoint) -> Double {
+        // Default implementation returns fixed height for flat 2D terrain
+        return 0.0
+    }
+    
     /// Finds a safe spawn position away from hazards
     func findSpawnPosition() -> CGPoint {
         let maxAttempts = 50

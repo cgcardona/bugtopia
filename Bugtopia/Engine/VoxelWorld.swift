@@ -1697,6 +1697,11 @@ class VoxelWorldArenaAdapter: Arena {
         }
     }
     
+    /// Gets terrain height from VoxelWorld for proper 3D positioning
+    override func getTerrainHeight(at position: CGPoint) -> Double {
+        return voxelWorld.getTerrainHeight(at: position)
+    }
+    
     override func findPath(from start: CGPoint, to end: CGPoint, for dna: BugDNA) -> [CGPoint] {
         // Use VoxelWorld pathfinding if available, otherwise return direct path
         // Note: Could be enhanced with proper 3D pathfinding later
