@@ -22,6 +22,9 @@ struct Arena3DView: NSViewRepresentable {
     // 🎯 Bug Selection System
     var onBugSelected: ((Bug?) -> Void)?
     
+    // 🐛 SINGLE BUG DEBUG: Class-level scene storage for timer access
+    private static var globalPersistentScene: SCNScene? = nil
+    
     init(simulationEngine: SimulationEngine, onBugSelected: ((Bug?) -> Void)? = nil) {
         self.simulationEngine = simulationEngine
         self.onBugSelected = onBugSelected
@@ -190,6 +193,12 @@ struct Arena3DView: NSViewRepresentable {
         let scene = SCNScene()
         sceneView.scene = scene
         
+        // 🐛 SINGLE BUG DEBUG: Store scene reference globally for timer access
+        DispatchQueue.main.async {
+            Arena3DView.globalPersistentScene = scene
+            print("🔧 [SCENE-STORED] Global persistent scene reference saved for timer access")
+        }
+        
         // Configure scene view
         sceneView.backgroundColor = NSColor.black
         sceneView.allowsCameraControl = false  // Disable built-in - we'll handle navigation
@@ -228,6 +237,10 @@ struct Arena3DView: NSViewRepresentable {
     func updateNSView(_ nsView: SCNView, context: Context) {
         // 🚨 DEBUG: Track SwiftUI update frequency to debug ghost bugs  
         swiftuiUpdateCount += 1
+        
+        // 🐛 SINGLE BUG DEBUG: Log SwiftUI updates and forceUpdateTrigger value
+        print("🔄 [SWIFTUI-UPDATE] updateNSView called #\(swiftuiUpdateCount), forceUpdateTrigger=\(forceUpdateTrigger)")
+        
         if swiftuiUpdateCount % 10 == 0 {
         }
         
@@ -1477,9 +1490,9 @@ struct Arena3DView: NSViewRepresentable {
         
         switch worldType {
         case .continental3D:
-            // Overview of rolling hills and varied terrain
-            let cameraPos = SCNVector3(centerX + 30, 20, centerY + 40)
-            let lookAt = SCNVector3(centerX, -5, centerY)
+            // 🐛 SINGLE BUG DEBUG: Close-up view focused directly on the bug at world center
+            let cameraPos = SCNVector3(centerX + 15, 10, centerY + 20)  // Much closer to the bug
+            let lookAt = SCNVector3(centerX, -5, centerY)                // Look directly at bug position
             return (cameraPos, lookAt)
             
         case .archipelago3D:
@@ -3949,9 +3962,44 @@ struct Arena3DView: NSViewRepresentable {
     @State private var updateBugPositionsCount: Int = 0 // Track updateBugPositions call frequency
     @State private var forceUpdateTrigger: Int = 0 // Force SwiftUI to call updateNSView regularly
     
-    // 🔄 Method to force SwiftUI updates by changing state
+    // 🔄 Method to force visual updates by directly calling updateBugPositions
     func triggerVisualUpdate() {
-        forceUpdateTrigger += 1
+        DispatchQueue.main.async {
+            // 🐛 SINGLE BUG DEBUG: Try global persistent scene first, then fallback to sceneView
+            print("🔄 [TIMER-TRIGGER] Direct visual update bypass - calling updateBugPositions")
+            
+            let sceneToUse: SCNScene?
+            let sceneSource: String
+            
+            // Try global persistent scene first
+            if let globalScene = Arena3DView.globalPersistentScene {
+                sceneToUse = globalScene
+                sceneSource = "globalPersistent"
+            } else if let sceneView = self.sceneView, let scene = sceneView.scene {
+                sceneToUse = scene
+                sceneSource = "sceneView"
+                // Store globally for future use
+                Arena3DView.globalPersistentScene = scene
+            } else {
+                sceneToUse = nil
+                sceneSource = "none"
+            }
+            
+            if let scene = sceneToUse {
+                self.updateBugPositions(scene: scene)
+                print("✅ [TIMER-SUCCESS] Direct visual update applied successfully using \(sceneSource) scene")
+            } else {
+                // 🐛 DEBUG: Investigate why scene is nil
+                let hasSceneView = self.sceneView != nil
+                let hasScene = self.sceneView?.scene != nil
+                let hasGlobalPersistent = Arena3DView.globalPersistentScene != nil
+                print("❌ [TIMER-ERROR] No scene available - sceneView: \(hasSceneView), scene: \(hasScene), globalPersistent: \(hasGlobalPersistent)")
+                
+                // Fallback: Try to trigger SwiftUI update as backup
+                self.forceUpdateTrigger += 1
+                print("🔄 [TIMER-FALLBACK] Attempting SwiftUI fallback, trigger=\(self.forceUpdateTrigger)")
+            }
+        }
     }
     
     private func debugBugUpdates() {
@@ -7335,7 +7383,11 @@ struct Arena3DView: NSViewRepresentable {
                 trackBugMovement(bug: bug, bugContainer: bugContainer)
             }
             
-            if let bugNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false) {
+            let bugNodeName = "Bug_\(bug.id.uuidString)"
+            let bugId = String(bug.id.uuidString.prefix(8))
+            
+            if let bugNode = bugContainer.childNode(withName: bugNodeName, recursively: false) {
+                print("✅ [NODE-FOUND] Bug \(bugId): Found visual node '\(bugNodeName)', current pos=(\(String(format: "%.2f", bugNode.position.x)), \(String(format: "%.2f", bugNode.position.y)), \(String(format: "%.2f", bugNode.position.z)))")
                 // 🔧 CONTINENTAL WORLD FIX: Position bugs on actual terrain surface
                 // Use terrain height for proper surface positioning
                 let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
@@ -7363,7 +7415,12 @@ struct Arena3DView: NSViewRepresentable {
                 
 
                 
-                if horizontalDistance > 0.05 { // 🎮 ULTRA-LOW threshold to catch ANY movement
+                // 🐛 SINGLE BUG DEBUG: Force position updates and log everything
+                let bugId = String(bug.id.uuidString.prefix(8))
+                print("🎯 [POSITION-UPDATE] Bug \(bugId): Sim=(\(String(format: "%.2f", bug.position3D.x)), \(String(format: "%.2f", bug.position3D.y))) → Visual=(\(String(format: "%.2f", targetPosition.x)), \(String(format: "%.2f", targetPosition.z))) | Distance=\(String(format: "%.2f", horizontalDistance))")
+                
+                if horizontalDistance > 0.01 { // 🐛 SINGLE BUG DEBUG: Even lower threshold to catch all movement
+                    print("🚀 [APPLYING-POSITION] Bug \(bugId): Setting node position to (\(String(format: "%.2f", targetPosition.x)), \(String(format: "%.2f", targetPosition.y)), \(String(format: "%.2f", targetPosition.z)))")
                     // 🎮 AAA GAME DEV FIX: Make movement DRAMATICALLY OBVIOUS for debugging
                     
                     // Remove any existing animations that might conflict
@@ -7435,10 +7492,13 @@ struct Arena3DView: NSViewRepresentable {
                 
                 // Update energy indicator (with threshold to prevent micro-updates)
                 updateEnergyIndicator(bugNode: bugNode, energy: bug.energy)
+                
+                print("✅ [POSITION-APPLIED] Bug \(bugId): Final node position=(\(String(format: "%.2f", bugNode.position.x)), \(String(format: "%.2f", bugNode.position.y)), \(String(format: "%.2f", bugNode.position.z)))")
+                
             } else {
-                // ✅ DEBUG: Log when bug nodes are missing
-                if Int.random(in: 1...100) == 1 {
-                }
+                // 🚨 CRITICAL: Bug node not found!
+                print("❌ [NODE-MISSING] Bug \(bugId): Could not find visual node '\(bugNodeName)' in BugContainer!")
+                print("🔍 [NODE-DEBUG] Available nodes in BugContainer: \(bugContainer.childNodes.compactMap { $0.name })")
                 
                 // Bug node doesn't exist, create it with new Phase 3 visuals
                 let newBugNode = createBugNode(bug: bug)

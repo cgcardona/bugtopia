@@ -54,7 +54,7 @@ class SimulationEngine {
     
     // MARK: - Evolution Parameters
     
-    let generationLength = 500 // Ticks per generation (public for UI)
+    let generationLength = 1500 // 🐛 SINGLE BUG DEBUG: Longer generations (50 seconds) for easier observation
     private let survivalRate = 0.3 // Fraction that survives to next generation
     private let eliteRate = 0.1 // Fraction of best bugs that survive automatically
     
@@ -414,10 +414,11 @@ class SimulationEngine {
             evolvePopulation()
         }
         
+        // 🐛 DISABLED: Single bug debugging - no repopulation allowed
         // Only repopulate if population is extremely critically low
-        if bugs.count < 2 { // Almost never repopulate - let natural selection work
-            repopulateFromSurvivors()
-        }
+        // if bugs.count < 2 { // Almost never repopulate - let natural selection work
+        //     repopulateFromSurvivors()
+        // }
     }
     
     // MARK: - Population Management
@@ -525,17 +526,18 @@ class SimulationEngine {
             if let randomSurvivor = survivors.randomElement() {
                 parent = randomSurvivor
             } else {
-                // If no survivors, create completely new bug
-                let spawnPosition3D = voxelWorld.findSpawnPosition()
-                let surfacePosition = calculateSurfaceSpawnPosition(spawnPosition3D)
-                bugs.append(Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: currentGeneration))
+                // 🐛 SINGLE BUG DEBUG: Position repopulated bug at world center for camera focus
+                let bounds = voxelWorld.worldBounds
+                let centerPosition = Position3D(bounds.midX, bounds.midY, -5.0)
+                bugs.append(Bug(dna: BugDNA.random(), position3D: centerPosition, generation: currentGeneration))
                 continue
             }
             
+            // 🐛 SINGLE BUG DEBUG: Position mutated repopulated bug at world center
             let mutatedDNA = parent.dna.mutated(mutationRate: 0.3, mutationStrength: 0.2)
-            let spawnPosition3D = voxelWorld.findSpawnPosition()
-            let surfacePosition = calculateSurfaceSpawnPosition(spawnPosition3D)
-            bugs.append(Bug(dna: mutatedDNA, position3D: surfacePosition, generation: currentGeneration))
+            let bounds = voxelWorld.worldBounds
+            let centerPosition = Position3D(bounds.midX, bounds.midY, -5.0)
+            bugs.append(Bug(dna: mutatedDNA, position3D: centerPosition, generation: currentGeneration))
         }
     }
     
@@ -543,7 +545,9 @@ class SimulationEngine {
     
     /// Determines if the current generation should end
     private func shouldEndGeneration() -> Bool {
-        return tickCount % generationLength == 0 || bugs.count < 2 // Allow much more natural population decline
+        // 🐛 SINGLE BUG DEBUG: Only end generation on time, not population size
+        // With 1 bug, bugs.count < 2 is always true, causing evolution every tick!
+        return tickCount % generationLength == 0 // || bugs.count < 1 // Only if ALL bugs are dead
     }
     
     /// Evolves the population to the next generation
@@ -585,6 +589,7 @@ class SimulationEngine {
         
         // Add survivors with refreshed energy and reset age
         for survivor in survivors {
+            // 🐛 SINGLE BUG DEBUG: PRESERVE survivor position (don't reset to world center!)
             let refreshedBug = Bug(dna: survivor.dna, position3D: survivor.position3D, generation: currentGeneration)
             refreshedBug.energy = Bug.initialEnergy
             newPopulation.append(refreshedBug)
@@ -597,31 +602,28 @@ class SimulationEngine {
         while newPopulation.count < initialPopulation {
             // Safe parent selection with fallbacks
             guard let parent1 = survivors.randomElement() else {
-                // If no survivors, create random bug
-                let randomPosition3D = voxelWorld.findSpawnPosition()
-                let surfacePosition = calculateSurfaceSpawnPosition(randomPosition3D)
-                let newBug = Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: currentGeneration)
+                // 🐛 SINGLE BUG DEBUG: Only use world center if absolutely no survivors exist
+                let bounds = voxelWorld.worldBounds
+                let centerPosition = Position3D(bounds.midX, bounds.midY, -5.0)
+                let newBug = Bug(dna: BugDNA.random(), position3D: centerPosition, generation: currentGeneration)
                 newPopulation.append(newBug)
                 logNeuralWeights(for: newBug, survivalTime: 0)
                 continue
             }
             
             guard let parent2 = survivors.randomElement() else {
-                // If only one survivor, use asexual reproduction (mutation only)
+                // 🐛 SINGLE BUG DEBUG: Position mutated bug near parent for realistic evolution
                 let mutatedDNA = parent1.dna.mutated(mutationRate: 0.2, mutationStrength: 0.3)
-                let childPosition3D = voxelWorld.findSpawnPosition()
-                let surfacePosition = calculateSurfaceSpawnPosition(childPosition3D)
-                let newBug = Bug(dna: mutatedDNA, position3D: surfacePosition, generation: currentGeneration)
+                let newBug = Bug(dna: mutatedDNA, position3D: parent1.position3D, generation: currentGeneration)
                 newPopulation.append(newBug)
                 logNeuralWeights(for: newBug, survivalTime: 0)
                 continue
             }
             
+            // 🐛 SINGLE BUG DEBUG: Position crossover bug near parent for realistic evolution
             let childDNA = BugDNA.crossover(parent1.dna, parent2.dna).mutated()
-            let childPosition3D = voxelWorld.findSpawnPosition()
-            let surfacePosition = calculateSurfaceSpawnPosition(childPosition3D)
-            
-            let newBug = Bug(dna: childDNA, position3D: surfacePosition, generation: currentGeneration)
+            // Spawn near one of the parents (choose parent1)
+            let newBug = Bug(dna: childDNA, position3D: parent1.position3D, generation: currentGeneration)
             newPopulation.append(newBug)
             logNeuralWeights(for: newBug, survivalTime: 0)
         }
