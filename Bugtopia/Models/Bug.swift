@@ -362,8 +362,8 @@ class Bug: Identifiable, Hashable {
         
         // Neural network can override hardcoded food targeting
         if let decision = lastDecision {
-            // More aggressive exploration: clear food targets more often to encourage neural movement
-            if decision.exploration > 0.4 {  // Lowered from 0.7 to 0.4
+            // 🍎 FOOD TARGETING FIX: Only clear food targets when actively exploring AND well-fed
+            if decision.exploration > 0.7 && energy > 70.0 {  // Raised threshold and added energy condition
                 targetFood = nil
             } else if dna.speciesTraits.speciesType.canEatPlants {
                 // Use traditional food seeking when exploitation mode (for herbivores/omnivores)
@@ -994,9 +994,7 @@ class Bug: Identifiable, Hashable {
                 // Mark this food as consumed so other bugs can't also eat it
                 consumedFood = nearestFood.position
                 
-                // 🍎 DEBUG: Log food consumption
-                let bugId = String(id.uuidString.prefix(8))
-                print("🍎 [FOOD-CONSUMED] Bug \(bugId): Consumed \(nearestFood.type.rawValue) at (\(String(format: "%.1f", nearestFood.position.x)), \(String(format: "%.1f", nearestFood.position.y))) | Energy: \(String(format: "%.1f", nearestFood.energyValue)) | Distance: \(String(format: "%.1f", distanceToFood))")
+                // Food consumption tracking (cleaned up logging)
                 
                 // 🍯 RESOURCE SHARING: Share with group members if social enough
                 let shouldShare = currentGroup != nil && 
@@ -1009,7 +1007,6 @@ class Bug: Identifiable, Hashable {
                     let personalEnergy = nearestFood.energyValue * 0.4  // Share 40% with group
                     
                     energy += personalEnergy
-                    print("🤝 [FOOD-SHARED] Bug \(bugId): Shared food, kept \(String(format: "%.1f", personalEnergy)) energy")
                     
                     // Signal that food is being shared
                     _ = emitSignal(
@@ -1020,7 +1017,6 @@ class Bug: Identifiable, Hashable {
                 } else {
                     // Normal consumption - keep all energy
                     energy += nearestFood.energyValue
-                    print("🍽️ [FOOD-EATEN] Bug \(bugId): Ate \(nearestFood.type.rawValue), gained \(String(format: "%.1f", nearestFood.energyValue)) energy")
                 }
                 
                 // Clear target if this was the targeted food

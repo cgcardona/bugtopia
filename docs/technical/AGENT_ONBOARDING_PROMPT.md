@@ -25,6 +25,7 @@ You are an expert Swift developer specializing in SwiftUI, SceneKit, and complex
 **Critical Context**: The system previously suffered from a complex visual synchronization issue where the simulation worked perfectly but the 3D visualization would stop updating after a few ticks. This was **completely solved** using a breakthrough approach:
 
 ### **The Solution: Global Persistent Scene Reference**
+
 ```swift
 // In Arena3DView.swift
 private static var globalPersistentScene: SCNScene? = nil
@@ -44,12 +45,14 @@ if let scene = Arena3DView.globalPersistentScene {
 ## 🏗️ **Architecture Overview**
 
 ### **Core Components**
+
 1. **SimulationEngine.swift** - Central simulation loop, manages bugs, food, evolution
 2. **Arena3DView.swift** - SwiftUI + SceneKit bridge, handles 3D visualization
 3. **Bug.swift** - Individual bug logic, neural networks, movement, food consumption
 4. **VoxelWorld.swift** - 3D terrain system with height maps and biomes
 
 ### **Key Systems**
+
 - **Neural Networks**: 71-input brains with evolution via crossover and mutation
 - **Food System**: 8 food types (plum, apple, orange, melon, meat, fish, seeds, nuts) with energy/rarity balance
 - **Terrain Following**: Bugs hover 4.0 units above terrain surface, preventing clipping
@@ -59,17 +62,20 @@ if let scene = Arena3DView.globalPersistentScene {
 ## 🔧 **Recent Fixes & Current State**
 
 ### **Food System (Recently Fixed)**
+
 - **Consumption Issue**: Fixed floating-point precision problem in `removeConsumedFood()`
 - **Visual Variety**: 8 distinct food colors (red apples, orange oranges, purple plums, etc.)
 - **Ground Positioning**: Food sits properly on terrain using `getHeightAt()` calculations
 - **Logging**: Comprehensive food consumption tracking with `🍎 [FOOD-CONSUMED]` logs
 
 ### **Terrain Following (Recently Perfected)**  
+
 - **Bug Positioning**: Bugs stay 4.0 units above terrain surface to prevent body clipping
 - **Dynamic Height**: Real-time terrain height calculation as bugs move
 - **No More Clipping**: Bug bodies remain fully visible on slopes and elevation changes
 
 ### **Population Management**
+
 - **20 bugs per generation** with proper random spawning across terrain
 - **Repopulation**: If population drops below 2, survivors reproduce
 - **Evolution**: Every 500 ticks, fittest bugs create next generation

@@ -7388,7 +7388,7 @@ struct Arena3DView: NSViewRepresentable {
             let bugId = String(bug.id.uuidString.prefix(8))
             
             if let bugNode = bugContainer.childNode(withName: bugNodeName, recursively: false) {
-                print("✅ [NODE-FOUND] Bug \(bugId): Found visual node '\(bugNodeName)', current pos=(\(String(format: "%.2f", bugNode.position.x)), \(String(format: "%.2f", bugNode.position.y)), \(String(format: "%.2f", bugNode.position.z)))")
+                // Node found - applying position update
                 // 🌍 TERRAIN FOLLOWING: Position bugs using their actual 3D position with terrain following
                 let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
                 
@@ -7419,12 +7419,9 @@ struct Arena3DView: NSViewRepresentable {
                 
 
                 
-                // 🐛 SINGLE BUG DEBUG: Force position updates and log everything
-                let bugId = String(bug.id.uuidString.prefix(8))
-                print("🎯 [POSITION-UPDATE] Bug \(bugId): Sim=(\(String(format: "%.2f", bug.position3D.x)), \(String(format: "%.2f", bug.position3D.y))) → Visual=(\(String(format: "%.2f", targetPosition.x)), \(String(format: "%.2f", targetPosition.z))) | Distance=\(String(format: "%.2f", horizontalDistance))")
+                // Position update for bug movement
                 
-                if horizontalDistance > 0.01 { // 🐛 SINGLE BUG DEBUG: Even lower threshold to catch all movement
-                    print("🚀 [APPLYING-POSITION] Bug \(bugId): Setting node position to (\(String(format: "%.2f", targetPosition.x)), \(String(format: "%.2f", targetPosition.y)), \(String(format: "%.2f", targetPosition.z)))")
+                if horizontalDistance > 0.01 { // Movement threshold to catch all movement
                     // 🎮 AAA GAME DEV FIX: Make movement DRAMATICALLY OBVIOUS for debugging
                     
                     // Remove any existing animations that might conflict
@@ -7825,16 +7822,25 @@ struct Arena3DView: NSViewRepresentable {
         // Update processing index for next frame
         foodProcessingIndex = endIndex >= foods.count ? 0 : endIndex
         
-        // Cleanup pass: Remove 1 orphaned food node per frame to prevent buildup
+        // 🍎 IMPROVED CLEANUP: Remove 3 orphaned food nodes per frame with better matching
         let existingFoodNodes = foodContainer!.childNodes.filter { $0.name?.hasPrefix("Food_") == true }
-        if let randomNode = existingFoodNodes.randomElement() {
-            let foodId = randomNode.name?.replacingOccurrences(of: "Food_", with: "") ?? ""
+        for foodNode in existingFoodNodes.prefix(3) {  // Check up to 3 nodes per frame
+            guard let nodeName = foodNode.name?.replacingOccurrences(of: "Food_", with: "") else { continue }
+            
+            // Parse position from node name
+            let parts = nodeName.split(separator: "_")
+            guard parts.count == 2,
+                  let nodeX = Double(parts[0]),
+                  let nodeY = Double(parts[1]) else { continue }
+            
+            // Check if any food exists within 2.0 units of this node (more forgiving matching)
             let foodExists = foods.contains { food in
-                let exactId = "\(String(format: "%.1f", food.position.x))_\(String(format: "%.1f", food.position.y))"
-                return exactId == foodId
+                let distance = sqrt(pow(food.position.x - nodeX, 2) + pow(food.position.y - nodeY, 2))
+                return distance < 2.0  // Allow for position drift/precision issues
             }
+            
             if !foodExists {
-                randomNode.removeFromParentNode()
+                foodNode.removeFromParentNode()
             }
         }
     }
