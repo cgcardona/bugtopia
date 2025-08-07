@@ -920,11 +920,19 @@ class SimulationEngine {
 
     /// Removes food that has been consumed - FIXED: Only remove food that was actually consumed
     private func removeConsumedFood() {
-        let consumedFoodPositions = Set(bugs.compactMap { $0.consumedFood })
+        let consumedFoodPositions = bugs.compactMap { $0.consumedFood }
         
+        // 🍎 PRECISION FIX: Use distance-based matching instead of exact position matching
         foods.removeAll { foodItem in
-            // Only remove if this specific food item position was consumed by a bug
-            consumedFoodPositions.contains(foodItem.position)
+            for consumedPosition in consumedFoodPositions {
+                let distance = sqrt(pow(foodItem.position.x - consumedPosition.x, 2) + 
+                                  pow(foodItem.position.y - consumedPosition.y, 2))
+                // If food is within 1 unit of a consumed position, remove it
+                if distance < 1.0 {
+                    return true
+                }
+            }
+            return false
         }
     }
     

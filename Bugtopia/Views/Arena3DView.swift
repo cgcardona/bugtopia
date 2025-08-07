@@ -4224,7 +4224,7 @@ struct Arena3DView: NSViewRepresentable {
         let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
         let scnPosition = SCNVector3(
             Float(bug.position3D.x),
-            Float(terrainHeight + 2.0), // Place bug above terrain surface for proper positioning
+            Float(terrainHeight + 4.0), // Place bug well above terrain surface to prevent body clipping
             Float(bug.position3D.y)
         )
         
@@ -7393,7 +7393,7 @@ struct Arena3DView: NSViewRepresentable {
                 let terrainHeight = getTerrainHeightAt(x: bug.position3D.x, z: bug.position3D.y)
                 
                 // Ensure bugs are always clearly above terrain surface
-                let bugHeight = terrainHeight + 2.0  // Always 2 units above terrain to prevent clipping
+                let bugHeight = terrainHeight + 4.0  // Always 4 units above terrain to prevent body clipping
                 
                 let targetPosition = SCNVector3(
                     Float(bug.position3D.x),     // X position

@@ -994,6 +994,10 @@ class Bug: Identifiable, Hashable {
                 // Mark this food as consumed so other bugs can't also eat it
                 consumedFood = nearestFood.position
                 
+                // 🍎 DEBUG: Log food consumption
+                let bugId = String(id.uuidString.prefix(8))
+                print("🍎 [FOOD-CONSUMED] Bug \(bugId): Consumed \(nearestFood.type.rawValue) at (\(String(format: "%.1f", nearestFood.position.x)), \(String(format: "%.1f", nearestFood.position.y))) | Energy: \(String(format: "%.1f", nearestFood.energyValue)) | Distance: \(String(format: "%.1f", distanceToFood))")
+                
                 // 🍯 RESOURCE SHARING: Share with group members if social enough
                 let shouldShare = currentGroup != nil && 
                                 dna.communicationDNA.socialResponseRate > 0.7 &&
@@ -1005,6 +1009,7 @@ class Bug: Identifiable, Hashable {
                     let personalEnergy = nearestFood.energyValue * 0.4  // Share 40% with group
                     
                     energy += personalEnergy
+                    print("🤝 [FOOD-SHARED] Bug \(bugId): Shared food, kept \(String(format: "%.1f", personalEnergy)) energy")
                     
                     // Signal that food is being shared
                     _ = emitSignal(
@@ -1015,6 +1020,7 @@ class Bug: Identifiable, Hashable {
                 } else {
                     // Normal consumption - keep all energy
                     energy += nearestFood.energyValue
+                    print("🍽️ [FOOD-EATEN] Bug \(bugId): Ate \(nearestFood.type.rawValue), gained \(String(format: "%.1f", nearestFood.energyValue)) energy")
                 }
                 
                 // Clear target if this was the targeted food
