@@ -164,7 +164,7 @@ class VoxelPathfinding {
                        with dna: BugDNA) -> [Direction3D: Voxel] {
         
         guard let currentVoxel = voxelWorld.getVoxel(at: position) else {
-//            print("⚠️ Bug at \(position) - no current voxel found")
+
             return [:]
         }
         
@@ -178,7 +178,7 @@ class VoxelPathfinding {
         }
         
         if validMoves.isEmpty {
-//            print("⚠️ Bug at \(position) has NO valid moves! Adjacent: \(neighbors.count), Current: \(currentVoxel.transitionType)")
+
         }
         
         return validMoves
@@ -461,7 +461,7 @@ extension Bug {
                 updatePosition3D(safePosition3D)
                 position = safePosition3D.position2D
             }
-//            print("⚠️ Bug \(id) emergency relocated due to stuck position")
+
         }
     }
     

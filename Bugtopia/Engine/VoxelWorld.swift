@@ -1536,12 +1536,12 @@ class VoxelWorld {
     func findSpawnPosition() -> Position3D {
         // Find a suitable spawn position on the surface with nearby open space
         let surfaceVoxels = getVoxelsInLayer(.surface).filter { $0.transitionType.isPassable }
-//        print("🔍 Found \(surfaceVoxels.count) passable surface voxels for spawning")
+
         
         // Debug: show some surface voxel positions
         if surfaceVoxels.count > 0 {
             let _ = surfaceVoxels[0]  // Sample for debugging
-//            print("🔍 Sample surface voxel: Position3D(\(sampleVoxel.position.x), \(sampleVoxel.position.y), \(sampleVoxel.position.z)), layer: \(sampleVoxel.layer)")
+
         }
         
         // Prefer voxels with multiple adjacent passable voxels for better movement
@@ -1552,8 +1552,7 @@ class VoxelWorld {
         }
         
         if let spawnVoxel = goodSpawnVoxels.randomElement() {
-//            print("🐛 Spawning at good location with \(getAdjacentVoxels(to: spawnVoxel).values.count { $0.transitionType.isPassable }) passable neighbors")
-//            print("🐛 Selected spawn voxel: Position3D(\(spawnVoxel.position.x), \(spawnVoxel.position.y), \(spawnVoxel.position.z))")
+
             return spawnVoxel.position
         }
         

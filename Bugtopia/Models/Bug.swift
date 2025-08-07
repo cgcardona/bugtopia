@@ -984,8 +984,8 @@ class Bug: Identifiable, Hashable {
     private func checkFoodConsumption(foods: [FoodItem]) {
         guard dna.speciesTraits.speciesType.canEatPlants else { return }
         
-        // Find the closest food within consumption range (increased for terrain following)
-        let consumptionRange = max(25.0, visualRadius * 3.0)  // Increased range for 3D terrain
+        // Find the closest food within consumption range 
+        let consumptionRange = max(8.0, visualRadius * 1.5)  // Reduced range for more realistic consumption
         
         if let nearestFood = foods.min(by: { distance(to: $0.position) < distance(to: $1.position) }) {
             let distanceToFood = distance(to: nearestFood.position)

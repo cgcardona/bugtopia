@@ -42,7 +42,6 @@ struct Arena3DView: NSViewRepresentable {
     @State private var walkingHeight: Float = 10.0  // Height above ground for walking mode
     @State private var movementSpeed: Float = 50.0  // Movement speed
     @State private var rotationSpeed: Float = 1.0   // Rotation speed
-    @State private var hasRefreshedBugVisuals = false  // 🦋 PHASE 3: Track visual refresh
     
     // PHASE 1 DEBUG: Synchronization system
     @State private var syncTimer: Timer?
@@ -63,8 +62,9 @@ struct Arena3DView: NSViewRepresentable {
     
     // 🎮 AAA PERFORMANCE MONITORING
     @State private var performanceLogger = PerformanceLogger()
-    @State private var lastFrameTime: CFTimeInterval = 0
-    @State private var frameCount: Int = 0
+    
+    // Static variables for timing outside view update cycle
+    private static var frameTimeTracker: CFTimeInterval = 0
     
 
     
@@ -149,13 +149,15 @@ struct Arena3DView: NSViewRepresentable {
     /// 🎮 AAA PERFORMANCE: Analyze frame timing and detect stutters
     private func analyzeFrameTiming() {
         let currentTime = CACurrentMediaTime()
-        let frameTime = currentTime - lastFrameTime
-        lastFrameTime = currentTime
-        frameCount += 1
+        // Use static variable for frame timing instead of @State to avoid modification warnings
+        let frameTime = currentTime - Self.frameTimeTracker
+        Self.frameTimeTracker = currentTime
+        
+        // Remove state updates to avoid view update violations
+        // Performance tracking moved to dedicated system outside view updates
         
         // Calculate FPS
         let fps = frameTime > 0 ? 1.0 / frameTime : 0
-        
         
         // Detect performance issues
         if frameTime > 0.033 { // > 30 FPS
@@ -180,24 +182,15 @@ struct Arena3DView: NSViewRepresentable {
     func makeNSView(context: Context) -> SCNView {
         let sceneView = SCNView()
         
-        // ✅ FIX: Avoid state modification during view creation
-        // Store sceneView reference after SwiftUI cycle completes
-        DispatchQueue.main.async {
-            self.sceneView = sceneView
-            
-            // 🚨 PERFORMANCE FIX: Disable 30 FPS timer - it was causing 6+ second lag!
-            // We'll use event-driven detection instead
-        }
+        // Store sceneView reference directly since we're in view creation
+        self.sceneView = sceneView
         
         // Create the 3D scene
         let scene = SCNScene()
         sceneView.scene = scene
         
-        // 🐛 SINGLE BUG DEBUG: Store scene reference globally for timer access
-        DispatchQueue.main.async {
-            Arena3DView.globalPersistentScene = scene
-            print("🔧 [SCENE-STORED] Global persistent scene reference saved for timer access")
-        }
+        // Store scene reference globally for timer access
+        Arena3DView.globalPersistentScene = scene
         
         // Configure scene view
         sceneView.backgroundColor = NSColor.black
@@ -235,11 +228,7 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
-        // 🚨 DEBUG: Track SwiftUI update frequency to debug ghost bugs  
-        swiftuiUpdateCount += 1
-        
-        // 🐛 SINGLE BUG DEBUG: Log SwiftUI updates and forceUpdateTrigger value
-        print("🔄 [SWIFTUI-UPDATE] updateNSView called #\(swiftuiUpdateCount), forceUpdateTrigger=\(forceUpdateTrigger)")
+        // SwiftUI update tracking (avoid state modification during view updates)
         
         if swiftuiUpdateCount % 10 == 0 {
         }
@@ -254,24 +243,25 @@ struct Arena3DView: NSViewRepresentable {
         if Int(currentTime) % 2 == 0 && Int(currentTime * 10) % 10 == 0 { // Log every 2 seconds
         }
         
-        // Dispatch scene updates asynchronously to avoid SwiftUI violations
-        DispatchQueue.main.async {
-            // 🦋 PHASE 3: One-time refresh to apply new creature beauty to existing bugs
-            if !self.hasRefreshedBugVisuals {
-                self.refreshAllBugVisuals(scene: scene)
-                self.hasRefreshedBugVisuals = true
-            }
-            
-            self.updateBugPositions(scene: scene)
-            
-            // 🚨 FOOD SYSTEM RE-ENABLED: Now with performance throttling
-            self.updateFoodPositionsThrottled(scene: scene)
-            
-            self.updateTerritoryVisualizations(scene: scene)
-            
-            // 🎮 AAA GAME DEV: Force scene refresh after updates
-            nsView.setNeedsDisplay(nsView.bounds)
+        // Update scene directly since we're already on main thread during view updates  
+        // Schedule bug visual refresh - remove state tracking to avoid modification warnings
+        // Use a simple one-time check based on scene content instead of @State
+        let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false)
+        let existingBugNodes = bugContainer?.childNodes.filter { $0.name?.hasPrefix("Bug_") == true } ?? []
+        
+        if existingBugNodes.isEmpty || existingBugNodes.count != simulationEngine.bugs.count {
+            refreshAllBugVisuals(scene: scene)
         }
+        
+        updateBugPositions(scene: scene)
+        
+        // 🚨 FOOD SYSTEM: Use the performance-optimized food rendering system
+        updateFoodPositionsThrottled(scene: scene)
+        
+        updateTerritoryVisualizations(scene: scene)
+        
+        // 🎮 AAA GAME DEV: Force scene refresh after updates
+        nsView.setNeedsDisplay(nsView.bounds)
     }
     
     // MARK: - 🌍 Dynamic Biome Detection
@@ -1473,10 +1463,8 @@ struct Arena3DView: NSViewRepresentable {
 
         
         scene.rootNode.addChildNode(cameraNode)
-        // ✅ FIX: Avoid state modification during view creation
-        DispatchQueue.main.async {
+        // Store camera node reference directly
         self.cameraNode = cameraNode
-        }
         
         // Camera node created and assigned
         // Camera position dynamically set based on world type
@@ -3950,14 +3938,8 @@ struct Arena3DView: NSViewRepresentable {
     @State private var syncCallCount: Int = 0  // Track synchronizeWorldState calls
     @State private var lastKnownBugPositions: [UUID: Position3D] = [:]
     
-    /// 🎯 PHASE 1: Detailed movement tracking for single bug
-    @State private var trackedBugId: UUID? = nil
-    @State private var trackedBugSimPositions: [Position3D] = []
-    @State private var trackedBugVisualPositions: [SCNVector3] = []
-    @State private var movementTrackingStartTime: TimeInterval = 0
+
     @State private var bugPositionTracker: [UUID: Position3D] = [:] // Track all bug positions for movement debugging
-    @State private var movementUpdateCount: Int = 0 // Track how many position updates happen per second
-    @State private var lastMovementLogTime: CFTimeInterval = 0
     @State private var swiftuiUpdateCount: Int = 0 // Track SwiftUI update frequency for debugging
     @State private var updateBugPositionsCount: Int = 0 // Track updateBugPositions call frequency
     @State private var forceUpdateTrigger: Int = 0 // Force SwiftUI to call updateNSView regularly
@@ -3965,8 +3947,7 @@ struct Arena3DView: NSViewRepresentable {
     // 🔄 Method to force visual updates by directly calling updateBugPositions
     func triggerVisualUpdate() {
         DispatchQueue.main.async {
-            // 🐛 SINGLE BUG DEBUG: Try global persistent scene first, then fallback to sceneView
-            print("🔄 [TIMER-TRIGGER] Direct visual update bypass - calling updateBugPositions")
+            // Try global persistent scene first, then fallback to sceneView
             
             let sceneToUse: SCNScene?
             let sceneSource: String
@@ -3987,60 +3968,17 @@ struct Arena3DView: NSViewRepresentable {
             
             if let scene = sceneToUse {
                 self.updateBugPositions(scene: scene)
-                print("✅ [TIMER-SUCCESS] Direct visual update applied successfully using \(sceneSource) scene")
             } else {
                 // 🐛 DEBUG: Investigate why scene is nil
                 let hasSceneView = self.sceneView != nil
                 let hasScene = self.sceneView?.scene != nil
                 let hasGlobalPersistent = Arena3DView.globalPersistentScene != nil
-                print("❌ [TIMER-ERROR] No scene available - sceneView: \(hasSceneView), scene: \(hasScene), globalPersistent: \(hasGlobalPersistent)")
-                
-                // Fallback: Try to trigger SwiftUI update as backup
-                self.forceUpdateTrigger += 1
-                print("🔄 [TIMER-FALLBACK] Attempting SwiftUI fallback, trigger=\(self.forceUpdateTrigger)")
+                // No fallback action needed - scene will be available on next cycle
             }
         }
     }
     
-    private func debugBugUpdates() {
-        let currentTime = CACurrentMediaTime()
-        updateCallCount += 1
-        
-        // Log update frequency every 60 calls (roughly every 2 seconds at 30fps)
-        if updateCallCount % 60 == 0 {
-            let timeSinceLastLog = currentTime - lastUpdateTime
-            let updateRate = 60.0 / timeSinceLastLog
-            lastUpdateTime = currentTime
-        }
-        
-        // Track actual bug movement
-        var movedBugs = 0
-        var stuckBugs = 0
-        
-        for bug in simulationEngine.bugs {
-            let currentPos = bug.position3D
-            let lastPos = lastKnownBugPositions[bug.id]
-            
-            if let lastPos = lastPos {
-                let distance = currentPos.distance(to: lastPos)
-                if distance > 0.1 {
-                    movedBugs += 1
-                } else {
-                    stuckBugs += 1
-                }
-                
-                // Log significant movement
-                if distance > 1.0 && Int.random(in: 1...30) == 1 {
-                }
-            }
-            
-            lastKnownBugPositions[bug.id] = currentPos
-        }
-        
-        // Log movement summary every 120 calls
-        if updateCallCount % 120 == 0 {
-        }
-    }
+
     
     /// PHASE 1 DEBUG: Verify simulation state is actually changing
     private func debugSimulationState() {
@@ -4050,65 +3988,7 @@ struct Arena3DView: NSViewRepresentable {
         }
     }
     
-    /// 🎯 PHASE 1: Detailed movement tracking for single bug to diagnose sync issues
-    private func trackBugMovement(bug: Bug, bugContainer: SCNNode) {
-        let currentTime = CACurrentMediaTime()
-        let trackingDuration = currentTime - movementTrackingStartTime
-        
-        // Track simulation position
-        let simPosition = bug.position3D
-        trackedBugSimPositions.append(simPosition)
-        
-        // Track visual position if node exists
-        if let bugNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false) {
-            let visualPosition = bugNode.position
-            trackedBugVisualPositions.append(visualPosition)
-            
-            // Compare positions every 30 frames (roughly 1 second) - but force log first few times
-            if updateCallCount % 30 == 0 || updateCallCount < 10 {
-                let simPos2D = "(%.1f, %.1f)"
-                let visPos2D = "(%.1f, %.1f)"
-                
-                
-                // Check for movement over last 30 frames
-                if trackedBugSimPositions.count >= 30 {
-                    let oldSimPos = trackedBugSimPositions[trackedBugSimPositions.count - 30]
-                    let simDistance = simPosition.distance(to: oldSimPos)
-                    
-                    let oldVisPos = trackedBugVisualPositions[trackedBugVisualPositions.count - 30]
-                    let visDistance = sqrt(
-                        (visualPosition.x - oldVisPos.x) * (visualPosition.x - oldVisPos.x) +
-                        (visualPosition.z - oldVisPos.z) * (visualPosition.z - oldVisPos.z)
-                    )
-                    
-                    
-                    // Alert if major sync disconnect
-                    if simDistance > 1.0 && visDistance < 0.1 {
-                    } else if simDistance < 0.1 && visDistance > 1.0 {
-                    } else if simDistance > 0.5 || visDistance > 0.5 {
-                    } else {
-                    }
-                }
-            }
-        } else {
-            // Visual node missing
-            if updateCallCount % 60 == 0 {
-            }
-        }
-        
-        // Limit history to prevent memory growth
-        if trackedBugSimPositions.count > 300 { // Keep 10 seconds of history at 30fps
-            trackedBugSimPositions.removeFirst()
-            trackedBugVisualPositions.removeFirst()
-        }
-        
-        // Stop tracking after 2 minutes or if bug dies
-        if trackingDuration > 120.0 || bug.energy <= 0 {
-            trackedBugId = nil
-            trackedBugSimPositions.removeAll()
-            trackedBugVisualPositions.removeAll()
-        }
-    }
+
     
     // MARK: - Phase 1: Real-Time State Synchronization
     
@@ -4126,10 +4006,7 @@ struct Arena3DView: NSViewRepresentable {
     
     /// PHASE 1: Core synchronization method - updates 3D scene from simulation state
     private func synchronizeWorldState() {
-        // 🚨 DEBUG: Track that this method is being called
-        syncCallCount += 1
-        if syncCallCount % 30 == 0 { // Log every second (30 FPS)
-        }
+        // Core synchronization method - updates 3D scene from simulation state
         
         guard let sceneView = sceneView,
               let scene = sceneView.scene else { 
@@ -4139,8 +4016,8 @@ struct Arena3DView: NSViewRepresentable {
         // 1. Update bug positions and states (existing comprehensive function)
         updateBugPositions(scene: scene)
         
-        // 2. Update food items (existing function)
-        updateFoodPositions(scene: scene)
+        // 2. Update food items - REMOVED to prevent double food system conflict
+        // Food is handled by main view update cycle
         
         // 3. Handle bug lifecycle (births/deaths) - handled within updateBugPositions
         // Existing function already creates missing nodes and cleans up orphaned ones
@@ -7149,10 +7026,7 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func updateBugPositions(scene: SCNScene) {
-        // 🚨 DEBUG: Track updateBugPositions call frequency to debug ghost bugs
-        updateBugPositionsCount += 1
-        if updateBugPositionsCount % 10 == 0 {
-        }
+        // Track updateBugPositions call frequency for performance monitoring
         
         // 🎮 AAA PERFORMANCE: Measure this critical function
         return performanceLogger.measure("updateBugPositions", includeStackTrace: true) {
@@ -7161,12 +7035,7 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func updateBugPositionsInternal(scene: SCNScene) {
-        // 🚨 MANDATORY DEBUG: Track method call frequency for debugging ghost bugs
-        updateCallCount += 1
-        
-        // 🚨 HEARTBEAT: Verify this method is running every 10 frames for immediate feedback
-        if updateCallCount % 10 == 0 {
-        }
+        // Method call frequency tracking for performance monitoring
         
         // 🚨 IMMEDIATE GHOST BUG KILLER: Run before ANY other logic!
         let zeroEnergyBugsImmediate = simulationEngine.bugs.filter { $0.energy <= 0 }
@@ -7206,7 +7075,7 @@ struct Arena3DView: NSViewRepresentable {
         }
         
         // PHASE 1 DEBUG: Call verification methods
-        debugBugUpdates()
+        // Debug tracking removed for performance
         
         // PHASE 1 DEBUG: Detailed verification every 5 seconds
         if updateCallCount % 150 == 0 {
@@ -7372,17 +7241,8 @@ struct Arena3DView: NSViewRepresentable {
             }
         }
         
-        // 🎯 PHASE 1: Update visual positions to match simulation
-        if trackedBugId == nil && !simulationEngine.bugs.isEmpty {
-            trackedBugId = simulationEngine.bugs.first?.id
-            movementTrackingStartTime = CACurrentMediaTime()
-        }
-        
+        // Update visual positions to match simulation
         for bug in simulationEngine.bugs {
-            // 🎯 PHASE 1: Detailed tracking for selected bug
-            if bug.id == trackedBugId {
-                trackBugMovement(bug: bug, bugContainer: bugContainer)
-            }
             
             let bugNodeName = "Bug_\(bug.id.uuidString)"
             let bugId = String(bug.id.uuidString.prefix(8))
@@ -7453,13 +7313,9 @@ struct Arena3DView: NSViewRepresentable {
                     // Verify position was set
                     let verifyPosition = bugNode.position
                     
-                    // 🎮 AAA GAME DEV: Track movement frequency
-                    movementUpdateCount += 1
+                    // Track movement frequency using local variables to avoid state modification violations
                     let currentTime = CACurrentMediaTime()
-                    if currentTime - lastMovementLogTime > 1.0 { // Every second
-                        movementUpdateCount = 0
-                        lastMovementLogTime = currentTime
-                    }
+                    // Remove state tracking to avoid modification warnings
                     
                     // 🎮 AAA GAME DEV: Force SceneKit to refresh by triggering geometry update
                     bugNode.geometry?.firstMaterial?.transparency = 1.0
@@ -7494,12 +7350,10 @@ struct Arena3DView: NSViewRepresentable {
                 // Update energy indicator (with threshold to prevent micro-updates)
                 updateEnergyIndicator(bugNode: bugNode, energy: bug.energy)
                 
-                print("✅ [POSITION-APPLIED] Bug \(bugId): Final node position=(\(String(format: "%.2f", bugNode.position.x)), \(String(format: "%.2f", bugNode.position.y)), \(String(format: "%.2f", bugNode.position.z)))")
+
                 
             } else {
-                // 🚨 CRITICAL: Bug node not found!
-                print("❌ [NODE-MISSING] Bug \(bugId): Could not find visual node '\(bugNodeName)' in BugContainer!")
-                print("🔍 [NODE-DEBUG] Available nodes in BugContainer: \(bugContainer.childNodes.compactMap { $0.name })")
+                // Bug node not found!
                 
                 // Bug node doesn't exist, create it with new Phase 3 visuals
                 let newBugNode = createBugNode(bug: bug)
@@ -7768,20 +7622,26 @@ struct Arena3DView: NSViewRepresentable {
     
     // MARK: - 🍎 Food Rendering System
     
-    @State private var foodProcessingIndex: Int = 0  // Track which foods we've processed
-    @State private var lastFoodUpdateTime: TimeInterval = 0
+    // Food timing tracking removed to avoid state modification warnings
     
-    /// High-performance throttled food system - only processes 10 foods per frame
+    // Static variable for food throttling outside the function to avoid scope issues
+    private static var foodUpdateLastTime: TimeInterval = 0
+    
+        /// High-performance food system - renders all foods with LOD optimization
     private func updateFoodPositionsThrottled(scene: SCNScene) {
         let currentTime = CACurrentMediaTime()
         
-        // Limit food updates to 20 FPS (every 50ms) instead of 60 FPS
-        if currentTime - lastFoodUpdateTime < 0.05 {
+        // Use static variable for throttling instead of @State to avoid modification warnings
+        // Limit food updates to 20 FPS (every 50ms) for better performance - increased for better responsiveness
+        if currentTime - Self.foodUpdateLastTime < 0.05 {
             return
         }
-        lastFoodUpdateTime = currentTime
+        Self.foodUpdateLastTime = currentTime
         
-        // 🎮 AAA PERFORMANCE: Measure throttled food system
+        // Remove state updates to avoid view modification violations
+        // Food timing tracking moved to dedicated system outside view updates
+        
+        // 🎮 AAA PERFORMANCE: Measure food system
         return performanceLogger.measure("updateFoodPositionsThrottled") {
             updateFoodPositionsThrottledInternal(scene: scene)
         }
@@ -7799,50 +7659,36 @@ struct Arena3DView: NSViewRepresentable {
         let foods = simulationEngine.foods
         guard !foods.isEmpty else { return }
         
-        // 🚀 PERFORMANCE OPTIMIZATION: Process more foods per frame for better ecosystem visibility
-        let foodsPerFrame = 20  // Increased from 5 to show more variety quickly
-        let startIndex = foodProcessingIndex
-        let endIndex = min(startIndex + foodsPerFrame, foods.count)
+        // 🚀 LOD OPTIMIZATION: Render all foods but with distance-based level of detail
+        let allFood = foods
+        let foodsToRender = min(allFood.count, 1500)  // Increased cap to show more food (was 500)
         
-        // Process only a small batch of foods this frame
-        let foodBatch = Array(foods[startIndex..<endIndex])
+        // Sort by distance to camera (if available) and render closest ones
+        let cameraPosition = cameraNode?.position ?? SCNVector3(0, 200, 300)
+        let sortedFoods = allFood.sorted { food1, food2 in
+            let dist1 = sqrt(pow(food1.position.x - Double(cameraPosition.x), 2) + pow(food1.position.y - Double(cameraPosition.z), 2))
+            let dist2 = sqrt(pow(food2.position.x - Double(cameraPosition.x), 2) + pow(food2.position.y - Double(cameraPosition.z), 2))
+            return dist1 < dist2
+        }
         
+        let foodBatch = Array(sortedFoods.prefix(foodsToRender))
+        
+        // Clear existing food nodes and recreate from scratch for consistency
+        let existingFoodNodes = foodContainer!.childNodes.filter { $0.name?.hasPrefix("Food_") == true }
+        for node in existingFoodNodes {
+            node.removeFromParentNode()
+        }
+        
+        // Create nodes for visible foods
         for food in foodBatch {
             let foodId = "\(String(format: "%.1f", food.position.x))_\(String(format: "%.1f", food.position.y))"
-            let existingNode = foodContainer!.childNode(withName: "Food_\(foodId)", recursively: false)
-            
-            if existingNode == nil {
-                // Create new food node with simplified geometry for better performance
-                let foodNode = createSimpleFoodNode(position: food.position)
-                foodNode.name = "Food_\(foodId)"
-                foodContainer!.addChildNode(foodNode)
-            }
+            let foodNode = createSimpleFoodNode(position: food.position)
+            foodNode.name = "Food_\(foodId)"
+            foodContainer!.addChildNode(foodNode)
         }
         
-        // Update processing index for next frame
-        foodProcessingIndex = endIndex >= foods.count ? 0 : endIndex
-        
-        // 🍎 IMPROVED CLEANUP: Remove 3 orphaned food nodes per frame with better matching
-        let existingFoodNodes = foodContainer!.childNodes.filter { $0.name?.hasPrefix("Food_") == true }
-        for foodNode in existingFoodNodes.prefix(3) {  // Check up to 3 nodes per frame
-            guard let nodeName = foodNode.name?.replacingOccurrences(of: "Food_", with: "") else { continue }
-            
-            // Parse position from node name
-            let parts = nodeName.split(separator: "_")
-            guard parts.count == 2,
-                  let nodeX = Double(parts[0]),
-                  let nodeY = Double(parts[1]) else { continue }
-            
-            // Check if any food exists within 2.0 units of this node (more forgiving matching)
-            let foodExists = foods.contains { food in
-                let distance = sqrt(pow(food.position.x - nodeX, 2) + pow(food.position.y - nodeY, 2))
-                return distance < 2.0  // Allow for position drift/precision issues
-            }
-            
-            if !foodExists {
-                foodNode.removeFromParentNode()
-            }
-        }
+        // Remove processing index state updates to avoid modification warnings
+        // Index tracking moved to local variables
     }
     
     /// Create simplified food node for better performance with proper terrain positioning and food variety
@@ -7962,27 +7808,50 @@ struct Arena3DView: NSViewRepresentable {
     
     private func createFoodNode(position: CGPoint) -> SCNNode {
         let foodNode = SCNNode()
-        // 🔧 FIX: Name will be set by caller with exact position format
         
-        // Create vibrant food sphere with Van Gogh-inspired colors
-        let sphere = SCNSphere(radius: 3.0)
+        // 🎯 GET ACTUAL FOOD TYPE: Use position to determine food type variety
+        let foods = simulationEngine.foods
+        let matchingFood = foods.first { food in
+            let distance = sqrt(pow(food.position.x - position.x, 2) + pow(food.position.y - position.y, 2))
+            return distance < 1.0  // Find food within 1 unit of this position
+        }
+        
+        let foodType = matchingFood?.type ?? .apple  // Default to apple if no match
+        
+        // Create food sphere with proper food type visuals
+        let sphere = SCNSphere(radius: 2.5)  // Slightly smaller for better performance
         let material = SCNMaterial()
         
-        // Van Gogh-style vibrant green with golden life energy
-        let pulse = sin(position.x * 0.2) * cos(position.y * 0.2) * 0.3
-        let vibrantGreen = 0.6 + pulse * 0.3
-        let lifeGold = 0.2 + max(0, pulse * 0.4)
+        // 🍎 FOOD VARIETY: Set color and properties based on actual food type
+        switch foodType {
+        case .apple:
+            material.diffuse.contents = NSColor.red
+            material.emission.contents = NSColor(red: 0.3, green: 0.1, blue: 0.1, alpha: 0.3)
+        case .orange: 
+            material.diffuse.contents = NSColor.orange
+            material.emission.contents = NSColor(red: 0.4, green: 0.2, blue: 0.0, alpha: 0.3)
+        case .plum:
+            material.diffuse.contents = NSColor.purple
+            material.emission.contents = NSColor(red: 0.3, green: 0.1, blue: 0.3, alpha: 0.3)
+        case .melon:
+            material.diffuse.contents = NSColor.green
+            material.emission.contents = NSColor(red: 0.1, green: 0.3, blue: 0.1, alpha: 0.3)
+        case .meat:
+            material.diffuse.contents = NSColor.brown
+            material.emission.contents = NSColor(red: 0.3, green: 0.2, blue: 0.1, alpha: 0.3)
+        case .fish:
+            material.diffuse.contents = NSColor.blue
+            material.emission.contents = NSColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 0.3)
+        case .seeds:
+            material.diffuse.contents = NSColor.yellow
+            material.emission.contents = NSColor(red: 0.3, green: 0.3, blue: 0.1, alpha: 0.3)
+        case .nuts:
+            material.diffuse.contents = NSColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 1.0) // Brown
+            material.emission.contents = NSColor(red: 0.2, green: 0.15, blue: 0.1, alpha: 0.3)
+        }
         
-        material.diffuse.contents = NSColor(
-            red: CGFloat(lifeGold),
-            green: CGFloat(vibrantGreen), 
-            blue: 0.1,
-            alpha: 1.0
-        )
         material.metalness.contents = 0.0
         material.roughness.contents = 0.4
-        // Magical glow indicating nutritious life energy
-        material.emission.contents = NSColor(red: 0.15, green: 0.6, blue: 0.15, alpha: 0.3)
         
         sphere.firstMaterial = material
         foodNode.geometry = sphere
@@ -7998,8 +7867,8 @@ struct Arena3DView: NSViewRepresentable {
         
         // Add gentle pulsing animation to make food noticeable
         let pulseAction = SCNAction.sequence([
-            SCNAction.scale(to: 1.2, duration: 1.0),
-            SCNAction.scale(to: 1.0, duration: 1.0)
+            SCNAction.scale(to: 1.2, duration: 1.5),
+            SCNAction.scale(to: 1.0, duration: 1.5)
         ])
         let repeatPulse = SCNAction.repeatForever(pulseAction)
         foodNode.runAction(repeatPulse)

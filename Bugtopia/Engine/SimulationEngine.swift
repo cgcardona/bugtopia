@@ -271,73 +271,7 @@ class SimulationEngine {
                 territoryManager: territoryManager
             )
             
-            // 🎯 EXTENSIVE SINGLE BUG LOGGING - Track every aspect of our test bug
-            if bugs.count == 1 { // Only log when we have our single test bug
-                let bugId = String(bug.id.uuidString.prefix(8))
-                print("\n🐛 ============ BUG STATE ANALYSIS [Tick \(tickCount)] ============")
-                print("🆔 Bug ID: \(bugId) | Generation: \(bug.generation) | Age: \(bug.age)")
-                print("⚡ Energy: \(String(format: "%.2f", bug.energy)) | Alive: \(bug.isAlive)")
-                print("📍 Position: (\(String(format: "%.1f", bug.position3D.x)), \(String(format: "%.1f", bug.position3D.y)), \(String(format: "%.1f", bug.position3D.z)))")
-                
-                // Neural decision analysis
-                if let decision = bug.lastDecision {
-                    print("🧠 Neural Outputs:")
-                    print("   MoveX: \(String(format: "%.3f", decision.moveX)) | MoveY: \(String(format: "%.3f", decision.moveY)) | MoveZ: \(String(format: "%.3f", decision.moveZ))")
-                    print("   Hunt: \(String(format: "%.3f", decision.hunting)) | Social: \(String(format: "%.3f", decision.social)) | Fleeing: \(String(format: "%.3f", decision.fleeing))")
-                    print("   Reproduce: \(String(format: "%.3f", decision.reproduction)) | Aggression: \(String(format: "%.3f", decision.aggression)) | LayerChange: \(String(format: "%.3f", decision.layerChange))")
-                    print("   Explore: \(String(format: "%.3f", decision.exploration))")
-                } else {
-                    print("🚨 No neural decision recorded!")
-                }
-                
-                // Food awareness analysis
-                print("🍎 Food Analysis:")
-                let nearbyFoods = foods.filter { bug.distance(to: $0.position) < 100.0 }.sorted { bug.distance(to: $0.position) < bug.distance(to: $1.position) }
-                if nearbyFoods.isEmpty {
-                    print("   No food within 100 units")
-                } else {
-                    print("   Found \(nearbyFoods.count) food items within 100 units:")
-                    for (index, food) in nearbyFoods.prefix(3).enumerated() {
-                        let distance = bug.distance(to: food.position)
-                        let direction = atan2(food.position.y - bug.position3D.y, food.position.x - bug.position3D.x) * 180 / .pi
-                        print("     [\(index+1)] \(food.type.rawValue) at distance \(String(format: "%.1f", distance)), angle \(String(format: "%.0f", direction))°")
-                    }
-                }
-                
-                // Species and traits
-                print("🧬 Species: \(bug.dna.speciesTraits.speciesType.rawValue)")
-                print("🎭 Traits: Size=\(String(format: "%.2f", bug.dna.speciesTraits.sizeModifier)), Metabolic=\(String(format: "%.2f", bug.dna.speciesTraits.metabolicRate))")
-                
-                // Movement intention vs actual
-                if let decision = bug.lastDecision {
-                    let intendedMovement = sqrt(decision.moveX * decision.moveX + decision.moveY * decision.moveY)
-                    if intendedMovement > 0.1 {
-                        print("🏃 MOVEMENT INTENTION: \(String(format: "%.3f", intendedMovement)) units")
-                        print("   Direction: \(String(format: "%.0f", atan2(decision.moveY, decision.moveX) * 180 / .pi))° (0°=East, 90°=North)")
-                    } else {
-                        print("😴 RESTING: No significant movement intention")
-                    }
-                }
-                
-                // 🎯 MOVEMENT VERIFICATION: Compare positions before/after update
-                let positionAfter = bug.position3D
-                let actualMovement = sqrt(
-                    pow(positionAfter.x - positionBefore.x, 2) + 
-                    pow(positionAfter.y - positionBefore.y, 2) + 
-                    pow(positionAfter.z - positionBefore.z, 2)
-                )
-                
-                if actualMovement > 0.001 { // Threshold for meaningful movement
-                    print("✅ ACTUAL MOVEMENT: \(String(format: "%.3f", actualMovement)) units")
-                    print("   From: (\(String(format: "%.2f", positionBefore.x)), \(String(format: "%.2f", positionBefore.y)), \(String(format: "%.2f", positionBefore.z)))")
-                    print("   To:   (\(String(format: "%.2f", positionAfter.x)), \(String(format: "%.2f", positionAfter.y)), \(String(format: "%.2f", positionAfter.z)))")
-                    print("   Delta: (\(String(format: "%.3f", positionAfter.x - positionBefore.x)), \(String(format: "%.3f", positionAfter.y - positionBefore.y)), \(String(format: "%.3f", positionAfter.z - positionBefore.z)))")
-                } else {
-                    print("❌ NO MOVEMENT: Position unchanged (delta: \(String(format: "%.6f", actualMovement)))")
-                }
-                
-                print("🐛 ============ END BUG ANALYSIS ============\n")
-            }
+
             
             // 🚶 SECOND: Use fresh neural decisions for voxel-based movement
             // 🔧 CONTINENTAL WORLD FIX: Disable voxel pathfinding to prevent Z-axis conflicts
@@ -927,8 +861,8 @@ class SimulationEngine {
             for consumedPosition in consumedFoodPositions {
                 let distance = sqrt(pow(foodItem.position.x - consumedPosition.x, 2) + 
                                   pow(foodItem.position.y - consumedPosition.y, 2))
-                // If food is within 1 unit of a consumed position, remove it
-                if distance < 1.0 {
+                // If food is within 3 units of a consumed position, remove it
+                if distance < 3.0 {
                     return true
                 }
             }

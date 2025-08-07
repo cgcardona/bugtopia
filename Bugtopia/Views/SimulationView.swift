@@ -451,7 +451,7 @@ struct SimulationView: View {
                     showingStatistics.toggle()
                 }
             }) {
-                Image(systemName: showingStatistics ? "sidebar.left.and.sidebar.right" : "rectangle.center.inset.filled")
+                Image(systemName: showingStatistics ? "sidebar.leading" : "rectangle.center.inset.filled")
                     .font(.title2)
             }
             .buttonStyle(.bordered)
@@ -466,11 +466,6 @@ struct SimulationView: View {
                 // 🚀 EPIC 3D VOXEL VISUALIZATION - TO INFINITY AND BEYOND!
                 // Use the single Arena3DView instance to prevent multiple 3D scene creation
                 engineManager.arena3DView
-                    .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
-                        // 🔄 FORCE SwiftUI to call updateNSView regularly for continuous visual updates
-                        // This triggers the Arena3DView update cycle every 100ms (10 FPS)
-                        engineManager.arena3DView.triggerVisualUpdate()
-                    }
                     .transition(.asymmetric(
                         insertion: .scale.combined(with: .opacity),
                         removal: .scale.combined(with: .opacity)
