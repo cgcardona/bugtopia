@@ -29,6 +29,7 @@ Bugtopia currently uses a sophisticated but underutilized world generation syste
    - Archipelago: `archipelago-skybox.png`
    - Canyon: `canyon-skybox.png`
    - Cavern: `cavern-skybox.png`
+   - Continental: `continental-skybox.png`
    - Skylands: `skylands-skybox.png`
    - Volcano: `volcano-skybox.png`
 

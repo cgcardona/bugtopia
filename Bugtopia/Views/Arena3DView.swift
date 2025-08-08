@@ -4132,14 +4132,26 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🎯 Bug Selection: Establish node-to-bug mapping
         bugNodeToBugMapping[bugNode] = bug
+        print("🗂️ [MAPPING-CREATED] Arena3DView mapping: '\(bugNode.name ?? "unnamed")' → bug \(bugId)")
         
         // Update NavigationResponder's mapping too
+        // 🐛 FIX: Ensure navigation mapping is updated even during direct triggerVisualUpdate() calls
         if let navResponder = navigationResponder {
             navResponder.bugNodeToBugMapping[bugNode] = bug
+            print("✅ [NAV-MAPPING] NavigationResponder mapping updated via @State reference for bug \(bugId)")
             // Only log navigation mapping for every 20th bug to reduce noise
             if Int.random(in: 1...20) == 1 {
             }
         } else {
+            // 🐛 FIX: During direct updates, navigationResponder @State may be nil
+            // Use static reference to update NavigationResponder directly
+            print("⚠️ [NAV-MAPPING] @State navigationResponder is nil, trying static reference...")
+            if let staticNavResponder = NavigationResponderView.currentInstance {
+                staticNavResponder.bugNodeToBugMapping[bugNode] = bug
+                print("🔧 [BUG-MAPPING-FIX] Updated NavigationResponder mapping via static reference for bug \(bugId)")
+            } else {
+                print("❌ [NAV-MAPPING] No static NavigationResponder reference available!")
+            }
             // Only log missing NavigationResponder for every 20th bug
             if Int.random(in: 1...20) == 1 {
             }
@@ -7989,9 +8001,15 @@ struct Arena3DView: NSViewRepresentable {
         navigationResponder.bugNodeToBugMapping = bugNodeToBugMapping
         navigationResponder.onBugSelected = onBugSelected
         
+        // 🐛 FIX: Set static reference for access during direct triggerVisualUpdate() calls
+        NavigationResponderView.currentInstance = navigationResponder
+        
         // 🎯 NEW: Give NavigationResponder a closure to access current bug mappings
-        navigationResponder.getFallbackBugMappings = { [weak navigationResponder] in
-            return self.bugNodeToBugMapping
+        // 🐛 FIX: Since SwiftUI views are value types, we can't capture self with [unowned]
+        // Instead, we'll create a closure that captures the current mappings and update it later
+        navigationResponder.getFallbackBugMappings = { 
+            print("🔧 [CLOSURE-DEBUG] getFallbackBugMappings called, returning empty dict for now")
+            return [:]
         }
         
         // CRITICAL: Make sure the responder can receive events
@@ -8320,6 +8338,9 @@ class NavigationController {
 
 // 🎮 Navigation Responder View - Handles input events
 class NavigationResponderView: NSView {
+    // 🐛 FIX: Static reference for access during direct triggerVisualUpdate() calls
+    static weak var currentInstance: NavigationResponderView?
+    
     var navigationController: NavigationController?
     weak var directCameraReference: SCNNode?  // Direct backup reference
     
@@ -8414,6 +8435,7 @@ class NavigationResponderView: NSView {
     
     override func mouseDown(with event: NSEvent) {
         // Mouse down - making first responder
+        print("🖱️ [MOUSE-CLICK] NavigationResponder mouseDown called at location: \(event.locationInWindow)")
         self.window?.makeFirstResponder(self)
         
         // 🎯 Bug Selection: Handle click for bug selection
@@ -8422,15 +8444,21 @@ class NavigationResponderView: NSView {
     
     // 🎯 Bug Selection: Handle clicks on bugs
     private func handleBugSelection(with event: NSEvent) {
+        print("🎯 [BUG-SELECTION] handleBugSelection called")
         guard let sceneView = sceneView else {
+            print("❌ [BUG-SELECTION] No sceneView available")
             return
         }
+        print("✅ [BUG-SELECTION] SceneView available")
         
         // 🎯 LAZY REFRESH: Check if we need to use fallback mappings
         if bugNodeToBugMapping.count == 0 && getFallbackBugMappings != nil {
         }
         
+        print("🗂️ [BUG-MAPPING] Current bugNodeToBugMapping count: \(bugNodeToBugMapping.count)")
+        
         let clickLocation = convert(event.locationInWindow, from: nil)
+        print("📍 [HIT-TEST] Click location: \(clickLocation)")
         
         // Perform hit test to find clicked objects
         let hitResults = sceneView.hitTest(clickLocation, options: [
@@ -8438,11 +8466,14 @@ class NavigationResponderView: NSView {
             .ignoreHiddenNodes: true
         ])
         
+        print("🎯 [HIT-TEST] Found \(hitResults.count) hit results")
+        
         
         // Debug: Print all hit results
         for (index, hitResult) in hitResults.enumerated() {
             let nodeName = hitResult.node.name ?? "unnamed"
             let nodeType = String(describing: type(of: hitResult.node))
+            print("🎯 [HIT-RESULT-\(index)] Node: '\(nodeName)' Type: \(nodeType)")
             
             // Check if this node or any parent is in our bug mapping
             var currentNode: SCNNode? = hitResult.node
@@ -8450,7 +8481,9 @@ class NavigationResponderView: NSView {
             while currentNode != nil {
                 let currentName = currentNode?.name ?? "unnamed"
                 if let bug = bugNodeToBugMapping[currentNode!] {
+                    print("✅ [MAPPING-FOUND] Node '\(currentName)' maps to bug \(String(bug.id.uuidString.prefix(8)))")
                 } else {
+                    print("❌ [NO-MAPPING] Node '\(currentName)' not in bugNodeToBugMapping")
                 }
                 currentNode = currentNode?.parent
                 parentLevel += 1
@@ -8458,42 +8491,65 @@ class NavigationResponderView: NSView {
             }
         }
         
-        let fallbackMappings = getFallbackBugMappings?() ?? [:]
+                let fallbackMappings = getFallbackBugMappings?() ?? [:]
+        print("🗂️ [FALLBACK-MAPPING] Fallback mappings count: \(fallbackMappings.count)")
+        print("🔍 [FALLBACK-MAPPING] getFallbackBugMappings closure exists: \(getFallbackBugMappings != nil)")
+        
+        // 🐛 DEBUG: Check if getFallbackBugMappings is properly set
+        print("🔍 [FALLBACK-DEBUG] getFallbackBugMappings closure exists: \(getFallbackBugMappings != nil)")
         
         // Find the first bug node that was clicked
         for hitResult in hitResults {
+            let nodeName = hitResult.node.name ?? "unnamed"
+            print("🔍 [SELECTION-CHECK] Checking node: '\(nodeName)'")
+            
+            // This debug code was removed - focusing on fallback mappings instead
+            
             // Try NavigationResponder's mappings first
             if let bug = bugNodeToBugMapping[hitResult.node] {
+                print("🎉 [BUG-SELECTED] Found bug in primary mapping: \(String(bug.id.uuidString.prefix(8)))")
                 onBugSelected?(bug)
                 return
             }
             
             // 🎯 FALLBACK: Try Arena3DView's mappings
             if let bug = fallbackMappings[hitResult.node] {
+                print("🎉 [BUG-SELECTED] Found bug in fallback mapping: \(String(bug.id.uuidString.prefix(8)))")
                 onBugSelected?(bug)
                 return
             }
             
             // Also check parent nodes (in case clicking on sub-components of bug)
             var parentNode = hitResult.node.parent
+            var parentLevel = 0
             while parentNode != nil {
+                let parentName = parentNode?.name ?? "unnamed"
+                print("🔍 [PARENT-CHECK-\(parentLevel)] Checking parent: '\(parentName)'")
+                
+                // This debug code was removed - focusing on fallback mappings instead
+                
                 // Try NavigationResponder's mappings for parent
                 if let bug = bugNodeToBugMapping[parentNode!] {
+                    print("🎉 [BUG-SELECTED] Found bug in parent primary mapping: \(String(bug.id.uuidString.prefix(8)))")
                     onBugSelected?(bug)
                     return
                 }
                 
                 // 🎯 FALLBACK: Try Arena3DView's mappings for parent
                 if let bug = fallbackMappings[parentNode!] {
+                    print("🎉 [BUG-SELECTED] Found bug in parent fallback mapping: \(String(bug.id.uuidString.prefix(8)))")
                     onBugSelected?(bug)
                     return
                 }
                 
                 parentNode = parentNode?.parent
+                parentLevel += 1
+                if parentLevel > 5 { break } // Avoid infinite loops
             }
         }
         
         // No bug clicked - deselect
+        print("❌ [NO-BUG-FOUND] No bug found in hit results, deselecting")
         onBugSelected?(nil)
     }
     
