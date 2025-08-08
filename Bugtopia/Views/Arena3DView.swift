@@ -4139,25 +4139,25 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🎯 Bug Selection: Establish node-to-bug mapping
         bugNodeToBugMapping[bugNode] = bug
-        print("🗂️ [MAPPING-CREATED] Arena3DView mapping: '\(bugNode.name ?? "unnamed")' → bug \(bugId)")
+        // print("🗂️ [MAPPING-CREATED] Arena3DView mapping: '\(bugNode.name ?? "unnamed")' → bug \(bugId)")
         
         // Update NavigationResponder's mapping too
         // 🐛 FIX: Ensure navigation mapping is updated even during direct triggerVisualUpdate() calls
         if let navResponder = navigationResponder {
             navResponder.bugNodeToBugMapping[bugNode] = bug
-            print("✅ [NAV-MAPPING] NavigationResponder mapping updated via @State reference for bug \(bugId)")
+            // print("✅ [NAV-MAPPING] NavigationResponder mapping updated via @State reference for bug \(bugId)")
             // Only log navigation mapping for every 20th bug to reduce noise
             if Int.random(in: 1...20) == 1 {
             }
         } else {
             // 🐛 FIX: During direct updates, navigationResponder @State may be nil
             // Use static reference to update NavigationResponder directly
-            print("⚠️ [NAV-MAPPING] @State navigationResponder is nil, trying static reference...")
+            // print("⚠️ [NAV-MAPPING] @State navigationResponder is nil, trying static reference...")
             if let staticNavResponder = NavigationResponderView.currentInstance {
                 staticNavResponder.bugNodeToBugMapping[bugNode] = bug
-                print("🔧 [BUG-MAPPING-FIX] Updated NavigationResponder mapping via static reference for bug \(bugId)")
+                // print("🔧 [BUG-MAPPING-FIX] Updated NavigationResponder mapping via static reference for bug \(bugId)")
             } else {
-                print("❌ [NAV-MAPPING] No static NavigationResponder reference available!")
+                // print("❌ [NAV-MAPPING] No static NavigationResponder reference available!")
             }
             // Only log missing NavigationResponder for every 20th bug
             if Int.random(in: 1...20) == 1 {
