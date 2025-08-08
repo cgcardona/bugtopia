@@ -15,11 +15,17 @@ class SimulationEngineManager: ObservableObject {
     // 🎯 Bug Selection Callback
     var onBugSelected: ((Bug?) -> Void)?
     
+    // 🍎 Food Selection Callback
+    var onFoodSelected: ((FoodItem?) -> Void)?
+    
     // Lazy initialization ensures Arena3DView is created only once when first accessed
     lazy var arena3DView: Arena3DView = {
         return Arena3DView(simulationEngine: engine, onBugSelected: { [weak self] bug in
             // Dynamic callback that uses the current onBugSelected value
             self?.onBugSelected?(bug)
+        }, onFoodSelected: { [weak self] food in
+            // Dynamic callback that uses the current onFoodSelected value
+            self?.onFoodSelected?(food)
         })
     }()
     
@@ -35,6 +41,7 @@ struct SimulationView: View {
     @StateObject private var engineManager = SimulationEngineManager()
     @State private var showingStatistics = true
     @State private var selectedBug: Bug?
+    @State private var selectedFood: FoodItem?
     // Only VoxelWorld rendering - 2D and Arena3D rendering paths removed
     
     private var simulationEngine: SimulationEngine {
@@ -47,11 +54,98 @@ struct SimulationView: View {
         DispatchQueue.main.async {
             self.selectedBug = bug
             if bug != nil {
-                // Bug selected
+                // Bug selected - deselect food
+                self.selectedFood = nil
             } else {
                 // No bug selected
             }
         }
+    }
+    
+    // 🍎 Food Selection Handler
+    private func handleFoodSelection(_ food: FoodItem?) {
+        // 🔧 FIXED: Defer state modification to prevent warnings during view updates
+        DispatchQueue.main.async {
+            self.selectedFood = food
+            if food != nil {
+                // Food selected - deselect bug
+                self.selectedBug = nil
+            } else {
+                // No food selected
+            }
+        }
+    }
+    
+    // 🍎 Selected Food Display
+    @ViewBuilder
+    private func selectedFoodView(food: FoodItem) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Food Header
+            HStack {
+                Text("🍎 Selected Food")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+                Button("Deselect") {
+                    selectedFood = nil
+                }
+                .font(.caption)
+                .buttonStyle(.plain)
+                .foregroundColor(.blue)
+            }
+            
+            // Basic Food Stats
+            VStack(alignment: .leading, spacing: 6) {
+                StatRow(label: "ID", value: food.id.uuidString.prefix(8).description)
+                StatRow(label: "🍽️ Type", value: food.type.displayName)
+                StatRow(label: "⚡ Energy", value: String(format: "%.1f", food.energyValue))
+                StatRow(label: "🎯 Target Species", value: food.targetSpecies.rawValue.capitalized)
+                StatRow(label: "📍 Position", value: "(\(String(format: "%.1f", food.position.x)), \(String(format: "%.1f", food.position.y)))")
+            }
+            
+            // Food Type Details
+            VStack(alignment: .leading, spacing: 4) {
+                Text("🔍 Food Properties")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .padding(.top, 8)
+                
+                StatRow(label: "🌈 Color", value: food.type.color.description)
+                StatRow(label: "💎 Rarity", value: food.type.rarity.rawValue.capitalized)
+                StatRow(label: "📊 Spawn Chance", value: String(format: "%.0f%%", food.type.rarity.spawnChance * 100))
+            }
+            
+            // Compatible Species
+            VStack(alignment: .leading, spacing: 4) {
+                Text("🐛 Compatible Species")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .padding(.top, 8)
+                
+                ForEach(food.type.compatibleSpecies, id: \.self) { species in
+                    StatRow(label: "• \(species.rawValue.capitalized)", value: "✅ Can eat")
+                }
+            }
+            
+            // Environmental Preferences
+            VStack(alignment: .leading, spacing: 4) {
+                Text("🌍 Environmental Preferences")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .padding(.top, 8)
+                
+                if !food.type.preferredBiomes.isEmpty {
+                    StatRow(label: "🏞️ Biomes", value: food.type.preferredBiomes.map { $0.rawValue }.joined(separator: ", "))
+                }
+                
+                if !food.type.preferredSeasons.isEmpty {
+                    StatRow(label: "📅 Seasons", value: food.type.preferredSeasons.map { $0.rawValue }.joined(separator: ", "))
+                }
+            }
+        }
+        .padding()
+        .background(Color(NSColor.controlAccentColor).opacity(0.1))
+        .cornerRadius(8)
     }
     
     // 🎯 Selected Bug Display
@@ -196,9 +290,10 @@ struct SimulationView: View {
         }
         .onAppear {
             // 🎯 Set up bug selection callback
-
             engineManager.onBugSelected = handleBugSelection
-
+            
+            // 🍎 Set up food selection callback
+            engineManager.onFoodSelected = handleFoodSelection
         }
     }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -499,9 +594,11 @@ struct SimulationView: View {
                 // 🎯 Selected Bug Display
                 if let selectedBug = selectedBug {
                     selectedBugView(bug: selectedBug)
-                    Divider()
+                } else if let selectedFood = selectedFood {
+                    // 🍎 Selected Food Display
+                    selectedFoodView(food: selectedFood)
                 } else {
-                    Text("🎯 Click a bug to select it")
+                    Text("🎯 Click a bug or food item to select it")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .italic()

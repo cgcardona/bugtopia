@@ -38,8 +38,8 @@ class SimulationEngine {
     let pathfinding: VoxelPathfinding
     private let maxPopulation = 800  // MASSIVE INCREASE: 4.4x more bugs for extensive debugging
     private let initialPopulation = 20    // 🎉 FULL SIMULATION: Back to 20 bugs with visual sync fixed!
-    private let maxFoodItems = 5000  // MASSIVE INCREASE: 4.2x more food to eliminate food scarcity
-    private let baseFoodSpawnRate = 0.99 // MAXIMUM: Near-constant food spawning for abundant resources
+    private let maxFoodItems = 200  // Reasonable food limit for good performance
+    private let baseFoodSpawnRate = 0.05 // Much lower spawn rate to prevent oversaturation
     
     // MARK: - Simulation Speed & Analysis
     
@@ -628,35 +628,14 @@ class SimulationEngine {
     private func spawnInitialFood() {
         var newFoods: [FoodItem] = []
         
-        // 🎯 FOCUSED DEBUGGING: Place food near the center bug for easy testing
-        let bounds = voxelWorld.worldBounds
-        let centerX = bounds.midX
-        let centerY = bounds.midY
-        
-        // Spawn several food items in a circle around the center bug
-        let foodCount = 5
-        for i in 0..<foodCount {
-            let angle = Double(i) * (2.0 * .pi / Double(foodCount))
-            let radius = 30.0 // Close but not too close
-            let foodPosition = CGPoint(
-                x: centerX + radius * cos(angle),
-                y: centerY + radius * sin(angle)
-            )
-            
-            // Mix of herbivore and carnivore foods for testing
-            let isHerbivoreFood = i % 2 == 0
-            let targetSpecies: SpeciesType = isHerbivoreFood ? .herbivore : .carnivore
-            let foodType: FoodType = isHerbivoreFood ? .apple : .meat
-            let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
-            newFoods.append(foodItem)
-        }
+        // Removed hard-coded test food spawning to use proper biome-based distribution
         
         // Original logic (reduced for focused debugging)
         let herbivoreFoodRatio = 0.8 // 80% herbivore foods for now
         
         // Spawn food in designated food zones (limited to prevent oversaturation)
         let foodVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .food }
-        for voxel in foodVoxels.prefix(min(20, maxFoodItems / 20)) { // Much more conservative initial food zone spawning
+        for voxel in foodVoxels.prefix(min(5, maxFoodItems / 40)) { // Very conservative initial food zone spawning
             let randomOffset = CGPoint(
                 x: Double.random(in: -15...15),
                 y: Double.random(in: -15...15)
@@ -677,7 +656,7 @@ class SimulationEngine {
         let openVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .open }
         let hillVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .hill }
         let availableVoxels = openVoxels + hillVoxels
-        for _ in 0..<(maxFoodItems * 4 / 5) { // Most food spawns in distributed areas
+        for _ in 0..<(maxFoodItems / 4) { // More conservative initial food spawning
             if let voxel = availableVoxels.randomElement() {
                 let randomOffset = CGPoint(
                     x: Double.random(in: -20...20),

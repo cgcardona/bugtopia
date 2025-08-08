@@ -22,12 +22,16 @@ struct Arena3DView: NSViewRepresentable {
     // 🎯 Bug Selection System
     var onBugSelected: ((Bug?) -> Void)?
     
+    // 🍎 Food Selection System
+    var onFoodSelected: ((FoodItem?) -> Void)?
+    
     // 🐛 SINGLE BUG DEBUG: Class-level scene storage for timer access
     private static var globalPersistentScene: SCNScene? = nil
     
-    init(simulationEngine: SimulationEngine, onBugSelected: ((Bug?) -> Void)? = nil) {
+    init(simulationEngine: SimulationEngine, onBugSelected: ((Bug?) -> Void)? = nil, onFoodSelected: ((FoodItem?) -> Void)? = nil) {
         self.simulationEngine = simulationEngine
         self.onBugSelected = onBugSelected
+        self.onFoodSelected = onFoodSelected
     }
     @State private var sceneView: SCNView?
     @State private var cameraNode: SCNNode?
@@ -49,6 +53,9 @@ struct Arena3DView: NSViewRepresentable {
     
     // 🎯 Bug Selection Mapping
     @State private var bugNodeToBugMapping: [SCNNode: Bug] = [:]
+    
+    // 🍎 Food Selection Mapping
+    @State private var foodNodeToFoodMapping: [SCNNode: FoodItem] = [:]
     
     // Track previous alive state to detect death transitions
     @State private var previousBugAliveState: [UUID: Bool] = [:]
@@ -7692,6 +7699,16 @@ struct Arena3DView: NSViewRepresentable {
         
         let foodType = matchingFood?.type ?? .apple  // Default to apple if no match
         
+        // 🍎 Food Selection: Establish node-to-food mapping
+        if let actualFood = matchingFood {
+            foodNodeToFoodMapping[foodNode] = actualFood
+            
+            // 🐛 FIX: Also update NavigationResponder's mapping using static reference
+            if let navResponder = NavigationResponderView.currentInstance {
+                navResponder.foodNodeToFoodMapping[foodNode] = actualFood
+            }
+        }
+        
         // 🍎 FOOD VARIETY: Create different visuals for different food types
         let sphere = SCNSphere(radius: 2.5)  // Slightly larger for better visibility
         let material = SCNMaterial()
@@ -7805,6 +7822,16 @@ struct Arena3DView: NSViewRepresentable {
         }
         
         let foodType = matchingFood?.type ?? .apple  // Default to apple if no match
+        
+        // 🍎 Food Selection: Establish node-to-food mapping
+        if let actualFood = matchingFood {
+            foodNodeToFoodMapping[foodNode] = actualFood
+            
+            // 🐛 FIX: Also update NavigationResponder's mapping using static reference
+            if let navResponder = NavigationResponderView.currentInstance {
+                navResponder.foodNodeToFoodMapping[foodNode] = actualFood
+            }
+        }
         
         // Create food sphere with proper food type visuals
         let sphere = SCNSphere(radius: 2.5)  // Slightly smaller for better performance
@@ -8001,6 +8028,10 @@ struct Arena3DView: NSViewRepresentable {
         navigationResponder.bugNodeToBugMapping = bugNodeToBugMapping
         navigationResponder.onBugSelected = onBugSelected
         
+        // 🍎 Food Selection: Set up food selection system
+        navigationResponder.foodNodeToFoodMapping = foodNodeToFoodMapping
+        navigationResponder.onFoodSelected = onFoodSelected
+        
         // 🐛 FIX: Set static reference for access during direct triggerVisualUpdate() calls
         NavigationResponderView.currentInstance = navigationResponder
         
@@ -8008,8 +8039,12 @@ struct Arena3DView: NSViewRepresentable {
         // 🐛 FIX: Since SwiftUI views are value types, we can't capture self with [unowned]
         // Instead, we'll create a closure that captures the current mappings and update it later
         navigationResponder.getFallbackBugMappings = { 
-            print("🔧 [CLOSURE-DEBUG] getFallbackBugMappings called, returning empty dict for now")
-            return [:]
+            return self.bugNodeToBugMapping
+        }
+        
+        // 🍎 NEW: Give NavigationResponder a closure to access current food mappings
+        navigationResponder.getFallbackFoodMappings = {
+            return self.foodNodeToFoodMapping
         }
         
         // CRITICAL: Make sure the responder can receive events
@@ -8352,6 +8387,11 @@ class NavigationResponderView: NSView {
     // 🎯 NEW: Closure to get fallback bug mappings
     var getFallbackBugMappings: (() -> [SCNNode: Bug])?
     
+    // 🍎 Food Selection System
+    var foodNodeToFoodMapping: [SCNNode: FoodItem] = [:]
+    var onFoodSelected: ((FoodItem?) -> Void)?
+    var getFallbackFoodMappings: (() -> [SCNNode: FoodItem])?
+    
     private var pressedKeys: Set<UInt16> = []
     private var lastUpdateTime: TimeInterval = 0
     private var updateTimer: Timer?
@@ -8435,30 +8475,19 @@ class NavigationResponderView: NSView {
     
     override func mouseDown(with event: NSEvent) {
         // Mouse down - making first responder
-        print("🖱️ [MOUSE-CLICK] NavigationResponder mouseDown called at location: \(event.locationInWindow)")
         self.window?.makeFirstResponder(self)
         
         // 🎯 Bug Selection: Handle click for bug selection
         handleBugSelection(with: event)
     }
     
-    // 🎯 Bug Selection: Handle clicks on bugs
+    // 🎯 Bug & Food Selection: Handle clicks on bugs and food items
     private func handleBugSelection(with event: NSEvent) {
-        print("🎯 [BUG-SELECTION] handleBugSelection called")
         guard let sceneView = sceneView else {
-            print("❌ [BUG-SELECTION] No sceneView available")
             return
         }
-        print("✅ [BUG-SELECTION] SceneView available")
-        
-        // 🎯 LAZY REFRESH: Check if we need to use fallback mappings
-        if bugNodeToBugMapping.count == 0 && getFallbackBugMappings != nil {
-        }
-        
-        print("🗂️ [BUG-MAPPING] Current bugNodeToBugMapping count: \(bugNodeToBugMapping.count)")
         
         let clickLocation = convert(event.locationInWindow, from: nil)
-        print("📍 [HIT-TEST] Click location: \(clickLocation)")
         
         // Perform hit test to find clicked objects
         let hitResults = sceneView.hitTest(clickLocation, options: [
@@ -8466,55 +8495,18 @@ class NavigationResponderView: NSView {
             .ignoreHiddenNodes: true
         ])
         
-        print("🎯 [HIT-TEST] Found \(hitResults.count) hit results")
-        
-        
-        // Debug: Print all hit results
-        for (index, hitResult) in hitResults.enumerated() {
-            let nodeName = hitResult.node.name ?? "unnamed"
-            let nodeType = String(describing: type(of: hitResult.node))
-            print("🎯 [HIT-RESULT-\(index)] Node: '\(nodeName)' Type: \(nodeType)")
-            
-            // Check if this node or any parent is in our bug mapping
-            var currentNode: SCNNode? = hitResult.node
-            var parentLevel = 0
-            while currentNode != nil {
-                let currentName = currentNode?.name ?? "unnamed"
-                if let bug = bugNodeToBugMapping[currentNode!] {
-                    print("✅ [MAPPING-FOUND] Node '\(currentName)' maps to bug \(String(bug.id.uuidString.prefix(8)))")
-                } else {
-                    print("❌ [NO-MAPPING] Node '\(currentName)' not in bugNodeToBugMapping")
-                }
-                currentNode = currentNode?.parent
-                parentLevel += 1
-                if parentLevel > 5 { break } // Avoid infinite loops
-            }
-        }
-        
-                let fallbackMappings = getFallbackBugMappings?() ?? [:]
-        print("🗂️ [FALLBACK-MAPPING] Fallback mappings count: \(fallbackMappings.count)")
-        print("🔍 [FALLBACK-MAPPING] getFallbackBugMappings closure exists: \(getFallbackBugMappings != nil)")
-        
-        // 🐛 DEBUG: Check if getFallbackBugMappings is properly set
-        print("🔍 [FALLBACK-DEBUG] getFallbackBugMappings closure exists: \(getFallbackBugMappings != nil)")
+        let fallbackMappings = getFallbackBugMappings?() ?? [:]
         
         // Find the first bug node that was clicked
         for hitResult in hitResults {
-            let nodeName = hitResult.node.name ?? "unnamed"
-            print("🔍 [SELECTION-CHECK] Checking node: '\(nodeName)'")
-            
-            // This debug code was removed - focusing on fallback mappings instead
-            
             // Try NavigationResponder's mappings first
             if let bug = bugNodeToBugMapping[hitResult.node] {
-                print("🎉 [BUG-SELECTED] Found bug in primary mapping: \(String(bug.id.uuidString.prefix(8)))")
                 onBugSelected?(bug)
                 return
             }
             
             // 🎯 FALLBACK: Try Arena3DView's mappings
             if let bug = fallbackMappings[hitResult.node] {
-                print("🎉 [BUG-SELECTED] Found bug in fallback mapping: \(String(bug.id.uuidString.prefix(8)))")
                 onBugSelected?(bug)
                 return
             }
@@ -8523,21 +8515,14 @@ class NavigationResponderView: NSView {
             var parentNode = hitResult.node.parent
             var parentLevel = 0
             while parentNode != nil {
-                let parentName = parentNode?.name ?? "unnamed"
-                print("🔍 [PARENT-CHECK-\(parentLevel)] Checking parent: '\(parentName)'")
-                
-                // This debug code was removed - focusing on fallback mappings instead
-                
                 // Try NavigationResponder's mappings for parent
                 if let bug = bugNodeToBugMapping[parentNode!] {
-                    print("🎉 [BUG-SELECTED] Found bug in parent primary mapping: \(String(bug.id.uuidString.prefix(8)))")
                     onBugSelected?(bug)
                     return
                 }
                 
                 // 🎯 FALLBACK: Try Arena3DView's mappings for parent
                 if let bug = fallbackMappings[parentNode!] {
-                    print("🎉 [BUG-SELECTED] Found bug in parent fallback mapping: \(String(bug.id.uuidString.prefix(8)))")
                     onBugSelected?(bug)
                     return
                 }
@@ -8548,9 +8533,52 @@ class NavigationResponderView: NSView {
             }
         }
         
-        // No bug clicked - deselect
-        print("❌ [NO-BUG-FOUND] No bug found in hit results, deselecting")
+        // 🍎 FOOD SELECTION: Check if clicked on food items
+        let fallbackFoodMappings = getFallbackFoodMappings?() ?? [:]
+        
+        // Find the first food node that was clicked
+        for hitResult in hitResults {
+            // Try NavigationResponder's food mappings first
+            if let food = foodNodeToFoodMapping[hitResult.node] {
+                onFoodSelected?(food)
+                onBugSelected?(nil) // Deselect any selected bug
+                return
+            }
+            
+            // 🎯 FALLBACK: Try Arena3DView's food mappings
+            if let food = fallbackFoodMappings[hitResult.node] {
+                onFoodSelected?(food)
+                onBugSelected?(nil) // Deselect any selected bug
+                return
+            }
+            
+            // Also check parent nodes (in case clicking on sub-components of food)
+            var parentNode = hitResult.node.parent
+            var parentLevel = 0
+            while parentNode != nil {
+                // Try NavigationResponder's food mappings for parent
+                if let food = foodNodeToFoodMapping[parentNode!] {
+                    onFoodSelected?(food)
+                    onBugSelected?(nil) // Deselect any selected bug
+                    return
+                }
+                
+                // 🎯 FALLBACK: Try Arena3DView's food mappings for parent
+                if let food = fallbackFoodMappings[parentNode!] {
+                    onFoodSelected?(food)
+                    onBugSelected?(nil) // Deselect any selected bug
+                    return
+                }
+                
+                parentNode = parentNode?.parent
+                parentLevel += 1
+                if parentLevel > 5 { break } // Avoid infinite loops
+            }
+        }
+        
+        // No bug or food clicked - deselect both
         onBugSelected?(nil)
+        onFoodSelected?(nil)
     }
     
     override func rightMouseDown(with event: NSEvent) {

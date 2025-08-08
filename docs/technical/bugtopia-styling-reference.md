@@ -26,10 +26,10 @@ The 4-layer ecosystem creates distinct environmental zones:
 
 | Layer | Height Range | Description | Visual Theme |
 |-------|-------------|-------------|--------------|
-| **Underground** 🕳️ | -100 to 0 | Caves, tunnels, underground rivers | Dark, rocky, mineral tones |
-| **Surface** 🌍 | 0 to 20 | Ground level, hills, water bodies, vegetation | Natural earth tones, realistic terrain |
-| **Canopy** 🌳 | 20 to 60 | Tree tops, elevated platforms, aerial highways | Lush greens, organic textures |
 | **Aerial** ☁️ | 60 to 200 | Open sky, wind currents, high-altitude zones | Light blues, atmospheric effects |
+| **Canopy** 🌳 | 20 to 60 | Tree tops, elevated platforms, aerial highways | Lush greens, organic textures |
+| **Surface** 🌍 | 0 to 20 | Ground level, hills, water bodies, vegetation | Natural earth tones, realistic terrain |
+| **Underground** 🕳️ | -100 to 0 | Caves, tunnels, underground rivers | Dark, rocky, mineral tones |
 
 ## 🗺️ **TERRAIN TYPES (12)**
 
@@ -37,18 +37,18 @@ Core environmental features that shape movement and behavior:
 
 | Terrain | Icon | Color | Movement Challenge | Visual Style |
 |---------|------|-------|-------------------|--------------|
-| **Open** | ⬛ | Black | None | Neutral base terrain |
-| **Wall** | 🪨 | Gray | Impassable | Solid stone, rocky textures |
-| **Water** | 🌊 | Blue (0.6 opacity) | Swimming required | Flowing, reflective, animated |
-| **Hill** | ⛰️ | Brown (0.7 opacity) | Strength required | Elevated, rocky, rugged |
-| **Shadow** | 🌫️ | Black (0.8 opacity) | Vision reduction | Dark, mysterious, low visibility |
-| **Predator** | 🦁 | Red (0.3 opacity) | Survival challenge | Dangerous, warning colors |
-| **Wind** | 💨 | Cyan (0.2 opacity) | Size-based disruption | Flowing, dynamic effects |
+| **Ice** | 🧊 | Cyan (0.9 opacity) | Slippery, cold | Crystalline, reflective, cold tones |
 | **Food** | 🌱 | Green (0.3 opacity) | None (bonus) | Vibrant, lush, appealing |
 | **Forest** | 🌲 | Green (0.8 opacity) | Dense vegetation | Rich greens, organic density |
+| **Hill** | ⛰️ | Brown (0.7 opacity) | Strength required | Elevated, rocky, rugged |
+| **Open** | ⬛ | Black | None | Neutral base terrain |
+| **Predator** | 🦁 | Red (0.3 opacity) | Survival challenge | Dangerous, warning colors |
 | **Sand** | 🏖️ | Yellow (0.7 opacity) | Desert terrain | Warm yellows, granular texture |
-| **Ice** | 🧊 | Cyan (0.9 opacity) | Slippery, cold | Crystalline, reflective, cold tones |
+| **Shadow** | 🌫️ | Black (0.8 opacity) | Vision reduction | Dark, mysterious, low visibility |
 | **Swamp** | 🐊 | Brown (0.5 opacity) | Wet, muddy | Murky browns, wetland atmosphere |
+| **Wall** | 🪨 | Gray | Impassable | Solid stone, rocky textures |
+| **Water** | 🌊 | Blue (0.6 opacity) | Swimming required | Flowing, reflective, animated |
+| **Wind** | 💨 | Cyan (0.2 opacity) | Size-based disruption | Flowing, dynamic effects |
 
 ## 🌿 **BIOME TYPES (10)**
 
@@ -56,16 +56,16 @@ Climate-based ecosystems with distinct characteristics:
 
 | Biome | Temperature Range | Moisture Range | Vegetation Density | Primary Terrains |
 |-------|------------------|----------------|-------------------|------------------|
-| **Tundra** ❄️ | 0.0-0.2 | 0.1-0.4 | 0.1 | Open, Ice, Water |
+| **Alpine** ⛰️ | 0.0-0.3 | 0.3-0.7 | 0.2 | Hill, Ice, Open |
 | **Boreal Forest** 🌲 | 0.1-0.4 | 0.4-0.8 | 0.7 | Forest, Open, Hill |
-| **Temperate Forest** 🌳 | 0.3-0.7 | 0.5-0.9 | 0.9 | Forest, Hill, Open |
-| **Temperate Grassland** 🌾 | 0.4-0.8 | 0.2-0.6 | 0.4 | Open, Hill, Food |
+| **Coastal** 🏖️ | 0.4-0.8 | 0.6-1.0 | 0.5 | Open, Water, Sand |
 | **Desert** 🏜️ | 0.6-1.0 | 0.0-0.2 | 0.05 | Sand, Open, Hill |
 | **Savanna** 🦒 | 0.7-0.9 | 0.2-0.5 | 0.3 | Open, Food, Hill |
+| **Temperate Forest** 🌳 | 0.3-0.7 | 0.5-0.9 | 0.9 | Forest, Hill, Open |
+| **Temperate Grassland** 🌾 | 0.4-0.8 | 0.2-0.6 | 0.4 | Open, Hill, Food |
 | **Tropical Rainforest** 🌴 | 0.8-1.0 | 0.8-1.0 | 1.0 | Forest, Food, Water |
+| **Tundra** ❄️ | 0.0-0.2 | 0.1-0.4 | 0.1 | Open, Ice, Water |
 | **Wetlands** 🐸 | 0.2-0.6 | 0.9-1.0 | 0.8 | Water, Swamp, Food |
-| **Alpine** ⛰️ | 0.0-0.3 | 0.3-0.7 | 0.2 | Hill, Ice, Open |
-| **Coastal** 🏖️ | 0.4-0.8 | 0.6-1.0 | 0.5 | Open, Water, Sand |
 
 ## 🐛 **BUG SPECIES TYPES (4)**
 
@@ -73,8 +73,8 @@ Evolutionary niches with distinct behaviors and appearances:
 
 | Species | Icon | Base Color | Diet | Hunting Ability | Visual Characteristics |
 |---------|------|------------|------|-----------------|----------------------|
-| **Herbivore** | 🌱 | Green | Plants only | Cannot hunt | Peaceful greens, leaf motifs |
 | **Carnivore** | 🦁 | Red | Prey only | Active hunter | Aggressive reds, predator features |
+| **Herbivore** | 🌱 | Green | Plants only | Cannot hunt | Peaceful greens, leaf motifs |
 | **Omnivore** | 🐻 | Orange | Mixed diet | Can hunt | Balanced oranges, versatile design |
 | **Scavenger** | 🦅 | Purple | Carrion/plants | Cannot hunt | Muted purples, opportunistic look |
 
@@ -86,14 +86,14 @@ Visual and audio cues for social interaction:
 
 | Signal | Icon | Priority | Visual Effect | Audio Effect |
 |--------|------|----------|---------------|--------------|
-| **Food Found** | 🍃 | 0.6 | Green pulsing | Gentle chime |
 | **Danger Alert** | ⚠️ | 1.0 | Red flashing | Urgent alarm |
-| **Hunt Call** | 🎯 | 0.8 | Orange targeting | Hunting horn |
-| **Mate Call** | 💕 | 0.4 | Pink hearts | Romantic melody |
-| **Territory Mark** | 🏴 | 0.4 | Purple boundary | Territorial growl |
+| **Food Found** | 🍃 | 0.6 | Green pulsing | Gentle chime |
 | **Help Request** | 🆘 | 0.8 | Blue distress | Help signal |
+| **Hunt Call** | 🎯 | 0.8 | Orange targeting | Hunting horn |
 | **Group Form** | 🤝 | 0.6 | Green connection | Social chirp |
+| **Mate Call** | 💕 | 0.4 | Pink hearts | Romantic melody |
 | **Retreat** | 🏃 | 1.0 | Yellow scatter | Panic call |
+| **Territory Mark** | 🏴 | 0.4 | Purple boundary | Territorial growl |
 
 ## 👑 **GROUP ROLES (6)**
 
@@ -101,12 +101,12 @@ Specialized positions within bug societies:
 
 | Role | Icon | Priority | Visual Identifier | Behavioral Styling |
 |------|------|----------|-------------------|-------------------|
+| **Forager** | 🌾 | 0.6 | Gathering tools | Busy, collecting |
+| **Guardian** | 🛡️ | 0.8 | Shield symbol | Protective stance |
+| **Hunter** | 🎯 | 0.8 | Targeting reticle | Predatory posture |
 | **Leader** | 👑 | 1.0 | Crown effect | Confident posture |
 | **Member** | 🐛 | 0.4 | Standard appearance | Neutral stance |
 | **Scout** | 🔍 | 0.6 | Searching animation | Alert, scanning |
-| **Guardian** | 🛡️ | 0.8 | Shield symbol | Protective stance |
-| **Forager** | 🌾 | 0.6 | Gathering tools | Busy, collecting |
-| **Hunter** | 🎯 | 0.8 | Targeting reticle | Predatory posture |
 
 ## 🔨 **TOOL TYPES (8)**
 
@@ -114,13 +114,13 @@ Environmental modifications and constructions:
 
 | Tool | Icon | Color | Energy Cost | Construction Time | Size (W×H) |
 |------|------|-------|-------------|------------------|------------|
-| **Marker** | 🚩 | Purple | 5 | 20 ticks | 8×8 |
-| **Trap** | 🪤 | Red (0.7 opacity) | 10 | 60 ticks | 20×20 |
-| **Ramp** | 📐 | Yellow (0.8 opacity) | 15 | 90 ticks | 20×20 |
 | **Bridge** | 🌉 | Brown | 20 | 120 ticks | 40×20 |
-| **Shelter** | 🏠 | Gray | 25 | 150 ticks | 50×50 |
 | **Lever** | 🔧 | Orange | 30 | 180 ticks | 15×25 |
+| **Marker** | 🚩 | Purple | 5 | 20 ticks | 8×8 |
 | **Nest** | 🪺 | Green (0.6 opacity) | 35 | 210 ticks | 50×50 |
+| **Ramp** | 📐 | Yellow (0.8 opacity) | 15 | 90 ticks | 20×20 |
+| **Shelter** | 🏠 | Gray | 25 | 150 ticks | 50×50 |
+| **Trap** | 🪤 | Red (0.7 opacity) | 10 | 60 ticks | 20×20 |
 | **Tunnel** | 🕳️ | Black (0.8 opacity) | 40 | 300 ticks | 30×30 |
 
 ## 🌦️ **WEATHER TYPES (6)**
@@ -129,12 +129,12 @@ Dynamic atmospheric conditions affecting gameplay:
 
 | Weather | Icon | Color | Intensity | Duration | Visual Effects |
 |---------|------|-------|-----------|----------|----------------|
-| **Clear** | ☀️ | Yellow | 0.0 | 800 ticks | Bright, optimal lighting |
-| **Rain** | 🌧️ | Blue | 0.4 | 300 ticks | Animated raindrops, puddles |
-| **Drought** | 🏜️ | Orange | 0.7 | 600 ticks | Heat shimmer, parched colors |
 | **Blizzard** | ❄️ | White | 0.9 | 200 ticks | Snow particles, wind effects |
-| **Storm** | ⛈️ | Purple | 1.0 | 150 ticks | Lightning, dramatic shadows |
+| **Clear** | ☀️ | Yellow | 0.0 | 800 ticks | Bright, optimal lighting |
+| **Drought** | 🏜️ | Orange | 0.7 | 600 ticks | Heat shimmer, parched colors |
 | **Fog** | 🌫️ | Gray | 0.3 | 250 ticks | Reduced visibility, mist |
+| **Rain** | 🌧️ | Blue | 0.4 | 300 ticks | Animated raindrops, puddles |
+| **Storm** | ⛈️ | Purple | 1.0 | 150 ticks | Lightning, dramatic shadows |
 
 ## 🌱 **SEASONS (4)**
 
@@ -153,10 +153,10 @@ Catastrophic events that reshape the world:
 
 | Disaster | Icon | Warning Icon | Effects | Visual Style |
 |----------|------|-------------|---------|--------------|
-| **Flood** | 🌊 | ☁️ | Rising waters, terrain reshaping | Expanding blue waves |
 | **Earthquake** | ⚡ | 📳 | Ground tremors, terrain cracking | Screen shake, fracture lines |
-| **Wildfire** | 🔥 | 💨 | Spreading flames, vegetation destruction | Animated fire, smoke |
+| **Flood** | 🌊 | ☁️ | Rising waters, terrain reshaping | Expanding blue waves |
 | **Volcanic Eruption** | 🌋 | 💨 | Lava flows, ash clouds | Molten effects, ash particles |
+| **Wildfire** | 🔥 | 💨 | Spreading flames, vegetation destruction | Animated fire, smoke |
 
 ## 🌍 **SPECIAL SEASONAL EVENTS (4)**
 
@@ -187,12 +187,12 @@ Procedurally generated world layouts:
 
 | World Type | Primary Features | Visual Theme |
 |------------|------------------|--------------|
-| **Continental 3D** | Rolling hills and plains | Realistic geography, varied terrain |
+| **Abyss 3D** | Deep underwater trenches | Dark depths, oceanic, mysterious |
 | **Archipelago 3D** | Island chains with water | Tropical, oceanic, scattered landmasses |
 | **Canyon 3D** | Deep valleys and high mesas | Desert, dramatic elevation changes |
 | **Cavern 3D** | Underground cave systems | Dark, mysterious, subterranean |
+| **Continental 3D** | Rolling hills and plains | Realistic geography, varied terrain |
 | **Skylands 3D** | Floating islands | Ethereal, sky-high terrain |
-| **Abyss 3D** | Deep underwater trenches | Dark depths, oceanic, mysterious |
 | **Volcano 3D** | Volcanic peaks and lava flows | Molten, dangerous, rocky formations |
 
 ### 🚧 **TODO: Potential Additional World Types**
@@ -201,9 +201,9 @@ Future world types to consider implementing:
 
 | Proposed World Type | Primary Features | Visual Theme | Implementation Notes |
 |-------------------|------------------|--------------|---------------------|
-| **Wetlands 3D** | Marshes, swamps, waterways | Lush, water-rich, misty | High water coverage, unique biome distributions |
-| **Plains 3D** | Open grasslands, gentle hills | Wide, rolling landscapes | Minimal elevation variance, grass-focused |
 | **Maze 3D** | Complex wall systems | Geometric, puzzle-like | Algorithmic wall generation, navigation challenges |
+| **Plains 3D** | Open grasslands, gentle hills | Wide, rolling landscapes | Minimal elevation variance, grass-focused |
+| **Wetlands 3D** | Marshes, swamps, waterways | Lush, water-rich, misty | High water coverage, unique biome distributions |
 
 ## 📊 **STYLING COMPLEXITY ANALYSIS**
 

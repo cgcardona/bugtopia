@@ -122,7 +122,7 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         case .orange: return [.tropicalRainforest, .savanna]
         case .melon: return [.temperateGrassland, .savanna]
         case .meat: return [.tundra, .temperateGrassland, .savanna] // Where prey animals are
-        case .fish: return [.temperateForest] // Near water sources
+        case .fish: return [.wetlands, .coastal] // Near water sources
         case .seeds: return [.temperateGrassland, .desert, .savanna]
         case .nuts: return [.temperateForest, .borealForest, .tropicalRainforest]
         }
