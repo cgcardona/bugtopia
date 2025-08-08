@@ -326,8 +326,11 @@ struct FloodEffectView: View {
             .position(x: disaster.epicenter.x, y: disaster.epicenter.y)
             .scaleEffect(1.0 + sin(waveOffset) * 0.1)
             .onAppear {
-                withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
-                    waveOffset = .pi * 2
+                // 🔧 FIXED: Defer state modifications to prevent warnings during view updates
+                DispatchQueue.main.async {
+                    withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
+                        waveOffset = .pi * 2
+                    }
                 }
             }
     }
@@ -355,16 +358,22 @@ struct EarthquakeEffectView: View {
             }
         }
         .offset(x: shakeOffset.x, y: shakeOffset.y)
-        .onAppear {
-            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+        .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
+            // 🔧 FIXED: Defer state modifications to prevent warnings during view updates
+            DispatchQueue.main.async {
                 let intensity = disaster.intensityAt(disaster.epicenter) * 5
-                shakeOffset = CGPoint(
-                    x: Double.random(in: -intensity...intensity),
-                    y: Double.random(in: -intensity...intensity)
-                )
+                withAnimation(.easeInOut(duration: 0.05)) {
+                    shakeOffset = CGPoint(
+                        x: Double.random(in: -intensity...intensity),
+                        y: Double.random(in: -intensity...intensity)
+                    )
+                }
                 
+                // Reset with animation after delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    shakeOffset = .zero
+                    withAnimation(.easeInOut(duration: 0.05)) {
+                        shakeOffset = .zero
+                    }
                 }
             }
         }
@@ -396,8 +405,11 @@ struct FireEffectView: View {
             .position(x: disaster.epicenter.x, y: disaster.epicenter.y)
             .scaleEffect(0.8 + sin(fireAnimation) * 0.2)
             .onAppear {
-                withAnimation(.easeInOut(duration: 1).repeatForever(autoreverses: true)) {
-                    fireAnimation = .pi
+                // 🔧 FIXED: Defer state modifications to prevent warnings during view updates
+                DispatchQueue.main.async {
+                    withAnimation(.easeInOut(duration: 1).repeatForever(autoreverses: true)) {
+                        fireAnimation = .pi
+                    }
                 }
             }
     }
@@ -435,8 +447,11 @@ struct VolcanicEffectView: View {
                 .scaleEffect(0.8 + sin(ashAnimation) * 0.3)
         }
         .onAppear {
-            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
-                ashAnimation = .pi * 2
+            // 🔧 FIXED: Defer state modifications to prevent warnings during view updates
+            DispatchQueue.main.async {
+                withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+                    ashAnimation = .pi * 2
+                }
             }
         }
     }

@@ -71,7 +71,8 @@ struct Arena3DView: NSViewRepresentable {
     /// DEBUG: Trigger simulation state verification from UI
     func triggerPhase1Debug() {
         DispatchQueue.main.async {
-            if let sceneView = self.sceneView {
+            // ✅ FIXED: Use global persistent scene to avoid @State access during view updates
+            if Arena3DView.globalPersistentScene != nil {
                 self.performDebugVerification()
                 
                 // 🎯 Additional bug selection debugging
@@ -126,8 +127,8 @@ struct Arena3DView: NSViewRepresentable {
     
     /// DEBUG: Internal simulation state verification
     private func performDebugVerification() {
-        guard let sceneView = sceneView,
-              let scene = sceneView.scene,
+        // ✅ FIXED: Use global persistent scene to avoid @State access during view updates
+        guard let scene = Arena3DView.globalPersistentScene,
               let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else {
             return
         }
@@ -228,9 +229,12 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
-        // SwiftUI update tracking (avoid state modification during view updates)
+        // ✅ FIXED: Removed StateViolationDetector reference to fix build issues
         
-        if swiftuiUpdateCount % 10 == 0 {
+        // SwiftUI update tracking (avoid state modification during view updates)
+        Arena3DView.swiftuiUpdateCount += 1
+        
+        if Arena3DView.swiftuiUpdateCount % 10 == 0 {
         }
         
         // ✅ FIX: Move scene updates out of SwiftUI update cycle to prevent violations
@@ -3933,48 +3937,22 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     /// PHASE 1 DEBUG: Track update frequency and position changes
-    @State private var lastUpdateTime: TimeInterval = 0
-    @State private var updateCallCount: Int = 0
-    @State private var syncCallCount: Int = 0  // Track synchronizeWorldState calls
-    @State private var lastKnownBugPositions: [UUID: Position3D] = [:]
+    // 🔧 FIXED: Converted to static variables to prevent state modification warnings
+    private static var lastUpdateTime: TimeInterval = 0
+    private static var updateCallCount: Int = 0
+    private static var syncCallCount: Int = 0  // Track synchronizeWorldState calls
+    private static var lastKnownBugPositions: [UUID: Position3D] = [:]
     
-
-    @State private var bugPositionTracker: [UUID: Position3D] = [:] // Track all bug positions for movement debugging
-    @State private var swiftuiUpdateCount: Int = 0 // Track SwiftUI update frequency for debugging
-    @State private var updateBugPositionsCount: Int = 0 // Track updateBugPositions call frequency
-    @State private var forceUpdateTrigger: Int = 0 // Force SwiftUI to call updateNSView regularly
+    private static var bugPositionTracker: [UUID: Position3D] = [:] // Track all bug positions for movement debugging
+    private static var swiftuiUpdateCount: Int = 0 // Track SwiftUI update frequency for debugging
+    private static var updateBugPositionsCount: Int = 0 // Track updateBugPositions call frequency
+    private static var forceUpdateTrigger: Int = 0 // Force SwiftUI to call updateNSView regularly
     
     // 🔄 Method to force visual updates by directly calling updateBugPositions
     func triggerVisualUpdate() {
-        DispatchQueue.main.async {
-            // Try global persistent scene first, then fallback to sceneView
-            
-            let sceneToUse: SCNScene?
-            let sceneSource: String
-            
-            // Try global persistent scene first
-            if let globalScene = Arena3DView.globalPersistentScene {
-                sceneToUse = globalScene
-                sceneSource = "globalPersistent"
-            } else if let sceneView = self.sceneView, let scene = sceneView.scene {
-                sceneToUse = scene
-                sceneSource = "sceneView"
-                // Store globally for future use
-                Arena3DView.globalPersistentScene = scene
-            } else {
-                sceneToUse = nil
-                sceneSource = "none"
-            }
-            
-            if let scene = sceneToUse {
-                self.updateBugPositions(scene: scene)
-            } else {
-                // 🐛 DEBUG: Investigate why scene is nil
-                let hasSceneView = self.sceneView != nil
-                let hasScene = self.sceneView?.scene != nil
-                let hasGlobalPersistent = Arena3DView.globalPersistentScene != nil
-                // No fallback action needed - scene will be available on next cycle
-            }
+        // ✅ FIXED: Simplified approach - only use global persistent scene to avoid @State access
+        if let globalScene = Arena3DView.globalPersistentScene {
+            updateBugPositions(scene: globalScene)
         }
     }
     
@@ -4006,10 +3984,8 @@ struct Arena3DView: NSViewRepresentable {
     
     /// PHASE 1: Core synchronization method - updates 3D scene from simulation state
     private func synchronizeWorldState() {
-        // Core synchronization method - updates 3D scene from simulation state
-        
-        guard let sceneView = sceneView,
-              let scene = sceneView.scene else { 
+        // ✅ FIXED: Use global persistent scene to avoid @State access during view updates
+        guard let scene = Arena3DView.globalPersistentScene else { 
             return 
         }
         
@@ -7065,7 +7041,7 @@ struct Arena3DView: NSViewRepresentable {
             }
         }
         // Only log update frequency every 120 frames (4 seconds) to reduce noise
-        if updateCallCount % 120 == 0 {
+        if Arena3DView.updateCallCount % 120 == 0 {
             
             // 🚨 SPEED DIAGNOSIS: Check why bugs aren't moving
             let stuckBugs = simulationEngine.bugs.filter { 
@@ -7078,7 +7054,7 @@ struct Arena3DView: NSViewRepresentable {
         // Debug tracking removed for performance
         
         // PHASE 1 DEBUG: Detailed verification every 5 seconds
-        if updateCallCount % 150 == 0 {
+        if Arena3DView.updateCallCount % 150 == 0 {
             verifyBugMapping()
             debugSimulationState()
         }
@@ -7099,13 +7075,13 @@ struct Arena3DView: NSViewRepresentable {
         // 🚨 CRITICAL DEBUG: Force log zero energy detection EVERY FRAME to see why it's not working
         let bugEnergies = simulationEngine.bugs.map { "\(String($0.id.uuidString.prefix(8))):\(String(format: "%.1f", $0.energy))" }
         
-        if updateCallCount % 30 == 0 {
+        if Arena3DView.updateCallCount % 30 == 0 {
         }
         
         // 🚨 IMMEDIATE: Log any bug with energy ≤ 1.0 (using lowEnergyBugs defined above)
         for bug in lowEnergyBugs {
             let bugId = String(bug.id.uuidString.prefix(8))
-            if updateCallCount % 10 == 0 { // Every 10 frames for low energy
+            if Arena3DView.updateCallCount % 10 == 0 { // Every 10 frames for low energy
             }
         }
         
@@ -7128,7 +7104,7 @@ struct Arena3DView: NSViewRepresentable {
             let bugId = String(bug.id.uuidString.prefix(8))
             
             // 🚨 FORCE ENERGY TRACKING: Run every 30 frames to see energy changes
-            if updateCallCount % 30 == 0 { // Log every 30 frames (1 second)
+            if Arena3DView.updateCallCount % 30 == 0 { // Log every 30 frames (1 second)
                 let consumedFoodPos = bug.consumedFood != nil ? "(\(String(format: "%.1f", bug.consumedFood!.x)), \(String(format: "%.1f", bug.consumedFood!.y)))" : "none"
                 
                 // Check if bug is near food
@@ -7218,7 +7194,7 @@ struct Arena3DView: NSViewRepresentable {
         if let firstBug = simulationEngine.bugs.first {
             let firstBugId = String(firstBug.id.uuidString.prefix(8))
             
-            if let previousPos = bugPositionTracker[firstBug.id] {
+            if let previousPos = Arena3DView.bugPositionTracker[firstBug.id] {
                 let currentPos = firstBug.position3D
                 let moved = sqrt(pow(currentPos.x - previousPos.x, 2) + pow(currentPos.y - previousPos.y, 2))
                 
@@ -7234,10 +7210,10 @@ struct Arena3DView: NSViewRepresentable {
                     }
                 }
                 
-                bugPositionTracker[firstBug.id] = currentPos
+                Arena3DView.bugPositionTracker[firstBug.id] = currentPos
             } else {
                 // Initialize tracking
-                bugPositionTracker[firstBug.id] = firstBug.position3D
+                Arena3DView.bugPositionTracker[firstBug.id] = firstBug.position3D
             }
         }
         
@@ -7519,7 +7495,7 @@ struct Arena3DView: NSViewRepresentable {
         let currentBugIds = Set(simulationEngine.bugs.map { $0.id })
         
         // Only log generation debug every 60 frames (2 seconds) unless there's a change
-        let shouldLogGenDebug = updateCallCount % 60 == 0 || currentGeneration != previousGeneration || currentBugCount != visualNodeCount
+        let shouldLogGenDebug = Arena3DView.updateCallCount % 60 == 0 || currentGeneration != previousGeneration || currentBugCount != visualNodeCount
         if shouldLogGenDebug {
         }
         
@@ -8554,7 +8530,10 @@ class NavigationResponderView: NSView {
     
     private func startUpdateTimer() {
         updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { [weak self] _ in
-            self?.updateMovement()
+            // 🔧 FIXED: Defer to prevent state modifications during view updates
+            DispatchQueue.main.async {
+                self?.updateMovement()
+            }
         }
     }
     

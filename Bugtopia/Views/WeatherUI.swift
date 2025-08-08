@@ -271,8 +271,11 @@ struct RainEffect: View {
             }
         }
         .onAppear {
-            withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
-                animationPhase = 1.0
+            // 🔧 FIXED: Defer state modifications to prevent warnings during view updates
+            DispatchQueue.main.async {
+                withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
+                    animationPhase = 1.0
+                }
             }
         }
     }
@@ -302,8 +305,11 @@ struct SnowEffect: View {
             }
         }
         .onAppear {
-            withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
-                animationPhase = 1.0
+            // 🔧 FIXED: Defer state modifications to prevent warnings during view updates
+            DispatchQueue.main.async {
+                withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
+                    animationPhase = 1.0
+                }
             }
         }
     }
@@ -348,15 +354,17 @@ struct StormEffect: View {
                     .animation(.easeInOut(duration: 0.1), value: showLightning)
             }
         }
-        .onAppear {
-            // Random lightning flashes
-            Timer.scheduledTimer(withTimeInterval: Double.random(in: 2...8), repeats: true) { _ in
+        .onReceive(Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()) { _ in
+            // 🔧 FIXED: Defer state modifications to prevent warnings during view updates
+            DispatchQueue.main.async {
                 if Double.random(in: 0...1) < intensity {
-                    withAnimation {
+                    withAnimation(.easeInOut(duration: 0.1)) {
                         showLightning = true
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        showLightning = false
+                        withAnimation(.easeOut(duration: 0.1)) {
+                            showLightning = false
+                        }
                     }
                 }
             }
@@ -384,8 +392,11 @@ struct HeatShimmerEffect: View {
             )
             .scaleEffect(1.0 + 0.01 * intensity * sin(shimmerPhase))
             .onAppear {
-                withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
-                    shimmerPhase = .pi * 2
+                // 🔧 FIXED: Defer state modifications to prevent warnings during view updates
+                DispatchQueue.main.async {
+                    withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+                        shimmerPhase = .pi * 2
+                    }
                 }
             }
     }

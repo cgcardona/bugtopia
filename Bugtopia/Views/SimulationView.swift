@@ -43,11 +43,14 @@ struct SimulationView: View {
     
     // 🎯 Bug Selection Handler
     private func handleBugSelection(_ bug: Bug?) {
-        selectedBug = bug
-        if bug != nil {
-            // Bug selected
-        } else {
-            // No bug selected
+        // 🔧 FIXED: Defer state modification to prevent warnings during view updates
+        DispatchQueue.main.async {
+            self.selectedBug = bug
+            if bug != nil {
+                // Bug selected
+            } else {
+                // No bug selected
+            }
         }
     }
     
@@ -147,6 +150,10 @@ struct SimulationView: View {
     }
     
     var body: some View {
+//        #if DEBUG
+//        let _ = print("🔄 [DEBUG] SimulationView body evaluated at \(Date())")
+//        #endif
+        
         GeometryReader { geometry in
             VStack(spacing: 0) {
                 // Control Panel
