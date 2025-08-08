@@ -20,6 +20,30 @@ This document provides a complete inventory of all styling elements in Bugtopia,
 
 **📈 PROGRESS:** 3 of 6 phases complete (50%) - **Major visual transformation achieved!**
 
+## 🌍 **WORLD TYPES (7)**
+
+Procedurally generated world layouts:
+
+| World Type | Primary Features | Visual Theme |
+|------------|------------------|--------------|
+| **Abyss** | Deep underwater trenches | Dark depths, oceanic, mysterious |
+| **Archipelago** | Island chains with water | Tropical, oceanic, scattered landmasses |
+| **Canyon** | Deep valleys and high mesas | Desert, dramatic elevation changes |
+| **Cavern** | Underground cave systems | Dark, mysterious, subterranean |
+| **Continental** | Rolling hills and plains | Realistic geography, varied terrain |
+| **Skylands** | Floating islands | Ethereal, sky-high terrain |
+| **Volcano** | Volcanic peaks and lava flows | Molten, dangerous, rocky formations |
+
+### 🚧 **TODO: Potential Additional World Types**
+
+Future world types to consider implementing:
+
+| Proposed World Type | Primary Features | Visual Theme | Implementation Notes |
+|-------------------|------------------|--------------|---------------------|
+| **Maze** | Complex wall systems | Geometric, puzzle-like | Algorithmic wall generation, navigation challenges |
+| **Plains** | Open grasslands, gentle hills | Wide, rolling landscapes | Minimal elevation variance, grass-focused |
+| **Wetlands** | Marshes, swamps, waterways | Lush, water-rich, misty | High water coverage, unique biome distributions |
+
 ## 🌍 **TERRAIN LAYERS (4)**
 
 The 4-layer ecosystem creates distinct environmental zones:
@@ -180,30 +204,6 @@ Special movement abilities requiring visual feedback:
 | **Climbing** | Climbing Grip > 0.4 | Vertical movement, grip effects |
 | **Underground** | Altitude Preference < -0.5 | Burrowing animations, dirt particles |
 | **Aerial** | Altitude Preference > 0.5 | Soaring effects, wind interactions |
-
-## 🌍 **3D WORLD TYPES (7)**
-
-Procedurally generated world layouts:
-
-| World Type | Primary Features | Visual Theme |
-|------------|------------------|--------------|
-| **Abyss 3D** | Deep underwater trenches | Dark depths, oceanic, mysterious |
-| **Archipelago 3D** | Island chains with water | Tropical, oceanic, scattered landmasses |
-| **Canyon 3D** | Deep valleys and high mesas | Desert, dramatic elevation changes |
-| **Cavern 3D** | Underground cave systems | Dark, mysterious, subterranean |
-| **Continental 3D** | Rolling hills and plains | Realistic geography, varied terrain |
-| **Skylands 3D** | Floating islands | Ethereal, sky-high terrain |
-| **Volcano 3D** | Volcanic peaks and lava flows | Molten, dangerous, rocky formations |
-
-### 🚧 **TODO: Potential Additional World Types**
-
-Future world types to consider implementing:
-
-| Proposed World Type | Primary Features | Visual Theme | Implementation Notes |
-|-------------------|------------------|--------------|---------------------|
-| **Maze 3D** | Complex wall systems | Geometric, puzzle-like | Algorithmic wall generation, navigation challenges |
-| **Plains 3D** | Open grasslands, gentle hills | Wide, rolling landscapes | Minimal elevation variance, grass-focused |
-| **Wetlands 3D** | Marshes, swamps, waterways | Lush, water-rich, misty | High water coverage, unique biome distributions |
 
 ## 📊 **STYLING COMPLEXITY ANALYSIS**
 
