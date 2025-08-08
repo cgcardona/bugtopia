@@ -55,6 +55,23 @@ The 4-layer ecosystem creates distinct environmental zones:
 | **Surface** 🌍 | 0 to 20 | Ground level, hills, water bodies, vegetation | Natural earth tones, realistic terrain |
 | **Underground** 🕳️ | -100 to 0 | Caves, tunnels, underground rivers | Dark, rocky, mineral tones |
 
+## 🌿 **BIOME TYPES (10)**
+
+Climate-based ecosystems with distinct characteristics:
+
+| Biome | Temperature Range | Moisture Range | Vegetation Density | Primary Terrains |
+|-------|------------------|----------------|-------------------|------------------|
+| **Alpine** ⛰️ | 0.0-0.3 | 0.3-0.7 | 0.2 | Hill, Ice, Open |
+| **Boreal Forest** 🌲 | 0.1-0.4 | 0.4-0.8 | 0.7 | Forest, Open, Hill |
+| **Coastal** 🏖️ | 0.4-0.8 | 0.6-1.0 | 0.5 | Open, Water, Sand |
+| **Desert** 🏜️ | 0.6-1.0 | 0.0-0.2 | 0.05 | Sand, Open, Hill |
+| **Savanna** 🦒 | 0.7-0.9 | 0.2-0.5 | 0.3 | Open, Food, Hill |
+| **Temperate Forest** 🌳 | 0.3-0.7 | 0.5-0.9 | 0.9 | Forest, Hill, Open |
+| **Temperate Grassland** 🌾 | 0.4-0.8 | 0.2-0.6 | 0.4 | Open, Hill, Food |
+| **Tropical Rainforest** 🌴 | 0.8-1.0 | 0.8-1.0 | 1.0 | Forest, Food, Water |
+| **Tundra** ❄️ | 0.0-0.2 | 0.1-0.4 | 0.1 | Open, Ice, Water |
+| **Wetlands** 🐸 | 0.2-0.6 | 0.9-1.0 | 0.8 | Water, Swamp, Food |
+
 ## 🗺️ **TERRAIN TYPES (12)**
 
 Core environmental features that shape movement and behavior:
@@ -73,23 +90,6 @@ Core environmental features that shape movement and behavior:
 | **Wall** | 🪨 | Gray | Impassable | Solid stone, rocky textures |
 | **Water** | 🌊 | Blue (0.6 opacity) | Swimming required | Flowing, reflective, animated |
 | **Wind** | 💨 | Cyan (0.2 opacity) | Size-based disruption | Flowing, dynamic effects |
-
-## 🌿 **BIOME TYPES (10)**
-
-Climate-based ecosystems with distinct characteristics:
-
-| Biome | Temperature Range | Moisture Range | Vegetation Density | Primary Terrains |
-|-------|------------------|----------------|-------------------|------------------|
-| **Alpine** ⛰️ | 0.0-0.3 | 0.3-0.7 | 0.2 | Hill, Ice, Open |
-| **Boreal Forest** 🌲 | 0.1-0.4 | 0.4-0.8 | 0.7 | Forest, Open, Hill |
-| **Coastal** 🏖️ | 0.4-0.8 | 0.6-1.0 | 0.5 | Open, Water, Sand |
-| **Desert** 🏜️ | 0.6-1.0 | 0.0-0.2 | 0.05 | Sand, Open, Hill |
-| **Savanna** 🦒 | 0.7-0.9 | 0.2-0.5 | 0.3 | Open, Food, Hill |
-| **Temperate Forest** 🌳 | 0.3-0.7 | 0.5-0.9 | 0.9 | Forest, Hill, Open |
-| **Temperate Grassland** 🌾 | 0.4-0.8 | 0.2-0.6 | 0.4 | Open, Hill, Food |
-| **Tropical Rainforest** 🌴 | 0.8-1.0 | 0.8-1.0 | 1.0 | Forest, Food, Water |
-| **Tundra** ❄️ | 0.0-0.2 | 0.1-0.4 | 0.1 | Open, Ice, Water |
-| **Wetlands** 🐸 | 0.2-0.6 | 0.9-1.0 | 0.8 | Water, Swamp, Food |
 
 ## 🐛 **BUG SPECIES TYPES (4)**
 
