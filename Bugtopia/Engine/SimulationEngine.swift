@@ -167,8 +167,8 @@ class SimulationEngine {
     
     init(worldBounds: CGRect) {
         // 🌍 DYNAMIC WORLD TYPES: Randomly select a world type each app launch for variety
-//        let worldType = WorldType3D.allCases.randomElement() ?? .continental3D
-        let worldType = WorldType3D.skylands3D
+        //let worldType = WorldType3D.allCases.randomElement() ?? .continental3D
+        let worldType = WorldType3D.continental3D
         self.currentWorldType = worldType
         
         print("🌍 Generated World Type: \(worldType.rawValue)")
