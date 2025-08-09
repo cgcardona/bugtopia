@@ -613,6 +613,7 @@ struct SimulationView: View {
                         .font(.headline)
                         .fontWeight(.semibold)
                     
+                    StatRow(label: "🌍 World Type", value: simulationEngine.currentWorldType.rawValue)
                     StatRow(label: "🐛 Total Bugs", value: "\(simulationEngine.bugs.count)")
                     StatRow(label: "🧬 Generation", value: "\(simulationEngine.currentGeneration)")
                     StatRow(label: "🍎 Food Sources", value: "\(simulationEngine.foods.count)")

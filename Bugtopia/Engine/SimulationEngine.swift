@@ -36,6 +36,7 @@ class SimulationEngine {
     
     let voxelWorld: VoxelWorld
     let pathfinding: VoxelPathfinding
+    var currentWorldType: WorldType3D = .continental3D
     private let maxPopulation = 800  // MASSIVE INCREASE: 4.4x more bugs for extensive debugging
     private let initialPopulation = 20    // 🎉 FULL SIMULATION: Back to 20 bugs with visual sync fixed!
     private let maxFoodItems = 200  // Reasonable food limit for good performance
@@ -165,8 +166,43 @@ class SimulationEngine {
     // MARK: - Initialization
     
     init(worldBounds: CGRect) {
-        // 🎯 HARDCODED CONTINENTAL WORLD: Focus on perfecting one world type first
-        let worldType = WorldType3D.continental3D
+        // 🌍 DYNAMIC WORLD TYPES: Randomly select a world type each app launch for variety
+//        let worldType = WorldType3D.allCases.randomElement() ?? .continental3D
+        let worldType = WorldType3D.skylands3D
+        self.currentWorldType = worldType
+        
+        print("🌍 Generated World Type: \(worldType.rawValue)")
+        print("🌍 Expected Features:")
+        switch worldType {
+        case .abyss3D:
+            print("   • Deep underwater trenches")
+            print("   • Cold, harsh biomes (Tundra, Alpine, Wetlands)")
+            print("   • Diving specialists required")
+        case .archipelago3D:
+            print("   • Island chains with water")
+            print("   • Tropical biomes (Coastal, Rainforest, Wetlands)")
+            print("   • Swimming capabilities important")
+        case .canyon3D:
+            print("   • Deep valleys and high mesas")
+            print("   • Arid biomes (Desert, Grassland, Alpine)")
+            print("   • Climbing specialists thrive")
+        case .cavern3D:
+            print("   • Underground cave systems")
+            print("   • Limited biomes (Tundra, Alpine only)")
+            print("   • Tunnel navigation required")
+        case .continental3D:
+            print("   • Diverse landscapes with all features")
+            print("   • All biomes possible")
+            print("   • Balanced ecosystem")
+        case .skylands3D:
+            print("   • Floating islands in the sky")
+            print("   • Temperate biomes (Forest, Alpine, Grassland)")
+            print("   • Flying capabilities essential")
+        case .volcano3D:
+            print("   • Volcanic peaks and lava flows")
+            print("   • Hot biomes (Desert, Alpine, Savanna)")
+            print("   • Heat-resistant species favored")
+        }
 
         
         // 🔧 STABLE RESOLUTION: 32x32x32 for reliable performance

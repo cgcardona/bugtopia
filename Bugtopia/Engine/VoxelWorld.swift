@@ -157,13 +157,13 @@ enum BiomeType: String, CaseIterable, Codable {
 
 /// 3D world generation types for procedural terrain
 enum WorldType3D: String, CaseIterable, Codable {
-    case continental3D = "Continental 3D"
-    case archipelago3D = "Archipelago 3D"
-    case canyon3D = "Canyon 3D"
-    case cavern3D = "Cavern 3D"
-    case skylands3D = "Skylands 3D"
-    case abyss3D = "Abyss 3D"
-    case volcano3D = "Volcano 3D"
+    case continental3D = "Continental"
+    case archipelago3D = "Archipelago"
+    case canyon3D = "Canyon"
+    case cavern3D = "Cavern"
+    case skylands3D = "Skylands"
+    case abyss3D = "Abyss"
+    case volcano3D = "Volcano"
     
     /// Generate height for this world type at normalized coordinates
     func generateHeight(at x: Double, y: Double) -> Double {
@@ -203,10 +203,39 @@ enum WorldType3D: String, CaseIterable, Codable {
             return height
             
         case .archipelago3D:
-            // Island chains with water
-            let islandDistance = sqrt(pow(x - 0.5, 2) + pow(y - 0.5, 2))
-            let islandHeight = max(0, (0.3 - islandDistance) * 50.0)
-            return islandHeight - 10.0
+            // 🏝️ ARCHIPELAGO: Multiple dramatic islands with tall peaks and deep waters
+            
+            // 🏔️ MAIN ISLAND: Central large island with mountain peak
+            let mainIslandDistance = sqrt(pow(x - 0.5, 2) + pow(y - 0.5, 2))
+            let mainIsland = max(0, (0.25 - mainIslandDistance) * 160.0)  // Up to +40 peak
+            
+            // 🏝️ SECONDARY ISLANDS: Smaller islands around the main one
+            let island2Distance = sqrt(pow(x - 0.2, 2) + pow(y - 0.2, 2))
+            let island3Distance = sqrt(pow(x - 0.8, 2) + pow(y - 0.3, 2))
+            let island4Distance = sqrt(pow(x - 0.3, 2) + pow(y - 0.8, 2))
+            let island5Distance = sqrt(pow(x - 0.7, 2) + pow(y - 0.7, 2))
+            
+            let secondaryIsland1 = max(0, (0.12 - island2Distance) * 120.0)  // Northwest island
+            let secondaryIsland2 = max(0, (0.10 - island3Distance) * 100.0)  // Northeast island  
+            let secondaryIsland3 = max(0, (0.08 - island4Distance) * 80.0)   // Southwest island
+            let secondaryIsland4 = max(0, (0.06 - island5Distance) * 60.0)   // Southeast island
+            
+            // 🌊 DEEP OCEAN TRENCHES: Between islands
+            let oceanDepth = -35.0  // Deep water between islands
+            
+            // 🏖️ ISLAND BEACHES: Gradual slope from peak to water
+            let beachSlope1 = mainIslandDistance > 0.25 && mainIslandDistance < 0.35 ? 
+                             (-15.0 + (0.35 - mainIslandDistance) * 150.0) : 0.0
+            
+            // Find the highest island at this position
+            let highestIsland = max(mainIsland, max(secondaryIsland1, max(secondaryIsland2, max(secondaryIsland3, secondaryIsland4))))
+            
+            // If we're on an island, use island height; otherwise, deep ocean
+            if highestIsland > 0 {
+                return highestIsland - 20.0  // Islands rise from sea level
+            } else {
+                return oceanDepth + beachSlope1  // Deep ocean with some beach areas
+            }
             
         case .canyon3D:
             // Deep valleys and high mesas
@@ -214,23 +243,103 @@ enum WorldType3D: String, CaseIterable, Codable {
             return valleyDepth
             
         case .cavern3D:
-            // Underground cave systems - mostly low terrain
-            return -30.0 + sin(x * 6.28) * cos(y * 6.28) * 8.0
+            // 🕳️ CAVERN: Complex underground cave system with dramatic vertical variation
+            
+            // 🏛️ MAIN CAVERN CHAMBERS: Large open spaces with high ceilings
+            let chamber1Distance = sqrt(pow(x - 0.3, 2) + pow(y - 0.3, 2))
+            let chamber2Distance = sqrt(pow(x - 0.7, 2) + pow(y - 0.7, 2))
+            let chamber3Distance = sqrt(pow(x - 0.2, 2) + pow(y - 0.8, 2))
+            
+            let mainChamber1 = chamber1Distance < 0.2 ? 15.0 : 0.0  // High ceiling chamber
+            let mainChamber2 = chamber2Distance < 0.15 ? 10.0 : 0.0  // Medium chamber
+            let mainChamber3 = chamber3Distance < 0.12 ? 8.0 : 0.0   // Smaller chamber
+            
+            // 🌊 UNDERGROUND LAKES: Deep water chambers
+            let lake1Distance = sqrt(pow(x - 0.5, 2) + pow(y - 0.2, 2))
+            let lake2Distance = sqrt(pow(x - 0.8, 2) + pow(y - 0.4, 2))
+            let undergroundLake1 = lake1Distance < 0.08 ? -40.0 : 0.0  // Deep lake
+            let undergroundLake2 = lake2Distance < 0.06 ? -35.0 : 0.0  // Smaller lake
+            
+            // 🚇 TUNNEL NETWORKS: Connecting passages between chambers
+            let tunnelX = abs(x - 0.5) < 0.03 ? 5.0 : 0.0  // Main horizontal tunnel
+            let tunnelY = abs(y - 0.5) < 0.03 ? 5.0 : 0.0  // Main vertical tunnel
+            let diagonalTunnel = abs((x - y)) < 0.04 ? 3.0 : 0.0  // Diagonal connecting tunnel
+            
+            // 🪨 STALACTITE/STALAGMITE FORMATIONS: Varied ceiling heights
+            let formations = sin(x * 12.0) * cos(y * 15.0) * 4.0
+            
+            // Combine all cave features
+            var height = max(mainChamber1, max(mainChamber2, mainChamber3))  // Start with chambers
+            height = max(height, max(tunnelX, max(tunnelY, diagonalTunnel))) // Add tunnels
+            height = min(height, height + undergroundLake1 + undergroundLake2) // Apply lake depths
+            height += formations  // Add natural cave formations
+            
+            return height - 25.0  // Base cave floor level
             
         case .skylands3D:
-            // Floating islands - elevated terrain
-            let elevation = sin(x * 4.0) * cos(y * 4.0) * 20.0
-            return elevation + 25.0
+            // ☁️ SKYLANDS: Dramatic floating islands at various elevations
+            
+            // 🏝️ MAIN FLOATING ISLAND: Large central sky island
+            let mainIslandDistance = sqrt(pow(x - 0.5, 2) + pow(y - 0.5, 2))
+            let mainIsland = mainIslandDistance < 0.3 ? 
+                            max(0, (0.3 - mainIslandDistance) * 100.0) : -50.0  // Tall island or open sky
+            
+            // 🌤️ SECONDARY SKY ISLANDS: Smaller floating islands at different heights
+            let island2Distance = sqrt(pow(x - 0.2, 2) + pow(y - 0.2, 2))
+            let island3Distance = sqrt(pow(x - 0.8, 2) + pow(y - 0.3, 2))
+            let island4Distance = sqrt(pow(x - 0.3, 2) + pow(y - 0.8, 2))
+            let island5Distance = sqrt(pow(x - 0.7, 2) + pow(y - 0.7, 2))
+            
+            let skyIsland1 = island2Distance < 0.12 ? max(0, (0.12 - island2Distance) * 150.0) : -50.0  // High island
+            let skyIsland2 = island3Distance < 0.10 ? max(0, (0.10 - island3Distance) * 120.0) + 10.0 : -50.0  // Mid-high island
+            let skyIsland3 = island4Distance < 0.08 ? max(0, (0.08 - island4Distance) * 80.0) - 10.0 : -50.0   // Mid-low island
+            let skyIsland4 = island5Distance < 0.06 ? max(0, (0.06 - island5Distance) * 60.0) + 20.0 : -50.0   // Very high island
+            
+            // 🌉 FLOATING BRIDGES: Thin connections between some islands
+            let bridgeConnection1 = (abs(x - 0.35) < 0.02 && y > 0.2 && y < 0.5) ? 15.0 : -50.0  // Bridge from main to island2
+            let bridgeConnection2 = (abs(y - 0.6) < 0.02 && x > 0.4 && x < 0.7) ? 25.0 : -50.0   // Bridge between islands
+            
+            // 🪨 FLOATING ROCKS: Small scattered sky rocks
+            let scatteredRocks = (sin(x * 20.0) * cos(y * 18.0) > 0.7) ? 5.0 : -50.0
+            
+            // Find the highest structure at this position
+            let allStructures = [mainIsland, skyIsland1, skyIsland2, skyIsland3, skyIsland4, 
+                               bridgeConnection1, bridgeConnection2, scatteredRocks]
+            let highestStructure = allStructures.max() ?? -50.0
+            
+            // If there's a floating structure, use it; otherwise, open sky
+            return highestStructure
             
         case .abyss3D:
             // Deep underwater trenches
             return -40.0 + sin(x * 2.0) * cos(y * 2.0) * 15.0
             
         case .volcano3D:
-            // Volcanic peaks and lava flows
-            let distanceFromCenter = sqrt(pow(x - 0.5, 2) + pow(y - 0.5, 2))
-            let volcanoHeight = max(-5, 40.0 - distanceFromCenter * 60.0)
-            return volcanoHeight
+            // 🌋 VOLCANIC: Dramatic volcanic landscape with extreme elevation changes
+            let centerDistance = sqrt(pow(x - 0.5, 2) + pow(y - 0.5, 2))
+            
+            // 🔥 MAIN VOLCANIC CONE: Massive central peak 
+            let mainVolcano = max(0, (0.35 - centerDistance) * 140.0)  // Up to +50 height
+            
+            // 🌋 SECONDARY PEAKS: Smaller volcanic cones
+            let peak2Distance = sqrt(pow(x - 0.2, 2) + pow(y - 0.3, 2))
+            let peak3Distance = sqrt(pow(x - 0.7, 2) + pow(y - 0.8, 2))
+            let secondaryPeak1 = max(0, (0.15 - peak2Distance) * 100.0)
+            let secondaryPeak2 = max(0, (0.12 - peak3Distance) * 80.0)
+            
+            // 🕳️ CRATER DEPRESSION: Deep central crater
+            let craterDepth = centerDistance < 0.08 ? -30.0 : 0.0
+            
+            // 🌊 LAVA FLOW VALLEYS: Deep channels from ancient eruptions
+            let lavaFlow1 = (abs(x - 0.5) < 0.03 && y > 0.5) ? -25.0 : 0.0  // North flow
+            let lavaFlow2 = (abs(y - 0.5) < 0.03 && x < 0.5) ? -20.0 : 0.0  // West flow
+            
+            // Combine features: start with highest peak, apply depressions
+            var height = max(mainVolcano, max(secondaryPeak1, secondaryPeak2))
+            if centerDistance < 0.08 { height = craterDepth }  // Central crater lake
+            height = min(height, height + lavaFlow1 + lavaFlow2)  // Apply lava valleys
+            
+            return height - 15.0  // Base level adjustment
         }
     }
     
@@ -501,8 +610,9 @@ class VoxelWorld {
         self.worldBounds = bounds
         self.worldType = worldType
         
-        // 🎲 RANDOM SEED for truly unique worlds each time
-        self.noiseSeed = Double.random(in: 0...10000)
+        // 🎲 ENHANCED RANDOM SEED with time component for more variation
+        let timeSeed = Date().timeIntervalSince1970.truncatingRemainder(dividingBy: 1000.0)
+        self.noiseSeed = Double.random(in: 0...10000) + timeSeed
 
         
         // Calculate dimensions - higher resolution for true voxel detail
@@ -554,18 +664,19 @@ class VoxelWorld {
                 let normalizedX = Double(x) / Double(dimensions.width)
                 let normalizedY = Double(y) / Double(dimensions.height)
                 
-                // 🎯 CONTINENTAL TERRAIN: Dramatically simplified for coherent features
-                // World type height now DOMINATES - 90% of final height
+                // 🎯 ENHANCED CONTINENTAL TERRAIN: Add more variation for distinct layers
+                // World type height now DOMINATES - 80% of final height
                 let worldTypeHeight = worldType.generateHeight(at: normalizedX, y: normalizedY)
                 
-                // 🎯 MINIMAL NOISE: Only add very subtle continental-scale variation
-                // Reduced from 5.0 + 2.0 + 0.5 = 7.5 total to just 2.0 total
-                let continentalVariation = noise2D(normalizedX * 0.5, normalizedY * 0.5) * 2.0
+                // 🎯 INCREASED NOISE: Add more variation to create distinct elevation zones
+                let continentalVariation = noise2D(normalizedX * 0.5, normalizedY * 0.5) * 3.0
+                let regionalVariation = noise2D(normalizedX * 1.2, normalizedY * 1.2) * 1.5
+                let localVariation = noise2D(normalizedX * 2.5, normalizedY * 2.5) * 0.8
                 
-                // REMOVED: Regional and local detail noise - they made terrain too random
-                // Now terrain is 95% world-type determined, 5% gentle variation
+                // Combine all variations for more interesting terrain
+                let totalVariation = continentalVariation + regionalVariation + localVariation
                 
-                heightMap[x][y] = worldTypeHeight + continentalVariation
+                heightMap[x][y] = worldTypeHeight + totalVariation
             }
         }
         
@@ -682,8 +793,61 @@ class VoxelWorld {
         
         let heightAtPosition = heightMap[gridPos.x][gridPos.y]
         let biome = biomeMap[gridPos.x][gridPos.y]
-        let terrainType = determineTerrainType(gridPos: gridPos, worldZ: worldZ, heightAtPosition: heightAtPosition, biome: biome)
-        let transitionType = determineTransitionType(gridPos: gridPos, terrainType: terrainType, layer: layer)
+        
+        // 🌊 WATER SURFACE LEVEL: Determine if this position should have water
+        let waterLevel = determineWaterLevel(gridPos: gridPos, heightAtPosition: heightAtPosition, biome: biome)
+        let isInWater = worldZ <= waterLevel
+        let isBelowWaterSurface = worldZ < waterLevel - 2.0
+        
+        // 🌍 HEIGHT-BASED TERRAIN: Only create solid terrain below the height map surface
+        let isBelowSurface = worldZ <= heightAtPosition
+        let isNearSurface = abs(worldZ - heightAtPosition) <= 3.0  // 3 unit tolerance for surface features
+        
+        var terrainType: TerrainType
+        var transitionType: TransitionType
+        
+        if isInWater {
+            // 🌊 WATER LOGIC: Create realistic water bodies with flat surfaces
+            if isBelowWaterSurface {
+                // Deep water: Use terrain type to determine underwater terrain
+                terrainType = determineTerrainType(gridPos: gridPos, worldZ: worldZ, heightAtPosition: heightAtPosition, biome: biome)
+                // But if it would be water terrain, keep it as water
+                if terrainType == .water || heightAtPosition < waterLevel - 5.0 {
+                    terrainType = .water
+                }
+                transitionType = .solid
+            } else {
+                // Water surface: Always water at the surface level
+                terrainType = .water
+                transitionType = .solid
+            }
+        } else if isBelowSurface {
+            // 🏔️ LAND LOGIC: Generate solid terrain based on height and biome
+            terrainType = determineTerrainType(gridPos: gridPos, worldZ: worldZ, heightAtPosition: heightAtPosition, biome: biome)
+            // Don't create water terrain above water level
+            if terrainType == .water {
+                terrainType = .open  // Convert to air if would be water above water level
+                transitionType = .air
+            } else {
+                transitionType = determineTransitionType(gridPos: gridPos, terrainType: terrainType, layer: layer)
+            }
+        } else if isNearSurface {
+            // Near surface: Create transitional terrain (ramps, gentle slopes)
+            let surfaceDistance = worldZ - heightAtPosition
+            let rampAngle = min(0.5, surfaceDistance / 5.0)
+            terrainType = .hill  // Gentle slopes near surface
+            transitionType = .ramp(angle: rampAngle)
+        } else {
+            // Above surface: Open air with occasional features
+            let aerialNoise = noise2D(Double(gridPos.x) * 0.2, Double(gridPos.y) * 0.2)
+            if aerialNoise > 0.8 {
+                terrainType = .wind  // Rare wind currents
+                transitionType = .air
+            } else {
+                terrainType = .open  // Mostly empty air
+                transitionType = .air
+            }
+        }
         
         return Voxel(
             gridPosition: gridPos,
@@ -693,6 +857,53 @@ class VoxelWorld {
             transitionType: transitionType,
             biome: biome
         )
+    }
+    
+    private func determineWaterLevel(gridPos: (x: Int, y: Int, z: Int), heightAtPosition: Double, biome: BiomeType) -> Double {
+        // 🌊 WATER SURFACE DETERMINATION: Create realistic water levels
+        
+        // Base water level based on world type and biome
+        var baseWaterLevel: Double
+        
+        switch worldType {
+        case .archipelago3D:
+            // 🏝️ ARCHIPELAGO: Water dominates, with islands rising above
+            baseWaterLevel = -15.0  // Most terrain is underwater
+        case .abyss3D:
+            // 🌊 ABYSS: Deep underwater world
+            baseWaterLevel = 5.0    // Most terrain is underwater
+        case .cavern3D:
+            // 🕳️ CAVERN: Underground lakes and pools
+            baseWaterLevel = -20.0  // Deep underground water
+        case .continental3D:
+            // 🌍 CONTINENTAL: Mixed land and water
+            baseWaterLevel = -10.0  // Moderate water level
+        case .canyon3D:
+            // ⛰️ CANYON: River valleys
+            baseWaterLevel = -20.0  // Deep river valleys
+        case .volcano3D:
+            // 🌋 VOLCANO: Some crater lakes
+            baseWaterLevel = -25.0  // Deep volcanic lakes
+        case .skylands3D:
+            // ☁️ SKYLANDS: Minimal water, mostly air
+            baseWaterLevel = -50.0  // No water in sky
+        }
+        
+        // Add slight variation based on biome
+        let biomeWaterOffset: Double
+        switch biome {
+        case .wetlands, .coastal:
+            biomeWaterOffset = 5.0   // Higher water level for water biomes
+        case .desert:
+            biomeWaterOffset = -5.0  // Lower water level for dry biomes
+        default:
+            biomeWaterOffset = 0.0   // Standard water level
+        }
+        
+        // Add subtle noise for natural water surface variation
+        let waterNoise = noise2D(Double(gridPos.x) * 0.1, Double(gridPos.y) * 0.1) * 2.0
+        
+        return baseWaterLevel + biomeWaterOffset + waterNoise
     }
     
     private func determineLayer(z: Double) -> TerrainLayer {
@@ -875,44 +1086,56 @@ class VoxelWorld {
         }
     }
     
-    /// 🌍 CONTINENTAL TERRAIN: Creates massive, coherent terrain regions
+    /// 🌍 ENHANCED CONTINENTAL TERRAIN: Creates diverse terrain for all layers
     private func generateContinentalTerrain(height: Double, noise: Double) -> TerrainType {
-        // 🎯 HEIGHT-DOMINANT TERRAIN: Create distinct elevation-based zones
+        // 🎯 HEIGHT-BASED TERRAIN WITH MORE DIVERSITY
         
         // 🌊 DEEP WATER SYSTEMS: Major lakes, rivers, and deep valleys
-        if height < -20 {
+        if height < -25 {
             return .water  // Deep water (major lakes, rivers, valleys)
         }
         
         // 🌊 SHALLOW WATER & WETLANDS: Water transition zones  
-        if height < -10 {
-            return .water  // Shallow water and wetland systems
+        if height < -15 {
+            return noise > 0.3 ? .water : .swamp  // Mix of water and swamps
         }
         
         // 🏖️ COASTAL PLAINS: Low-lying areas around water
-        if height < -2 {
-            return .open   // Wetland/coastal plains - large coherent areas
+        if height < -5 {
+            if noise > 0.6 { return .food }    // Fertile lowlands
+            if noise > 0.2 { return .open }    // Open plains
+            return .swamp                      // Wetland areas
         }
         
-        // 🌾 VAST PLAINS: The dominant terrain type - minimal noise influence
-        if height < 15 {
-            // Use ultra-minimal noise for enormous grassland regions
-            if noise > 0.8 { return .food }   // Very rare fertile patches
-            if noise < -0.9 { return .hill }  // Extremely rare gentle hills
-            return .open                      // Massive grassland plains (95% of mid-elevation)
+        // 🌾 VARIED PLAINS: More diverse mid-elevation terrain
+        if height < 10 {
+            if noise > 0.7 { return .food }    // More food patches
+            if noise > 0.4 { return .forest }  // Scattered forests
+            if noise < -0.6 { return .hill }   // Rolling hills
+            return .open                       // Base grassland
         }
         
-        // 🌲 FORESTED HIGHLANDS: Elevated forest regions
-        if height < 30 {
-            // Reduce noise influence for large coherent forests
-            if noise > 0.3 { return .forest } // Large forest areas
-            return .open                      // Forest clearings and meadows
+        // 🌲 FORESTED HIGHLANDS: Elevated forest regions with variety
+        if height < 25 {
+            if noise > 0.2 { return .forest }  // Dense forest coverage
+            if noise > -0.2 { return .hill }   // Forest hills
+            if noise < -0.5 { return .water }  // Mountain streams
+            return .open                       // Forest clearings
         }
         
         // ⛰️ MOUNTAIN RANGES: High elevation rocky terrain
-        if height > 30 {
-            if noise > 0.0 { return .wall }   // Rocky mountain areas (more rocks)
-            return .hill                      // Mountain slopes and peaks
+        if height < 40 {
+            if noise > 0.3 { return .wall }    // Rocky cliffs
+            if noise > -0.2 { return .hill }   // Mountain slopes
+            if noise < -0.7 { return .ice }    // High altitude ice
+            return .hill                       // Mountain terrain
+        }
+        
+        // 🏔️ EXTREME PEAKS: Highest elevations
+        if height >= 40 {
+            if noise > 0.0 { return .wall }    // Solid rock faces
+            if noise < -0.5 { return .ice }    // Glaciers and snow
+            return .hill                       // Extreme mountain terrain
         }
         
         // Default to plains
@@ -920,32 +1143,36 @@ class VoxelWorld {
     }
     
     private func generateCanopyTerrain(biome: BiomeType, height: Double, noise: Double) -> TerrainType {
-        // 🌍 WORLD TYPE-SPECIFIC CANOPY TERRAIN
-        // First determine base canopy terrain from biome, then modify based on world type
+        // 🌲 ENHANCED CANOPY TERRAIN: Tree-level environment
         
         let vegetationThreshold = biome.vegetationDensity
         let baseTerrain: TerrainType
         
         if vegetationThreshold < 0.3 {
-            baseTerrain = .open  // No canopy in low vegetation biomes
+            // Low vegetation biomes - minimal canopy
+            if noise > 0.7 { baseTerrain = .wind }  // Wind currents
+            else if noise > 0.3 { baseTerrain = .open }
+            else { baseTerrain = .open }
         } else {
+            // High vegetation biomes - rich canopy life
             switch biome {
             case .tropicalRainforest:
-                if noise > 0.2 { baseTerrain = .forest }     // Dense canopy
-                else if noise > -0.3 { baseTerrain = .food } // Canopy fruits
+                if noise > 0.3 { baseTerrain = .forest }     // Dense canopy
+                else if noise > -0.2 { baseTerrain = .food } // Abundant canopy fruits
+                else if noise < -0.6 { baseTerrain = .wind } // Air currents
                 else { baseTerrain = .open }
             case .temperateForest, .borealForest:
-                if noise > 0.4 { baseTerrain = .forest }
-                else if noise > 0.0 { baseTerrain = .food }
+                if noise > 0.5 { baseTerrain = .forest }     // Tree coverage
+                else if noise > 0.1 { baseTerrain = .food }  // Seasonal fruits
                 else if noise < -0.4 { baseTerrain = .wind } // Canopy air currents
                 else { baseTerrain = .open }
             case .savanna:
-                if noise > 0.6 { baseTerrain = .forest }     // Scattered trees
-                else if noise > 0.2 { baseTerrain = .food }
+                if noise > 0.7 { baseTerrain = .forest }     // Scattered tall trees
+                else if noise > 0.3 { baseTerrain = .food }  // Tree fruits
                 else { baseTerrain = .open }
             default:
-                if noise > 0.5 { baseTerrain = .food }
-                else if noise < -0.3 { baseTerrain = .wind }
+                if noise > 0.6 { baseTerrain = .food }       // Food sources
+                else if noise < -0.3 { baseTerrain = .wind } // Wind patterns
                 else { baseTerrain = .open }
             }
         }
@@ -955,23 +1182,26 @@ class VoxelWorld {
     }
     
     private func generateAerialTerrain(biome: BiomeType, height: Double, noise: Double) -> TerrainType {
-        // 🌍 WORLD TYPE-SPECIFIC AERIAL TERRAIN
-        // First determine base aerial terrain from biome, then modify based on world type
+        // ☁️ ENHANCED AERIAL TERRAIN: Sky-level environment
         
         let baseTerrain: TerrainType
-        if noise > 0.4 {
-            baseTerrain = .wind  // Strong high-altitude winds
-        } else if noise > 0.7 {
-            baseTerrain = .food  // Aerial resources (flying insects, etc.)
-        } else if noise > 0.2 && noise < 0.4 {
-            baseTerrain = .wind  // Air currents
+        if noise > 0.6 {
+            baseTerrain = .wind    // Strong high-altitude winds
+        } else if noise > 0.4 {
+            baseTerrain = .food    // Aerial resources (flying insects, etc.)
+        } else if noise > 0.0 {
+            baseTerrain = .wind    // Air currents and wind patterns
+        } else if noise < -0.5 {
+            baseTerrain = .predator // Aerial predators
         } else {
-            baseTerrain = .open
+            baseTerrain = .open    // Open sky
         }
         
         // 🎯 Apply world type modifications to aerial terrain
         return applyWorldTypeModifications(baseTerrain: baseTerrain, height: height, noise: noise)
     }
+    
+
     
     private func determineTransitionType(gridPos: (x: Int, y: Int, z: Int), terrainType: TerrainType, layer: TerrainLayer) -> TransitionType {
         switch terrainType {
@@ -1255,15 +1485,18 @@ class VoxelWorld {
         /// Create systematic gentle ramps connecting all 4 terrain layers
         /// This ensures bugs can traverse between underground, surface, canopy, and aerial zones
         
-        let rampCount = dimensions.width / 4  // Multiple ramps across the world
+        let rampCount = dimensions.width / 2  // MORE ramps across the world for better connectivity
         
         for _ in 0..<rampCount {
-            let centerX = Int.random(in: 5..<dimensions.width-5)
-            let centerY = Int.random(in: 5..<dimensions.height-5)
+            let centerX = Int.random(in: 3..<dimensions.width-3)
+            let centerY = Int.random(in: 3..<dimensions.height-3)
             
             // Create a multi-layer ramp system at this location
             createRampSpiral(centerX: centerX, centerY: centerY)
         }
+        
+        // Add systematic grid-based ramps for guaranteed connectivity
+        createSystematicRamps()
     }
     
     private func createRampSpiral(centerX: Int, centerY: Int) {
@@ -1355,6 +1588,89 @@ class VoxelWorld {
         }
     }
     
+    private func createSystematicRamps() {
+        /// Create grid-based ramps to ensure every region has layer connectivity
+        let gridSize = 8  // Every 8x8 region gets a ramp system
+        
+        for gridX in 0..<(dimensions.width / gridSize) {
+            for gridY in 0..<(dimensions.height / gridSize) {
+                let centerX = gridX * gridSize + gridSize / 2
+                let centerY = gridY * gridSize + gridSize / 2
+                
+                // Only create if within bounds
+                if centerX < dimensions.width - 2 && centerY < dimensions.height - 2 {
+                    createLayerConnector(centerX: centerX, centerY: centerY)
+                }
+            }
+        }
+    }
+    
+    private func createLayerConnector(centerX: Int, centerY: Int) {
+        /// Creates a compact multi-layer connector
+        let connectorRadius = 2  // Smaller than spiral ramps
+        
+        // Calculate Z ranges for layers (updated for better distribution)
+        let undergroundZ = Int(Double(dimensions.depth) * 0.15)   // ~5 for depth=32
+        let surfaceZ = Int(Double(dimensions.depth) * 0.45)       // ~14 for depth=32
+        let canopyZ = Int(Double(dimensions.depth) * 0.75)        // ~24 for depth=32
+        let aerialZ = Int(Double(dimensions.depth) * 0.9)         // ~29 for depth=32
+        
+        // Create vertical connections with ramps
+        createVerticalRampConnection(centerX: centerX, centerY: centerY, 
+                                   startZ: undergroundZ, endZ: surfaceZ, 
+                                   radius: connectorRadius, rampType: "underground-surface")
+        
+        createVerticalRampConnection(centerX: centerX, centerY: centerY, 
+                                   startZ: surfaceZ, endZ: canopyZ, 
+                                   radius: connectorRadius, rampType: "surface-canopy")
+        
+        createVerticalRampConnection(centerX: centerX, centerY: centerY, 
+                                   startZ: canopyZ, endZ: aerialZ, 
+                                   radius: connectorRadius, rampType: "canopy-aerial")
+    }
+    
+    private func createVerticalRampConnection(centerX: Int, centerY: Int, 
+                                            startZ: Int, endZ: Int, 
+                                            radius: Int, rampType: String) {
+        /// Creates a vertical ramp connection between two Z levels
+        
+        guard startZ < endZ && endZ < dimensions.depth else { return }
+        
+        for dx in -radius...radius {
+            for dy in -radius...radius {
+                let x = centerX + dx
+                let y = centerY + dy
+                
+                guard x >= 0 && x < dimensions.width && 
+                      y >= 0 && y < dimensions.height else { continue }
+                
+                let distance = sqrt(Double(dx * dx + dy * dy))
+                if distance <= Double(radius) {
+                    // Create ramp from startZ to endZ
+                    for z in startZ...endZ {
+                        let progress = Double(z - startZ) / Double(endZ - startZ)
+                        let rampAngle = min(0.5, progress * 0.4)  // Moderate slope
+                        
+                        let worldZ = (Double(z) / Double(dimensions.depth - 1)) * 100.0 - 50.0
+                        let layer = determineLayer(z: worldZ)
+                        
+                        // Create visually distinct ramp terrain
+                        let rampTerrain: TerrainType = .hill  // Hills show ramps clearly
+                        
+                        voxels[x][y][z] = Voxel(
+                            gridPosition: (x, y, z),
+                            worldPosition: voxels[x][y][z].position,
+                            terrainType: rampTerrain,
+                            layer: layer,
+                            transitionType: .ramp(angle: rampAngle),
+                            biome: voxels[x][y][z].biome
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     private func createVerticalShafts() {
         // Create vertical shafts that connect all layers
         let shaftCount = dimensions.width / 10  // Sparse but important connections
