@@ -410,7 +410,7 @@ git push origin feature/amazing-new-trait
 ## 📚 Documentation
 
 ### System Documentation
-- **[🌍 3D Arena System](docs/features/3d-arena-system.md)**: **NEW** - Advanced 3D world generation, multi-layer environments, and immersive visualization
+
 - **[🧊 Voxel World System](docs/features/voxel-world-system.md)**: **NEW** - AAA-quality PBR materials, cinematic lighting, and immersive 3D metaverse rendering
 - **[🌍 Terrain System](docs/features/terrain-system.md)**: World generation, terrain types, and environmental challenges  
 - **[🧠 Neural Network System](docs/features/neural-network-system.md)**: Evolvable AI brains with 3D spatial awareness and decision making
@@ -424,11 +424,15 @@ git push origin feature/amazing-new-trait
 - **[📊 GUI Interface System](docs/features/gui-interface-system.md)**: User interface, statistics panels, and visual indicators
 - **[🌱 Ecosystem Health System](docs/features/ecosystem-health-system.md)**: Resource zones, population dynamics, and ecological cycles
 - **[🌍 Territory System](docs/features/territory-system.md)**: Population-based territories, migration, and spatial behaviors
+<!-- - **[🌍 3D Arena System](docs/features/3d-arena-system.md)**: **NEW** - Advanced 3D world generation, multi-layer environments, and immersive visualization -->
 
 ### Future Development
-- **[🕸️ Web3 Integration Brainstorm](docs/features/bugtopia-web3-brainstorm.md)**: **NEW** - NFT tokenomics, $BUG token utility, competitive game modes, and blockchain evolution
+
+- **[🧬💰 Bugtopia Tokenomics Framework: Evolutionary Economics Architecture](docs/technical/bugtopia-tokenomics-framework.md)**: **NEW** - NFT tokenomics, $BUG token utility, competitive game modes, and blockchain evolution
 
 ## 📚 Technical Details
+
+- **[🌍 Territory System](docs/features/territory-system.md)**: Population-based territories, migration, and spatial behaviors
 
 ### Dependencies
 - **Pure Swift**: No external dependencies
