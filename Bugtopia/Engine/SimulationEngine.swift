@@ -384,6 +384,22 @@ class SimulationEngine {
             speciationManager.cleanupOldEvents()
         }
         
+        // 🔍 MEMORY LEAK DEBUG: Track array sizes every 30 ticks
+        if tickCount % 30 == 0 {
+            MemoryLeakTracker.shared.trackArraySizes(
+                bugs: bugs.count,
+                foods: foods.count,
+                signals: signals.count,
+                resources: resources.count,
+                tools: tools.count
+            )
+        }
+        
+        // 🔍 MEMORY LEAK DEBUG: Generate comprehensive memory report every 300 ticks (10 seconds)
+        if tickCount % 300 == 0 {
+            MemoryLeakTracker.shared.generateMemoryReport()
+        }
+        
         // Update statistics
         updateStatistics()
         

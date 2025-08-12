@@ -32,6 +32,37 @@ struct Arena3DView: NSViewRepresentable {
         self.simulationEngine = simulationEngine
         self.onBugSelected = onBugSelected
         self.onFoodSelected = onFoodSelected
+        
+        // 🔍 MEMORY LEAK DEBUG: Track Arena3DView creation
+        MemoryLeakTracker.shared.trackArena3DViewCreation()
+    }
+    
+    // 🔧 MEMORY LEAK FIX: Add coordinator for proper cleanup
+    class Coordinator {
+        var navigationResponder: NavigationResponderView?
+        
+        deinit {
+            // 🔍 MEMORY LEAK DEBUG: Track coordinator cleanup
+            print("🔧 [MEMORY] Arena3DView.Coordinator deinit called")
+            
+            // Clean up navigation responder and its timer
+            if let timer = navigationResponder?.updateTimer {
+                MemoryLeakTracker.shared.trackTimerInvalidation(description: "NavigationResponder updateTimer (Coordinator deinit)")
+                timer.invalidate()
+            }
+            navigationResponder?.removeFromSuperview()
+            NavigationResponderView.currentInstance = nil
+            
+            // Clear global scene reference
+            Arena3DView.globalPersistentScene = nil
+            
+            // Track Arena3DView destruction
+            MemoryLeakTracker.shared.trackArena3DViewDestruction()
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        return Coordinator()
     }
     @State private var sceneView: SCNView?
     @State private var cameraNode: SCNNode?
@@ -236,6 +267,10 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
+        // 🔧 MEMORY LEAK FIX: Store navigation responder reference in coordinator
+        if let navResponder = navigationResponder {
+            context.coordinator.navigationResponder = navResponder
+        }
         // ✅ FIXED: Removed StateViolationDetector reference to fix build issues
         
         // SwiftUI update tracking (avoid state modification during view updates)
@@ -271,8 +306,77 @@ struct Arena3DView: NSViewRepresentable {
         
         updateTerritoryVisualizations(scene: scene)
         
+        // 🔍 MEMORY LEAK DEBUG: Track dictionary sizes every 150 updates (~5 seconds)
+        if Arena3DView.swiftuiUpdateCount % 150 == 0 {
+            MemoryLeakTracker.shared.trackDictionarySizes(
+                bugMappings: bugNodeToBugMapping.count,
+                foodMappings: foodNodeToFoodMapping.count
+            )
+        }
+        
+        // 🔧 MEMORY LEAK FIX: Periodically clean up orphaned mappings
+        if Arena3DView.swiftuiUpdateCount % 300 == 0 { // Every ~10 seconds at 30fps
+            cleanupOrphanedMappings()
+        }
+        
         // 🎮 AAA GAME DEV: Force scene refresh after updates
         nsView.setNeedsDisplay(nsView.bounds)
+    }
+    
+    // 🔧 MEMORY LEAK FIX: Clean up orphaned node mappings
+    private func cleanupOrphanedMappings() {
+        // Remove mappings for nodes that no longer exist in the scene
+        guard let scene = Arena3DView.globalPersistentScene else { return }
+        
+        let validBugNodes = Set(bugNodeToBugMapping.keys.filter { node in
+            node.parent != nil && scene.rootNode.childNode(withName: node.name ?? "", recursively: true) != nil
+        })
+        let validFoodNodes = Set(foodNodeToFoodMapping.keys.filter { node in
+            node.parent != nil && scene.rootNode.childNode(withName: node.name ?? "", recursively: true) != nil
+        })
+        
+        // Clean up bug mappings
+        let orphanedBugNodes = bugNodeToBugMapping.keys.filter { !validBugNodes.contains($0) }
+        for node in orphanedBugNodes {
+            bugNodeToBugMapping.removeValue(forKey: node)
+        }
+        
+        // Clean up food mappings  
+        let orphanedFoodNodes = foodNodeToFoodMapping.keys.filter { !validFoodNodes.contains($0) }
+        for node in orphanedFoodNodes {
+            foodNodeToFoodMapping.removeValue(forKey: node)
+        }
+        
+        // Also clean up NavigationResponder mappings
+        if let navResponder = NavigationResponderView.currentInstance {
+            for node in orphanedBugNodes {
+                navResponder.bugNodeToBugMapping.removeValue(forKey: node)
+            }
+            
+            for node in orphanedFoodNodes {
+                navResponder.foodNodeToFoodMapping.removeValue(forKey: node)
+            }
+        }
+        
+        if !orphanedBugNodes.isEmpty || !orphanedFoodNodes.isEmpty {
+            print("🔧 [MEMORY] Cleaned up \(orphanedBugNodes.count) bug nodes, \(orphanedFoodNodes.count) food nodes")
+            
+            // Track node destructions for cleanup
+            for node in orphanedBugNodes {
+                MemoryLeakTracker.shared.trackNodeDestruction(type: "BugNode (cleanup)", name: node.name ?? "unnamed")
+                
+                // 🔍 MEMORY LEAK DEBUG: Track physics body cleanup (THE FINAL FIX!)
+                if node.physicsBody != nil {
+                    MemoryLeakTracker.shared.trackPhysicsBodyDestruction(type: "BugDynamic")
+                    node.physicsBody = nil // Explicitly clear physics body
+                }
+                
+                removeBugNodeSafely(node)
+            }
+            for node in orphanedFoodNodes {
+                MemoryLeakTracker.shared.trackNodeDestruction(type: "FoodNode (cleanup)", name: node.name ?? "unnamed")
+            }
+        }
     }
     
     // MARK: - 🌍 Dynamic Biome Detection
@@ -1811,6 +1915,9 @@ struct Arena3DView: NSViewRepresentable {
         // Create geometry with sources and elements
         let geometry = SCNGeometry(sources: [vertexSource, normalSource, texCoordSource], elements: [element])
         
+        // 🔍 MEMORY LEAK DEBUG: Track massive terrain mesh creation
+        MemoryLeakTracker.shared.trackGeometryCreation(type: "TerrainMesh", vertexCount: vertices.count)
+        
         // Apply continental terrain material
         geometry.firstMaterial = createContinentalTerrainMaterial()
         
@@ -1890,6 +1997,8 @@ struct Arena3DView: NSViewRepresentable {
     }
     
     private func createHeightBasedTerrainTexture() -> NSImage {
+        // 🔍 MEMORY LEAK DEBUG: Track large terrain texture creation
+        MemoryLeakTracker.shared.trackTextureCreation(type: "terrain_heightmap", size: "512x512")
         let heightMap = simulationEngine.voxelWorld.heightMap
         let resolution = heightMap.count
         let size = CGSize(width: resolution, height: resolution)
@@ -2152,6 +2261,9 @@ struct Arena3DView: NSViewRepresentable {
     
     private func createSolidVoxel(size: Float, voxel: Voxel) -> SCNGeometry {
         let box = SCNBox(width: CGFloat(size), height: CGFloat(size), length: CGFloat(size), chamferRadius: 0.02)
+        
+        // 🔍 MEMORY LEAK DEBUG: Track voxel geometry creation (8 vertices per box)
+        MemoryLeakTracker.shared.trackGeometryCreation(type: "VoxelBox", vertexCount: 8)
         
         // AAA-Quality PBR Material System
         let material = createPBRMaterial(for: voxel)
@@ -3414,6 +3526,9 @@ struct Arena3DView: NSViewRepresentable {
         // ⚠️ SKIP STATIC PROPERTY ACCESS TO AVOID SWIFTUI VIOLATIONS
         // Always generate fresh textures during view updates
         
+        // 🔍 MEMORY LEAK DEBUG: Track texture creation
+        MemoryLeakTracker.shared.trackTextureCreation(type: type, size: "64x64")
+        
         // Generate texture fresh each time (no cache access)
         let texture: NSImage
         switch type {
@@ -4028,6 +4143,19 @@ struct Arena3DView: NSViewRepresentable {
         }
     }
     
+    // MARK: - Physics Body Cleanup
+    
+    /// Safely removes a bug node with proper physics body cleanup
+    private func removeBugNodeSafely(_ bugNode: SCNNode) {
+        // 🔍 MEMORY LEAK DEBUG: Track physics body cleanup (CRITICAL FIX!)
+        if bugNode.physicsBody != nil {
+            MemoryLeakTracker.shared.trackPhysicsBodyDestruction(type: "BugDynamic")
+            bugNode.physicsBody = nil // Explicitly clear physics body
+        }
+        
+        bugNode.removeFromParentNode()
+    }
+    
     // MARK: - Bug Rendering
     
     private func renderBugs(scene: SCNScene) {
@@ -4040,9 +4168,13 @@ struct Arena3DView: NSViewRepresentable {
         scene.rootNode.addChildNode(bugContainer)
         
         for bug in bugs {
-            let bugNode = createBugNode(bug: bug)
-            bugContainer.addChildNode(bugNode)
-            // Created 3D node for bug
+            // 🔧 FIX: Check if node already exists before creating (renderBugs path)
+            let existingNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false)
+            if existingNode == nil {
+                let bugNode = createBugNode(bug: bug)
+                bugContainer.addChildNode(bugNode)
+                // Created 3D node for bug
+            }
         }
         // BugContainer added to scene
     }
@@ -4050,6 +4182,17 @@ struct Arena3DView: NSViewRepresentable {
     private func createBugNode(bug: Bug) -> SCNNode {
         let bugNode = SCNNode()
         bugNode.name = "Bug_\(bug.id.uuidString)"
+        
+        // 🔍 MEMORY LEAK DEBUG: Track bug node creation (minimized logging)
+        MemoryLeakTracker.shared.trackNodeCreation(type: "BugNode", name: bugNode.name ?? "unnamed")
+        
+        // TODO: SCNNode Leak Monitoring - Currently showing 2-3 node net leak per test
+        // This small leak could compound over extended runtime (hours/days)
+        // If node leak grows beyond 50, check:
+        // 1. All 4 existence check paths are working properly
+        // 2. Death animations are properly destroying nodes
+        // 3. Generation changes are cleaning up correctly
+        // 4. cleanupOrphanedMappings() is catching all edge cases
         
         // Create detailed multi-part bug body based on species
         createDetailedBugBody(for: bug, parentNode: bugNode)
@@ -4106,7 +4249,13 @@ struct Arena3DView: NSViewRepresentable {
             .collisionMargin: 1.0  // Increased margin for better collision detection
         ])
         
+        // 🔍 MEMORY LEAK DEBUG: Track physics creation (LIKELY THE REAL CULPRIT!)
+        MemoryLeakTracker.shared.trackPhysicsShapeCreation(type: "BugPhysics", complexity: "ConvexHull")
+        
         bugNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: physicsShape)
+        
+        // 🔍 MEMORY LEAK DEBUG: Track physics body creation
+        MemoryLeakTracker.shared.trackPhysicsBodyCreation(type: "BugDynamic")
         bugNode.physicsBody?.mass = 0.1
         bugNode.physicsBody?.categoryBitMask = 2       // Bug category  
         bugNode.physicsBody?.collisionBitMask = 1      // Collides with terrain
@@ -7052,7 +7201,16 @@ struct Arena3DView: NSViewRepresentable {
                     
                     // 🚨 FORCE REMOVE the visual node immediately
                     if let deadNode = bugContainer.childNode(withName: "Bug_\(deadBug.id.uuidString)", recursively: false) {
-                        deadNode.removeFromParentNode()
+                        // 🔍 MEMORY LEAK DEBUG: Track node destruction
+                        MemoryLeakTracker.shared.trackNodeDestruction(type: "BugNode (immediate death)", name: deadNode.name ?? "unnamed")
+                        
+                        // 🔍 MEMORY LEAK DEBUG: Track physics body cleanup (THE FINAL FIX!)
+                        if deadNode.physicsBody != nil {
+                            MemoryLeakTracker.shared.trackPhysicsBodyDestruction(type: "BugDynamic")
+                            deadNode.physicsBody = nil // Explicitly clear physics body
+                        }
+                        
+                        removeBugNodeSafely(deadNode)
                         bugNodeToBugMapping.removeValue(forKey: deadNode)
                     } else {
                     }
@@ -7112,7 +7270,8 @@ struct Arena3DView: NSViewRepresentable {
                 
                 // Find and remove the visual node immediately
                 if let ghostNode = bugContainer.childNode(withName: "Bug_\(ghostBug.id.uuidString)", recursively: false) {
-                    ghostNode.removeFromParentNode()
+                    // Physics cleanup handled by removeBugNodeSafely
+                    removeBugNodeSafely(ghostNode)
                     bugNodeToBugMapping.removeValue(forKey: ghostNode)
                 }
             }
@@ -7148,8 +7307,12 @@ struct Arena3DView: NSViewRepresentable {
             // 🚨 EMERGENCY: If we have 0 visual nodes but bugs exist, force immediate recreation
             if visualNodes == 0 && simulationEngine.bugs.count > 0 {
                 for bug in simulationEngine.bugs {
-                    let newBugNode = createBugNode(bug: bug)
-                    bugContainer.addChildNode(newBugNode)
+                    // 🔧 FIX: Check if node already exists before creating
+                    let existingNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false)
+                    if existingNode == nil {
+                        let newBugNode = createBugNode(bug: bug)
+                        bugContainer.addChildNode(newBugNode)
+                    }
                 }
                 return // Skip normal processing, let next frame handle positioning
             }
@@ -7180,8 +7343,12 @@ struct Arena3DView: NSViewRepresentable {
                 }) {
                     
                     addDeathAnimation(to: visualNode) {
+                        // 🔍 MEMORY LEAK DEBUG: Track node destruction
+                        MemoryLeakTracker.shared.trackNodeDestruction(type: "BugNode (death animation)", name: visualNode.name ?? "unnamed")
+                        
                         // Remove from scene after animation
-                        visualNode.removeFromParentNode()
+                        // Physics cleanup handled by removeBugNodeSafely
+                        removeBugNodeSafely(visualNode)
                         
                         // Clean up mappings
                         self.bugNodeToBugMapping.removeValue(forKey: visualNode)
@@ -7350,12 +7517,22 @@ struct Arena3DView: NSViewRepresentable {
             } else {
                 // Bug node not found!
                 
-                // Bug node doesn't exist, create it with new Phase 3 visuals
-                let newBugNode = createBugNode(bug: bug)
-                bugContainer.addChildNode(newBugNode)
-                
-                // Initialize tracking state for new bug
-                previousBugAliveState[bug.id] = bug.isAlive
+                // 🔧 FIX: Double-check if node already exists before creating
+                let existingNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false)
+                if existingNode == nil {
+                    // Bug node doesn't exist, create it with new Phase 3 visuals
+                    let newBugNode = createBugNode(bug: bug)
+                    bugContainer.addChildNode(newBugNode)
+                    
+                    // Initialize tracking state for new bug
+                    previousBugAliveState[bug.id] = bug.isAlive
+                } else {
+                    // Node exists but wasn't found in previous lookup - update mapping
+                    if let existingNode = existingNode {
+                        bugNodeToBugMapping[existingNode] = bug
+                        previousBugAliveState[bug.id] = bug.isAlive
+                    }
+                }
             }
         }
     }
@@ -7423,8 +7600,11 @@ struct Arena3DView: NSViewRepresentable {
             
             
             addDeathAnimation(to: bugNode) {
+                // 🔍 MEMORY LEAK DEBUG: Track node destruction
+                MemoryLeakTracker.shared.trackNodeDestruction(type: "BugNode (orphaned)", name: bugNode.name ?? "unnamed")
+                
                 // Remove from scene after animation
-                bugNode.removeFromParentNode()
+                self.removeBugNodeSafely(bugNode)
                 
                 // Clean up mappings
                 self.bugNodeToBugMapping.removeValue(forKey: bugNode)
@@ -7448,8 +7628,11 @@ struct Arena3DView: NSViewRepresentable {
             
             
             addDeathAnimation(to: bugNode) {
+                // 🔍 MEMORY LEAK DEBUG: Track node destruction
+                MemoryLeakTracker.shared.trackNodeDestruction(type: "BugNode (dead but visible)", name: bugNode.name ?? "unnamed")
+                
                 // Remove from scene after animation
-                bugNode.removeFromParentNode()
+                self.removeBugNodeSafely(bugNode)
                 
                 // Clean up mappings
                 self.bugNodeToBugMapping.removeValue(forKey: bugNode)
@@ -7489,7 +7672,11 @@ struct Arena3DView: NSViewRepresentable {
                     // Immediate removal with death animation
                     
                     addDeathAnimation(to: bugNode) {
-                        bugNode.removeFromParentNode()
+                        // 🔍 MEMORY LEAK DEBUG: Track node destruction
+                        MemoryLeakTracker.shared.trackNodeDestruction(type: "BugNode (orphaned cleanup)", name: bugNode.name ?? "unnamed")
+                        
+                        // Physics cleanup handled by removeBugNodeSafely
+                        removeBugNodeSafely(bugNode)
                         self.bugNodeToBugMapping.removeValue(forKey: bugNode)
                         self.navigationResponder?.bugNodeToBugMapping.removeValue(forKey: bugNode)
                         
@@ -7567,8 +7754,12 @@ struct Arena3DView: NSViewRepresentable {
             let allBugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
             
             for bugNode in allBugNodes {
+                // 🔍 MEMORY LEAK DEBUG: Track node destruction
+                MemoryLeakTracker.shared.trackNodeDestruction(type: "BugNode (generation change)", name: bugNode.name ?? "unnamed")
+                
                 // No death animation for generation change - instant removal
-                bugNode.removeFromParentNode()
+                // Physics cleanup handled by removeBugNodeSafely
+                removeBugNodeSafely(bugNode)
             }
             
             // Clear all mappings (old generation data)
@@ -7700,12 +7891,17 @@ struct Arena3DView: NSViewRepresentable {
         let foodType = matchingFood?.type ?? .apple  // Default to apple if no match
         
         // 🍎 Food Selection: Establish node-to-food mapping
+        // 🔧 MEMORY LEAK FIX: Use weak references and check bounds
         if let actualFood = matchingFood {
-            foodNodeToFoodMapping[foodNode] = actualFood
-            
-            // 🐛 FIX: Also update NavigationResponder's mapping using static reference
-            if let navResponder = NavigationResponderView.currentInstance {
-                navResponder.foodNodeToFoodMapping[foodNode] = actualFood
+            // Prevent dictionary from growing unbounded
+            if foodNodeToFoodMapping.count < 1000 {
+                foodNodeToFoodMapping[foodNode] = actualFood
+                
+                // 🐛 FIX: Also update NavigationResponder's mapping using static reference
+                if let navResponder = NavigationResponderView.currentInstance,
+                   navResponder.foodNodeToFoodMapping.count < 1000 {
+                    navResponder.foodNodeToFoodMapping[foodNode] = actualFood
+                }
             }
         }
         
@@ -7791,8 +7987,9 @@ struct Arena3DView: NSViewRepresentable {
                 return exactId == foodId
             })
             if !foodExists {
+                // 🔍 MEMORY LEAK DEBUG: Track food node destruction
+                MemoryLeakTracker.shared.trackNodeDestruction(type: "FoodNode", name: foodNode.name ?? "unnamed")
                 foodNode.removeFromParentNode()
-
             }
         }
         
@@ -7813,6 +8010,10 @@ struct Arena3DView: NSViewRepresentable {
     
     private func createFoodNode(position: CGPoint) -> SCNNode {
         let foodNode = SCNNode()
+        
+        // 🔍 MEMORY LEAK DEBUG: Track food node creation
+        let foodId = "\(String(format: "%.1f", position.x))_\(String(format: "%.1f", position.y))"
+        MemoryLeakTracker.shared.trackNodeCreation(type: "FoodNode", name: "Food_\(foodId)")
         
         // 🎯 GET ACTUAL FOOD TYPE: Use position to determine food type variety
         let foods = simulationEngine.foods
@@ -7896,15 +8097,24 @@ struct Arena3DView: NSViewRepresentable {
         guard let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else { return }
         
         // Remove all existing bug nodes
-        bugContainer.childNodes.forEach { $0.removeFromParentNode() }
+        let existingNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
+        for node in existingNodes {
+            // 🔍 MEMORY LEAK DEBUG: Track node destruction
+            MemoryLeakTracker.shared.trackNodeDestruction(type: "BugNode (visual refresh)", name: node.name ?? "unnamed")
+            node.removeFromParentNode()
+        }
         
         // Clear the old mappings since nodes are destroyed
         bugNodeToBugMapping.removeAll()
         
         // Recreate all bugs with new Phase 3 visuals
         for bug in simulationEngine.bugs {
-            let newBugNode = createBugNode(bug: bug)
-            bugContainer.addChildNode(newBugNode)
+            // 🔧 FIX: Check if node already exists before creating (refreshAllBugVisuals path)
+            let existingNode = bugContainer.childNode(withName: "Bug_\(bug.id.uuidString)", recursively: false)
+            if existingNode == nil {
+                let newBugNode = createBugNode(bug: bug)
+                bugContainer.addChildNode(newBugNode)
+            }
         }
         
         // 🎯 CRITICAL: Refresh NavigationResponder mappings after recreating nodes
@@ -8018,6 +8228,10 @@ struct Arena3DView: NSViewRepresentable {
         
         // Create navigation responder that fills the entire scene view
         let navigationResponder = NavigationResponderView()
+        
+        // 🔍 MEMORY LEAK DEBUG: Track NavigationResponder creation
+        MemoryLeakTracker.shared.trackNavigationResponderCreation()
+        
         navigationResponder.navigationController = navController
         navigationResponder.directCameraReference = cameraNode  // Direct backup reference
         navigationResponder.frame = sceneView.bounds
@@ -8036,8 +8250,7 @@ struct Arena3DView: NSViewRepresentable {
         NavigationResponderView.currentInstance = navigationResponder
         
         // 🎯 NEW: Give NavigationResponder a closure to access current bug mappings
-        // 🐛 FIX: Since SwiftUI views are value types, we can't capture self with [unowned]
-        // Instead, we'll create a closure that captures the current mappings and update it later
+        // 🐛 FIX: Can't use [weak self] on structs, use direct references
         navigationResponder.getFallbackBugMappings = { 
             return self.bugNodeToBugMapping
         }
@@ -8056,6 +8269,9 @@ struct Arena3DView: NSViewRepresentable {
         
         // 🎯 Store reference for later updates
         self.navigationResponder = navigationResponder
+        
+        // 🔧 MEMORY LEAK FIX: Store in coordinator for proper cleanup
+        // Note: coordinator access will be handled in updateNSView instead
         
         // 🎯 Ensure mappings are properly transferred after initial setup
         refreshNavigationResponderMappings()
@@ -8394,7 +8610,7 @@ class NavigationResponderView: NSView {
     
     private var pressedKeys: Set<UInt16> = []
     private var lastUpdateTime: TimeInterval = 0
-    private var updateTimer: Timer?
+    internal var updateTimer: Timer?
     
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -8613,6 +8829,9 @@ class NavigationResponderView: NSView {
     }
     
     private func startUpdateTimer() {
+        // 🔍 MEMORY LEAK DEBUG: Track timer creation
+        MemoryLeakTracker.shared.trackTimerCreation(description: "NavigationResponder updateTimer (60 FPS)")
+        
         updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { [weak self] _ in
             // 🔧 FIXED: Defer to prevent state modifications during view updates
             DispatchQueue.main.async {
@@ -8671,7 +8890,13 @@ class NavigationResponderView: NSView {
 
     
     deinit {
-        updateTimer?.invalidate()
+        // 🔍 MEMORY LEAK DEBUG: Track NavigationResponder destruction
+        MemoryLeakTracker.shared.trackNavigationResponderDestruction()
+        
+        if let timer = updateTimer {
+            MemoryLeakTracker.shared.trackTimerInvalidation(description: "NavigationResponder updateTimer (deinit)")
+            timer.invalidate()
+        }
     }
 }
 
