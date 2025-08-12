@@ -137,3 +137,30 @@ Temporary Items
 
 # logs
 docs/debug/logs.txt
+
+# Blockchain development artifacts
+blockchain/artifacts/
+blockchain/cache/
+blockchain/node_modules/
+blockchain/package-lock.json
+blockchain/.env
+blockchain/deployments/
+blockchain/contracts/*.bak
+
+# Hardhat
+blockchain/typechain/
+blockchain/typechain-types/
+
+# Avalanche CLI
+~/.avalanche-cli/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+check-native-balance.js
+core-wallet-setup.js
