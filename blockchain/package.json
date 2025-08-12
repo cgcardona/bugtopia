@@ -24,14 +24,13 @@
     "lint": "solhint 'contracts/**/*.sol'",
     "lint:fix": "solhint 'contracts/**/*.sol' --fix",
     "prettier": "prettier --write 'contracts/**/*.sol'",
-    "prepare": "husky install",
     "setup": "npm run compile && npm run test",
     "analyze": "slither .",
-    "l1:start": "avalanche l1 start bugtopia-l1",
-    "l1:stop": "avalanche l1 stop bugtopia-l1",
-    "l1:status": "avalanche l1 list",
-    "l1:logs": "avalanche l1 logs bugtopia-l1",
-    "l1:describe": "avalanche l1 describe bugtopia-l1"
+    "network:start": "avalanche network start",
+    "network:stop": "avalanche network stop",
+    "network:status": "avalanche network status",
+    "blockchain:list": "avalanche blockchain list",
+    "blockchain:describe": "avalanche blockchain describe bugtopial1"
   },
   "keywords": [
     "bugtopia",
@@ -48,33 +47,21 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.0",
-    "@openzeppelin/contracts": "^5.0.1",
+    "@openzeppelin/contracts": "^5.4.0",
     "@openzeppelin/hardhat-upgrades": "^3.0.5",
     "hardhat": "^2.19.0",
+    "hardhat-contract-sizer": "^2.10.0",
     "hardhat-deploy": "^0.11.45",
     "hardhat-gas-reporter": "^1.0.9",
-    "hardhat-contract-sizer": "^2.10.0",
-    "solidity-coverage": "^0.8.5",
-    "solhint": "^4.1.1",
     "prettier": "^3.0.0",
     "prettier-plugin-solidity": "^1.1.3",
-    "husky": "^8.0.3",
-    "lint-staged": "^15.0.0",
-    "slither-analyzer": "^0.1.0"
+    "solhint": "^4.1.1",
+    "solidity-coverage": "^0.8.5"
   },
   "dependencies": {
+    "avalanche": "^3.16.0",
     "dotenv": "^16.3.1",
-    "ethers": "^5.7.2",
-    "avalanche": "^3.17.0"
-  },
-  "lint-staged": {
-    "*.sol": [
-      "prettier --write",
-      "solhint --fix"
-    ],
-    "*.js": [
-      "prettier --write"
-    ]
+    "ethers": "^6.14.0"
   },
   "engines": {
     "node": ">=16.0.0"

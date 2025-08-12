@@ -2,6 +2,8 @@
 
 This guide covers setting up and running the Bugtopia Avalanche L1 locally for development.
 
+**Important**: Bugtopia uses native BUG tokens built into the L1 blockchain, not separate ERC-20 smart contract tokens.
+
 ## Prerequisites
 
 ### Install Avalanche-CLI
@@ -16,15 +18,30 @@ avalanche --version
 
 ### Install Dependencies
 ```bash
-# Node.js for smart contract development
-brew install node
-npm install -g yarn
+# Node.js for smart contract development (nvm recommended)
+# Option 1: Using nvm (recommended)
+nvm install --lts
+nvm use --lts
+
+# Option 2: Using brew
+# brew install node
+
+# Verify Node.js installation
+node --version
+npm --version
 
 # Go (required for Avalanche-CLI)
 brew install go
 
 # Docker (for local network)
 brew install docker
+```
+
+### Install Core Wallet
+```bash
+# Download Core Wallet from https://core.app
+# Or install via browser extension store
+# Core Wallet is the official Avalanche wallet
 ```
 
 ## L1 Configuration
@@ -41,6 +58,7 @@ npm run setup:l1
 # - Create and deploy Bugtopia L1 locally
 # - Generate .env file with configuration
 # - Test the connection
+# - Provide Core Wallet configuration
 ```
 
 ### 2. Manual Setup
@@ -117,7 +135,7 @@ Pre-funded Accounts:
 - ... (additional accounts as configured)
 ```
 
-### 3. Connect MetaMask
+### 3. Connect Core Wallet
 ```json
 {
   "Network Name": "Bugtopia L1 Local",
@@ -127,6 +145,18 @@ Pre-funded Accounts:
   "Block Explorer": "http://127.0.0.1:9650/ext/bc/bugtopia-l1"
 }
 ```
+
+**To add the network in Core Wallet:**
+1. Open Core Wallet
+2. Go to Settings → Networks → Add Network
+3. Enter the network details above
+4. Save and switch to the Bugtopia L1 Local network
+
+**Why Core Wallet?**
+- **Native Avalanche Support**: Core Wallet is built specifically for Avalanche ecosystem
+- **Better L1 Integration**: Optimized for Avalanche L1s and subnets
+- **Enhanced Security**: Built with Avalanche's security standards
+- **Developer Friendly**: Better debugging and transaction monitoring for Avalanche networks
 
 ## Smart Contract Development
 
@@ -153,12 +183,12 @@ npm run deploy:mainnet   # Avalanche mainnet
 
 ### 3. Available Commands
 ```bash
-# L1 Management
-npm run l1:start         # Start local L1
-npm run l1:stop          # Stop local L1  
-npm run l1:status        # Check L1 status
-npm run l1:logs          # View L1 logs
-npm run l1:describe      # Show L1 details
+# Network Management
+npm run network:start    # Start local network
+npm run network:stop     # Stop network  
+npm run network:status   # Check network status
+npm run blockchain:list  # List blockchains
+npm run blockchain:describe # Show blockchain details
 
 # Contract Operations
 npm run compile          # Compile contracts
@@ -242,12 +272,39 @@ Since BUG is the native token:
 
 ## Development Workflow
 
-1. Start local L1: `avalanche l1 deploy bugtopia-l1 --local`
-2. Deploy contracts: `npx hardhat run scripts/deploy.js --network bugtopia_local`
-3. Run Bugtopia app with blockchain integration
-4. Test evolutionary events triggering NFT mints
-5. Monitor gas usage and optimize
-6. Iterate on tokenomics parameters
+1. **Setup L1**: `npm run setup:l1` (automated setup and deployment)
+2. **Deploy Contracts**: `npm run deploy:local` (deploys BugtopiaL1 and BugtopiaCollectibles)
+3. **Add to Core Wallet**: Use the provided network configuration
+4. **Import Development Account**: Use ewoq private key for testing
+5. **Test Native BUG Economics**: Verify burning, rewards, and treasury functions
+6. **Integrate with Swift App**: Use contract addresses in BlockchainManagerL1.swift
+7. **Monitor and Iterate**: Test evolutionary events triggering NFT mints
+
+## Core Wallet Integration
+
+### Network Configuration
+```
+Network Name: Bugtopia L1 Local
+RPC URL: http://127.0.0.1:62916/ext/bc/2ZEUiUD3bYhrqsXCVvRdHNfAdegYuUVy3Vn9BYhQkhZ3uKzXeA/rpc
+Chain ID: 68420
+Currency Symbol: BUG
+Block Explorer URL: http://127.0.0.1:62916/ext/bc/2ZEUiUD3bYhrqsXCVvRdHNfAdegYuUVy3Vn9BYhQkhZ3uKzXeA
+```
+
+### Development Account
+```
+Address: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+Private Key: 56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027
+Initial Balance: 10 BUG (reduced by gas fees and test transactions)
+```
+
+### Expected Balance After Deployment
+- **Initial**: 10.0 BUG
+- **After Deployment**: ~9.878 BUG
+- **Usage Breakdown**:
+  - Gas fees: ~0.121 BUG (contract deployment)
+  - Economic functions: ~0.001 BUG (test utility fees)
+  - Available for testing: ~9.878 BUG
 
 ## Troubleshooting
 

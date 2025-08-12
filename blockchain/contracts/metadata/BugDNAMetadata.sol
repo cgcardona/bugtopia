@@ -25,7 +25,7 @@ library BugDNAMetadata {
         uint256 energyEfficiency;
         uint256 size;
         uint256 strength;
-        uint256 memory;
+        uint256 memoryCapacity;
         uint256 stickiness;
         uint256 camouflage;
         uint256 aggression;
@@ -113,11 +113,11 @@ library BugDNAMetadata {
             '"attributes":[', attributes, '],',
             '"evolutionary_data":{',
                 '"genetic_hash":"', geneticHash, '",',
-                '"generation":', performance.generation.toString(), ',',
+                '"generation":', uint256(performance.generation).toString(), ',',
                 '"species_type":"', _getSpeciesName(speciesType), '",',
                 '"rarity_tier":"', _getRarityName(rarity), '",',
                 lineageInfo,
-                '"neural_complexity":', neural.complexityScore.toString(),
+                '"neural_complexity":', uint256(neural.complexityScore).toString(),
             '},',
             '"stats":{',
                 '"fitness_score":', performance.fitnessScore.toString(), ',',
@@ -150,7 +150,7 @@ library BugDNAMetadata {
             // Core classification
             '{"trait_type":"Species","value":"', _getSpeciesName(speciesType), '"},',
             '{"trait_type":"Rarity","value":"', _getRarityName(rarity), '"},',
-            '{"trait_type":"Generation","value":', performance.generation.toString(), '},',
+            '{"trait_type":"Generation","value":', uint256(performance.generation).toString(), '},',
             
             // Core genetic traits (normalized to 0-100 for display)
             '{"trait_type":"Speed","value":', _normalizeTraitValue(genetics.speed, 100, 2000).toString(), ',"max_value":100},',
@@ -161,7 +161,7 @@ library BugDNAMetadata {
         attrs = string(abi.encodePacked(attrs,
             '{"trait_type":"Size","value":', _normalizeTraitValue(genetics.size, 500, 2000).toString(), ',"max_value":100},',
             '{"trait_type":"Strength","value":', _normalizeTraitValue(genetics.strength, 200, 1500).toString(), ',"max_value":100},',
-            '{"trait_type":"Intelligence","value":', _normalizeTraitValue(genetics.memory, 100, 1200).toString(), ',"max_value":100},',
+            '{"trait_type":"Intelligence","value":', _normalizeTraitValue(genetics.memoryCapacity, 100, 1200).toString(), ',"max_value":100},',
             '{"trait_type":"Stealth","value":', _normalizeTraitValue(genetics.camouflage, 0, 1000).toString(), ',"max_value":100},',
             '{"trait_type":"Aggression","value":', _normalizeTraitValue(genetics.aggression, 0, 1000).toString(), ',"max_value":100},'
         ));
@@ -240,7 +240,7 @@ library BugDNAMetadata {
             ));
         }
         
-        return '"lineage_type":"Complex","parent_count":'+uint256(parentTokenIds.length).toString()+',';
+        return string(abi.encodePacked('"lineage_type":"Complex","parent_count":', uint256(parentTokenIds.length).toString(), ','));
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -292,11 +292,11 @@ library BugDNAMetadata {
      * @dev Generate species emoji for visual identification
      */
     function _getSpeciesEmoji(SpeciesType speciesType) internal pure returns (string memory) {
-        if (speciesType == SpeciesType.Herbivore) return "🌱";
-        if (speciesType == SpeciesType.Carnivore) return "🦁";
-        if (speciesType == SpeciesType.Omnivore) return "🐻";
-        if (speciesType == SpeciesType.Scavenger) return "🦅";
-        return "🐛";
+        if (speciesType == SpeciesType.Herbivore) return unicode"🌱";
+        if (speciesType == SpeciesType.Carnivore) return unicode"🦁";
+        if (speciesType == SpeciesType.Omnivore) return unicode"🐻";
+        if (speciesType == SpeciesType.Scavenger) return unicode"🦅";
+        return unicode"🐛";
     }
     
     /**
@@ -357,7 +357,7 @@ library BugDNAMetadata {
         
         string memory description = string(abi.encodePacked(
             name, " is a ", _getRarityName(rarity), " ", _getSpeciesName(speciesType),
-            " from Generation ", performance.generation.toString(), 
+            " from Generation ", uint256(performance.generation).toString(), 
             " of the Bugtopia evolutionary simulation."
         ));
         

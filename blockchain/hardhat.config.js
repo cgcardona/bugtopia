@@ -3,8 +3,9 @@ require("dotenv").config();
 
 module.exports = {
   solidity: {
-    version: "0.8.19",
+    version: "0.8.20",
     settings: {
+      viaIR: true,
       optimizer: {
         enabled: true,
         runs: 200
@@ -14,9 +15,13 @@ module.exports = {
   networks: {
     // Local Bugtopia L1 (via Avalanche-CLI)
     bugtopia_local: {
-      url: "http://127.0.0.1:9650/ext/bc/bugtopia-l1/rpc",
+      url: process.env.BUGTOPIA_L1_RPC_URL || "http://127.0.0.1:60955/ext/bc/48ZNiHFTDjNmtPprSWFbbLkbbpyubTKw1bGWusSWFzJqG5hfM/rpc",
       chainId: 68420,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts: [
+        "0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027", // ewoq account (has BUG tokens)
+        process.env.PRIVATE_KEY || "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+        process.env.TREASURY_PRIVATE_KEY || "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a8412f4f5c5a4f3e2e3"
+      ],
       gas: 8000000,
       gasPrice: 25000000000, // 25 gwei in BUG
       timeout: 60000
@@ -24,7 +29,7 @@ module.exports = {
     
     // Fuji Testnet Bugtopia L1
     bugtopia_fuji: {
-      url: "https://api.avax-test.network/ext/bc/bugtopia-l1/rpc",
+      url: "https://api.avax-test.network/ext/bc/bugtopial1/rpc",
       chainId: 68420,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       gas: 8000000,
@@ -34,7 +39,7 @@ module.exports = {
     
     // Mainnet Bugtopia L1 
     bugtopia_mainnet: {
-      url: "https://api.avax.network/ext/bc/bugtopia-l1/rpc",
+      url: "https://api.avax.network/ext/bc/bugtopial1/rpc",
       chainId: 68420,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       gas: 8000000,

@@ -25,98 +25,90 @@ fi
 echo -e "${BLUE}📊 Avalanche-CLI version:${NC}"
 avalanche --version
 
-# Check if Bugtopia L1 already exists
-if avalanche l1 list | grep -q "bugtopia-l1"; then
-    echo -e "${YELLOW}⚠️  Bugtopia L1 already exists. Checking status...${NC}"
-    avalanche l1 describe bugtopia-l1
+# Check for Node.js (works with both nvm and brew installations)
+if ! command -v node &> /dev/null; then
+    echo -e "${RED}❌ Node.js not found. Please install Node.js:${NC}"
+    echo -e "${YELLOW}   Using nvm (recommended): nvm install --lts && nvm use --lts${NC}"
+    echo -e "${YELLOW}   Using brew: brew install node${NC}"
+    exit 1
+else
+    echo -e "${GREEN}✅ Node.js found: $(node --version)${NC}"
+fi
+
+# Check for npm
+if ! command -v npm &> /dev/null; then
+    echo -e "${RED}❌ npm not found. Please ensure Node.js is properly installed.${NC}"
+    exit 1
+else
+    echo -e "${GREEN}✅ npm found: $(npm --version)${NC}"
+fi
+
+# Check if Bugtopia blockchain already exists
+if avalanche blockchain list | grep -q "bugtopial1"; then
+    echo -e "${YELLOW}⚠️  Bugtopia blockchain already exists. Checking status...${NC}"
+    avalanche blockchain describe bugtopial1
     
-    read -p "Do you want to recreate the L1? (y/N): " -n 1 -r
+    read -p "Do you want to recreate the blockchain? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}🗑️  Stopping and removing existing L1...${NC}"
-        avalanche l1 stop bugtopia-l1 || true
+        echo -e "${YELLOW}🗑️  Stopping and removing existing blockchain...${NC}"
+        avalanche network stop || true
         # Note: There's no direct delete command, but we can create with different name
-        L1_NAME="bugtopia-l1-$(date +%s)"
+        BLOCKCHAIN_NAME="bugtopial1$(date +%s)"
     else
-        echo -e "${GREEN}✅ Using existing L1${NC}"
+        echo -e "${GREEN}✅ Using existing blockchain${NC}"
         exit 0
     fi
 else
-    L1_NAME="bugtopia-l1"
+    BLOCKCHAIN_NAME="bugtopial1"
 fi
 
-echo -e "${BLUE}🔧 Creating Bugtopia L1 configuration...${NC}"
+echo -e "${BLUE}🔧 Creating Bugtopia blockchain configuration...${NC}"
 
-# Create L1 configuration
-# Using non-interactive mode by providing a genesis file
-cat > /tmp/bugtopia-genesis.json << EOF
-{
-  "config": {
-    "chainId": 68420,
-    "homesteadBlock": 0,
-    "eip150Block": 0,
-    "eip155Block": 0,
-    "eip158Block": 0,
-    "byzantiumBlock": 0,
-    "constantinopleBlock": 0,
-    "petersburgBlock": 0,
-    "istanbulBlock": 0,
-    "muirGlacierBlock": 0,
-    "berlinBlock": 0,
-    "londonBlock": 0
-  },
-  "nonce": "0x0",
-  "timestamp": "0x0",
-  "extraData": "0x",
-  "gasLimit": "0x7A1200",
-  "difficulty": "0x0",
-  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-  "coinbase": "0x0000000000000000000000000000000000000000",
-  "alloc": {
-    "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
-      "balance": "1000000000000000000000000000"
-    },
-    "0x9632110A6c019e81e4f2Cac7E8c69E9a1c8F3e8C": {
-      "balance": "1000000000000000000000000000"
-    },
-    "0x742d35Cc6634C0532925a3b8D17d9e5b8A8e1E6F": {
-      "balance": "1000000000000000000000000000"
-    }
-  }
-}
-EOF
-
-# Create L1 with custom configuration
-echo -e "${BLUE}⚙️  Creating L1 with the following configuration:${NC}"
+# Create blockchain with custom configuration
+echo -e "${BLUE}⚙️  Creating blockchain with the following configuration:${NC}"
 echo "   Chain ID: 68420"
 echo "   Native Token: BUG"
-echo "   Initial Supply: 3B BUG (distributed to 3 accounts)"
-echo "   VM: C-Chain (EVM compatible)"
+echo "   VM: Subnet-EVM (EVM compatible)"
 
-# Create the L1 (this will prompt for configuration)
-avalanche l1 create $L1_NAME \
+# Create the blockchain using non-interactive flags
+echo -e "${BLUE}📝 Creating blockchain with pre-configured settings...${NC}"
+echo "   Chain ID: 68420"
+echo "   Token Symbol: BUG"
+echo "   VM: Subnet-EVM"
+echo "   Validation: Proof of Authority"
+
+avalanche blockchain create $BLOCKCHAIN_NAME \
   --evm \
-  --genesis /tmp/bugtopia-genesis.json \
-  --token-name "Bugtopia" \
-  --token-symbol "BUG" \
-  --chain-id 68420
+  --evm-chain-id 68420 \
+  --evm-token BUG \
+  --proof-of-authority \
+  --production-defaults
 
-echo -e "${GREEN}✅ L1 configuration created${NC}"
+echo -e "${GREEN}✅ Blockchain configuration created${NC}"
 
 # Deploy locally
-echo -e "${BLUE}🚀 Deploying Bugtopia L1 locally...${NC}"
-avalanche l1 deploy $L1_NAME --local
+echo -e "${BLUE}🚀 Deploying Bugtopia blockchain locally...${NC}"
+avalanche blockchain deploy $BLOCKCHAIN_NAME --local
 
 echo -e "${GREEN}✅ Bugtopia L1 deployed locally!${NC}"
 
 # Get network details
 echo -e "${BLUE}📋 Network Details:${NC}"
-avalanche l1 describe $L1_NAME
+avalanche blockchain describe $BLOCKCHAIN_NAME
 
-# Extract RPC URL and other details
-RPC_URL="http://127.0.0.1:9650/ext/bc/$L1_NAME/rpc"
+# Extract RPC URL and other details from actual blockchain
+echo -e "${BLUE}🔍 Getting actual blockchain details...${NC}"
+BLOCKCHAIN_INFO=$(avalanche blockchain describe $BLOCKCHAIN_NAME)
+
+# Extract RPC URL from the blockchain info (handle multi-line output)
+RPC_URL=$(echo "$BLOCKCHAIN_INFO" | grep -A 2 "RPC Endpoint" | grep "http" | sed 's/.*http/http/' | sed 's/[[:space:]]*|.*$//' | tr -d ' ')
 CHAIN_ID=68420
-EXPLORER_URL="http://127.0.0.1:9650/ext/bc/$L1_NAME"
+EXPLORER_URL=$(echo "$RPC_URL" | sed 's|/rpc||')
+
+echo -e "${BLUE}📋 Extracted details:${NC}"
+echo "   RPC URL: $RPC_URL"
+echo "   Chain ID: $CHAIN_ID"
 
 echo -e "${BLUE}🔗 Connection Details:${NC}"
 echo "   RPC URL: $RPC_URL"
@@ -146,18 +138,27 @@ echo -e "${GREEN}✅ .env file created${NC}"
 
 # Test connection
 echo -e "${BLUE}🧪 Testing L1 connection...${NC}"
-if curl -s -X POST \
+RESPONSE=$(curl -s -X POST \
   -H "Content-Type: application/json" \
   --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
-  $RPC_URL | grep -q "68420"; then
-    echo -e "${GREEN}✅ L1 is responding correctly${NC}"
+  $RPC_URL)
+
+echo -e "${BLUE}📡 RPC Response: $RESPONSE${NC}"
+
+if echo "$RESPONSE" | grep -q "0x10b44"; then
+    echo -e "${GREEN}✅ L1 is responding correctly (Chain ID: 68420)${NC}"
+elif echo "$RESPONSE" | grep -q "error"; then
+    echo -e "${RED}❌ L1 connection test failed - RPC error${NC}"
+    echo "$RESPONSE"
+    exit 1
 else
-    echo -e "${RED}❌ L1 connection test failed${NC}"
+    echo -e "${RED}❌ L1 connection test failed - Unexpected response${NC}"
+    echo "$RESPONSE"
     exit 1
 fi
 
-# Create MetaMask configuration
-echo -e "${BLUE}🦊 MetaMask Configuration:${NC}"
+# Create Core Wallet configuration
+echo -e "${BLUE}🔵 Core Wallet Configuration:${NC}"
 echo "   Network Name: Bugtopia L1 Local"
 echo "   RPC URL: $RPC_URL"
 echo "   Chain ID: $CHAIN_ID"
@@ -166,30 +167,28 @@ echo "   Block Explorer: $EXPLORER_URL"
 
 # Save configuration
 mkdir -p deployments
-cat > deployments/l1-config.json << EOF
+cat > deployments/blockchain-config.json << EOF
 {
-  "l1Name": "$L1_NAME",
+  "blockchainName": "$BLOCKCHAIN_NAME",
   "chainId": $CHAIN_ID,
   "rpcUrl": "$RPC_URL",
   "explorerUrl": "$EXPLORER_URL",
   "nativeToken": "BUG",
   "deployedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "vm": "Subnet-EVM",
   "accounts": [
     {
       "address": "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC",
-      "balance": "1000000000 BUG",
       "privateKey": "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
       "role": "deployer"
     },
     {
       "address": "0x9632110A6c019e81e4f2Cac7E8c69E9a1c8F3e8C", 
-      "balance": "1000000000 BUG",
       "privateKey": "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c6a8412f4f5c5a4f3e2e3",
       "role": "treasury"
     },
     {
       "address": "0x742d35Cc6634C0532925a3b8D17d9e5b8A8e1E6F",
-      "balance": "1000000000 BUG", 
       "privateKey": "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
       "role": "validator"
     }
@@ -197,21 +196,18 @@ cat > deployments/l1-config.json << EOF
 }
 EOF
 
-echo -e "${GREEN}✅ L1 configuration saved to deployments/l1-config.json${NC}"
-
-# Cleanup
-rm -f /tmp/bugtopia-genesis.json
+echo -e "${GREEN}✅ Blockchain configuration saved to deployments/blockchain-config.json${NC}"
 
 echo -e "${GREEN}🎉 Bugtopia L1 setup complete!${NC}"
 echo
 echo -e "${YELLOW}Next steps:${NC}"
 echo "1. Deploy smart contracts: npm run deploy:local"
-echo "2. Add network to MetaMask using the details above"
+echo "2. Add network to Core Wallet using the details above"
 echo "3. Import accounts using the private keys (FOR DEVELOPMENT ONLY)"
 echo "4. Start developing with native BUG tokens!"
 echo
 echo -e "${BLUE}Useful commands:${NC}"
-echo "   Check L1 status: avalanche l1 list"
-echo "   View L1 logs: avalanche l1 logs $L1_NAME"
-echo "   Stop L1: avalanche l1 stop $L1_NAME"
-echo "   Start L1: avalanche l1 start $L1_NAME"
+echo "   Check blockchain status: avalanche blockchain list"
+echo "   View network status: avalanche network status"
+echo "   Stop network: avalanche network stop"
+echo "   Start network: avalanche network start"

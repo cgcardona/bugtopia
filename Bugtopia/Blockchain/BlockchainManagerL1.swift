@@ -80,9 +80,9 @@ class BlockchainManagerL1 {
         // Initialize with local L1 configuration
         self.networkConfig = L1NetworkConfig(
             chainId: 68420,
-            rpcUrl: "http://127.0.0.1:9650/ext/bc/bugtopia-l1/rpc",
+            rpcUrl: "http://127.0.0.1:9650/ext/bc/bugtopial1/rpc",
             nativeToken: "BUG",
-            explorerUrl: "http://127.0.0.1:9650/ext/bc/bugtopia-l1",
+            explorerUrl: "http://127.0.0.1:9650/ext/bc/bugtopial1",
             contractAddresses: ContractAddresses(
                 bugtopiaL1: "", // Will be set after deployment
                 collectibles: "",
@@ -393,16 +393,16 @@ class BlockchainManagerL1 {
         case "local":
             networkConfig = L1NetworkConfig(
                 chainId: 68420,
-                rpcUrl: "http://127.0.0.1:9650/ext/bc/bugtopia-l1/rpc",
+                rpcUrl: "http://127.0.0.1:9650/ext/bc/bugtopial1/rpc",
                 nativeToken: "BUG",
-                explorerUrl: "http://127.0.0.1:9650/ext/bc/bugtopia-l1",
+                explorerUrl: "http://127.0.0.1:9650/ext/bc/bugtopial1",
                 contractAddresses: networkConfig.contractAddresses
             )
             
         case "fuji":
             networkConfig = L1NetworkConfig(
                 chainId: 68420,
-                rpcUrl: "https://api.avax-test.network/ext/bc/bugtopia-l1/rpc",
+                rpcUrl: "https://api.avax-test.network/ext/bc/bugtopial1/rpc",
                 nativeToken: "BUG",
                 explorerUrl: "https://testnet.snowtrace.io",
                 contractAddresses: networkConfig.contractAddresses
@@ -411,7 +411,7 @@ class BlockchainManagerL1 {
         case "mainnet":
             networkConfig = L1NetworkConfig(
                 chainId: 68420,
-                rpcUrl: "https://api.avax.network/ext/bc/bugtopia-l1/rpc",
+                rpcUrl: "https://api.avax.network/ext/bc/bugtopial1/rpc",
                 nativeToken: "BUG",
                 explorerUrl: "https://snowtrace.io",
                 contractAddresses: networkConfig.contractAddresses

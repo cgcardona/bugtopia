@@ -120,7 +120,7 @@ contract BugtopiaCollectibles is ERC1155, Ownable, ReentrancyGuard, Pausable {
     // ============= CONSTRUCTOR =============
     
     constructor(
-        address _bugtopiaL1,
+        address payable _bugtopiaL1,
         string memory _uri
     ) ERC1155(_uri) Ownable(msg.sender) {
         bugtopiaL1 = BugtopiaL1(_bugtopiaL1);
