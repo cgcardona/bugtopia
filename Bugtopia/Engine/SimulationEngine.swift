@@ -235,6 +235,9 @@ class SimulationEngine {
     
     /// Resets the simulation to initial state
     func reset() {
+        // Store the current running state to restore it after reset
+        let wasRunning = isRunning
+        
         pause()
         bugs.removeAll()
         foods.removeAll()
@@ -263,6 +266,11 @@ class SimulationEngine {
         setupInitialPopulation()
         spawnInitialFood()
         spawnInitialResources()
+        
+        // Restore the previous running state - if it was running, keep it running!
+        if wasRunning {
+            start()
+        }
     }
     
     /// Advances the simulation by one tick
