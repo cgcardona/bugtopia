@@ -43,7 +43,7 @@ struct Arena3DView: NSViewRepresentable {
         
         deinit {
             // 🔍 MEMORY LEAK DEBUG: Track coordinator cleanup
-            print("🔧 [MEMORY] Arena3DView.Coordinator deinit called")
+            // Debug logging disabled for gameplay focus
             
             // Clean up navigation responder and its timer
             if let timer = navigationResponder?.updateTimer {
@@ -359,7 +359,7 @@ struct Arena3DView: NSViewRepresentable {
         }
         
         if !orphanedBugNodes.isEmpty || !orphanedFoodNodes.isEmpty {
-            print("🔧 [MEMORY] Cleaned up \(orphanedBugNodes.count) bug nodes, \(orphanedFoodNodes.count) food nodes")
+            // Debug logging disabled for gameplay focus
             
             // Track node destructions for cleanup
             for node in orphanedBugNodes {

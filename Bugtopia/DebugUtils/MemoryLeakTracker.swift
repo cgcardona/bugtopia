@@ -63,90 +63,84 @@ class MemoryLeakTracker {
     // MARK: - Node Tracking (Minimized - Nodes are balanced)
     func trackNodeCreation(type: String, name: String) {
         nodeCreationCount += 1
-        // Minimal logging - nodes are now balanced
-        if nodeCreationCount % 2000 == 0 {
-            print("🟢 [MEMORY] Node Created: \(nodeCreationCount) total")
-        }
+        // Debug logging disabled for gameplay focus
     }
     
     func trackNodeDestruction(type: String, name: String) {
         nodeDestructionCount += 1
-        // Minimal logging - nodes are now balanced
-        if nodeDestructionCount % 2000 == 0 {
-            print("🔴 [MEMORY] Node Destroyed: \(nodeDestructionCount) total")
-        }
+        // Debug logging disabled for gameplay focus
     }
     
     // MARK: - Timer Tracking
     func trackTimerCreation(description: String) {
         timerCreationCount += 1
-        print("⏰ [MEMORY] Timer Created: \(description) (Total: \(timerCreationCount))")
+        // Debug logging disabled for gameplay focus
     }
     
     func trackTimerInvalidation(description: String) {
         timerInvalidationCount += 1
-        print("⏹️ [MEMORY] Timer Invalidated: \(description) (Total: \(timerInvalidationCount))")
+        // Debug logging disabled for gameplay focus
     }
     
     // MARK: - Texture Tracking (FOCUS: This is likely the real leak!)
     func trackTextureCreation(type: String, size: String) {
         textureCreationCount += 1
-        print("🎨 [MEMORY] Texture Created: \(type) \(size) (Total: \(textureCreationCount))")
+        // Debug logging disabled for gameplay focus
     }
     
     // MARK: - Geometry Tracking (NEW SUSPECT!)
     func trackGeometryCreation(type: String, vertexCount: Int) {
         geometryCreationCount += 1
         meshVertexCount += vertexCount
-        print("📐 [MEMORY] Geometry Created: \(type) (\(vertexCount) vertices) (Total: \(geometryCreationCount), \(meshVertexCount) vertices)")
+        // Debug logging disabled for gameplay focus
     }
     
     func trackGeometryDestruction(type: String, vertexCount: Int) {
         geometryDestructionCount += 1
         meshVertexCount -= vertexCount
-        print("🗑️ [MEMORY] Geometry Destroyed: \(type) (\(vertexCount) vertices) (Total: \(geometryDestructionCount))")
+        // Debug logging disabled for gameplay focus
     }
     
     // MARK: - Physics Tracking (REAL CULPRIT SUSPECT!)
     func trackPhysicsBodyCreation(type: String) {
         physicsBodyCreationCount += 1
-        print("⚛️ [MEMORY] Physics Body Created: \(type) (Total: \(physicsBodyCreationCount))")
+        // Debug logging disabled for gameplay focus
     }
     
     func trackPhysicsShapeCreation(type: String, complexity: String) {
         physicsShapeCreationCount += 1
-        print("🔷 [MEMORY] Physics Shape Created: \(type) \(complexity) (Total: \(physicsShapeCreationCount))")
+        // Debug logging disabled for gameplay focus
     }
     
     func trackPhysicsBodyDestruction(type: String) {
         physicsBodyDestructionCount += 1
-        print("💥 [MEMORY] Physics Body Destroyed: \(type) (Total: \(physicsBodyDestructionCount))")
+        // Debug logging disabled for gameplay focus
     }
     
     func trackTextureDestruction(type: String) {
         textureDestructionCount += 1
-        print("🗑️ [MEMORY] Texture Destroyed: \(type) (Total: \(textureDestructionCount))")
+        // Debug logging disabled for gameplay focus
     }
     
     // MARK: - Instance Tracking
     func trackArena3DViewCreation() {
         arena3DViewInstances += 1
-        print("🏟️ [MEMORY] Arena3DView Created (Total: \(arena3DViewInstances))")
+        // Debug logging disabled for gameplay focus
     }
     
     func trackArena3DViewDestruction() {
         arena3DViewInstances -= 1
-        print("🏟️ [MEMORY] Arena3DView Destroyed (Remaining: \(arena3DViewInstances))")
+        // Debug logging disabled for gameplay focus
     }
     
     func trackNavigationResponderCreation() {
         navigationResponderInstances += 1
-        print("🧭 [MEMORY] NavigationResponder Created (Total: \(navigationResponderInstances))")
+        // Debug logging disabled for gameplay focus
     }
     
     func trackNavigationResponderDestruction() {
         navigationResponderInstances -= 1
-        print("🧭 [MEMORY] NavigationResponder Destroyed (Remaining: \(navigationResponderInstances))")
+        // Debug logging disabled for gameplay focus
     }
     
     // MARK: - Enhanced Array Size Monitoring (PRIMARY SUSPECT!)
