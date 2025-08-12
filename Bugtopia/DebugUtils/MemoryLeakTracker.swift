@@ -157,16 +157,12 @@ class MemoryLeakTracker {
         let totalGrowth = totalObjects - previousTotal
         
         if bugGrowth != 0 || foodGrowth != 0 || signalGrowth != 0 || resourceGrowth != 0 || toolGrowth != 0 {
-            print("📊 [COLLECTION GROWTH] Total Objects: \(totalObjects) (Δ\(totalGrowth >= 0 ? "+" : "")\(totalGrowth))")
-            if bugGrowth != 0 { print("  🐛 Bugs: \(lastBugCount) → \(bugs) (\(bugGrowth > 0 ? "+" : "")\(bugGrowth))") }
-            if foodGrowth != 0 { print("  🍎 Foods: \(lastFoodCount) → \(foods) (\(foodGrowth > 0 ? "+" : "")\(foodGrowth))") }
-            if signalGrowth != 0 { print("  📡 Signals: \(lastSignalCount) → \(signals) (\(signalGrowth > 0 ? "+" : "")\(signalGrowth))") }
-            if resourceGrowth != 0 { print("  ⛏️ Resources: \(lastResourceCount) → \(resources) (\(resourceGrowth > 0 ? "+" : "")\(resourceGrowth))") }
-            if toolGrowth != 0 { print("  🔨 Tools: \(lastToolCount) → \(tools) (\(toolGrowth > 0 ? "+" : "")\(toolGrowth))") }
+//            print("📊 [COLLECTION GROWTH] Total Objects: \(totalObjects) (Δ\(totalGrowth >= 0 ? "+" : "")\(totalGrowth))")
+            // Debug logging disabled for gameplay focus
             
-            // FLAG SUSPICIOUS GROWTH
-            if totalGrowth > 100 {
-                print("🚨 [MEMORY ALERT] Large collection growth: +\(totalGrowth) objects!")
+            // FLAG SUSPICIOUS GROWTH (CRITICAL ALERTS ONLY)
+            if totalGrowth > 1000 {
+                print("🚨 [CRITICAL ALERT] Massive collection growth: +\(totalGrowth) objects!")
             }
         }
         
@@ -186,13 +182,12 @@ class MemoryLeakTracker {
             let totalMappings = bugMappings + foodMappings
             let totalMappingGrowth = (bugMappings + foodMappings) - (lastBugMappingSize + lastFoodMappingSize)
             
-            print("🗃️ [MAPPING GROWTH] Total: \(totalMappings) (Δ\(totalMappingGrowth >= 0 ? "+" : "")\(totalMappingGrowth))")
-            if bugMappingGrowth != 0 { print("  🐛 Bug Mappings: \(lastBugMappingSize) → \(bugMappings) (\(bugMappingGrowth > 0 ? "+" : "")\(bugMappingGrowth))") }
-            if foodMappingGrowth != 0 { print("  🍎 Food Mappings: \(lastFoodMappingSize) → \(foodMappings) (\(foodMappingGrowth > 0 ? "+" : "")\(foodMappingGrowth))") }
+            // Debug logging disabled for gameplay focus
+            // Debug logging disabled for gameplay focus
             
-            // FLAG DICTIONARY LEAKS
-            if totalMappingGrowth > 50 {
-                print("🚨 [MAPPING ALERT] Large dictionary growth: +\(totalMappingGrowth) mappings!")
+            // FLAG DICTIONARY LEAKS (CRITICAL ALERTS ONLY)
+            if totalMappingGrowth > 500 {
+                print("🚨 [CRITICAL ALERT] Massive dictionary growth: +\(totalMappingGrowth) mappings!")
             }
         }
         
@@ -204,7 +199,7 @@ class MemoryLeakTracker {
     func trackClosureCreation(type: String) {
         closureCreationCount += 1
         activeClosures[type, default: 0] += 1
-        print("🧵 [CLOSURE] Created \(type) (Active: \(activeClosures[type]!), Total: \(closureCreationCount))")
+        // print("🧵 [CLOSURE] Created \(type) (Active: \(activeClosures[type]!), Total: \(closureCreationCount))")
     }
     
     func trackClosureDestruction(type: String) {
@@ -213,7 +208,7 @@ class MemoryLeakTracker {
             activeClosures[type]! -= 1
             print("🧵 [CLOSURE] Destroyed \(type) (Active: \(activeClosures[type]!), Total: \(closureDestructionCount))")
         } else {
-            print("⚠️ [CLOSURE] Attempted to destroy \(type) but none active!")
+            // Debug logging disabled for gameplay focus
         }
     }
     
@@ -231,19 +226,19 @@ class MemoryLeakTracker {
             memoryGrowthRate = Double(memoryGrowth) / timeElapsed
         }
         
-        print("=" * 80)
-        print("🧠 [MEMORY LEAK REPORT] - \(Date())")
-        print("=" * 80)
-        print("📈 Memory Usage: \(formatBytes(Int64(currentMemory))) (Growth: \(formatBytes(Int64(memoryGrowth))))")
-        print("📊 Growth Rate: \(formatBytes(Int64(memoryGrowthRate)))/second")
-        print("")
-        print("🏟️ Arena3DView Instances: \(arena3DViewInstances)")
-        print("🧭 NavigationResponder Instances: \(navigationResponderInstances)")
-        print("")
-        print("🟢 Nodes Created: \(nodeCreationCount)")
-        print("🔴 Nodes Destroyed: \(nodeDestructionCount)")
+        // print("=" * 80)
+        // print("🧠 [MEMORY LEAK REPORT] - \(Date())")
+        // print("=" * 80)
+        // print("📈 Memory Usage: \(formatBytes(Int64(currentMemory))) (Growth: \(formatBytes(Int64(memoryGrowth))))")
+        // print("📊 Growth Rate: \(formatBytes(Int64(memoryGrowthRate)))/second")
+        // print("")
+        // print("🏟️ Arena3DView Instances: \(arena3DViewInstances)")
+        // print("🧭 NavigationResponder Instances: \(navigationResponderInstances)")
+        // print("")
+        // print("🟢 Nodes Created: \(nodeCreationCount)")
+        // print("🔴 Nodes Destroyed: \(nodeDestructionCount)")
         let nodeLeak = nodeCreationCount - nodeDestructionCount
-        print("⚠️ Node Leak Potential: \(nodeLeak)")
+        // print("⚠️ Node Leak Potential: \(nodeLeak)")
         
         // TODO: Monitor small node leaks - even 2-3 nodes can compound over extended runtime
         // Target: Keep node leak under 10 consistently. If it grows beyond 50, investigate:
@@ -253,36 +248,36 @@ class MemoryLeakTracker {
         if nodeLeak > 50 {
             print("🚨 [WARNING] Node leak exceeding acceptable threshold! Investigate node cleanup.")
         }
-        print("")
-        print("⏰ Timers Created: \(timerCreationCount)")
-        print("⏹️ Timers Invalidated: \(timerInvalidationCount)")
-        print("⚠️ Timer Leak Potential: \(timerCreationCount - timerInvalidationCount)")
-        print("")
-        print("🎨 Textures Created: \(textureCreationCount)")
-        print("🗑️ Textures Destroyed: \(textureDestructionCount)")
-        print("⚠️ Texture Leak Potential: \(textureCreationCount - textureDestructionCount)")
-        print("")
-        print("📐 Geometries Created: \(geometryCreationCount)")
-        print("🗑️ Geometries Destroyed: \(geometryDestructionCount)")
-        print("📊 Active Vertex Count: \(meshVertexCount)")
-        print("⚠️ Geometry Leak Potential: \(geometryCreationCount - geometryDestructionCount)")
-        print("")
-        print("⚛️ Physics Bodies Created: \(physicsBodyCreationCount)")
-        print("💥 Physics Bodies Destroyed: \(physicsBodyDestructionCount)")
-        print("🔷 Physics Shapes Created: \(physicsShapeCreationCount)")
-        print("⚠️ Physics Body Leak Potential: \(physicsBodyCreationCount - physicsBodyDestructionCount)")
-        print("")
-        print("📊 Current Arrays:")
-        print("  🐛 Bugs: \(lastBugCount)")
-        print("  🍎 Foods: \(lastFoodCount)")
-        print("  📡 Signals: \(lastSignalCount)")
-        print("  ⛏️ Resources: \(lastResourceCount)")
-        print("  🔨 Tools: \(lastToolCount)")
-        print("")
-        print("🗂️ Current Dictionaries:")
-        print("  🐛 Bug Mappings: \(lastBugMappingSize)")
-        print("  🍎 Food Mappings: \(lastFoodMappingSize)")
-        print("=" * 80)
+        // print("")
+        // print("⏰ Timers Created: \(timerCreationCount)")
+        // print("⏹️ Timers Invalidated: \(timerInvalidationCount)")
+        // print("⚠️ Timer Leak Potential: \(timerCreationCount - timerInvalidationCount)")
+        // print("")
+        // print("🎨 Textures Created: \(textureCreationCount)")
+        // print("🗑️ Textures Destroyed: \(textureDestructionCount)")
+        // print("⚠️ Texture Leak Potential: \(textureCreationCount - textureDestructionCount)")
+        // print("")
+        // print("📐 Geometries Created: \(geometryCreationCount)")
+        // print("🗑️ Geometries Destroyed: \(geometryDestructionCount)")
+        // print("📊 Active Vertex Count: \(meshVertexCount)")
+        // print("⚠️ Geometry Leak Potential: \(geometryCreationCount - geometryDestructionCount)")
+        // print("")
+        // print("⚛️ Physics Bodies Created: \(physicsBodyCreationCount)")
+        // print("💥 Physics Bodies Destroyed: \(physicsBodyDestructionCount)")
+        // print("🔷 Physics Shapes Created: \(physicsShapeCreationCount)")
+        // print("⚠️ Physics Body Leak Potential: \(physicsBodyCreationCount - physicsBodyDestructionCount)")
+        // print("")
+        // print("📊 Current Arrays:")
+        // print("  🐛 Bugs: \(lastBugCount)")
+        // print("  🍎 Foods: \(lastFoodCount)")
+        // print("  📡 Signals: \(lastSignalCount)")
+        // print("  ⛏️ Resources: \(lastResourceCount)")
+        // print("  🔨 Tools: \(lastToolCount)")
+        // print("")
+        // print("🗂️ Current Dictionaries:")
+        // print("  🐛 Bug Mappings: \(lastBugMappingSize)")
+        // print("  🍎 Food Mappings: \(lastFoodMappingSize)")
+        // print("=" * 80)
         
         lastMemoryUsage = currentMemory
         startTime = CACurrentMediaTime()
