@@ -48,7 +48,15 @@ class BugEntityManager: ObservableObject {
     init() {
         self.bugContainer = Entity()
         self.bugContainer.name = "BugContainer"
-        print("🐛 [BugEntityManager] Initialized with container: \(bugContainer.name ?? "unnamed")")
+        print("🐛 [BugEntityManager] Initialized with container: \(bugContainer.name)")
+    }
+    
+    /// Configure the bug container with the scene anchor
+    @MainActor
+    func configureContainer(_ sceneAnchor: Entity) {
+        // Add bug container to scene
+        sceneAnchor.addChild(bugContainer)
+        print("🔗 [BugEntityManager] Container added to scene anchor")
     }
     
     // MARK: - Entity Lifecycle Management
@@ -178,11 +186,11 @@ class BugEntityManager: ObservableObject {
     
     /// Update entity transform based on bug state
     private func updateBugTransform(_ entity: Entity, for bug: Bug) {
-        // Position
+        // Position - Convert from Bugtopia's coordinate system (Z=up) to RealityKit (Y=up)
         entity.position = SIMD3<Float>(
             Float(bug.position3D.x),
-            Float(bug.position3D.y),
-            Float(bug.position3D.z)
+            Float(bug.position3D.z), // Z becomes Y (up axis)
+            Float(bug.position3D.y)  // Y becomes Z (depth)
         )
         
         // Scale based on energy and age

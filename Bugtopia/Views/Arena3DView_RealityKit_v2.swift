@@ -8,6 +8,7 @@
 
 import SwiftUI
 import RealityKit
+import simd
 
 /// 🚀 PHASE 2: Working RealityKit Implementation
 /// Properly implemented with Entity-Component-System architecture
@@ -25,7 +26,7 @@ struct Arena3DView_RealityKit_v2: View {
     // MARK: - Entity Management
     
     @StateObject private var bugEntityManager = BugEntityManager()
-    @State private var sceneAnchor: AnchorEntity?
+    @State private var sceneAnchor: Entity?
     
     // MARK: - Performance Tracking
     
@@ -36,7 +37,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     // MARK: - Debug
     
-    @State private var debugMode: Bool = false
+    @State private var debugMode: Bool = true
     
     // MARK: - Update Management
     
@@ -66,55 +67,63 @@ struct Arena3DView_RealityKit_v2: View {
     
     @ViewBuilder
     private var realityContent: some View {
-        // Phase 2 Progress: Entity System Working
-        VStack {
-            Text("🚀 RealityKit Entity System")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundColor(.blue)
-            
-            Text("Phase 2: Entity-Component-System Active")
-                .font(.headline)
-                .foregroundColor(.secondary)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("🐛 Bug Entity Manager Status:")
-                    .fontWeight(.medium)
-                
-                Text("• Simulation Bugs: \(simulationEngine.bugs.count)")
+        ZStack {
+            // Temporary: Show debug view until RealityView is working
+            VStack {
+                Text("🌍 RealityKit 3D World")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
                     .foregroundColor(.green)
                 
-                Text("• Managed Entities: \(bugEntityManager.bugEntities.count)")
+                Text("Terrain: \(simulationEngine.voxelWorld.getVoxelsInLayer(.surface).count) surface voxels")
+                    .foregroundColor(.secondary)
+                
+                Text("Bugs: \(simulationEngine.bugs.count) entities")
                     .foregroundColor(.blue)
                 
-                Text("• Performance: \(bugEntityManager.performanceMetrics.isPerformanceOptimal ? "✅ Optimal" : "⚠️ Needs Optimization")")
-                    .foregroundColor(bugEntityManager.performanceMetrics.isPerformanceOptimal ? .green : .orange)
-                
-                Text(bugEntityManager.getPerformanceReport())
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                    .padding(.top)
+                Spacer()
             }
-            .padding()
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(8)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.opacity(0.8))
-        .onAppear {
-            // Update entities when view appears
-            Task { @MainActor in
-                bugEntityManager.updateBugEntities(with: simulationEngine.bugs)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.opacity(0.9))
+            .onAppear {
+                // Start periodic updates for entities
+                startPeriodicUpdates()
+                setupBasicScene()
+            }
+            .onDisappear {
+                stopPeriodicUpdates()
+                // Clean up entities to prevent memory leaks
+                bugEntityManager.clearAllEntities()
             }
             
-            // Start periodic updates instead of reactive updates
-            startPeriodicUpdates()
+            // Debug overlay (optional)
+            if debugMode {
+                VStack {
+                    Spacer()
+                    HStack {
+                        debugStatusOverlay
+                        Spacer()
+                    }
+                    .padding()
+                }
+            }
         }
-        .onDisappear {
-            stopPeriodicUpdates()
-            // Clean up entities to prevent memory leaks
-            bugEntityManager.clearAllEntities()
+    }
+    
+    @ViewBuilder
+    private var debugStatusOverlay: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("🐛 Entities: \(bugEntityManager.bugEntities.count)")
+                .foregroundColor(.green)
+            Text("⚡ Performance: \(bugEntityManager.performanceMetrics.isPerformanceOptimal ? "✅" : "⚠️")")
+                .foregroundColor(bugEntityManager.performanceMetrics.isPerformanceOptimal ? .green : .orange)
+            Text("🎯 Last Update: \(String(format: "%.1f", bugEntityManager.performanceMetrics.lastUpdateDuration * 1000))ms")
+                .foregroundColor(.blue)
         }
+        .font(.caption)
+        .padding(8)
+        .background(Color.black.opacity(0.7))
+        .cornerRadius(6)
     }
     
     private var fallbackView: some View {
@@ -141,6 +150,30 @@ struct Arena3DView_RealityKit_v2: View {
     private func handleTap(at location: CGPoint) {
         print("🎯 [RealityKit] Tap at \(location)")
         // TODO: Implement ray casting for entity selection
+    }
+    
+    // MARK: - RealityKit Scene Management
+    
+    @MainActor
+    private func setupBasicScene() {
+        print("🚀 [RealityKit] Setting up basic scene...")
+        
+        // Create main scene anchor for future RealityView implementation
+        let sceneAnchor = Entity()
+        sceneAnchor.name = "SceneRoot"
+        self.sceneAnchor = sceneAnchor
+        
+        // Configure bug entity container with our scene anchor
+        bugEntityManager.configureContainer(sceneAnchor)
+        
+        print("✅ [RealityKit] Basic scene setup complete!")
+        
+        // Log terrain info
+        let voxelWorld = simulationEngine.voxelWorld
+        let surfaceVoxels = voxelWorld.getVoxelsInLayer(.surface)
+        print("🌍 [RealityKit] VoxelWorld loaded with \(surfaceVoxels.count) surface voxels")
+        print("📏 [RealityKit] World dimensions: \(voxelWorld.dimensions)")
+        print("📦 [RealityKit] Voxel size: \(voxelWorld.voxelSize)")
     }
     
     // MARK: - Update Management
