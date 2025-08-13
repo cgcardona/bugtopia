@@ -20,8 +20,11 @@ class BugEntityManager: ObservableObject {
     /// Mapping from simulation Bug ID to RealityKit Entity
     @Published private(set) var bugEntities: [UUID: Entity] = [:]
     
-    /// Reverse mapping for interaction handling
-    private(set) var entityToBugMapping: [Entity: Bug] = [:]
+    /// Reverse mapping for interaction handling (using weak references)
+    private(set) var entityToBugMapping: [Entity: UUID] = [:]
+    
+    /// Update concurrency control
+    private var isUpdating: Bool = false
     
     /// Root container for all bug entities
     private(set) var bugContainer: Entity
@@ -51,7 +54,17 @@ class BugEntityManager: ObservableObject {
     // MARK: - Entity Lifecycle Management
     
     /// Create or update all bug entities to match simulation state
+    @MainActor
     func updateBugEntities(with bugs: [Bug]) {
+        // Prevent concurrent updates
+        guard !isUpdating else {
+            print("⚠️ [BugEntityManager] Skipping update - already in progress")
+            return
+        }
+        
+        isUpdating = true
+        defer { isUpdating = false }
+        
         let startTime = CFAbsoluteTimeGetCurrent()
         
         // Performance tracking
@@ -90,8 +103,10 @@ class BugEntityManager: ObservableObject {
                 entityToBugMapping.removeValue(forKey: entity)
                 bugEntities.removeValue(forKey: deadBugId)
                 
-                // Remove from scene
-                entity.removeFromParent()
+                // Remove from scene safely
+                Task { @MainActor in
+                    entity.removeFromParent()
+                }
                 
                 performanceMetrics.entitiesDestroyed += 1
             }
@@ -113,7 +128,7 @@ class BugEntityManager: ObservableObject {
                 let newEntity = createBugEntity(for: bug)
                 bugContainer.addChild(newEntity)
                 bugEntities[bug.id] = newEntity
-                entityToBugMapping[newEntity] = bug
+                entityToBugMapping[newEntity] = bug.id  // Store UUID instead of Bug object
                 
                 performanceMetrics.entitiesCreated += 1
             }
@@ -213,15 +228,17 @@ class BugEntityManager: ObservableObject {
     
     /// Create species-specific mesh for bug
     private func createBugMesh(for bug: Bug) -> MeshResource {
-        // For now, use energy-based shapes (will be enhanced with species-specific geometry)
-        let baseSize = Float(bug.dna.size)
+        // Safety: ensure valid size values
+        let baseSize = max(0.1, min(2.0, Float(bug.dna.size))) // Clamp between 0.1 and 2.0
         
+        // For now, use energy-based shapes (will be enhanced with species-specific geometry)
         if bug.energy > 70 {
             return MeshResource.generateSphere(radius: baseSize * 0.8)
         } else if bug.energy > 40 {
-            return MeshResource.generateBox(size: SIMD3<Float>(repeating: baseSize))
+            let size = max(0.1, baseSize) // Ensure minimum size
+            return MeshResource.generateBox(size: SIMD3<Float>(repeating: size))
         } else {
-            return MeshResource.generateSphere(radius: baseSize * 0.6)
+            return MeshResource.generateSphere(radius: max(0.1, baseSize * 0.6))
         }
     }
     
@@ -266,8 +283,8 @@ class BugEntityManager: ObservableObject {
     
     // MARK: - Interaction Support
     
-    /// Find bug associated with entity (for selection)
-    func bug(for entity: Entity) -> Bug? {
+    /// Find bug ID associated with entity (for selection)
+    func bugId(for entity: Entity) -> UUID? {
         return entityToBugMapping[entity]
     }
     
@@ -300,7 +317,13 @@ class BugEntityManager: ObservableObject {
     }
     
     /// Clear all entities (for reset)
+    @MainActor
     func clearAllEntities() {
+        guard !isUpdating else {
+            print("⚠️ [BugEntityManager] Cannot clear entities - update in progress")
+            return
+        }
+        
         for entity in bugEntities.values {
             entity.removeFromParent()
         }

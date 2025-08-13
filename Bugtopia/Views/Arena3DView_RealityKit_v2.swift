@@ -38,6 +38,10 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var debugMode: Bool = false
     
+    // MARK: - Update Management
+    
+    @State private var updateTimer: Timer?
+    
     // MARK: - Body
     
     var body: some View {
@@ -99,11 +103,17 @@ struct Arena3DView_RealityKit_v2: View {
         .background(Color.black.opacity(0.8))
         .onAppear {
             // Update entities when view appears
-            bugEntityManager.updateBugEntities(with: simulationEngine.bugs)
+            Task { @MainActor in
+                bugEntityManager.updateBugEntities(with: simulationEngine.bugs)
+            }
+            
+            // Start periodic updates instead of reactive updates
+            startPeriodicUpdates()
         }
-        .onChange(of: simulationEngine.bugs.count) { _, _ in
-            // Update entities when bug count changes
-            bugEntityManager.updateBugEntities(with: simulationEngine.bugs)
+        .onDisappear {
+            stopPeriodicUpdates()
+            // Clean up entities to prevent memory leaks
+            bugEntityManager.clearAllEntities()
         }
     }
     
@@ -131,6 +141,22 @@ struct Arena3DView_RealityKit_v2: View {
     private func handleTap(at location: CGPoint) {
         print("🎯 [RealityKit] Tap at \(location)")
         // TODO: Implement ray casting for entity selection
+    }
+    
+    // MARK: - Update Management
+    
+    private func startPeriodicUpdates() {
+        // Update entities at 30 FPS to reduce load
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0/30.0, repeats: true) { _ in
+            Task { @MainActor in
+                bugEntityManager.updateBugEntities(with: simulationEngine.bugs)
+            }
+        }
+    }
+    
+    private func stopPeriodicUpdates() {
+        updateTimer?.invalidate()
+        updateTimer = nil
     }
     
     // MARK: - Performance Monitoring
