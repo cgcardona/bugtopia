@@ -29,9 +29,9 @@ class SimulationEngineManager: ObservableObject {
         })
     }()
     
-    // 🚀 RealityKit implementation - Phase 1 Foundation  
-    func createRealityKitView() -> Arena3DView_RealityKit {
-        return Arena3DView_RealityKit(simulationEngine: engine, onBugSelected: { [weak self] bug in
+    // 🚀 RealityKit implementation - Phase 2 Entity System
+    func createRealityKitView() -> Arena3DView_RealityKit_v2 {
+        return Arena3DView_RealityKit_v2(simulationEngine: engine, onBugSelected: { [weak self] bug in
             self?.onBugSelected?(bug)
         }, onFoodSelected: { [weak self] food in
             self?.onFoodSelected?(food)

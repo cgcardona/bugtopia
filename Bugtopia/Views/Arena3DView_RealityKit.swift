@@ -26,13 +26,12 @@ struct Arena3DView_RealityKit: View {
     // MARK: - RealityKit Entities
     
     @State private var terrainEntity: Entity?
-    @State private var bugContainer: Entity = Entity()
+    @State private var bugEntityManager = BugEntityManager()
     @State private var foodContainer: Entity = Entity()
     @State private var environmentContainer: Entity = Entity()
     
     // MARK: - Entity Mapping (Business Logic Integration)
     
-    @State private var bugEntityMapping: [UUID: Entity] = [:]
     @State private var foodEntityMapping: [UUID: Entity] = [:]
     
     // MARK: - Performance Tracking
@@ -225,7 +224,7 @@ struct Arena3DView_RealityKit: View {
         lastFPSUpdate = now
         
         performanceMetrics.currentFPS = currentFPS
-        performanceMetrics.entityCount = bugEntityMapping.count + foodEntityMapping.count
+        performanceMetrics.entityCount = simulationEngine.bugs.count + foodEntityMapping.count
     }
     
     // MARK: - Debug Interface
@@ -240,8 +239,8 @@ struct Arena3DView_RealityKit: View {
             Text("FPS: \(String(format: "%.1f", currentFPS))")
                 .foregroundColor(currentFPS > 50 ? .green : currentFPS > 30 ? .orange : .red)
             
-            Text("Bugs: \(bugEntityMapping.count)")
-                .foregroundColor(.cyan)
+                            Text("Bugs: \(simulationEngine.bugs.count)")
+                    .foregroundColor(.cyan)
             
             Text("Food: \(foodEntityMapping.count)")
                 .foregroundColor(.yellow)
