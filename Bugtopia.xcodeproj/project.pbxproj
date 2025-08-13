@@ -14,7 +14,7 @@
 		C02AFE8F2E3C348800986313 /* Bugtopia.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bugtopia.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C02AFE9E2E3C348900986314 /* blockchain */ = {isa = PBXFileReference; lastKnownFileType = folder; path = blockchain; sourceTree = "<group>"; };
 		C02AFE9F2E3C348900986315 /* docs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = docs; sourceTree = "<group>"; };
-		C02AFEA02E3C348900986316 /* AGENT_ROLE_PROMPT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENT_ROLE_PROMPT.md; sourceTree = "<group>"; };
+		C02AFEA02E3C348900986316 /* AGENT_ROLE_PROMPT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "docs/agent-onboarding/AGENT_ROLE_PROMPT.md"; sourceTree = "<group>"; };
 		C02AFEA12E3C348900986317 /* bugtopia-icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "bugtopia-icon.png"; sourceTree = "<group>"; };
 		C02AFEA22E3C348900986318 /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
 		C02AFEA32E3C348900986319 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
