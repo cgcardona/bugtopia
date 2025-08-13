@@ -29,6 +29,15 @@ class SimulationEngineManager: ObservableObject {
         })
     }()
     
+    // 🚀 RealityKit implementation - Phase 1 Foundation  
+    func createRealityKitView() -> Arena3DView_RealityKit {
+        return Arena3DView_RealityKit(simulationEngine: engine, onBugSelected: { [weak self] bug in
+            self?.onBugSelected?(bug)
+        }, onFoodSelected: { [weak self] food in
+            self?.onFoodSelected?(food)
+        })
+    }
+    
     init(worldSize: CGSize = CGSize(width: 2000, height: 1500)) {
         let bounds = CGRect(origin: .zero, size: worldSize)
         self.engine = SimulationEngine(worldBounds: bounds)
@@ -429,6 +438,49 @@ struct SimulationView: View {
             Divider()
                 .frame(height: 20)
             
+            // 🚀 RENDERING ENGINE SELECTOR
+            HStack(spacing: 8) {
+                Image(systemName: "cpu")
+                    .foregroundColor(.blue)
+                    .font(.title2)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Renderer")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.blue)
+                    
+                    Picker("", selection: Binding(
+                        get: { RenderingConfiguration.shared.activeEngine },
+                        set: { RenderingConfiguration.shared.activeEngine = $0 }
+                    )) {
+                        ForEach(RenderingEngine.allCases, id: \.self) { engine in
+                            Text(engine.rawValue).tag(engine)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .frame(width: 180)
+                }
+                
+                if RenderingConfiguration.shared.activeEngine.isExperimental {
+                    Text("BETA")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Color.orange.opacity(0.2))
+                        .cornerRadius(3)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.blue.opacity(0.05))
+            .cornerRadius(6)
+            
+            Divider()
+                .frame(height: 20)
+            
             // 🧠 Neural Analysis Controls
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -565,13 +617,25 @@ struct SimulationView: View {
     private var simulationCanvas: some View {
         GeometryReader { geometry in
             ZStack {
-                // 🚀 EPIC 3D VOXEL VISUALIZATION - TO INFINITY AND BEYOND!
-                // Use the single Arena3DView instance to prevent multiple 3D scene creation
-                engineManager.arena3DView
-                    .transition(.asymmetric(
-                        insertion: .scale.combined(with: .opacity),
-                        removal: .scale.combined(with: .opacity)
-                    ))
+                // 🚀 CONDITIONAL 3D RENDERING: SceneKit ↔ RealityKit
+                ConditionalRenderer(
+                    sceneKit: {
+                        // 🏗️ SceneKit (Legacy) - Stable implementation
+                        engineManager.arena3DView
+                            .transition(.asymmetric(
+                                insertion: .scale.combined(with: .opacity),
+                                removal: .scale.combined(with: .opacity)
+                            ))
+                    },
+                    realityKit: {
+                        // 🚀 RealityKit (Future) - Next-generation spatial computing
+                        engineManager.createRealityKitView()
+                            .transition(.asymmetric(
+                                insertion: .scale.combined(with: .opacity),
+                                removal: .scale.combined(with: .opacity)
+                            ))
+                    }
+                )
             }
         }
     }
