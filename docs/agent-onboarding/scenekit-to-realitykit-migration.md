@@ -110,19 +110,19 @@ bugNode.position = SCNVector3(newPosition.x, newPosition.y, newPosition.z)
 
 ## 📋 Migration Phase Checklist
 
-### Phase 1: Foundation (Weeks 1-3)
+### Phase 1: Foundation
 - [ ] **Performance Baseline**: Measure current SceneKit performance
 - [ ] **RealityKit Proof-of-Concept**: Basic terrain + 10 bugs
 - [ ] **Entity Architecture**: Design ECS system for bugs
 - [ ] **Neural Integration Test**: Verify AI → RealityKit compatibility
 
-### Phase 2: Core Systems (Weeks 4-7)
+### Phase 2: Core Systems
 - [ ] **Bug Entity System**: Convert all 180 bugs to RealityKit
 - [ ] **Movement Migration**: 3D pathfinding and layer navigation
 - [ ] **Terrain Conversion**: Procedural world generation
 - [ ] **Environmental Effects**: Weather, disasters, seasons
 
-### Phase 3: Polish & Optimize (Weeks 8-10)
+### Phase 3: Polish & Optimize
 - [ ] **Performance Optimization**: 60 FPS with full simulation
 - [ ] **Visual Enhancement**: PBR materials, advanced lighting
 - [ ] **Spatial Features**: Vision Pro preparation

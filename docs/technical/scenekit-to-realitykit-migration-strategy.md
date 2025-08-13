@@ -41,19 +41,19 @@ Bugtopia is transitioning from SceneKit to RealityKit to future-proof the evolut
 ### Phase 1: Foundation
 **Objective**: Establish RealityKit proof-of-concept with core functionality
 
-#### Week 1: Research & Setup
+#### Research & Setup
 - [ ] RealityKit architecture analysis
 - [ ] Performance benchmarking framework
 - [ ] Development environment setup
 - [ ] Basic RealityView implementation
 
-#### Week 2: Core Rendering
+#### Core Rendering
 - [ ] Terrain generation migration
 - [ ] Basic bug entity rendering
 - [ ] Camera controls and navigation
 - [ ] Performance testing with 180+ entities
 
-#### Week 3: Validation
+#### Validation
 - [ ] Neural network integration testing
 - [ ] Memory usage optimization
 - [ ] Frame rate benchmarking
@@ -62,19 +62,19 @@ Bugtopia is transitioning from SceneKit to RealityKit to future-proof the evolut
 ### Phase 2: Core Systems
 **Objective**: Migrate all essential Bugtopia systems
 
-#### Week 4-5: Movement & Physics
+#### Movement & Physics
 - [ ] 3D movement system migration
 - [ ] Pathfinding algorithm adaptation
 - [ ] Collision detection implementation
 - [ ] Layer-based navigation (underground/surface/canopy/aerial)
 
-#### Week 6: Environmental Systems
+#### Environmental Systems
 - [ ] Weather effects migration
 - [ ] Seasonal visual changes
 - [ ] Natural disaster visualization
 - [ ] Dynamic lighting systems
 
-#### Week 7: Species & Interactions
+#### Species & Interactions
 - [ ] Species visualization (herbivores, carnivores, etc.)
 - [ ] Hunting and feeding behaviors
 - [ ] Communication signal rendering
@@ -83,19 +83,19 @@ Bugtopia is transitioning from SceneKit to RealityKit to future-proof the evolut
 ### Phase 3: Advanced Features
 **Objective**: Polish and enhance with RealityKit-specific features
 
-#### Week 8: Visual Enhancement
+#### Visual Enhancement
 - [ ] PBR material implementation
 - [ ] Advanced lighting and shadows
 - [ ] Particle systems for weather/disasters
 - [ ] Terrain texture optimization
 
-#### Week 9: Spatial Features
+#### Spatial Features
 - [ ] Spatial audio integration
 - [ ] Hand tracking preparation (Vision Pro)
 - [ ] Multi-user collaboration framework
 - [ ] Immersive camera modes
 
-#### Week 10: Polish & Performance
+#### Polish & Performance
 - [ ] Final performance optimization
 - [ ] Memory leak detection and fixing
 - [ ] UI/UX polish for spatial interface
@@ -217,9 +217,9 @@ struct Arena3DView: View {
 - Quick rollback capability if critical issues discovered
 
 ### Decision Points
-- **Week 3**: Go/No-Go decision based on performance tests
-- **Week 6**: Feature parity assessment checkpoint
-- **Week 9**: Final migration decision point
+- **Phase 1 Complete**: Go/No-Go decision based on performance tests
+- **Phase 2 Complete**: Feature parity assessment checkpoint
+- **Phase 3 Complete**: Final migration decision point
 
 ## 📚 Resources & Documentation
 
