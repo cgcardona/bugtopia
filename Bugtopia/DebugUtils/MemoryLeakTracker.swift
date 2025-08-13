@@ -12,6 +12,11 @@ import SceneKit
 class MemoryLeakTracker {
     static let shared = MemoryLeakTracker()
     
+    // MARK: - Crash Prevention
+    
+    /// Disable memory tracking to prevent arithmetic overflow crashes
+    private var isTrackingEnabled: Bool = true
+    
     // MARK: - Tracking Counters
     private var nodeCreationCount: Int = 0
     private var nodeDestructionCount: Int = 0
@@ -145,6 +150,7 @@ class MemoryLeakTracker {
     
     // MARK: - Enhanced Array Size Monitoring (PRIMARY SUSPECT!)
     func trackArraySizes(bugs: Int, foods: Int, signals: Int, resources: Int, tools: Int) {
+        guard isTrackingEnabled else { return }
         let bugGrowth = bugs - lastBugCount
         let foodGrowth = foods - lastFoodCount
         let signalGrowth = signals - lastSignalCount
@@ -175,6 +181,7 @@ class MemoryLeakTracker {
     
     // MARK: - Dictionary Size Monitoring
     func trackDictionarySizes(bugMappings: Int, foodMappings: Int) {
+        guard isTrackingEnabled else { return }
         let bugMappingGrowth = bugMappings - lastBugMappingSize
         let foodMappingGrowth = foodMappings - lastFoodMappingSize
         
@@ -216,10 +223,36 @@ class MemoryLeakTracker {
         return closureCreationCount - closureDestructionCount
     }
     
+    // MARK: - Crash Prevention Controls
+    
+    /// Disable memory tracking (for RealityKit mode)
+    func disableTracking() {
+        isTrackingEnabled = false
+        print("🛡️ [MemoryLeakTracker] Tracking disabled to prevent crashes")
+    }
+    
+    /// Enable memory tracking (for SceneKit mode)
+    func enableTracking() {
+        isTrackingEnabled = true
+        lastMemoryUsage = getCurrentMemoryUsage() // Reset baseline
+        print("🔍 [MemoryLeakTracker] Tracking enabled")
+    }
+    
     // MARK: - Comprehensive Memory Report
     func generateMemoryReport() {
+        // Skip report generation if tracking is disabled
+        guard isTrackingEnabled else { return }
+        
         let currentMemory = getCurrentMemoryUsage()
-        let memoryGrowth = currentMemory - lastMemoryUsage
+        
+        // Safe arithmetic to prevent overflow crashes
+        let memoryGrowth: Int64
+        if currentMemory >= lastMemoryUsage {
+            memoryGrowth = Int64(currentMemory - lastMemoryUsage)
+        } else {
+            memoryGrowth = -Int64(lastMemoryUsage - currentMemory)
+        }
+        
         let timeElapsed = CACurrentMediaTime() - startTime
         
         if timeElapsed > 0 {

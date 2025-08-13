@@ -59,6 +59,14 @@ class RenderingConfiguration {
         didSet {
             UserDefaults.standard.set(activeEngine.rawValue, forKey: "ActiveRenderingEngine")
             print("🔄 [RenderingConfig] Switched to \(activeEngine.displayName)")
+            
+            // Control MemoryLeakTracker based on rendering engine
+            switch activeEngine {
+            case .sceneKit:
+                MemoryLeakTracker.shared.enableTracking()
+            case .realityKit:
+                MemoryLeakTracker.shared.disableTracking()
+            }
         }
     }
     
@@ -115,6 +123,14 @@ class RenderingConfiguration {
         
         showPerformanceOverlay = UserDefaults.standard.bool(forKey: "ShowPerformanceOverlay")
         debugMode = UserDefaults.standard.bool(forKey: "RenderingDebugMode")
+        
+        // Initialize MemoryLeakTracker state based on current engine
+        switch activeEngine {
+        case .sceneKit:
+            MemoryLeakTracker.shared.enableTracking()
+        case .realityKit:
+            MemoryLeakTracker.shared.disableTracking()
+        }
     }
     
     /// Reset to default configuration
