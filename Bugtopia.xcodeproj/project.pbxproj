@@ -6,8 +6,18 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C02AFEA42E3C34890098631A /* bugtopia-icon.png in Resources */ = {isa = PBXBuildFile; fileRef = C02AFEA12E3C348900986317 /* bugtopia-icon.png */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		C02AFE8F2E3C348800986313 /* Bugtopia.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bugtopia.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C02AFE9E2E3C348900986314 /* blockchain */ = {isa = PBXFileReference; lastKnownFileType = folder; path = blockchain; sourceTree = "<group>"; };
+		C02AFE9F2E3C348900986315 /* docs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = docs; sourceTree = "<group>"; };
+		C02AFEA02E3C348900986316 /* AGENT_ROLE_PROMPT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENT_ROLE_PROMPT.md; sourceTree = "<group>"; };
+		C02AFEA12E3C348900986317 /* bugtopia-icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "bugtopia-icon.png"; sourceTree = "<group>"; };
+		C02AFEA22E3C348900986318 /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
+		C02AFEA32E3C348900986319 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -33,6 +43,12 @@
 			isa = PBXGroup;
 			children = (
 				C02AFE912E3C348800986313 /* Bugtopia */,
+				C02AFE9E2E3C348900986314 /* blockchain */,
+				C02AFE9F2E3C348900986315 /* docs */,
+				C02AFEA02E3C348900986316 /* AGENT_ROLE_PROMPT.md */,
+				C02AFEA12E3C348900986317 /* bugtopia-icon.png */,
+				C02AFEA22E3C348900986318 /* LICENSE.md */,
+				C02AFEA32E3C348900986319 /* README.md */,
 				C02AFE902E3C348800986313 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -109,6 +125,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C02AFEA42E3C34890098631A /* bugtopia-icon.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
