@@ -22,10 +22,11 @@
 - **Neural Integration**: Bug positions driven by AI decision-making
 
 #### 🎮 **Navigation & Controls (Complete)**
-- **Scene Rotation**: Drag gestures rotate entire world
-- **Quaternion System**: Smooth rotation with pitch/yaw constraints
-- **Camera Positioning**: Optimal viewing angle for world exploration
-- **Performance**: 7-8 FPS stable with current entity load
+- **Arrow Key Movement**: Left/right/forward/backward navigation
+- **Two-Finger Trackpad Look**: Pitch (up/down) and yaw (left/right) camera control
+- **Roll-Free Rotation**: SceneKit-style orientation lock prevents camera tilting
+- **Axis-Angle Quaternions**: Direct RealityKit rotation math eliminates axis swapping
+- **Performance**: 7-8 FPS stable with smooth navigation
 
 #### 📊 **Performance Monitoring (Complete)**
 - **FPS Display**: Real-time frame counting and display
@@ -73,7 +74,7 @@ update: { content in
 | **World Structure** | ✅ Complete | Ground, terrain, skybox hierarchy |
 | **Bug Entities** | ✅ Enhanced | 15 entities, species shapes, neural integration |
 | **Species Types** | ✅ Complete | 4 distinct species with unique geometry |
-| **Camera Navigation** | ✅ Complete | Scene rotation system with gestures |
+| **Camera Navigation** | ✅ Complete | Arrow keys + trackpad look with roll prevention |
 | **Performance Monitoring** | ✅ Complete | FPS display and debug metrics |
 | **Dynamic Movement** | ✅ Implemented | Real-time simulation-driven updates |
 | **Food System** | ⏳ Next Phase | Not yet implemented |
@@ -127,7 +128,9 @@ createBugMaterial(for bug: Bug) -> SimpleMaterial
 updateBugPositions()
 
 // Navigation
-handleCameraDrag(translation: CGSize)
+handleScrollWheel(_ event: NSEvent)
+createOrientationLockedRotation() -> simd_quatf
+moveLeft/moveRight/moveForward/moveBackward(deltaTime: Float, anchor: AnchorEntity)
 
 // Terrain
 addSimulationTerrain(in anchor: Entity)
@@ -142,6 +145,25 @@ setupSkybox(in anchor: Entity)
 3. **Neural Integration**: Bug movement driven by AI simulation
 4. **Performance Stability**: Consistent 7-8 FPS with complex entity hierarchy
 5. **Feature Parity**: Core visual systems match SceneKit functionality
+6. **Navigation System**: Roll-free camera control matching SceneKit behavior
+
+### 🔧 **Critical Technical Fixes**
+
+#### **RealityKit Navigation Roll Prevention**
+**Problem**: Complex Euler-to-quaternion conversion caused axis swapping, leading to unwanted camera roll/tilt.
+
+**Solution**: Direct axis-angle quaternion multiplication:
+```swift
+// ✅ FIXED: Direct axis-angle approach (no roll component)
+let quaternion = simd_quatf(angle: cameraPitch, axis: SIMD3<Float>(1, 0, 0)) *  // Pitch
+                simd_quatf(angle: cameraYaw, axis: SIMD3<Float>(0, 1, 0))      // Yaw
+// No Z-axis rotation = no roll/tilt possible
+
+// ❌ OLD: Complex manual conversion with axis swapping bugs
+let quaternion = simd_quatf(ix: sinPitch * cosYaw * cosRoll - ...)
+```
+
+**Result**: Perfect SceneKit-style navigation with no unwanted orientation changes.
 
 ### 🔄 **Agent Handoff Protocol**
 

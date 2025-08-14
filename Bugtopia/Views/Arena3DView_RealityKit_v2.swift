@@ -28,7 +28,8 @@ struct Arena3DView_RealityKit_v2: View {
     @State private var movementSpeed: Float = 50.0  // ⚡ SIMPLIFIED: Basic movement speed
     @State private var sceneAnchor: AnchorEntity?
     @State private var cameraPosition = SIMD3<Float>(0, 10, 0)  // 📷 SIMPLIFIED: Basic camera position
-    @State private var cameraPitch: Float = 0.0  // 🎮 TRACKPAD: Up/down look angle (pitch only)
+    @State private var cameraPitch: Float = 0.0  // 🎮 TRACKPAD: Up/down look angle (pitch)
+    @State private var cameraYaw: Float = 0.0    // 🎮 TRACKPAD: Left/right look angle (yaw)
     
     // MARK: - Selection System
     
@@ -271,18 +272,18 @@ struct Arena3DView_RealityKit_v2: View {
             skyboxMaterial = SimpleMaterial(color: getSkyboxFallbackColor(for: worldType), isMetallic: false)
         }
         
-        // Create a visible skybox that shows up properly
+        // Create a much larger skybox to prevent seeing it when zooming out
         let backgroundSphere = ModelEntity(
-            mesh: .generateSphere(radius: 100), // Reasonable radius for visibility
+            mesh: .generateSphere(radius: 2000), // 🔧 FIXED: Much larger radius to prevent seeing edges
             materials: [skyboxMaterial]
         )
         
-        // Invert normals to see from inside and position higher
+        // Invert normals to see from inside and center at origin
         backgroundSphere.scale = [-1, 1, 1]
-        backgroundSphere.position = [0, 20, 0]  // Position above the scene
+        backgroundSphere.position = [0, 0, 0]  // 🔧 FIXED: Center at origin for better coverage
         
         anchor.addChild(backgroundSphere)
-        print("✅ [RealityKit] Positioned skybox sphere for \(worldType) (radius: 100, height: 20)")
+        print("✅ [RealityKit] Positioned skybox sphere for \(worldType) (radius: 2000, centered at origin)")
     }
     
     @available(macOS 14.0, *)
@@ -1410,25 +1411,44 @@ struct Arena3DView_RealityKit_v2: View {
     }
     
     private func handleScrollWheel(_ event: NSEvent) {
-        // Two-finger scroll wheel event - only use vertical scrolling for pitch
+        // Two-finger scroll wheel event - use both vertical and horizontal scrolling
         let sensitivity: Float = 0.02  // Higher sensitivity for scroll events
-        let pitchDelta = Float(event.deltaY) * sensitivity  // Only vertical scroll
+        let pitchDelta = Float(event.deltaY) * sensitivity   // Vertical scroll for pitch
+        let yawDelta = Float(event.deltaX) * sensitivity     // Horizontal scroll for yaw
         
+        var rotationChanged = false
+        
+        // Handle vertical scrolling (pitch - up/down look)
         if abs(event.deltaY) > 0.1 {
-            // Update pitch rotation
+            let oldPitch = cameraPitch
             cameraPitch += pitchDelta
             
             // 🔒 CONSTRAIN PITCH: Prevent over-rotation (looking too far up/down)
             cameraPitch = max(-Float.pi/2.1, min(Float.pi/2.1, cameraPitch))
+            rotationChanged = true
             
-            // Apply pitch rotation to the scene
+            // print("🎮 TWO-FINGER PITCH: \(oldPitch * 180 / .pi)° → \(cameraPitch * 180 / .pi)° (delta: \(pitchDelta * 180 / .pi)°)")
+        }
+        
+        // Handle horizontal scrolling (yaw - left/right look)
+        if abs(event.deltaX) > 0.1 {
+            let oldYaw = cameraYaw
+            cameraYaw += yawDelta
+            
+            // 🔄 NORMALIZE YAW: Keep yaw in 0-360° range for cleaner values
+            while cameraYaw > Float.pi { cameraYaw -= 2 * Float.pi }
+            while cameraYaw < -Float.pi { cameraYaw += 2 * Float.pi }
+            rotationChanged = true
+            
+            // print("🎮 TWO-FINGER YAW: \(oldYaw * 180 / .pi)° → \(cameraYaw * 180 / .pi)° (delta: \(yawDelta * 180 / .pi)°)")
+        }
+        
+        // Apply combined rotation to the scene
+        if rotationChanged {
             guard let anchor = sceneAnchor else { return }
             
-            // Create pitch-only rotation (no yaw or roll)
-            let pitchRotation = simd_quatf(angle: -cameraPitch, axis: [1, 0, 0])  // X-axis rotation
-            anchor.transform.rotation = pitchRotation
-            
-            print("🎮 TWO-FINGER: Pitch angle: \(cameraPitch * 180 / .pi)° (two-finger scroll)")
+            // 🔒 ORIENTATION LOCK: Create rotation that maintains up vector
+            anchor.transform.rotation = createOrientationLockedRotation()
         }
     }
     
@@ -1466,9 +1486,8 @@ struct Arena3DView_RealityKit_v2: View {
         // Update the world anchor (negative because we move the world opposite to camera)
         anchor.transform.translation = -cameraPosition
         
-        // 🎮 MAINTAIN PITCH: Keep the up/down look angle when moving
-        let pitchRotation = simd_quatf(angle: -cameraPitch, axis: [1, 0, 0])
-        anchor.transform.rotation = pitchRotation
+        // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
+        anchor.transform.rotation = createOrientationLockedRotation()
         
         print("🎮 SIMPLIFIED: Moved LEFT to position: \(cameraPosition)")
     }
@@ -1483,9 +1502,8 @@ struct Arena3DView_RealityKit_v2: View {
         // Update the world anchor (negative because we move the world opposite to camera)
         anchor.transform.translation = -cameraPosition
         
-        // 🎮 MAINTAIN PITCH: Keep the up/down look angle when moving
-        let pitchRotation = simd_quatf(angle: -cameraPitch, axis: [1, 0, 0])
-        anchor.transform.rotation = pitchRotation
+        // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
+        anchor.transform.rotation = createOrientationLockedRotation()
         
         print("🎮 SIMPLIFIED: Moved RIGHT to position: \(cameraPosition)")
     }
@@ -1500,9 +1518,8 @@ struct Arena3DView_RealityKit_v2: View {
         // Update the world anchor (negative because we move the world opposite to camera)
         anchor.transform.translation = -cameraPosition
         
-        // 🎮 MAINTAIN PITCH: Keep the up/down look angle when moving
-        let pitchRotation = simd_quatf(angle: -cameraPitch, axis: [1, 0, 0])
-        anchor.transform.rotation = pitchRotation
+        // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
+        anchor.transform.rotation = createOrientationLockedRotation()
         
         print("🎮 SIMPLIFIED: Moved FORWARD to position: \(cameraPosition)")
     }
@@ -1517,9 +1534,8 @@ struct Arena3DView_RealityKit_v2: View {
         // Update the world anchor (negative because we move the world opposite to camera)
         anchor.transform.translation = -cameraPosition
         
-        // 🎮 MAINTAIN PITCH: Keep the up/down look angle when moving
-        let pitchRotation = simd_quatf(angle: -cameraPitch, axis: [1, 0, 0])
-        anchor.transform.rotation = pitchRotation
+        // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
+        anchor.transform.rotation = createOrientationLockedRotation()
         
         print("🎮 SIMPLIFIED: Moved BACKWARD to position: \(cameraPosition)")
     }
@@ -1533,15 +1549,20 @@ struct Arena3DView_RealityKit_v2: View {
         return SIMD3<Float>(x, y, z)
     }
     
-    // 🔒 ROLL-FREE ROTATION: Helper to create rotation quaternions with NO roll component
-    private func createRollFreeRotation(yaw: Float, pitch: Float) -> simd_quatf {
-        // Create rotations for ONLY yaw (Y-axis) and pitch (X-axis)
-        let yawRotation = simd_quatf(angle: -yaw, axis: [0, 1, 0])     // Y-axis only
-        let pitchRotation = simd_quatf(angle: -pitch, axis: [1, 0, 0]) // X-axis only
+    // 🔒 SCENEKIT-STYLE ROTATION: Direct Euler angle approach like SceneKit
+    private func createOrientationLockedRotation() -> simd_quatf {
+        // DIRECT COPY of SceneKit approach: Use Euler angles with roll=0
+        // SceneKit: cameraNode.eulerAngles = SCNVector3(newPitch, newYaw, 0)
         
-        // Combine rotations (NO Z-axis roll component)
-        return yawRotation * pitchRotation
+        // 🚀 DIRECT AXIS-ANGLE: Use RealityKit's direct quaternion multiplication
+        // This matches SceneKit's behavior exactly: pitch (X), yaw (Y), roll (Z=0)
+        let quaternion = simd_quatf(angle: cameraPitch, axis: SIMD3<Float>(1, 0, 0)) *  // Pitch around X-axis
+                        simd_quatf(angle: cameraYaw, axis: SIMD3<Float>(0, 1, 0))      // Yaw around Y-axis
+                        // No roll component - prevents tilting!
+        
+        return quaternion
     }
+
     
     // 🎮 SIMPLIFIED: No collision checking needed
     private func wouldCollide(at position: SIMD3<Float>) -> Bool {
