@@ -158,11 +158,12 @@ struct Arena3DView_RealityKit_v2: View {
         // 1. Add skybox background (far away)
         setupSkybox(in: anchor)
         
-        // 2. Add ground plane foundation
+        // 2. Add continuous terrain surface (like SceneKit)
         setupGroundPlane(in: anchor)
         
-        // 3. Add terrain voxels on top of ground
-        addSimulationTerrain(in: anchor)
+        // 🗑️ DISABLED: Individual voxel terrain (creates grey cubes)
+        // SceneKit uses only smooth terrain mesh for continuous surface
+        // addSimulationTerrain(in: anchor)
         
         // 4. Add lighting for proper visibility
         setupWorldLighting(in: anchor)
@@ -377,29 +378,36 @@ struct Arena3DView_RealityKit_v2: View {
         waterContainer.name = "WaterSurfaces"
         
         let scale: Float = 8.0  // 🌊 MASSIVE SCALE: Match new terrain scale (was 2.0)
-        let waterLevel: Double = -5.0  // Water level threshold
+        let waterLevel: Double = -15.0  // 🏔️ DEEPER: Only in deep valleys (was -5.0)
         
-        // Find water areas and create smooth water planes
-        var waterAreas: [[Bool]] = Array(repeating: Array(repeating: false, count: resolution), count: resolution)
-        
+        // 🌊 VALLEY WATER: Only create water in actual valleys/low areas
+        // Count how much terrain is below water level
+        var waterAreaCount = 0
         for x in 0..<resolution {
             for z in 0..<resolution {
-                if heightMap[x][z] < waterLevel {
-                    waterAreas[x][z] = true
+                if heightMap[x][z] <= waterLevel {
+                    waterAreaCount += 1
                 }
             }
         }
         
-        // Create water plane at water level
-        let waterSize = Float(resolution) * scale
-        let waterMesh = MeshResource.generatePlane(width: waterSize, depth: waterSize)
-        let waterMaterial = createWaterMaterial(height: waterLevel)
-        
-        let waterEntity = ModelEntity(mesh: waterMesh, materials: [waterMaterial])
-        waterEntity.position = [0, Float(waterLevel) * 0.6, 0]  // 🌊 SCALE: Adjust water height for new scale
-        waterEntity.name = "WaterPlane"
-        
-        waterContainer.addChild(waterEntity)
+        // Only add water if there are significant valley areas
+        if waterAreaCount > (resolution * resolution) / 20 {  // At least 5% of terrain below water
+            // Create smaller water planes only in low areas
+            let waterSize = Float(resolution) * scale * 0.3  // 🌊 SMALLER: Only cover valleys (was full size)
+            let waterMesh = MeshResource.generatePlane(width: waterSize, depth: waterSize)
+            let waterMaterial = createWaterMaterial(height: waterLevel)
+            
+            let waterEntity = ModelEntity(mesh: waterMesh, materials: [waterMaterial])
+            waterEntity.position = [0, Float(waterLevel) * 0.8, 0]  // 🌊 LOWER: Deep in valleys
+            waterEntity.name = "ValleyWater"
+            
+            waterContainer.addChild(waterEntity)
+            
+            print("🌊 [RealityKit] Created valley water in \(waterAreaCount) low areas")
+        } else {
+            print("🏔️ [RealityKit] No significant valleys found - skipping water")
+        }
         
         return waterContainer
     }
