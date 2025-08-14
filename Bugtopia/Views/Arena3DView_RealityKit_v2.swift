@@ -11,15 +11,7 @@ import RealityKit
 import simd
 import CoreGraphics
 
-// Navigation enums and classes (RealityKit-specific to avoid conflicts)
-enum RealityNavigationMode {
-    case walking
-    case god
-}
-
-enum RealityMovementDirection {
-    case forward, backward, left, right, up, down
-}
+// 🎮 SIMPLIFIED: No complex navigation enums needed
 
 /// 🚀 PHASE 2: Working RealityKit Implementation
 /// Properly implemented with Entity-Component-System architecture
@@ -29,16 +21,14 @@ struct Arena3DView_RealityKit_v2: View {
     
     let simulationEngine: SimulationEngine
     
-    // MARK: - Navigation System
+    // MARK: - Simplified Navigation System
     
-    @State private var navigationMode: RealityNavigationMode = .god
     @State private var pressedKeys: Set<UInt16> = []
     @State private var lastUpdateTime = CACurrentMediaTime()
-    @State private var movementSpeed: Float = 50.0
-    @State private var walkingHeight: Float = 5.0
+    @State private var movementSpeed: Float = 50.0  // ⚡ SIMPLIFIED: Basic movement speed
     @State private var sceneAnchor: AnchorEntity?
-    @State private var cameraRotation = SIMD2<Float>(0, 0)  // yaw, pitch
-    @State private var cameraPosition = SIMD3<Float>(0, 5, -8)  // Current camera position
+    @State private var cameraPosition = SIMD3<Float>(0, 10, 0)  // 📷 SIMPLIFIED: Basic camera position
+    @State private var cameraPitch: Float = 0.0  // 🎮 TRACKPAD: Up/down look angle (pitch only)
     
     // MARK: - Selection System
     
@@ -131,15 +121,13 @@ struct Arena3DView_RealityKit_v2: View {
             // Update bug positions based on simulation
             updateBugPositions()
         }
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    // Handle trackpad/mouse look-around (yaw and pitch only, no roll)
-                    handleCameraDrag(translation: value.translation)
-                }
-        )
+        // 🎮 TWO-FINGER ONLY: Using scroll wheel events, no single-finger drag needed
         .onAppear {
             startNavigationUpdates()
+            setupKeyboardMonitoring()
+        }
+        .onDisappear {
+            stopKeyboardMonitoring()
         }
         .overlay(alignment: .bottomTrailing) {
             // Simple overlay to confirm RealityView is active
@@ -328,8 +316,8 @@ struct Arena3DView_RealityKit_v2: View {
     @available(macOS 14.0, *)
     private func createSmoothTerrainMesh(heightMap: [[Double]], biomeMap: [[BiomeType]], resolution: Int) -> ModelEntity {
         // Create a single smooth terrain mesh using height map data
-        let scale: Float = 0.5  // Scale factor for world coordinates
-        let heightScale: Float = 0.15  // Scale factor for height
+        let scale: Float = 2.0  // 🌍 FIXED: Full-scale world (was 0.5, too small)
+        let heightScale: Float = 1.0  // 🏔️ FIXED: Natural height scale (was 0.15, too compressed)
         
         var vertices: [SIMD3<Float>] = []
         var indices: [UInt32] = []
@@ -387,7 +375,7 @@ struct Arena3DView_RealityKit_v2: View {
         let waterContainer = Entity()
         waterContainer.name = "WaterSurfaces"
         
-        let scale: Float = 0.5
+        let scale: Float = 2.0  // 🌊 FIXED: Match terrain scale
         let waterLevel: Double = -5.0  // Water level threshold
         
         // Find water areas and create smooth water planes
@@ -822,8 +810,8 @@ struct Arena3DView_RealityKit_v2: View {
             )
             
             // Convert Bugtopia coordinates to RealityKit coordinates
-            // Scale down for better viewing
-            let scale: Float = 0.1
+            // 🌍 FIXED: Use full-scale coordinates (was 0.1, too tiny)
+            let scale: Float = 1.0
             voxelEntity.position = SIMD3<Float>(
                 Float(voxel.position.x) * scale,
                 Float(voxel.position.z) * scale, // Z becomes Y (up)
@@ -883,8 +871,8 @@ struct Arena3DView_RealityKit_v2: View {
                 materials: [createBugMaterial(for: bug)]
             )
             
-            // Position bugs above terrain, scaled down
-            let scale: Float = 0.1
+            // Position bugs above terrain at full scale
+            let scale: Float = 1.0  // 🐛 FIXED: Full-scale bugs (was 0.1, too tiny)
             bugEntity.position = SIMD3<Float>(
                 Float(bug.position3D.x) * scale,
                 Float(bug.position3D.z) * scale + 0.5, // Above terrain
@@ -1031,30 +1019,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     // MARK: - Camera Controls
     
-    private func handleCameraDrag(translation: CGSize) {
-        // Update camera rotation based on drag
-        let sensitivity: Float = 0.005
-        cameraRotation.y += Float(translation.width) * sensitivity  // Yaw
-        cameraRotation.x += Float(translation.height) * sensitivity  // Pitch
-        
-        // Constrain pitch to prevent flipping
-        cameraRotation.x = max(-Float.pi/2, min(Float.pi/2, cameraRotation.x))
-        
-        print("🎮 [RealityKit] Camera rotation updated: yaw=\(cameraRotation.y), pitch=\(cameraRotation.x)")
-        
-        // Apply rotation to the scene anchor
-        guard let anchor = sceneAnchor else { return }
-        
-        // Create rotation transform
-        let yawRotation = simd_quatf(angle: cameraRotation.y, axis: [0, 1, 0])
-        let pitchRotation = simd_quatf(angle: cameraRotation.x, axis: [1, 0, 0])
-        let combinedRotation = yawRotation * pitchRotation
-        
-        // Apply rotation to the anchor
-        anchor.transform.rotation = combinedRotation
-        
-        print("🔄 [RealityKit] Scene rotated - yaw: \(cameraRotation.y * 180 / .pi)°, pitch: \(cameraRotation.x * 180 / .pi)°")
-    }
+    // 🎮 REMOVED: Single-finger drag function no longer needed
     
     // MARK: - Terrain Analysis Helpers
     
@@ -1340,7 +1305,7 @@ struct Arena3DView_RealityKit_v2: View {
         
         // Debug logging to help track FPS issues
         if currentFPS > 0 {
-            print("📊 [RealityKit] FPS: \(String(format: "%.1f", currentFPS))")
+            // print("📊 [RealityKit] FPS: \(String(format: "%.1f", currentFPS))")
         }
     }
     
@@ -1377,9 +1342,93 @@ struct Arena3DView_RealityKit_v2: View {
     
     // MARK: - Navigation System Implementation
     
+    @State private var keyboardEventMonitor: Any?
+    @State private var keyUpEventMonitor: Any?
+    @State private var scrollWheelMonitor: Any?  // 🎮 TWO-FINGER: For trackpad scroll events
+    
     private func startNavigationUpdates() {
         Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { _ in
             updateMovement()
+        }
+    }
+    
+    private func setupKeyboardMonitoring() {
+        // Monitor key down events globally
+        keyboardEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            handleKeyDown(event)
+            return nil // Allow event to continue
+        }
+        
+        // Monitor key up events globally
+        keyUpEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyUp) { event in
+            handleKeyUp(event)
+            return nil // Allow event to continue
+        }
+        
+        print("🎮 SIMPLIFIED: Basic keyboard monitoring started")
+        
+        // Also setup scroll wheel monitoring for two-finger trackpad gestures
+        setupScrollWheelMonitoring()
+    }
+    
+    private func stopKeyboardMonitoring() {
+        if let monitor = keyboardEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            keyboardEventMonitor = nil
+        }
+        if let monitor = keyUpEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            keyUpEventMonitor = nil
+        }
+        if let monitor = scrollWheelMonitor {
+            NSEvent.removeMonitor(monitor)
+            scrollWheelMonitor = nil
+        }
+        print("🎮 SIMPLIFIED: Basic keyboard and scroll monitoring stopped")
+    }
+    
+    private func handleKeyDown(_ event: NSEvent) {
+        let keyCode = event.keyCode
+        pressedKeys.insert(keyCode)
+        print("🎮 SIMPLIFIED: Key pressed: \(keyCode)")
+    }
+    
+    private func handleKeyUp(_ event: NSEvent) {
+        let keyCode = event.keyCode
+        pressedKeys.remove(keyCode)
+        print("🎮 Key released: \(keyCode)")
+    }
+    
+    private func setupScrollWheelMonitoring() {
+        // Monitor scroll wheel events globally for two-finger trackpad gestures
+        scrollWheelMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
+            handleScrollWheel(event)
+            return nil // Allow event to continue
+        }
+        
+        print("🎮 TWO-FINGER: Scroll wheel monitoring started for trackpad gestures")
+    }
+    
+    private func handleScrollWheel(_ event: NSEvent) {
+        // Two-finger scroll wheel event - only use vertical scrolling for pitch
+        let sensitivity: Float = 0.02  // Higher sensitivity for scroll events
+        let pitchDelta = Float(event.deltaY) * sensitivity  // Only vertical scroll
+        
+        if abs(event.deltaY) > 0.1 {
+            // Update pitch rotation
+            cameraPitch += pitchDelta
+            
+            // 🔒 CONSTRAIN PITCH: Prevent over-rotation (looking too far up/down)
+            cameraPitch = max(-Float.pi/2.1, min(Float.pi/2.1, cameraPitch))
+            
+            // Apply pitch rotation to the scene
+            guard let anchor = sceneAnchor else { return }
+            
+            // Create pitch-only rotation (no yaw or roll)
+            let pitchRotation = simd_quatf(angle: -cameraPitch, axis: [1, 0, 0])  // X-axis rotation
+            anchor.transform.rotation = pitchRotation
+            
+            print("🎮 TWO-FINGER: Pitch angle: \(cameraPitch * 180 / .pi)° (two-finger scroll)")
         }
     }
     
@@ -1390,101 +1439,125 @@ struct Arena3DView_RealityKit_v2: View {
         
         guard let anchor = sceneAnchor else { return }
         
-        // Handle continuous movement for pressed keys
+        // 🎮 SIMPLIFIED: Handle basic arrow key movement
         for keyCode in pressedKeys {
             switch keyCode {
-            case 13, 126: // W or Up Arrow
-                moveCamera(direction: .forward, deltaTime: deltaTime, anchor: anchor)
-            case 1, 125:  // S or Down Arrow  
-                moveCamera(direction: .backward, deltaTime: deltaTime, anchor: anchor)
-            case 0, 123:  // A or Left Arrow
-                moveCamera(direction: .left, deltaTime: deltaTime, anchor: anchor)
-            case 2, 124:  // D or Right Arrow
-                moveCamera(direction: .right, deltaTime: deltaTime, anchor: anchor)
-            case 14:      // E - Up (God mode only)
-                if navigationMode == .god {
-                    moveCamera(direction: .up, deltaTime: deltaTime, anchor: anchor)
-                }
-            case 12:      // Q - Down (God mode only)
-                if navigationMode == .god {
-                    moveCamera(direction: .down, deltaTime: deltaTime, anchor: anchor)
-                }
-            case 49:      // Spacebar - Toggle navigation mode
-                toggleNavigationMode()
+            case 123:  // Left Arrow - Move LEFT
+                moveLeft(deltaTime: deltaTime, anchor: anchor)
+            case 124:  // Right Arrow - Move RIGHT  
+                moveRight(deltaTime: deltaTime, anchor: anchor)
+            case 126:  // Up Arrow - Move FORWARD
+                moveForward(deltaTime: deltaTime, anchor: anchor)
+            case 125:  // Down Arrow - Move BACKWARD
+                moveBackward(deltaTime: deltaTime, anchor: anchor)
             default:
                 break
             }
         }
     }
     
-    private func moveCamera(direction: RealityMovementDirection, deltaTime: Float, anchor: AnchorEntity) {
+    // 🎮 SIMPLIFIED: Basic left movement
+    private func moveLeft(deltaTime: Float, anchor: AnchorEntity) {
         let distance = movementSpeed * deltaTime
-        var translation = SIMD3<Float>(0, 0, 0)
         
-        // Calculate movement direction based on camera rotation
-        let yaw = cameraRotation.x
-        let pitch = cameraRotation.y
+        // Move camera position left (negative X)
+        cameraPosition.x -= distance
         
-        // Forward and right vectors based on yaw rotation
-        let forward = SIMD3<Float>(sin(yaw), 0, cos(yaw))
-        let right = SIMD3<Float>(cos(yaw), 0, -sin(yaw))
+        // Update the world anchor (negative because we move the world opposite to camera)
+        anchor.transform.translation = -cameraPosition
         
-        switch direction {
-        case .forward:
-            translation = forward * distance
-            if navigationMode == .god {
-                translation.y -= sin(pitch) * distance  // Allow vertical movement in god mode
-            }
-        case .backward:
-            translation = -forward * distance
-            if navigationMode == .god {
-                translation.y += sin(pitch) * distance
-            }
-        case .left:
-            translation = -right * distance
-        case .right:
-            translation = right * distance
-        case .up:
-            if navigationMode == .god {
-                translation = SIMD3<Float>(0, distance, 0)
-            }
-        case .down:
-            if navigationMode == .god {
-                translation = SIMD3<Float>(0, -distance, 0)
-            }
-        }
+        // 🎮 MAINTAIN PITCH: Keep the up/down look angle when moving
+        let pitchRotation = simd_quatf(angle: -cameraPitch, axis: [1, 0, 0])
+        anchor.transform.rotation = pitchRotation
         
-        // Apply movement
-        cameraPosition += translation
-        
-        // In walking mode, constrain to ground level
-        if navigationMode == .walking {
-            cameraPosition.y = walkingHeight
-        }
-        
-        // Update anchor position (RealityKit camera control)
-        anchor.transform.translation = -cameraPosition  // Negative because we move the world
-        
-        // Apply rotation
-        let rotationY = simd_quatf(angle: -cameraRotation.x, axis: SIMD3<Float>(0, 1, 0))
-        let rotationX = simd_quatf(angle: -cameraRotation.y, axis: SIMD3<Float>(1, 0, 0))
-        anchor.transform.rotation = rotationY * rotationX
+        print("🎮 SIMPLIFIED: Moved LEFT to position: \(cameraPosition)")
     }
     
-    private func toggleNavigationMode() {
-        navigationMode = navigationMode == .walking ? .god : .walking
-        print("🎮 Navigation Mode: \(navigationMode == .walking ? "🚶 Walking" : "👁️ God")")
+    // 🎮 SIMPLIFIED: Basic right movement  
+    private func moveRight(deltaTime: Float, anchor: AnchorEntity) {
+        let distance = movementSpeed * deltaTime
         
-        // Adjust camera position for new mode
-        if navigationMode == .walking {
-            cameraPosition.y = walkingHeight
-        } else {
-            if cameraPosition.y < 20 {
-                cameraPosition.y = 50  // Lift up for god mode overview
-            }
-        }
+        // Move camera position right (positive X)
+        cameraPosition.x += distance
+        
+        // Update the world anchor (negative because we move the world opposite to camera)
+        anchor.transform.translation = -cameraPosition
+        
+        // 🎮 MAINTAIN PITCH: Keep the up/down look angle when moving
+        let pitchRotation = simd_quatf(angle: -cameraPitch, axis: [1, 0, 0])
+        anchor.transform.rotation = pitchRotation
+        
+        print("🎮 SIMPLIFIED: Moved RIGHT to position: \(cameraPosition)")
+    }
+    
+    // 🎮 SIMPLIFIED: Basic forward movement
+    private func moveForward(deltaTime: Float, anchor: AnchorEntity) {
+        let distance = movementSpeed * deltaTime
+        
+        // 🔧 FIXED: Move camera position forward (negative Z in RealityKit)
+        cameraPosition.z -= distance
+        
+        // Update the world anchor (negative because we move the world opposite to camera)
+        anchor.transform.translation = -cameraPosition
+        
+        // 🎮 MAINTAIN PITCH: Keep the up/down look angle when moving
+        let pitchRotation = simd_quatf(angle: -cameraPitch, axis: [1, 0, 0])
+        anchor.transform.rotation = pitchRotation
+        
+        print("🎮 SIMPLIFIED: Moved FORWARD to position: \(cameraPosition)")
+    }
+    
+    // 🎮 SIMPLIFIED: Basic backward movement
+    private func moveBackward(deltaTime: Float, anchor: AnchorEntity) {
+        let distance = movementSpeed * deltaTime
+        
+        // 🔧 FIXED: Move camera position backward (positive Z in RealityKit)
+        cameraPosition.z += distance
+        
+        // Update the world anchor (negative because we move the world opposite to camera)
+        anchor.transform.translation = -cameraPosition
+        
+        // 🎮 MAINTAIN PITCH: Keep the up/down look angle when moving
+        let pitchRotation = simd_quatf(angle: -cameraPitch, axis: [1, 0, 0])
+        anchor.transform.rotation = pitchRotation
+        
+        print("🎮 SIMPLIFIED: Moved BACKWARD to position: \(cameraPosition)")
+    }
+    
+    // 🎮 SIMPLIFIED: No navigation mode toggle needed
+    
+    // MARK: - Helper Functions (matching SceneKit implementation)
+    
+    // Helper function to create SIMD3 vectors (removed SCNVector3 dependency)
+    private func createSIMD3(_ x: Float, _ y: Float, _ z: Float) -> SIMD3<Float> {
+        return SIMD3<Float>(x, y, z)
+    }
+    
+    // 🔒 ROLL-FREE ROTATION: Helper to create rotation quaternions with NO roll component
+    private func createRollFreeRotation(yaw: Float, pitch: Float) -> simd_quatf {
+        // Create rotations for ONLY yaw (Y-axis) and pitch (X-axis)
+        let yawRotation = simd_quatf(angle: -yaw, axis: [0, 1, 0])     // Y-axis only
+        let pitchRotation = simd_quatf(angle: -pitch, axis: [1, 0, 0]) // X-axis only
+        
+        // Combine rotations (NO Z-axis roll component)
+        return yawRotation * pitchRotation
+    }
+    
+    // 🎮 SIMPLIFIED: No collision checking needed
+    private func wouldCollide(at position: SIMD3<Float>) -> Bool {
+        return false  // No collision checking in simplified mode
+    }
+    
+    // 🎮 SIMPLIFIED: Helper functions removed
+    
+    // 🎮 SIMPLIFIED: Basic terrain height
+    private func getTerrainHeight(at position: SIMD3<Float>) -> Float {
+        return 0.0  // Flat ground for simplified mode
     }
 }
+
+// MARK: - Global Keyboard Monitoring System
+// Uses NSEvent monitoring for reliable keyboard capture
 
 // MARK: - Phase 2 Performance Metrics
 
