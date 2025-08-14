@@ -279,19 +279,139 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func setupGroundPlane(in anchor: Entity) {
-        print("🌍 [RealityKit] Creating ground plane...")
+        print("🌍 [RealityKit] Creating height-based biome terrain...")
         
-        // Create a large ground plane like SceneKit version
-        let groundMesh = MeshResource.generatePlane(width: 30, depth: 30)
-        var groundMaterial = SimpleMaterial(color: .brown, isMetallic: false)
-        groundMaterial.roughness = 0.8
+        let voxelWorld = simulationEngine.voxelWorld
+        let heightMap = voxelWorld.heightMap
+        let biomeMap = voxelWorld.biomeMap
+        let resolution = heightMap.count
         
-        let groundEntity = ModelEntity(mesh: groundMesh, materials: [groundMaterial])
-        groundEntity.position = [0, 0, 0]  // At world origin
-        groundEntity.name = "GroundPlane"
+        print("📊 [RealityKit] Processing \(resolution)x\(resolution) height map with biomes")
         
-        anchor.addChild(groundEntity)
-        print("✅ [RealityKit] Ground plane created (50x50)")
+        // Create terrain container
+        let terrainContainer = Entity()
+        terrainContainer.name = "BiomeTerrainContainer"
+        terrainContainer.position = [0, 0, 0]
+        
+        // Sample the height map at lower resolution for performance
+        let sampleRate = max(1, resolution / 16)  // 16x16 terrain patches
+        
+        for x in stride(from: 0, to: resolution, by: sampleRate) {
+            for z in stride(from: 0, to: resolution, by: sampleRate) {
+                let height = heightMap[x][z]
+                let biome = biomeMap[x][z]
+                
+                // Create terrain patch based on height and biome
+                let terrainPatch = createBiomeTerrainPatch(
+                    height: height, 
+                    biome: biome,
+                    position: [
+                        Float(x - resolution/2) * 0.5,  // Scale to world coordinates
+                        Float(height) * 0.1,             // Scale height appropriately  
+                        Float(z - resolution/2) * 0.5
+                    ]
+                )
+                
+                terrainContainer.addChild(terrainPatch)
+            }
+        }
+        
+        anchor.addChild(terrainContainer)
+        print("✅ [RealityKit] Height-based biome terrain created with \(resolution) elevation levels")
+    }
+    
+    @available(macOS 14.0, *)
+    private func createBiomeTerrainPatch(height: Double, biome: BiomeType, position: SIMD3<Float>) -> ModelEntity {
+        // Determine terrain patch size and color based on height and biome
+        let patchSize: Float
+        let terrainColor: NSColor
+        let isWater = height < -5  // Anything below -5m is water
+        
+        // Height-based terrain colors (matching SceneKit implementation)
+        if height < -20 {
+            terrainColor = NSColor.blue  // Deep water
+            patchSize = 2.0  // Larger water patches
+        } else if height < -5 {
+            terrainColor = NSColor.cyan  // Wetlands/shallow water
+            patchSize = 2.0  // Larger water patches
+        } else if height > 5 && height < 25 {
+            terrainColor = getBiomeColor(biome: biome)  // Biome-specific colors
+            patchSize = 1.0
+        } else if height > 30 {
+            terrainColor = NSColor.gray  // Mountains
+            patchSize = 1.2
+        } else if height > 15 {
+            terrainColor = NSColor.brown  // Hills
+            patchSize = 1.0
+        } else {
+            terrainColor = getBiomeColor(biome: biome)  // Plains with biome colors
+            patchSize = 1.0
+        }
+        
+        // Create mesh based on height type
+        let mesh: MeshResource
+        if isWater {
+            // Create smooth water surface with plane geometry
+            mesh = .generatePlane(width: patchSize, depth: patchSize)
+        } else if height > 15 {
+            // Use taller boxes for hills and mountains
+            mesh = .generateBox(width: patchSize, height: patchSize * 1.5, depth: patchSize)
+        } else {
+            // Use flatter boxes for plains
+            mesh = .generateBox(width: patchSize, height: patchSize * 0.5, depth: patchSize)
+        }
+        
+        // Create appropriate material for water vs land
+        let material: SimpleMaterial
+        if isWater {
+            material = createWaterMaterial(height: height)
+        } else {
+            material = SimpleMaterial(color: terrainColor, isMetallic: false)
+        }
+        
+        let terrainPatch = ModelEntity(mesh: mesh, materials: [material])
+        terrainPatch.position = position
+        
+        return terrainPatch
+    }
+    
+    @available(macOS 14.0, *)
+    private func createWaterMaterial(height: Double) -> SimpleMaterial {
+        var waterMaterial = SimpleMaterial()
+        
+        // Water color based on depth (deeper = darker blue)
+        let waterDepth = abs(height + 5) / 15.0  // Normalize depth (0-1)
+        let blueIntensity = 0.3 + (waterDepth * 0.7)  // Deeper water is more blue
+        
+        let waterColor = NSColor(
+            red: 0.0,
+            green: 0.3 + (waterDepth * 0.2),  // Slight green tint in shallow water
+            blue: blueIntensity,
+            alpha: 0.7  // Semi-transparent for water effect
+        )
+        
+        waterMaterial.color = .init(tint: waterColor)
+        waterMaterial.roughness = 0.1  // Very smooth water surface
+        waterMaterial.metallic = 0.8   // Reflective like water
+        
+        return waterMaterial
+    }
+    
+    @available(macOS 14.0, *)
+    private func getBiomeColor(biome: BiomeType) -> NSColor {
+        // Biome colors matching the SceneKit implementation
+        switch biome {
+        case .tundra: return NSColor.white
+        case .borealForest: return NSColor(red: 0.0, green: 0.5, blue: 0.0, alpha: 1.0)  // Dark green
+        case .temperateForest: return NSColor.green
+        case .temperateGrassland: return NSColor(red: 0.6, green: 0.8, blue: 0.2, alpha: 1.0)  // Light green
+        case .desert: return NSColor.orange
+        case .savanna: return NSColor.brown
+        case .tropicalRainforest: return NSColor(red: 0.0, green: 0.6, blue: 0.0, alpha: 1.0)  // Forest green
+        case .wetlands: return NSColor.cyan
+        case .alpine: return NSColor.lightGray
+        case .coastal: return NSColor.blue
+        }
     }
     
     @available(macOS 14.0, *)
