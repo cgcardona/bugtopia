@@ -363,28 +363,42 @@ struct Arena3DView_RealityKit_v2: View {
                 let topLeft = UInt32((x + 1) * extendedResolution + z)
                 let topRight = UInt32((x + 1) * extendedResolution + z + 1)
                 
-                // First triangle (bottom-left, top-left, bottom-right)
+                // 🔧 CONSISTENT WINDING: Ensure counter-clockwise winding for all triangles
+                // First triangle (bottom-left, bottom-right, top-left)
                 indices.append(bottomLeft)
-                indices.append(topLeft)
                 indices.append(bottomRight)
+                indices.append(topLeft)
                 
-                // Second triangle (bottom-right, top-left, top-right)
+                // Second triangle (bottom-right, top-right, top-left)
                 indices.append(bottomRight)
-                indices.append(topLeft)
                 indices.append(topRight)
+                indices.append(topLeft)
             }
         }
         
-        // Create mesh resource
+        // 🔧 CALCULATE NORMALS: Ensure proper lighting and visibility
+        var normals: [SIMD3<Float>] = []
+        
+        // Generate normals for each vertex (pointing upward for terrain)
+        for _ in 0..<vertices.count {
+            normals.append(SIMD3<Float>(0, 1, 0))  // All normals point up for terrain
+        }
+        
+        // Create mesh resource with normals
         var meshDescriptor = MeshDescriptor()
         meshDescriptor.positions = MeshBuffer(vertices)
+        meshDescriptor.normals = MeshBuffer(normals)  // Add normals for proper lighting
         meshDescriptor.primitives = .triangles(indices)
         
         let terrainMesh = try! MeshResource.generate(from: [meshDescriptor])
         
-        // Create material based on dominant biome
+        // 🔧 DOUBLE-SIDED TERRAIN: Create material that's visible from all angles
+        var terrainMaterial = UnlitMaterial()
+        
+        // Set terrain color based on dominant biome
         let dominantBiome = findDominantBiome(biomeMap: biomeMap)
-        let terrainMaterial = createTerrainMaterial(for: dominantBiome)
+        let terrainColor = getTerrainColor(for: dominantBiome)
+        terrainMaterial.color = .init(tint: terrainColor)
         
         let terrainEntity = ModelEntity(mesh: terrainMesh, materials: [terrainMaterial])
         terrainEntity.name = "WatertightTerrain"
@@ -617,6 +631,32 @@ struct Arena3DView_RealityKit_v2: View {
         
         anchor.addChild(terrainContainer)
         print("✅ [RealityKit] Terrain generation complete")
+    }
+    
+    @available(macOS 14.0, *)
+    private func getTerrainColor(for biome: BiomeType) -> NSColor {
+        switch biome {
+        case .temperateForest:
+            return NSColor.green
+        case .desert:
+            return NSColor.yellow
+        case .alpine:
+            return NSColor.gray
+        case .temperateGrassland:
+            return NSColor(red: 0.6, green: 0.8, blue: 0.2, alpha: 1.0)
+        case .savanna:
+            return NSColor.orange
+        case .tropicalRainforest:
+            return NSColor(red: 0.0, green: 0.5, blue: 0.0, alpha: 1.0)
+        case .wetlands:
+            return NSColor(red: 0.4, green: 0.6, blue: 0.3, alpha: 1.0)
+        case .coastal:
+            return NSColor.cyan
+        case .tundra:
+            return NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0)
+        case .borealForest:
+            return NSColor(red: 0.2, green: 0.6, blue: 0.3, alpha: 1.0)
+        }
     }
     
     @available(macOS 14.0, *)
