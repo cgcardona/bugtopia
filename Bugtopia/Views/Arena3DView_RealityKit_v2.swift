@@ -317,8 +317,8 @@ struct Arena3DView_RealityKit_v2: View {
     @available(macOS 14.0, *)
     private func createSmoothTerrainMesh(heightMap: [[Double]], biomeMap: [[BiomeType]], resolution: Int) -> ModelEntity {
         // Create a single smooth terrain mesh using height map data
-        let scale: Float = 2.0  // 🌍 FIXED: Full-scale world (was 0.5, too small)
-        let heightScale: Float = 1.0  // 🏔️ FIXED: Natural height scale (was 0.15, too compressed)
+        let scale: Float = 8.0  // 🚀 MASSIVE SCALE: 4x larger for SceneKit-style terrain (was 2.0)
+        let heightScale: Float = 0.8  // 🏔️ NAVIGABLE: Gentle slopes for bug navigation (was 1.0)
         
         var vertices: [SIMD3<Float>] = []
         var indices: [UInt32] = []
@@ -376,7 +376,7 @@ struct Arena3DView_RealityKit_v2: View {
         let waterContainer = Entity()
         waterContainer.name = "WaterSurfaces"
         
-        let scale: Float = 2.0  // 🌊 FIXED: Match terrain scale
+        let scale: Float = 8.0  // 🌊 MASSIVE SCALE: Match new terrain scale (was 2.0)
         let waterLevel: Double = -5.0  // Water level threshold
         
         // Find water areas and create smooth water planes
@@ -396,7 +396,7 @@ struct Arena3DView_RealityKit_v2: View {
         let waterMaterial = createWaterMaterial(height: waterLevel)
         
         let waterEntity = ModelEntity(mesh: waterMesh, materials: [waterMaterial])
-        waterEntity.position = [0, Float(waterLevel) * 0.15, 0]  // Position at water level
+        waterEntity.position = [0, Float(waterLevel) * 0.6, 0]  // 🌊 SCALE: Adjust water height for new scale
         waterEntity.name = "WaterPlane"
         
         waterContainer.addChild(waterEntity)
@@ -674,21 +674,16 @@ struct Arena3DView_RealityKit_v2: View {
         let bugsToShow = Array(simulationEngine.bugs.prefix(15))
         
         for (index, bug) in bugsToShow.enumerated() {
-            // Create species-specific bug geometry
-            let bugEntity = ModelEntity(
-                mesh: createBugMesh(for: bug),
-                materials: [createBugMaterial(for: bug)]
-            )
+            // 🚀 ADVANCED: Create detailed multi-part bug entity (ported from SceneKit)
+            let bugEntity = createDetailedBugEntity(for: bug, index: index)
             
-            // Position bugs in a simple grid pattern near the terrain
-            let gridSize = 4
-            let spacing: Float = 2.0
-            let row = index / gridSize
-            let col = index % gridSize
+            // 🌍 MASSIVE TERRAIN: Scatter bugs across the large terrain like in SceneKit
+            let terrainSize: Float = 8.0 * 32.0  // Match terrain scale * resolution
+            let bugX = Float.random(in: -terrainSize/2...terrainSize/2)
+            let bugZ = Float.random(in: -terrainSize/2...terrainSize/2)
             
-            let bugX = Float(col - gridSize/2) * spacing
-            let bugZ = Float(row - gridSize/2) * spacing  
-            let bugY: Float = 2.0  // Well above the ground
+            // 🏔️ TERRAIN FOLLOWING: Position bugs at appropriate height above terrain
+            let bugY = getTerrainHeightAtPosition(x: bugX, z: bugZ) + 3.0  // 3 units above terrain
             
             bugEntity.position = [bugX, bugY, bugZ]
             bugEntity.name = "Bug_\(index)"
@@ -697,30 +692,33 @@ struct Arena3DView_RealityKit_v2: View {
         }
         
         anchor.addChild(bugContainer)
-        print("✅ [RealityKit] Added \(bugsToShow.count) bug entities at positions:")
-        for (index, _) in bugsToShow.enumerated() {
-            let gridSize = 4
-            let spacing: Float = 2.0
-            let row = index / gridSize
-            let col = index % gridSize
-            let bugX = Float(col - gridSize/2) * spacing
-            let bugZ = Float(row - gridSize/2) * spacing
-            print("   Bug \(index): [\(bugX), 2.0, \(bugZ)]")
-        }
+        print("✅ [RealityKit] Added \(bugsToShow.count) bug entities scattered across large terrain")
     }
     
     @available(macOS 14.0, *)
     private func createBugMesh(for bug: Bug) -> MeshResource {
-        // Create different shapes based on species type
+        // 🚀 ADVANCED: Multi-part bug geometry system (simplified from SceneKit)
+        // Note: RealityKit doesn't support compound geometries as easily as SceneKit
+        // We'll create larger, more detailed single meshes for each species
+        
+        let size = Float(bug.dna.size * 2.0) // Scale for visibility
+        
         switch bug.dna.speciesTraits.speciesType {
         case .herbivore:
-            return .generateSphere(radius: 0.4)  // Round herbivores
+            // 🦋 Butterfly/Beetle-inspired: Elongated oval (elegant)
+            return .generateSphere(radius: size * 0.5)
+            
         case .carnivore:
-            return .generateBox(size: [0.8, 0.4, 0.8])  // Angular carnivores
+            // 🥊 Praying Mantis/Wasp-inspired: Angular predatory shape
+            return .generateBox(size: [size * 1.0, size * 0.6, size * 1.2])
+            
         case .omnivore:
-            return .generateCylinder(height: 0.8, radius: 0.4)  // Cylinder omnivores
+            // 🐜 Ant/Bee-inspired: Segmented cylindrical body
+            return .generateCylinder(height: size * 1.2, radius: size * 0.4)
+            
         case .scavenger:
-            return .generateBox(size: [0.6, 0.8, 0.6])  // Tall scavengers
+            // 🪰 Fly-inspired: Rounded opportunistic shape
+            return .generateBox(size: [size * 0.8, size * 1.0, size * 0.8])
         }
     }
     
@@ -728,28 +726,435 @@ struct Arena3DView_RealityKit_v2: View {
     private func createBugMaterial(for bug: Bug) -> SimpleMaterial {
         var material = SimpleMaterial()
         
-        // Color based on species type first, then energy level
-        let baseColor: NSColor
+        // 🧬 ADVANCED: Genetic material system inspired by SceneKit implementation
+        let geneticColor = createGeneticExpressedColor(for: bug)
+        
+        // Apply genetic color with species-specific properties
+        material.color = .init(tint: geneticColor)
+        
+        // 🎨 Species-specific material properties (ported from SceneKit)
         switch bug.dna.speciesTraits.speciesType {
         case .herbivore:
-            baseColor = .green
+            // 🦋 Butterfly/Beetle: Soft, organic feeling
+            material.metallic = 0.0
+            material.roughness = 0.8
+            
         case .carnivore:
-            baseColor = .red
+            // 🥊 Praying Mantis/Wasp: Slight menacing sheen
+            material.metallic = 0.3
+            material.roughness = 0.2
+            
         case .omnivore:
-            baseColor = .blue
+            // 🐜 Ant/Bee: Balanced texture
+            material.metallic = 0.1
+            material.roughness = 0.5
+            
         case .scavenger:
-            baseColor = .purple
+            // 🪰 Fly: Mysterious iridescence
+            material.metallic = 0.4
+            material.roughness = 0.3
         }
         
-        // Modify brightness based on energy level
-        let energyRatio = bug.energy / 100.0
-        let brightness = max(0.3, min(1.0, energyRatio))
+        // 🧬 Genetic traits affect material properties
+        let sizeEffect = Float(bug.dna.size)
+        let roughnessModifier = 0.7 + sizeEffect * 0.6
+        material.roughness = MaterialScalarParameter(floatLiteral: roughnessModifier)
         
-        material.color = .init(tint: baseColor.withAlphaComponent(brightness))
-        material.metallic = 0.2
-        material.roughness = 0.6
+        // Note: RealityKit SimpleMaterial doesn't have opacity, using color alpha instead
+        // Camouflage will be handled through color transparency
         
         return material
+    }
+    
+    @available(macOS 14.0, *)
+    private func createGeneticExpressedColor(for bug: Bug) -> NSColor {
+        // 🧬 GENETIC COLOR EXPRESSION: DNA determines visual appearance
+        let species = bug.dna.speciesTraits.speciesType
+        
+        // Base species colors (enhanced from SceneKit)
+        let baseHue: Double
+        
+        switch species {
+        case .herbivore:
+            baseHue = 0.25 // Green range
+            
+        case .carnivore:
+            baseHue = 0.05 // Red range
+            
+        case .omnivore:
+            baseHue = 0.15 // Orange range
+            
+        case .scavenger:
+            baseHue = 0.75 // Purple range
+        }
+        
+        // 🧬 Apply genetic variation based on DNA
+        let geneticVariation = hashBugGenes(bug: bug)
+        let hueShift = (geneticVariation - 0.5) * 0.3 // ±15% hue variation
+        let finalHue = baseHue + hueShift
+        
+        // Energy level affects brightness
+        let energyRatio = bug.energy / 100.0
+        let brightness = max(0.4, min(1.0, energyRatio))
+        
+        // Age affects color saturation
+        let ageEffect = min(1.0, Double(bug.age) / Double(Bug.maxAge))
+        let saturation = max(0.3, 1.0 - (ageEffect * 0.4)) // Older bugs are less saturated
+        
+        // Convert HSB to RGB for final color
+        return NSColor(hue: finalHue, saturation: saturation, brightness: brightness, alpha: 1.0)
+    }
+    
+    @available(macOS 14.0, *)
+    private func hashBugGenes(bug: Bug) -> Double {
+        // 🧬 Create a stable hash from bug's genetic properties for consistent coloring
+        let hashString = "\(bug.dna.size)\(bug.dna.speed)\(bug.dna.strength)\(bug.dna.camouflage)"
+        let hash = hashString.hash
+        return Double(abs(hash) % 1000) / 1000.0 // Normalize to 0-1 range
+    }
+    
+    @available(macOS 14.0, *)
+    private func createDetailedBugEntity(for bug: Bug, index: Int) -> Entity {
+        // 🚀 ADVANCED: Multi-part bug entity system (ported from SceneKit)
+        let bugEntity = Entity()
+        bugEntity.name = "DetailedBug_\(index)"
+        
+        let size = Float(bug.dna.size * 2.0) // Scale for visibility
+        let species = bug.dna.speciesTraits.speciesType
+        
+        // Create species-specific detailed body parts
+        switch species {
+        case .herbivore:
+            createDetailedHerbivoreEntity(bug: bug, size: size, parentEntity: bugEntity)
+        case .carnivore:
+            createDetailedCarnivoreEntity(bug: bug, size: size, parentEntity: bugEntity)
+        case .omnivore:
+            createDetailedOmnivoreEntity(bug: bug, size: size, parentEntity: bugEntity)
+        case .scavenger:
+            createDetailedScavengerEntity(bug: bug, size: size, parentEntity: bugEntity)
+        }
+        
+        // Add movement capabilities indicators
+        if bug.canFly {
+            addWings(to: bugEntity, bug: bug, size: size)
+        }
+        
+        if bug.canSwim {
+            addFins(to: bugEntity, bug: bug, size: size)
+        }
+        
+        if bug.canClimb {
+            addClimbingGear(to: bugEntity, bug: bug, size: size)
+        }
+        
+        // Scale entire bug for visibility (matching SceneKit's 2x scale)
+        bugEntity.scale = [2.0, 2.0, 2.0]
+        
+        return bugEntity
+    }
+    
+    @available(macOS 14.0, *)
+    private func createDetailedHerbivoreEntity(bug: Bug, size: Float, parentEntity: Entity) {
+        // 🦋 Butterfly/Beetle-inspired multi-part body
+        
+        // 1. HEAD: Small rounded head
+        let headEntity = ModelEntity(
+            mesh: .generateSphere(radius: size * 0.3),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .head)]
+        )
+        headEntity.position = [0, size * 0.8, 0]
+        headEntity.name = "Head"
+        parentEntity.addChild(headEntity)
+        
+        // 2. THORAX: Elongated main body
+        let thoraxEntity = ModelEntity(
+            mesh: .generateSphere(radius: size * 0.5),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .thorax)]
+        )
+        thoraxEntity.scale = [1.0, 1.4, 0.8] // Elongated
+        thoraxEntity.position = [0, 0, 0]
+        thoraxEntity.name = "Thorax"
+        parentEntity.addChild(thoraxEntity)
+        
+        // 3. ABDOMEN: Segmented abdomen
+        let abdomenEntity = ModelEntity(
+            mesh: .generateSphere(radius: size * 0.4),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .abdomen)]
+        )
+        abdomenEntity.scale = [0.9, 1.6, 0.7] // Long and narrow
+        abdomenEntity.position = [0, -size * 0.9, 0]
+        abdomenEntity.name = "Abdomen"
+        parentEntity.addChild(abdomenEntity)
+        
+        // 4. ANTENNAE: Thin antennae
+        for i in 0..<2 {
+            let antennaEntity = ModelEntity(
+                mesh: .generateCylinder(height: size * 0.6, radius: size * 0.05),
+                materials: [createGeneticMaterial(for: bug, bodyPart: .antennae)]
+            )
+            let angle = Float(i) * Float.pi - Float.pi / 2 // Left and right
+            antennaEntity.position = [sin(angle) * size * 0.2, size * 1.0, cos(angle) * size * 0.1]
+            antennaEntity.name = "Antenna_\(i)"
+            parentEntity.addChild(antennaEntity)
+        }
+    }
+    
+    @available(macOS 14.0, *)
+    private func createDetailedCarnivoreEntity(bug: Bug, size: Float, parentEntity: Entity) {
+        // 🥊 Praying Mantis/Wasp-inspired predatory body
+        
+        // 1. HEAD: Triangular predatory head
+        let headEntity = ModelEntity(
+            mesh: .generateBox(size: [size * 0.4, size * 0.3, size * 0.5]),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .head)]
+        )
+        headEntity.position = [0, size * 0.9, 0]
+        headEntity.name = "Head"
+        parentEntity.addChild(headEntity)
+        
+        // 2. THORAX: Angular muscular thorax
+        let thoraxEntity = ModelEntity(
+            mesh: .generateBox(size: [size * 0.6, size * 0.8, size * 1.0]),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .thorax)]
+        )
+        thoraxEntity.position = [0, 0, 0]
+        thoraxEntity.name = "Thorax"
+        parentEntity.addChild(thoraxEntity)
+        
+        // 3. NARROW WAIST: Characteristic wasp waist
+        let waistEntity = ModelEntity(
+            mesh: .generateCylinder(height: size * 0.3, radius: size * 0.15),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .waist)]
+        )
+        waistEntity.position = [0, -size * 0.6, 0]
+        waistEntity.name = "Waist"
+        parentEntity.addChild(waistEntity)
+        
+        // 4. ABDOMEN: Pointed abdomen
+        let abdomenEntity = ModelEntity(
+            mesh: .generateSphere(radius: size * 0.4),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .abdomen)]
+        )
+        abdomenEntity.scale = [1.0, 1.5, 0.8] // Pointed
+        abdomenEntity.position = [0, -size * 1.2, 0]
+        abdomenEntity.name = "Abdomen"
+        parentEntity.addChild(abdomenEntity)
+    }
+    
+    @available(macOS 14.0, *)
+    private func createDetailedOmnivoreEntity(bug: Bug, size: Float, parentEntity: Entity) {
+        // 🐜 Ant/Bee-inspired segmented body
+        
+        // 1. HEAD: Rounded head with mandibles
+        let headEntity = ModelEntity(
+            mesh: .generateSphere(radius: size * 0.35),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .head)]
+        )
+        headEntity.position = [0, size * 0.8, 0]
+        headEntity.name = "Head"
+        parentEntity.addChild(headEntity)
+        
+        // 2. THORAX: Segmented capsule thorax
+        let thoraxEntity = ModelEntity(
+            mesh: .generateCylinder(height: size * 0.8, radius: size * 0.4), // Approximating capsule
+            materials: [createGeneticMaterial(for: bug, bodyPart: .thorax)]
+        )
+        thoraxEntity.position = [0, 0, 0]
+        thoraxEntity.name = "Thorax"
+        parentEntity.addChild(thoraxEntity)
+        
+        // 3. NARROW CONNECTOR: Petiole (ant waist)
+        let connectorEntity = ModelEntity(
+            mesh: .generateCylinder(height: size * 0.2, radius: size * 0.1),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .waist)]
+        )
+        connectorEntity.position = [0, -size * 0.6, 0]
+        connectorEntity.name = "Connector"
+        parentEntity.addChild(connectorEntity)
+        
+        // 4. ABDOMEN: Large segmented abdomen
+        let abdomenEntity = ModelEntity(
+            mesh: .generateSphere(radius: size * 0.5),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .abdomen)]
+        )
+        abdomenEntity.scale = [1.0, 1.3, 1.0]
+        abdomenEntity.position = [0, -size * 1.0, 0]
+        abdomenEntity.name = "Abdomen"
+        parentEntity.addChild(abdomenEntity)
+    }
+    
+    @available(macOS 14.0, *)
+    private func createDetailedScavengerEntity(bug: Bug, size: Float, parentEntity: Entity) {
+        // 🪰 Fly-inspired rounded opportunistic body
+        
+        // 1. HEAD: Large compound-eyed head
+        let headEntity = ModelEntity(
+            mesh: .generateSphere(radius: size * 0.4),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .head)]
+        )
+        headEntity.position = [0, size * 0.7, 0]
+        headEntity.name = "Head"
+        parentEntity.addChild(headEntity)
+        
+        // 2. THORAX: Robust rounded thorax
+        let thoraxEntity = ModelEntity(
+            mesh: .generateSphere(radius: size * 0.6),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .thorax)]
+        )
+        thoraxEntity.scale = [1.2, 0.8, 1.0] // Wide and flat
+        thoraxEntity.position = [0, 0, 0]
+        thoraxEntity.name = "Thorax"
+        parentEntity.addChild(thoraxEntity)
+        
+        // 3. ABDOMEN: Large rounded abdomen
+        let abdomenEntity = ModelEntity(
+            mesh: .generateSphere(radius: size * 0.5),
+            materials: [createGeneticMaterial(for: bug, bodyPart: .abdomen)]
+        )
+        abdomenEntity.scale = [1.1, 1.4, 1.0]
+        abdomenEntity.position = [0, -size * 0.8, 0]
+        abdomenEntity.name = "Abdomen"
+        parentEntity.addChild(abdomenEntity)
+    }
+    
+    // 🎨 Body part types for genetic material variation
+    enum BugBodyPart {
+        case head, thorax, abdomen, waist, antennae, legs, wings, fins
+    }
+    
+    @available(macOS 14.0, *)
+    private func createGeneticMaterial(for bug: Bug, bodyPart: BugBodyPart) -> SimpleMaterial {
+        // 🧬 Create specialized materials for different body parts
+        var material = SimpleMaterial()
+        
+        // Base genetic color
+        let baseColor = createGeneticExpressedColor(for: bug)
+        
+        // Body part specific variations
+        let partColor: NSColor
+        switch bodyPart {
+        case .head:
+            // Heads are slightly brighter
+            let brightness = min(1.0, baseColor.brightnessComponent * 1.2)
+            partColor = NSColor(hue: baseColor.hueComponent, saturation: baseColor.saturationComponent, brightness: brightness, alpha: 1.0)
+        case .thorax:
+            // Thorax uses base color
+            partColor = baseColor
+        case .abdomen:
+            // Abdomen is slightly darker
+            let brightness = max(0.2, baseColor.brightnessComponent * 0.8)
+            partColor = NSColor(hue: baseColor.hueComponent, saturation: baseColor.saturationComponent, brightness: brightness, alpha: 1.0)
+        case .waist, .antennae:
+            // Smaller parts are darker and more subdued
+            let saturation = max(0.3, baseColor.saturationComponent * 0.6)
+            partColor = NSColor(hue: baseColor.hueComponent, saturation: saturation, brightness: baseColor.brightnessComponent, alpha: 1.0)
+        case .legs:
+            // Legs are darker and less saturated
+            partColor = NSColor.darkGray
+        case .wings:
+            // Wings are translucent
+            partColor = NSColor(hue: baseColor.hueComponent, saturation: baseColor.saturationComponent, brightness: baseColor.brightnessComponent, alpha: 0.6)
+        case .fins:
+            // Fins have a blue tint
+            partColor = NSColor(hue: 0.6, saturation: 0.7, brightness: baseColor.brightnessComponent, alpha: 1.0) // Blue tint
+        }
+        
+        material.color = .init(tint: partColor)
+        
+        // Body part specific material properties
+        switch bodyPart {
+        case .head:
+            material.metallic = 0.1
+            material.roughness = 0.7
+        case .thorax, .abdomen:
+            material.metallic = 0.0
+            material.roughness = 0.8
+        case .waist, .antennae:
+            material.metallic = 0.2
+            material.roughness = 0.5
+        case .legs:
+            material.metallic = 0.3
+            material.roughness = 0.4
+        case .wings:
+            material.metallic = 0.0
+            material.roughness = 0.1
+            // Note: Transparency handled in color alpha, not separate opacity property
+        case .fins:
+            material.metallic = 0.4
+            material.roughness = 0.2
+        }
+        
+        return material
+    }
+    
+    @available(macOS 14.0, *)
+    private func addWings(to bugEntity: Entity, bug: Bug, size: Float) {
+        // 🦋 Add wings for flying bugs
+        for i in 0..<2 {
+            let wingEntity = ModelEntity(
+                mesh: .generatePlane(width: size * 0.8, height: size * 0.4),
+                materials: [createGeneticMaterial(for: bug, bodyPart: .wings)]
+            )
+            let side = i == 0 ? -1.0 : 1.0
+            wingEntity.position = [Float(side) * size * 0.6, size * 0.3, 0]
+            wingEntity.transform.rotation = simd_quatf(angle: Float.pi * 0.1, axis: [0, 0, 1])
+            wingEntity.name = "Wing_\(i)"
+            bugEntity.addChild(wingEntity)
+        }
+    }
+    
+    @available(macOS 14.0, *)
+    private func addFins(to bugEntity: Entity, bug: Bug, size: Float) {
+        // 🐟 Add fins for swimming bugs
+        for i in 0..<4 {
+            let finEntity = ModelEntity(
+                mesh: .generatePlane(width: size * 0.3, height: size * 0.2),
+                materials: [createGeneticMaterial(for: bug, bodyPart: .fins)]
+            )
+            let angle = Float(i) * Float.pi / 2
+            finEntity.position = [sin(angle) * size * 0.4, 0, cos(angle) * size * 0.4]
+            finEntity.name = "Fin_\(i)"
+            bugEntity.addChild(finEntity)
+        }
+    }
+    
+    @available(macOS 14.0, *)
+    private func addClimbingGear(to bugEntity: Entity, bug: Bug, size: Float) {
+        // 🧗 Add climbing appendages for climbing bugs
+        for i in 0..<6 {
+            let legEntity = ModelEntity(
+                mesh: .generateCylinder(height: size * 0.4, radius: size * 0.03),
+                materials: [createGeneticMaterial(for: bug, bodyPart: .legs)]
+            )
+            let angle = Float(i) * Float.pi / 3
+            legEntity.position = [sin(angle) * size * 0.5, -size * 0.2, cos(angle) * size * 0.5]
+            legEntity.transform.rotation = simd_quatf(angle: Float.pi * 0.5, axis: [1, 0, 0])
+            legEntity.name = "ClimbingLeg_\(i)"
+            bugEntity.addChild(legEntity)
+        }
+    }
+    
+    @available(macOS 14.0, *)
+    private func getTerrainHeightAtPosition(x: Float, z: Float) -> Float {
+        // 🏔️ TERRAIN HEIGHT: Sample height from simulation's height map
+        let voxelWorld = simulationEngine.voxelWorld
+        let heightMap = voxelWorld.heightMap
+        let resolution = heightMap.count
+        
+        // Convert world position to height map coordinates
+        let terrainSize: Float = 8.0 * 32.0  // Match terrain scale * resolution
+        let normalizedX = (x + terrainSize/2) / terrainSize  // 0-1 range
+        let normalizedZ = (z + terrainSize/2) / terrainSize  // 0-1 range
+        
+        // Clamp to valid range and sample height map
+        let clampedX = max(0, min(0.99, normalizedX))
+        let clampedZ = max(0, min(0.99, normalizedZ))
+        
+        let mapX = Int(clampedX * Float(resolution))
+        let mapZ = Int(clampedZ * Float(resolution))
+        
+        let height = heightMap[mapX][mapZ]
+        return Float(height) * 0.8  // Match heightScale from terrain creation
     }
     
     @available(macOS 14.0, *)
@@ -800,8 +1205,8 @@ struct Arena3DView_RealityKit_v2: View {
         let groupEntity = Entity()
         groupEntity.name = "Terrain_\(terrainType.rawValue)"
         
-        // Limit voxels per type for initial testing
-        let maxVoxelsPerType = min(20, voxels.count)
+        // 🚀 MASSIVE INCREASE: More voxels for larger world (was 20)
+        let maxVoxelsPerType = min(100, voxels.count)
         let renderVoxels = Array(voxels.prefix(maxVoxelsPerType))
         
         for voxel in renderVoxels {
@@ -811,8 +1216,8 @@ struct Arena3DView_RealityKit_v2: View {
             )
             
             // Convert Bugtopia coordinates to RealityKit coordinates
-            // 🌍 FIXED: Use full-scale coordinates (was 0.1, too tiny)
-            let scale: Float = 1.0
+            // 🚀 MASSIVE SCALE: Scale up voxel positions for large world
+            let scale: Float = 4.0  // 4x larger voxel spacing (was 1.0)
             voxelEntity.position = SIMD3<Float>(
                 Float(voxel.position.x) * scale,
                 Float(voxel.position.z) * scale, // Z becomes Y (up)
