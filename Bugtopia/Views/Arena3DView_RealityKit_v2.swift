@@ -320,28 +320,48 @@ struct Arena3DView_RealityKit_v2: View {
         // Create a single smooth terrain mesh using height map data
         let scale: Float = 8.0  // 🚀 MASSIVE SCALE: 4x larger for SceneKit-style terrain (was 2.0)
         let heightScale: Float = 0.8  // 🏔️ NAVIGABLE: Gentle slopes for bug navigation (was 1.0)
+        let minHeight: Float = -20.0  // 🌊 WATERTIGHT: Minimum terrain floor height
         
         var vertices: [SIMD3<Float>] = []
         var indices: [UInt32] = []
         
-        // Generate vertices from height map
-        for x in 0..<resolution {
-            for z in 0..<resolution {
-                let worldX = Float(x - resolution/2) * scale
-                let worldZ = Float(z - resolution/2) * scale
-                let worldY = Float(heightMap[x][z]) * heightScale
+        // 🌍 WATERTIGHT TERRAIN: Create extended resolution for seamless edges
+        let extendedResolution = resolution + 4  // Add 2 vertices on each side for skirts
+        let offset = 2  // Offset for the original heightmap within extended grid
+        
+        // Generate vertices with extended bounds and edge skirts
+        for x in 0..<extendedResolution {
+            for z in 0..<extendedResolution {
+                let worldX = Float(x - extendedResolution/2) * scale
+                let worldZ = Float(z - extendedResolution/2) * scale
+                
+                var worldY: Float
+                
+                // 🏔️ TERRAIN HEIGHT: Use heightmap data or create edge skirts
+                if x >= offset && x < (resolution + offset) && z >= offset && z < (resolution + offset) {
+                    // Inside original heightmap bounds
+                    let heightMapX = x - offset
+                    let heightMapZ = z - offset
+                    worldY = Float(heightMap[heightMapX][heightMapZ]) * heightScale
+                } else {
+                    // Outside bounds - create low skirt to seal terrain
+                    worldY = minHeight
+                }
+                
+                // Ensure no vertex goes below minimum floor
+                worldY = max(worldY, minHeight)
                 
                 vertices.append(SIMD3<Float>(worldX, worldY, worldZ))
             }
         }
         
-        // Generate triangle indices for the mesh
-        for x in 0..<(resolution-1) {
-            for z in 0..<(resolution-1) {
-                let bottomLeft = UInt32(x * resolution + z)
-                let bottomRight = UInt32(x * resolution + z + 1)
-                let topLeft = UInt32((x + 1) * resolution + z)
-                let topRight = UInt32((x + 1) * resolution + z + 1)
+        // Generate triangle indices for the extended mesh (includes skirts)
+        for x in 0..<(extendedResolution-1) {
+            for z in 0..<(extendedResolution-1) {
+                let bottomLeft = UInt32(x * extendedResolution + z)
+                let bottomRight = UInt32(x * extendedResolution + z + 1)
+                let topLeft = UInt32((x + 1) * extendedResolution + z)
+                let topRight = UInt32((x + 1) * extendedResolution + z + 1)
                 
                 // First triangle (bottom-left, top-left, bottom-right)
                 indices.append(bottomLeft)
@@ -367,7 +387,10 @@ struct Arena3DView_RealityKit_v2: View {
         let terrainMaterial = createTerrainMaterial(for: dominantBiome)
         
         let terrainEntity = ModelEntity(mesh: terrainMesh, materials: [terrainMaterial])
-        terrainEntity.name = "SmoothTerrain"
+        terrainEntity.name = "WatertightTerrain"
+        
+        print("🌍 [RealityKit] Created watertight terrain: \(vertices.count) vertices, \(indices.count/3) triangles")
+        print("📐 [RealityKit] Extended resolution: \(extendedResolution)x\(extendedResolution) (was \(resolution)x\(resolution))")
         
         return terrainEntity
     }
@@ -392,19 +415,19 @@ struct Arena3DView_RealityKit_v2: View {
         }
         
         // Only add water if there are significant valley areas
-        if waterAreaCount > (resolution * resolution) / 20 {  // At least 5% of terrain below water
-            // Create smaller water planes only in low areas
-            let waterSize = Float(resolution) * scale * 0.3  // 🌊 SMALLER: Only cover valleys (was full size)
+        if waterAreaCount > (resolution * resolution) / 50 {  // 🌊 LESS WATER: Only 2% threshold (was 5%)
+            // Create large water plane that integrates with terrain edges
+            let waterSize = Float(resolution + 4) * scale  // 🌊 FULL COVERAGE: Match extended terrain bounds
             let waterMesh = MeshResource.generatePlane(width: waterSize, depth: waterSize)
             let waterMaterial = createWaterMaterial(height: waterLevel)
             
             let waterEntity = ModelEntity(mesh: waterMesh, materials: [waterMaterial])
-            waterEntity.position = [0, Float(waterLevel) * 0.8, 0]  // 🌊 LOWER: Deep in valleys
-            waterEntity.name = "ValleyWater"
+            waterEntity.position = [0, Float(waterLevel) * 0.8, 0]  // 🌊 INTEGRATED: Match terrain floor level
+            waterEntity.name = "IntegratedWater"
             
             waterContainer.addChild(waterEntity)
             
-            print("🌊 [RealityKit] Created valley water in \(waterAreaCount) low areas")
+            print("🌊 [RealityKit] Created integrated water plane covering \(waterAreaCount) valley areas")
         } else {
             print("🏔️ [RealityKit] No significant valleys found - skipping water")
         }
