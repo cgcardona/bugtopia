@@ -512,11 +512,11 @@ struct Arena3DView_RealityKit_v2: View {
         }
         
         // Create appropriate material for water vs land
-        let material: SimpleMaterial
+        let material: RealityKit.Material
         if isWater {
             material = createWaterMaterial(height: height)
         } else {
-            material = SimpleMaterial(color: terrainColor, isMetallic: false)
+            material = UnlitMaterial(color: terrainColor)
         }
         
         let terrainPatch = ModelEntity(mesh: mesh, materials: [material])
@@ -526,9 +526,10 @@ struct Arena3DView_RealityKit_v2: View {
     }
     
     @available(macOS 14.0, *)
-    private func createWaterMaterial(height: Double) -> SimpleMaterial {
-        var waterMaterial = SimpleMaterial()
+    private func createWaterMaterial(height: Double) -> UnlitMaterial {
+        var waterMaterial = UnlitMaterial()
         
+        // 🔧 CONSISTENT VISIBILITY: Use UnlitMaterial like terrain for backface culling fix
         // Water color based on depth (deeper = darker blue)
         let waterDepth = abs(height + 5) / 15.0  // Normalize depth (0-1)
         let blueIntensity = 0.3 + (waterDepth * 0.7)  // Deeper water is more blue
@@ -541,8 +542,6 @@ struct Arena3DView_RealityKit_v2: View {
         )
         
         waterMaterial.color = .init(tint: waterColor)
-        waterMaterial.roughness = 0.1  // Very smooth water surface
-        waterMaterial.metallic = 0.8   // Reflective like water
         
         return waterMaterial
     }
