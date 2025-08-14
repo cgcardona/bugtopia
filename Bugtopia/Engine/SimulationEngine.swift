@@ -170,11 +170,11 @@ class SimulationEngine {
         // Uncomment if you want to randomly select a world type
         // let wordType = WorldType3D.allCases.randomElement() ?? .continental3D
         // Uncomment if you want to test a specific world type
-        let worldType = WorldType3D.abyss3D
+        // let worldType = WorldType3D.abyss3D
         // let worldType = WorldType3D.archipelago3D
         // let worldType = WorldType3D.canyon3D
         // let worldType = WorldType3D.cavern3D
-        // let worldType = WorldType3D.continental3D
+        let worldType = WorldType3D.continental3D
         // let worldType = WorldType3D.skylands3D
         // let worldType = WorldType3D.volcano3D
         self.currentWorldType = worldType

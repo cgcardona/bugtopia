@@ -9,6 +9,17 @@
 import SwiftUI
 import RealityKit
 import simd
+import CoreGraphics
+
+// Navigation enums and classes (RealityKit-specific to avoid conflicts)
+enum RealityNavigationMode {
+    case walking
+    case god
+}
+
+enum RealityMovementDirection {
+    case forward, backward, left, right, up, down
+}
 
 /// 🚀 PHASE 2: Working RealityKit Implementation
 /// Properly implemented with Entity-Component-System architecture
@@ -18,6 +29,17 @@ struct Arena3DView_RealityKit_v2: View {
     
     let simulationEngine: SimulationEngine
     
+    // MARK: - Navigation System
+    
+    @State private var navigationMode: RealityNavigationMode = .god
+    @State private var pressedKeys: Set<UInt16> = []
+    @State private var lastUpdateTime = CACurrentMediaTime()
+    @State private var movementSpeed: Float = 50.0
+    @State private var walkingHeight: Float = 5.0
+    @State private var sceneAnchor: AnchorEntity?
+    @State private var cameraRotation = SIMD2<Float>(0, 0)  // yaw, pitch
+    @State private var cameraPosition = SIMD3<Float>(0, 5, -8)  // Current camera position
+    
     // MARK: - Selection System
     
     var onBugSelected: ((Bug?) -> Void)?
@@ -26,7 +48,6 @@ struct Arena3DView_RealityKit_v2: View {
     // MARK: - Entity Management
     
     @StateObject private var bugEntityManager = BugEntityManager()
-    @State private var sceneAnchor: AnchorEntity?
     
     // MARK: - Performance Tracking
     
@@ -35,11 +56,7 @@ struct Arena3DView_RealityKit_v2: View {
     @State private var currentFPS: Double = 0.0
     @State private var performanceMetrics = Phase2PerformanceMetrics()
     
-    // MARK: - Camera Navigation
-    
-    @State private var cameraPosition: SIMD3<Float> = [0, 5, 10]
-    @State private var cameraRotation: SIMD3<Float> = [0, 0, 0]
-    @State private var isDragging: Bool = false
+    // MARK: - Camera Navigation (legacy - removed duplicates)
     
     // MARK: - Debug
     
@@ -117,10 +134,13 @@ struct Arena3DView_RealityKit_v2: View {
         .gesture(
             DragGesture()
                 .onChanged { value in
-                    // Implement camera rotation on drag
+                    // Handle trackpad/mouse look-around (yaw and pitch only, no roll)
                     handleCameraDrag(translation: value.translation)
                 }
         )
+        .onAppear {
+            startNavigationUpdates()
+        }
         .overlay(alignment: .bottomTrailing) {
             // Simple overlay to confirm RealityView is active
             Text("🌍 RealityKit Active")
@@ -279,45 +299,141 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func setupGroundPlane(in anchor: Entity) {
-        print("🌍 [RealityKit] Creating height-based biome terrain...")
+        print("🌍 [RealityKit] Creating smooth navigable terrain...")
         
         let voxelWorld = simulationEngine.voxelWorld
         let heightMap = voxelWorld.heightMap
         let biomeMap = voxelWorld.biomeMap
         let resolution = heightMap.count
         
-        print("📊 [RealityKit] Processing \(resolution)x\(resolution) height map with biomes")
+        print("📊 [RealityKit] Processing \(resolution)x\(resolution) height map for smooth terrain")
         
-        // Create terrain container
+        // Create main terrain container
         let terrainContainer = Entity()
-        terrainContainer.name = "BiomeTerrainContainer"
+        terrainContainer.name = "SmoothTerrainContainer"
         terrainContainer.position = [0, 0, 0]
         
-        // Sample the height map at lower resolution for performance
-        let sampleRate = max(1, resolution / 16)  // 16x16 terrain patches
+        // Create smooth terrain mesh from height map
+        let smoothTerrain = createSmoothTerrainMesh(heightMap: heightMap, biomeMap: biomeMap, resolution: resolution)
+        terrainContainer.addChild(smoothTerrain)
         
-        for x in stride(from: 0, to: resolution, by: sampleRate) {
-            for z in stride(from: 0, to: resolution, by: sampleRate) {
-                let height = heightMap[x][z]
-                let biome = biomeMap[x][z]
+        // Add water surfaces for areas below water level
+        let waterSurfaces = createWaterSurfaces(heightMap: heightMap, resolution: resolution)
+        terrainContainer.addChild(waterSurfaces)
+        
+        anchor.addChild(terrainContainer)
+        print("✅ [RealityKit] Smooth navigable terrain created for bug movement")
+    }
+    
+    @available(macOS 14.0, *)
+    private func createSmoothTerrainMesh(heightMap: [[Double]], biomeMap: [[BiomeType]], resolution: Int) -> ModelEntity {
+        // Create a single smooth terrain mesh using height map data
+        let scale: Float = 0.5  // Scale factor for world coordinates
+        let heightScale: Float = 0.15  // Scale factor for height
+        
+        var vertices: [SIMD3<Float>] = []
+        var indices: [UInt32] = []
+        
+        // Generate vertices from height map
+        for x in 0..<resolution {
+            for z in 0..<resolution {
+                let worldX = Float(x - resolution/2) * scale
+                let worldZ = Float(z - resolution/2) * scale
+                let worldY = Float(heightMap[x][z]) * heightScale
                 
-                // Create terrain patch based on height and biome
-                let terrainPatch = createBiomeTerrainPatch(
-                    height: height, 
-                    biome: biome,
-                    position: [
-                        Float(x - resolution/2) * 0.5,  // Scale to world coordinates
-                        Float(height) * 0.1,             // Scale height appropriately  
-                        Float(z - resolution/2) * 0.5
-                    ]
-                )
-                
-                terrainContainer.addChild(terrainPatch)
+                vertices.append(SIMD3<Float>(worldX, worldY, worldZ))
             }
         }
         
-        anchor.addChild(terrainContainer)
-        print("✅ [RealityKit] Height-based biome terrain created with \(resolution) elevation levels")
+        // Generate triangle indices for the mesh
+        for x in 0..<(resolution-1) {
+            for z in 0..<(resolution-1) {
+                let bottomLeft = UInt32(x * resolution + z)
+                let bottomRight = UInt32(x * resolution + z + 1)
+                let topLeft = UInt32((x + 1) * resolution + z)
+                let topRight = UInt32((x + 1) * resolution + z + 1)
+                
+                // First triangle (bottom-left, top-left, bottom-right)
+                indices.append(bottomLeft)
+                indices.append(topLeft)
+                indices.append(bottomRight)
+                
+                // Second triangle (bottom-right, top-left, top-right)
+                indices.append(bottomRight)
+                indices.append(topLeft)
+                indices.append(topRight)
+            }
+        }
+        
+        // Create mesh resource
+        var meshDescriptor = MeshDescriptor()
+        meshDescriptor.positions = MeshBuffer(vertices)
+        meshDescriptor.primitives = .triangles(indices)
+        
+        let terrainMesh = try! MeshResource.generate(from: [meshDescriptor])
+        
+        // Create material based on dominant biome
+        let dominantBiome = findDominantBiome(biomeMap: biomeMap)
+        let terrainMaterial = createTerrainMaterial(for: dominantBiome)
+        
+        let terrainEntity = ModelEntity(mesh: terrainMesh, materials: [terrainMaterial])
+        terrainEntity.name = "SmoothTerrain"
+        
+        return terrainEntity
+    }
+    
+    @available(macOS 14.0, *)
+    private func createWaterSurfaces(heightMap: [[Double]], resolution: Int) -> Entity {
+        let waterContainer = Entity()
+        waterContainer.name = "WaterSurfaces"
+        
+        let scale: Float = 0.5
+        let waterLevel: Double = -5.0  // Water level threshold
+        
+        // Find water areas and create smooth water planes
+        var waterAreas: [[Bool]] = Array(repeating: Array(repeating: false, count: resolution), count: resolution)
+        
+        for x in 0..<resolution {
+            for z in 0..<resolution {
+                if heightMap[x][z] < waterLevel {
+                    waterAreas[x][z] = true
+                }
+            }
+        }
+        
+        // Create water plane at water level
+        let waterSize = Float(resolution) * scale
+        let waterMesh = MeshResource.generatePlane(width: waterSize, depth: waterSize)
+        let waterMaterial = createWaterMaterial(height: waterLevel)
+        
+        let waterEntity = ModelEntity(mesh: waterMesh, materials: [waterMaterial])
+        waterEntity.position = [0, Float(waterLevel) * 0.15, 0]  // Position at water level
+        waterEntity.name = "WaterPlane"
+        
+        waterContainer.addChild(waterEntity)
+        
+        return waterContainer
+    }
+    
+    @available(macOS 14.0, *)
+    private func findDominantBiome(biomeMap: [[BiomeType]]) -> BiomeType {
+        var biomeCounts: [BiomeType: Int] = [:]
+        
+        for row in biomeMap {
+            for biome in row {
+                biomeCounts[biome, default: 0] += 1
+            }
+        }
+        
+        return biomeCounts.max(by: { $0.value < $1.value })?.key ?? .temperateForest
+    }
+    
+    @available(macOS 14.0, *)
+    private func createTerrainMaterial(for biome: BiomeType) -> SimpleMaterial {
+        let biomeColor = getBiomeColor(biome: biome)
+        var material = SimpleMaterial(color: biomeColor, isMetallic: false)
+        material.roughness = 0.8  // Natural terrain roughness
+        return material
     }
     
     @available(macOS 14.0, *)
@@ -1258,6 +1374,116 @@ struct Arena3DView_RealityKit_v2: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
+    
+    // MARK: - Navigation System Implementation
+    
+    private func startNavigationUpdates() {
+        Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { _ in
+            updateMovement()
+        }
+    }
+    
+    private func updateMovement() {
+        let currentTime = CACurrentMediaTime()
+        let deltaTime = Float(currentTime - lastUpdateTime)
+        lastUpdateTime = currentTime
+        
+        guard let anchor = sceneAnchor else { return }
+        
+        // Handle continuous movement for pressed keys
+        for keyCode in pressedKeys {
+            switch keyCode {
+            case 13, 126: // W or Up Arrow
+                moveCamera(direction: .forward, deltaTime: deltaTime, anchor: anchor)
+            case 1, 125:  // S or Down Arrow  
+                moveCamera(direction: .backward, deltaTime: deltaTime, anchor: anchor)
+            case 0, 123:  // A or Left Arrow
+                moveCamera(direction: .left, deltaTime: deltaTime, anchor: anchor)
+            case 2, 124:  // D or Right Arrow
+                moveCamera(direction: .right, deltaTime: deltaTime, anchor: anchor)
+            case 14:      // E - Up (God mode only)
+                if navigationMode == .god {
+                    moveCamera(direction: .up, deltaTime: deltaTime, anchor: anchor)
+                }
+            case 12:      // Q - Down (God mode only)
+                if navigationMode == .god {
+                    moveCamera(direction: .down, deltaTime: deltaTime, anchor: anchor)
+                }
+            case 49:      // Spacebar - Toggle navigation mode
+                toggleNavigationMode()
+            default:
+                break
+            }
+        }
+    }
+    
+    private func moveCamera(direction: RealityMovementDirection, deltaTime: Float, anchor: AnchorEntity) {
+        let distance = movementSpeed * deltaTime
+        var translation = SIMD3<Float>(0, 0, 0)
+        
+        // Calculate movement direction based on camera rotation
+        let yaw = cameraRotation.x
+        let pitch = cameraRotation.y
+        
+        // Forward and right vectors based on yaw rotation
+        let forward = SIMD3<Float>(sin(yaw), 0, cos(yaw))
+        let right = SIMD3<Float>(cos(yaw), 0, -sin(yaw))
+        
+        switch direction {
+        case .forward:
+            translation = forward * distance
+            if navigationMode == .god {
+                translation.y -= sin(pitch) * distance  // Allow vertical movement in god mode
+            }
+        case .backward:
+            translation = -forward * distance
+            if navigationMode == .god {
+                translation.y += sin(pitch) * distance
+            }
+        case .left:
+            translation = -right * distance
+        case .right:
+            translation = right * distance
+        case .up:
+            if navigationMode == .god {
+                translation = SIMD3<Float>(0, distance, 0)
+            }
+        case .down:
+            if navigationMode == .god {
+                translation = SIMD3<Float>(0, -distance, 0)
+            }
+        }
+        
+        // Apply movement
+        cameraPosition += translation
+        
+        // In walking mode, constrain to ground level
+        if navigationMode == .walking {
+            cameraPosition.y = walkingHeight
+        }
+        
+        // Update anchor position (RealityKit camera control)
+        anchor.transform.translation = -cameraPosition  // Negative because we move the world
+        
+        // Apply rotation
+        let rotationY = simd_quatf(angle: -cameraRotation.x, axis: SIMD3<Float>(0, 1, 0))
+        let rotationX = simd_quatf(angle: -cameraRotation.y, axis: SIMD3<Float>(1, 0, 0))
+        anchor.transform.rotation = rotationY * rotationX
+    }
+    
+    private func toggleNavigationMode() {
+        navigationMode = navigationMode == .walking ? .god : .walking
+        print("🎮 Navigation Mode: \(navigationMode == .walking ? "🚶 Walking" : "👁️ God")")
+        
+        // Adjust camera position for new mode
+        if navigationMode == .walking {
+            cameraPosition.y = walkingHeight
+        } else {
+            if cameraPosition.y < 20 {
+                cameraPosition.y = 50  // Lift up for god mode overview
+            }
+        }
+    }
 }
 
 // MARK: - Phase 2 Performance Metrics
@@ -1279,3 +1505,4 @@ struct Phase2PerformanceMetrics {
         }
     )
 }
+
