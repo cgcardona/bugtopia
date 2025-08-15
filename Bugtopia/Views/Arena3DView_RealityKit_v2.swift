@@ -419,20 +419,9 @@ struct Arena3DView_RealityKit_v2: View {
         let dominantBiome = findDominantBiome(biomeMap: biomeMap)
         let terrainColor = getTerrainColor(for: dominantBiome)
         
-        // 🎨 PHOTOREALISTIC TERRAIN: Apply ground texture with PBR materials
-        if let groundImage = NSImage(named: "fantasy-ground-diffuse"),
-           let cgImage = groundImage.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-            do {
-                let textureResource = try TextureResource.generate(from: cgImage, options: .init(semantic: .color))
-                terrainMaterial.baseColor = .init(texture: .init(textureResource))
-                print("✅ [RealityKit] Applied ground texture to terrain")
-            } catch {
-                print("⚠️ [RealityKit] Failed to load ground texture: \(error)")
-                terrainMaterial.baseColor = .init(tint: terrainColor)
-            }
-        } else {
-            terrainMaterial.baseColor = .init(tint: terrainColor)
-        }
+        // 🌿 ORGANIC BEAUTY: Use natural colors without harsh textures (Style Guide approach)
+        // Each terrain type gets its own natural material treatment
+        terrainMaterial.baseColor = .init(tint: terrainColor)
         
         // 🌍 ENHANCED PBR: Realistic terrain surface properties
         terrainMaterial.roughness = 0.95  // Natural ground roughness
@@ -715,7 +704,9 @@ struct Arena3DView_RealityKit_v2: View {
         case .forest:
             material.color = .init(tint: .green)
         case .hill:
-            material.color = .init(tint: .brown)
+            // 🏔️ CLAY HILLS: Using Style Guide color palette #CC8E35 for elevated, ancient terrain
+            let clayColor = NSColor(red: 0.8, green: 0.557, blue: 0.208, alpha: 1.0) // Clay from style guide
+            material.color = .init(tint: clayColor)
         case .wall:
             material.color = .init(tint: .gray)
         case .water:
@@ -732,8 +723,9 @@ struct Arena3DView_RealityKit_v2: View {
             material.color = .init(tint: .white)
         }
         
-        material.metallic = 0.1
-        material.roughness = 0.8
+        // 🌿 ORGANIC BEAUTY: Natural surface properties for terrain
+        material.metallic = 0.0   // Completely non-metallic for natural materials  
+        material.roughness = 0.7  // Natural surface variation
         
         return material
     }
@@ -1661,7 +1653,9 @@ struct Arena3DView_RealityKit_v2: View {
         case .water:
             material.color = .init(tint: .cyan)
         case .hill:
-            material.color = .init(tint: .brown)
+            // 🏔️ CLAY HILLS: Using Style Guide color palette #CC8E35 for elevated, ancient terrain
+            let clayColor = NSColor(red: 0.8, green: 0.557, blue: 0.208, alpha: 1.0)
+            material.color = .init(tint: clayColor)
         case .food:
             material.color = .init(tint: .yellow)
         case .forest:
@@ -2181,7 +2175,9 @@ struct Arena3DView_RealityKit_v2: View {
         case .water:
             material.color = .init(tint: .blue.withAlphaComponent(0.8))
         case .hill:
-            material.color = .init(tint: .brown)
+            // 🏔️ CLAY HILLS: Using Style Guide color palette #CC8E35 for elevated, ancient terrain
+            let clayColor = NSColor(red: 0.8, green: 0.557, blue: 0.208, alpha: 1.0)
+            material.color = .init(tint: clayColor)
         case .food:
             material.color = .init(tint: .green)
         case .forest:
