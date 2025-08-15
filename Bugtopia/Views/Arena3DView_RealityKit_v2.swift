@@ -678,15 +678,7 @@ struct Arena3DView_RealityKit_v2: View {
         ambientLight.look(at: [100, 0, 75], from: ambientLight.position, relativeTo: nil)
         anchor.addChild(ambientLight)
         
-        // 🌍 ADD OVERALL SCENE ILLUMINATION: High-intensity environment light
-        let environmentLight = Entity()
-        environmentLight.components.set(ImageBasedLightComponent(
-            source: .single(.init(color: .white)),
-            intensityExponent: 2.0  // Very bright
-        ))
-        anchor.addChild(environmentLight)
-        
-        print("☀️ [RealityKit] Enhanced lighting added - Sun: 5000, Ambient: 3000, Environment: 2.0")
+        print("☀️ [RealityKit] Enhanced lighting added - Sun: 5000, Ambient: 3000")
     }
     
     @available(macOS 14.0, *)
@@ -1217,8 +1209,8 @@ struct Arena3DView_RealityKit_v2: View {
         }
         
         // 🧬 GENETIC INFLUENCE: Size and traits affect surface properties
-        let sizeEffect = Float(bug.dna.size)
-        let energyEffect = Float(bug.energy / 100.0)
+        let _ = Float(bug.dna.size)  // Size effect for future material variation
+        let _ = Float(bug.energy / 100.0)  // Energy effect for future material variation
         
         // 🧬 GENETIC INFLUENCE: Size and energy affect surface properties
         // Note: Material modification simplified for RealityKit compatibility
