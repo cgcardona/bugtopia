@@ -32,7 +32,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
     @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
-    @State private var cameraPosition = SIMD3<Float>(0, 200, 200)  // 📷 MUCH HIGHER: Well above 8x scaled terrain
+    @State private var cameraPosition = SIMD3<Float>(128, 100, 180)  // 📷 CENTERED: Above 256×256 terrain center
     @State private var cameraPitch: Float = -1.2  // 🎮 DOWNWARD ANGLE: Look down at terrain with some perspective (~70°)
     @State private var cameraYaw: Float = Float.pi     // 🎮 FIXED: Look AT the world (180°), not away from it
     
@@ -160,7 +160,7 @@ struct Arena3DView_RealityKit_v2: View {
         let anchor = AnchorEntity(.world(transform: Transform.identity.matrix))
         
         // Position the world anchor for elevated overview
-        anchor.transform.translation = [0, -200, -200]  // Much lower to match new elevated camera position
+        anchor.transform.translation = [-128, -100, -180]  // Centered on terrain with proper offset
         
         // 🎯 INITIAL ROTATION: Set the camera looking down at terrain
         anchor.transform.rotation = createOrientationLockedRotation()
@@ -888,9 +888,9 @@ struct Arena3DView_RealityKit_v2: View {
         // Create model entity
         let foodEntity = ModelEntity(mesh: mesh, materials: [material])
         
-        // Position on terrain surface with proper scaling
-        let simulationScale: Float = 0.05  // Same scale used for bugs
-        let scaledX = Float(food.position.x) * simulationScale
+        // Position on terrain surface with CONSISTENT scaling to match terrain
+        let simulationScale: Float = 256.0 / 2000.0  // Scale simulation (2000) to terrain (256)
+        let scaledX = Float(food.position.x) * simulationScale  
         let scaledZ = Float(food.position.y) * simulationScale
         let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
         let scaledPosition = SIMD3<Float>(
@@ -1064,7 +1064,7 @@ struct Arena3DView_RealityKit_v2: View {
             let bugEntity = createDetailedBugEntity(for: bug, index: index)
             
             // 🎯 FIXED: Use actual simulation coordinates with proper scaling
-            let simulationScale: Float = 0.05  // Scale down simulation coordinates to fit terrain
+            let simulationScale: Float = 256.0 / 2000.0  // CONSISTENT: Scale simulation (2000) to terrain (256) 
             let bugX = Float(bug.position3D.x) * simulationScale
             let bugZ = Float(bug.position3D.y) * simulationScale  // Note: simulation Y becomes RealityKit Z
             
