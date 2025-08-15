@@ -33,7 +33,7 @@ class AAAFoodGeometry {
         case .fish:
             return createAAAFishMesh()
         case .seeds:
-            return .generateSphere(radius: 0.7)
+            return createAAASeedsMesh()
         case .nuts:
             return .generateBox(size: [0.9, 0.7, 0.8])
         }
@@ -668,6 +668,111 @@ class AAAFoodGeometry {
         }
     }
     
+    /// Creates a photorealistic seeds cluster with proper topology and UV coordinates  
+    /// - Returns: High-quality seeds mesh with natural clustered arrangement
+    static func createAAASeedsMesh() -> MeshResource {
+        print("🌱 [AAA] Generating photorealistic seeds geometry...")
+        
+        var vertices: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
+        var indices: [UInt32] = []
+        
+        let segments = 20
+        let rings = 12
+        
+        // 🌱 SEEDS SHAPE PARAMETERS: Small clustered seed arrangement
+        let baseRadius: Float = 0.5
+        let clusterScale: Float = 1.2   // Overall cluster size
+        let seedVariation: Float = 0.3  // Individual seed size variation
+        let clusterDensity: Float = 0.8 // How tightly packed the seeds are
+        let surfaceRoughness: Float = 0.15 // Natural seed surface irregularity
+        
+        // 🎨 GENERATE VERTICES WITH NATURAL SEED CLUSTER SHAPE
+        for ring in 0...rings {
+            let ringAngle = Float(ring) / Float(rings) * Float.pi
+            let y = cos(ringAngle) * clusterScale
+            
+            for segment in 0...segments {
+                let segmentAngle = Float(segment) / Float(segments) * 2.0 * Float.pi
+                
+                // 🌍 BASIC SPHERICAL COORDINATES
+                var x = sin(ringAngle) * cos(segmentAngle) * baseRadius * clusterScale
+                var z = sin(ringAngle) * sin(segmentAngle) * baseRadius * clusterScale
+                let currentY = y
+                
+                // 🌱 SEED CLUSTERING: Multiple small seeds grouped together
+                let clusterU = sin(Float(ring * 3) * ringAngle) * sin(Float(segment * 2) * segmentAngle)
+                let clusterV = cos(Float(ring * 2) * ringAngle) * cos(Float(segment * 3) * segmentAngle)
+                let clusterFactor = clusterDensity + seedVariation * (clusterU + clusterV) * 0.5
+                
+                x *= clusterFactor
+                z *= clusterFactor
+                
+                // 🌰 INDIVIDUAL SEED BUMPS: Surface irregularity for multiple seeds
+                let seedBumpU = sin(Float(Double(segments) * 2.5) * segmentAngle)
+                let seedBumpV = sin(Float(Double(rings) * 2.5) * ringAngle)
+                let seedBumps = surfaceRoughness * seedBumpU * seedBumpV * sin(ringAngle)
+                
+                let bumpRadius = sqrt(x * x + z * z)
+                if bumpRadius > 0 {
+                    x += (x / bumpRadius) * seedBumps
+                    z += (z / bumpRadius) * seedBumps
+                }
+                
+                // 🌱 NATURAL SEED ASYMMETRY: Slight flattening on one side
+                let asymmetryFactor = 1.0 - abs(cos(segmentAngle)) * 0.2
+                x *= asymmetryFactor
+                
+                let vertex = SIMD3<Float>(x, currentY, z)
+                vertices.append(vertex)
+                
+                // 🔆 CALCULATE NORMALS
+                let normal = normalize(vertex)
+                normals.append(normal)
+                
+                // 🗺️ UV MAPPING: Cluster pattern friendly
+                let u = Float(segment) / Float(segments)
+                let v = Float(ring) / Float(rings)
+                uvs.append(SIMD2<Float>(u, v))
+            }
+        }
+        
+        // 🔗 GENERATE INDICES
+        for ring in 0..<rings {
+            for segment in 0..<segments {
+                let current = ring * (segments + 1) + segment
+                let next = current + segments + 1
+                
+                indices.append(UInt32(current))
+                indices.append(UInt32(next))
+                indices.append(UInt32(current + 1))
+                
+                indices.append(UInt32(current + 1))
+                indices.append(UInt32(next))
+                indices.append(UInt32(next + 1))
+            }
+        }
+        
+        print("✅ [AAA] Generated seeds: \(vertices.count) vertices, \(indices.count/3) triangles")
+        
+        // 🚀 CREATE REALITYKIT MESH
+        var meshDescriptor = MeshDescriptor()
+        meshDescriptor.positions = .init(vertices)
+        meshDescriptor.normals = .init(normals)
+        meshDescriptor.textureCoordinates = .init(uvs)
+        meshDescriptor.primitives = .triangles(indices)
+        
+        do {
+            let mesh = try MeshResource.generate(from: [meshDescriptor])
+            print("🏆 [AAA] Seeds mesh generation complete!")
+            return mesh
+        } catch {
+            print("❌ [AAA] Seeds mesh generation failed: \(error)")
+            return .generateSphere(radius: 0.7)
+        }
+    }
+    
     // MARK: - LOD System for Mobile Optimization
     
     /// Creates multiple Level-of-Detail meshes for performance optimization
@@ -751,5 +856,10 @@ extension AAAFoodGeometry {
     /// Quick method to create a standard AAA fish with optimal settings
     static func createStandardFish() -> MeshResource {
         return createAAAFishMesh()
+    }
+    
+    /// Quick method to create a standard AAA seeds with optimal settings
+    static func createStandardSeeds() -> MeshResource {
+        return createAAASeedsMesh()
     }
 }

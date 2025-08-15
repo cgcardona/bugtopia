@@ -427,11 +427,60 @@ class AAAPBRMaterials {
     }
     
     static func createAAASeedsMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
-        var material = PhysicallyBasedMaterial()
-        material.baseColor = .init(tint: NSColor.yellow)
-        material.roughness = .init(floatLiteral: 0.9)
-        material.metallic = .init(floatLiteral: 0.0)
-        return material
+        
+        print("🌱 [PBR] Creating AAA seeds material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "seeds-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded seeds diffuse texture")
+        } else {
+            // Fallback color matching natural seed colors
+            let fallbackColor = NSColor(red: 0.8, green: 0.7, blue: 0.5, alpha: 1.0) // Tan/brown seeds
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback seeds color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "seeds-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded seeds normal map")
+        } else {
+            print("⚠️ [PBR] Seeds normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "seeds-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded seeds roughness map")
+        } else {
+            // Fallback: Rough, matte seed surface
+            pbrMaterial.roughness = .init(floatLiteral: 0.85) // Matte, non-reflective
+            print("⚠️ [PBR] Using fallback seeds roughness")
+        }
+        
+        // 🥇 METALLIC PROPERTIES: Seeds are completely non-metallic organic matter
+        pbrMaterial.metallic = .init(floatLiteral: 0.0)
+        
+        // 🌟 ENERGY-BASED ENHANCEMENT
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.2, (energyLevel - 1.0) * 0.07)
+            let emissionColor = NSColor(red: 1.0, green: 0.9, blue: 0.6, alpha: 1.0) // Warm golden seed glow
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+            print("✨ [PBR] Added seeds energy glow: \(emissionIntensity)")
+        }
+        
+        // 🍃 FRESHNESS EFFECTS: Fresh seeds have smoother surfaces, aged ones get rougher
+        let baseRoughness: Float = 0.85
+        let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.4, freshness)) * 0.2)
+        pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
+        
+        print("🏆 [PBR] AAA seeds material created successfully!")
+        return pbrMaterial
     }
     
     static func createAAANutsMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {

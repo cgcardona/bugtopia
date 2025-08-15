@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "seeds-diffuse.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
