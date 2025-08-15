@@ -27,7 +27,7 @@ class AAAFoodGeometry {
         case .orange:
             return createAAAOrangeMesh()
         case .melon:
-            return .generateSphere(radius: 1.3)
+            return createAAAMelonMesh()
         case .meat:
             return .generateBox(size: [1.2, 0.8, 1.0])
         case .fish:
@@ -352,6 +352,102 @@ class AAAFoodGeometry {
         }
     }
     
+    /// Creates a photorealistic melon with proper topology and UV coordinates  
+    /// - Returns: High-quality melon mesh with characteristic netted cantaloupe surface
+    static func createAAAMelonMesh() -> MeshResource {
+        print("🍈 [AAA] Generating photorealistic melon geometry...")
+        
+        var vertices: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
+        var indices: [UInt32] = []
+        
+        let segments = 32
+        let rings = 16
+        
+        // 🍈 MELON SHAPE PARAMETERS: Cantaloupe proportions
+        let baseRadius: Float = 1.0
+        let heightScale: Float = 0.85  // Melons are wider than tall (oblate)
+        let netDepth: Float = 0.08     // Depth of netted surface pattern
+        let ridgeDepth: Float = 0.12   // Deeper ridges running lengthwise
+        let numRidges = 12             // Natural cantaloupe ridge count
+        
+        // 🎨 GENERATE VERTICES WITH NATURAL MELON SHAPE
+        for ring in 0...rings {
+            let ringAngle = Float(ring) / Float(rings) * Float.pi
+            let y = cos(ringAngle) * heightScale
+            
+            for segment in 0...segments {
+                let segmentAngle = Float(segment) / Float(segments) * 2.0 * Float.pi
+                
+                // 🌍 BASIC SPHERICAL COORDINATES
+                var x = sin(ringAngle) * cos(segmentAngle) * baseRadius
+                var z = sin(ringAngle) * sin(segmentAngle) * baseRadius
+                let currentY = y
+                
+                // 🍈 CANTALOUPE RIDGES: Longitudinal indentations
+                let ridgeAngle = Float(numRidges) * segmentAngle
+                let ridgeFactor = 1.0 - ridgeDepth * sin(ridgeAngle) * sin(ringAngle) * sin(ringAngle)
+                x *= ridgeFactor
+                z *= ridgeFactor
+                
+                // 🕸️ NETTED SURFACE: Fine mesh pattern characteristic of cantaloupe
+                let netAngleU = Float(segments * 2) * segmentAngle
+                let netAngleV = Float(rings * 2) * ringAngle
+                let netPattern = sin(netAngleU) * sin(netAngleV)
+                let netFactor = 1.0 - netDepth * netPattern * sin(ringAngle)
+                x *= netFactor
+                z *= netFactor
+                
+                let vertex = SIMD3<Float>(x, currentY, z)
+                vertices.append(vertex)
+                
+                // 🔆 CALCULATE NORMALS
+                let normal = normalize(vertex)
+                normals.append(normal)
+                
+                // 🗺️ UV MAPPING
+                let u = Float(segment) / Float(segments)
+                let v = Float(ring) / Float(rings)
+                uvs.append(SIMD2<Float>(u, v))
+            }
+        }
+        
+        // 🔗 GENERATE INDICES
+        for ring in 0..<rings {
+            for segment in 0..<segments {
+                let current = ring * (segments + 1) + segment
+                let next = current + segments + 1
+                
+                indices.append(UInt32(current))
+                indices.append(UInt32(next))
+                indices.append(UInt32(current + 1))
+                
+                indices.append(UInt32(current + 1))
+                indices.append(UInt32(next))
+                indices.append(UInt32(next + 1))
+            }
+        }
+        
+        print("✅ [AAA] Generated melon: \(vertices.count) vertices, \(indices.count/3) triangles")
+        
+        // 🚀 CREATE REALITYKIT MESH
+        var meshDescriptor = MeshDescriptor()
+        meshDescriptor.positions = .init(vertices)
+        meshDescriptor.normals = .init(normals)
+        meshDescriptor.textureCoordinates = .init(uvs)
+        meshDescriptor.primitives = .triangles(indices)
+        
+        do {
+            let mesh = try MeshResource.generate(from: [meshDescriptor])
+            print("🏆 [AAA] Melon mesh generation complete!")
+            return mesh
+        } catch {
+            print("❌ [AAA] Melon mesh generation failed: \(error)")
+            return .generateSphere(radius: 1.3)
+        }
+    }
+    
     // MARK: - LOD System for Mobile Optimization
     
     /// Creates multiple Level-of-Detail meshes for performance optimization
@@ -420,5 +516,10 @@ extension AAAFoodGeometry {
     /// Quick method to create a standard AAA orange with optimal settings
     static func createStandardOrange() -> MeshResource {
         return createAAAOrangeMesh()
+    }
+    
+    /// Quick method to create a standard AAA melon with optimal settings
+    static func createStandardMelon() -> MeshResource {
+        return createAAAMelonMesh()
     }
 }

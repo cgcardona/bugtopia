@@ -251,11 +251,60 @@ class AAAPBRMaterials {
     // MARK: - Placeholder Materials for Future Food Types
     
     static func createAAAMelonMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
-        var material = PhysicallyBasedMaterial()
-        material.baseColor = .init(tint: NSColor.green)
-        material.roughness = .init(floatLiteral: 0.6)
-        material.metallic = .init(floatLiteral: 0.0)
-        return material
+        
+        print("🍈 [PBR] Creating AAA melon material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "melon-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded melon diffuse texture")
+        } else {
+            // Fallback color matching cantaloupe melon
+            let fallbackColor = NSColor(red: 1.0, green: 0.8, blue: 0.4, alpha: 1.0) // Orange-tan cantaloupe
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback melon color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "melon-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded melon normal map")
+        } else {
+            print("⚠️ [PBR] Melon normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "melon-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded melon roughness map")
+        } else {
+            // Fallback: Textured melon rind with netting
+            pbrMaterial.roughness = .init(floatLiteral: 0.8) // Rough netted surface
+            print("⚠️ [PBR] Using fallback melon roughness")
+        }
+        
+        // 🥇 METALLIC PROPERTIES: Melons are completely non-metallic
+        pbrMaterial.metallic = .init(floatLiteral: 0.0)
+        
+        // 🌟 ENERGY-BASED ENHANCEMENT
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.2, (energyLevel - 1.0) * 0.08)
+            let emissionColor = NSColor(red: 1.0, green: 0.9, blue: 0.6, alpha: 1.0) // Warm melon glow
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+            print("✨ [PBR] Added melon energy glow: \(emissionIntensity)")
+        }
+        
+        // 🍃 FRESHNESS EFFECTS: Fresh melons have consistent netted texture
+        let baseRoughness: Float = 0.8
+        let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.5, freshness)) * 0.2)
+        pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
+        
+        print("🏆 [PBR] AAA melon material created successfully!")
+        return pbrMaterial
     }
     
     static func createAAAMeatMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
