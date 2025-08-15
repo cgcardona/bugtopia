@@ -838,7 +838,8 @@ class SimulationEngine {
             .sorted { $0.value > $1.value }
         for (foodType, count) in foodTypeCounts {
             let percentage = Double(count) / Double(newFoods.count) * 100
-            print("   \(foodType.emoji) \(foodType.rawValue): \(count) (\(String(format: "%.1f", percentage))%)")
+            let emoji = foodTypeEmoji(foodType)
+            print("   \(emoji) \(foodType.rawValue): \(count) (\(String(format: "%.1f", percentage))%)")
         }
         
         print("🍎 [FOOD DEBUG] Final results:")
@@ -1222,6 +1223,20 @@ class SimulationEngine {
         statistics.averageStickiness = stickiness.reduce(0, +) / count
         statistics.averageCamouflage = camouflages.reduce(0, +) / count
         statistics.averageCuriosity = curiosities.reduce(0, +) / count
+    }
+    
+    /// Helper function to get emoji for food types
+    private func foodTypeEmoji(_ foodType: FoodType) -> String {
+        switch foodType {
+        case .plum: return "🍇"
+        case .apple: return "🍎"
+        case .orange: return "🍊"
+        case .melon: return "🍈"
+        case .meat: return "🥩"
+        case .fish: return "🐟"
+        case .seeds: return "🌱"
+        case .nuts: return "🥜"
+        }
     }
 }
 
