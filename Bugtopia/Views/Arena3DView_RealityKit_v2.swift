@@ -25,7 +25,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var pressedKeys: Set<UInt16> = []
     @State private var lastUpdateTime = CACurrentMediaTime()
-    @State private var movementSpeed: Float = 50.0  // ⚡ SIMPLIFIED: Basic movement speed
+    @State private var movementSpeed: Float = 20.0  // ⚡ REDUCED: Smoother movement speed
     @State private var sceneAnchor: AnchorEntity?
     @State private var cameraPosition = SIMD3<Float>(0, 80, 80)  // 📷 ELEVATED: High overview camera position
     @State private var cameraPitch: Float = -0.8  // 🎮 ANGLED DOWN: Look down at terrain from elevated position
@@ -2541,43 +2541,48 @@ struct Arena3DView_RealityKit_v2: View {
     }
     
     private func handleScrollWheel(_ event: NSEvent) {
-        // Two-finger scroll wheel event - use both vertical and horizontal scrolling
-        let sensitivity: Float = 0.02  // Higher sensitivity for scroll events
-        let pitchDelta = Float(event.deltaY) * sensitivity   // Vertical scroll for pitch
-        let yawDelta = Float(event.deltaX) * sensitivity     // Horizontal scroll for yaw
+        // Two-finger trackpad: vertical = forward/backward movement, horizontal = left/right rotation
+        guard let anchor = sceneAnchor else { return }
         
+        let movementSensitivity: Float = 2.0   // Movement sensitivity for trackpad
+        let rotationSensitivity: Float = 0.02  // Rotation sensitivity for trackpad
+        
+        var positionChanged = false
         var rotationChanged = false
         
-        // Handle vertical scrolling (pitch - up/down look)
+        // Handle vertical scrolling (forward/backward movement like FPS games)
         if abs(event.deltaY) > 0.1 {
-            let oldPitch = cameraPitch
-            cameraPitch += pitchDelta
+            let movementDelta = Float(event.deltaY) * movementSensitivity
             
-            // 🔒 CONSTRAIN PITCH: Prevent over-rotation (looking too far up/down)
-            cameraPitch = max(-Float.pi/2.1, min(Float.pi/2.1, cameraPitch))
-            rotationChanged = true
+            // Move forward/backward based on trackpad vertical scroll
+            // Negative deltaY = scroll up = move forward (negative Z)
+            // Positive deltaY = scroll down = move backward (positive Z)
+            cameraPosition.z -= movementDelta  // Inverted for natural trackpad feel
+            positionChanged = true
             
-            // print("🎮 TWO-FINGER PITCH: \(oldPitch * 180 / .pi)° → \(cameraPitch * 180 / .pi)° (delta: \(pitchDelta * 180 / .pi)°)")
+            print("🎮 TWO-FINGER MOVE: \(movementDelta > 0 ? "FORWARD" : "BACKWARD") by \(abs(movementDelta))")
         }
         
         // Handle horizontal scrolling (yaw - left/right look)
         if abs(event.deltaX) > 0.1 {
-            let oldYaw = cameraYaw
+            let yawDelta = Float(event.deltaX) * rotationSensitivity
             cameraYaw += yawDelta
             
-            // 🔄 NORMALIZE YAW: Keep yaw in 0-360° range for cleaner values
+            // 🔄 NORMALIZE YAW: Keep yaw in 0-360° range
             while cameraYaw > Float.pi { cameraYaw -= 2 * Float.pi }
             while cameraYaw < -Float.pi { cameraYaw += 2 * Float.pi }
             rotationChanged = true
             
-            // print("🎮 TWO-FINGER YAW: \(oldYaw * 180 / .pi)° → \(cameraYaw * 180 / .pi)° (delta: \(yawDelta * 180 / .pi)°)")
+            print("🎮 TWO-FINGER ROTATE: YAW \(yawDelta > 0 ? "RIGHT" : "LEFT") by \(abs(yawDelta * 180 / .pi))°")
         }
         
-        // Apply combined rotation to the scene
+        // Apply position changes
+        if positionChanged {
+            anchor.transform.translation = -cameraPosition
+        }
+        
+        // Apply rotation changes
         if rotationChanged {
-            guard let anchor = sceneAnchor else { return }
-            
-            // 🔒 ORIENTATION LOCK: Create rotation that maintains up vector
             anchor.transform.rotation = createOrientationLockedRotation()
         }
     }
