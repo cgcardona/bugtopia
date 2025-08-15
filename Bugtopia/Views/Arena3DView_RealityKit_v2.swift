@@ -182,10 +182,13 @@ struct Arena3DView_RealityKit_v2: View {
         // 4. Add lighting for proper visibility
         setupWorldLighting(in: anchor)
         
-        // 5. Add bug entities
+        // 5. Add dramatic lighting system
+        setupDynamicLighting(in: anchor)
+        
+        // 6. Add bug entities
         addBugEntities(in: anchor)
         
-        // 6. Add food entities
+        // 7. Add food entities
         addFoodEntities(in: anchor)
         
         // Add to scene
@@ -290,15 +293,15 @@ struct Arena3DView_RealityKit_v2: View {
             skyboxMaterial = SimpleMaterial(color: getSkyboxFallbackColor(for: worldType), isMetallic: false)
         }
         
-        // Create a much larger skybox to prevent seeing it when zooming out
+        // 🌌 IMMERSIVE SKYBOX: Create massive sphere for true horizon-to-horizon coverage
         let backgroundSphere = ModelEntity(
-            mesh: .generateSphere(radius: 2000), // 🔧 FIXED: Much larger radius to prevent seeing edges
+            mesh: .generateSphere(radius: 5000), // 🌍 MASSIVE: Even larger for true immersion
             materials: [skyboxMaterial]
         )
         
-        // Invert normals to see from inside and center at origin
-        backgroundSphere.scale = [-1, 1, 1]
-        backgroundSphere.position = [0, 0, 0]  // 🔧 FIXED: Center at origin for better coverage
+        // 🎨 SKYBOX ENHANCEMENT: Invert normals and add atmospheric depth
+        backgroundSphere.scale = [-1, 1, 1]  // Invert to see from inside
+        backgroundSphere.position = [0, -500, 0]  // Lower position for better horizon effect
         
         anchor.addChild(backgroundSphere)
         print("✅ [RealityKit] Positioned skybox sphere for \(worldType) (radius: 2000, centered at origin)")
@@ -416,10 +419,25 @@ struct Arena3DView_RealityKit_v2: View {
         let dominantBiome = findDominantBiome(biomeMap: biomeMap)
         let terrainColor = getTerrainColor(for: dominantBiome)
         
-        // Configure material for visibility from all angles
-        terrainMaterial.baseColor = .init(tint: terrainColor)
-        terrainMaterial.roughness = 0.8
-        terrainMaterial.metallic = 0.1
+        // 🎨 PHOTOREALISTIC TERRAIN: Apply ground texture with PBR materials
+        if let groundImage = NSImage(named: "fantasy-ground-diffuse"),
+           let cgImage = groundImage.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            do {
+                let textureResource = try TextureResource.generate(from: cgImage, options: .init(semantic: .color))
+                terrainMaterial.baseColor = .init(texture: .init(textureResource))
+                print("✅ [RealityKit] Applied ground texture to terrain")
+            } catch {
+                print("⚠️ [RealityKit] Failed to load ground texture: \(error)")
+                terrainMaterial.baseColor = .init(tint: terrainColor)
+            }
+        } else {
+            terrainMaterial.baseColor = .init(tint: terrainColor)
+        }
+        
+        // 🌍 ENHANCED PBR: Realistic terrain surface properties
+        terrainMaterial.roughness = 0.95  // Natural ground roughness
+        terrainMaterial.metallic = 0.0    // Non-metallic terrain
+        terrainMaterial.clearcoatRoughness = 0.8  // Subtle surface variation
         
         // 🔧 CRITICAL: Enable double-sided rendering to fix backface culling
         terrainMaterial.faceCulling = .none  // Render both front and back faces
@@ -559,16 +577,15 @@ struct Arena3DView_RealityKit_v2: View {
     private func createWaterMaterial(height: Double) -> SimpleMaterial {
         var waterMaterial = SimpleMaterial()
         
-        // 🌊 TRANSPARENT WATER: Use SimpleMaterial for proper transparency support
-        // Water color based on depth (deeper = darker blue)
+        // 🌊 PHOTOREALISTIC WATER: Enhanced depth-based water rendering
         let waterDepth = abs(height + 5) / 15.0  // Normalize depth (0-1)
-        let blueIntensity = 0.3 + (waterDepth * 0.7)  // Deeper water is more blue
+        let blueIntensity = 0.2 + (waterDepth * 0.6)  // Deeper water is more blue
         
         let waterColor = NSColor(
-            red: 0.0,
-            green: 0.3 + (waterDepth * 0.2),  // Slight green tint in shallow water
+            red: 0.05,  // Slight warm tint for realism
+            green: 0.25 + (waterDepth * 0.3),  // Green-blue gradient with depth
             blue: blueIntensity,
-            alpha: 0.7  // Semi-transparent for water effect
+            alpha: 0.65 + (waterDepth * 0.25)  // Deeper water is less transparent
         )
         
         waterMaterial.color = .init(tint: waterColor)
@@ -721,6 +738,89 @@ struct Arena3DView_RealityKit_v2: View {
         return material
     }
     
+    @available(macOS 14.0, *)
+    private func setupDynamicLighting(in anchor: Entity) {
+        print("💡 [RealityKit] Setting up dramatic lighting system...")
+        
+        // 🌅 PRIMARY SUN LIGHT: Warm directional light simulating sun
+        let sunLight = DirectionalLight()
+        sunLight.light.color = .init(red: 1.0, green: 0.95, blue: 0.8, alpha: 1.0) // Warm sunlight
+        sunLight.light.intensity = 3000 // Strong directional lighting
+        sunLight.light.isRealWorldProxy = true // Enable shadows
+        
+        // Position sun at realistic angle (45° elevation, slightly offset)
+        sunLight.orientation = simd_quatf(angle: Float.pi * 0.25, axis: [1, 0, 0]) * 
+                              simd_quatf(angle: Float.pi * 0.3, axis: [0, 1, 0])
+        sunLight.position = [0, 100, 50]
+        
+        anchor.addChild(sunLight)
+        
+        // 🌙 FILL LIGHT: Soft blue ambient to prevent harsh shadows
+        let fillLight = DirectionalLight()
+        fillLight.light.color = .init(red: 0.6, green: 0.8, blue: 1.0, alpha: 1.0) // Cool fill light
+        fillLight.light.intensity = 800 // Gentle fill
+        
+        // Position opposite to sun for natural fill lighting
+        fillLight.orientation = simd_quatf(angle: -Float.pi * 0.15, axis: [1, 0, 0]) * 
+                               simd_quatf(angle: Float.pi * 1.3, axis: [0, 1, 0])
+        fillLight.position = [0, 80, -30]
+        
+        anchor.addChild(fillLight)
+        
+        // 🌟 ACCENT LIGHTS: Add some dramatic colored lights based on world type
+        let worldType = simulationEngine.voxelWorld.worldType
+        addAccentLights(to: anchor, for: worldType)
+        
+        print("✅ [RealityKit] Dynamic lighting system with shadows and atmosphere created")
+    }
+    
+    @available(macOS 14.0, *)
+    private func addAccentLights(to anchor: Entity, for worldType: WorldType3D) {
+        // 🎨 WORLD-SPECIFIC ACCENT LIGHTING: Each world gets unique atmospheric lighting
+        let accentColor: NSColor
+        let intensity: Float
+        
+        switch worldType {
+        case .abyss3D:
+            accentColor = NSColor(red: 0.4, green: 0.1, blue: 0.8, alpha: 1.0) // Deep purple
+            intensity = 1500
+        case .volcano3D:
+            accentColor = NSColor(red: 1.0, green: 0.3, blue: 0.1, alpha: 1.0) // Fiery orange
+            intensity = 2000
+        case .canyon3D:
+            accentColor = NSColor(red: 1.0, green: 0.6, blue: 0.2, alpha: 1.0) // Warm desert
+            intensity = 1200
+        case .archipelago3D:
+            accentColor = NSColor(red: 0.1, green: 0.6, blue: 1.0, alpha: 1.0) // Ocean blue
+            intensity = 1000
+        case .cavern3D:
+            accentColor = NSColor(red: 0.2, green: 0.8, blue: 0.3, alpha: 1.0) // Mysterious green
+            intensity = 800
+        default:
+            accentColor = NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0) // Neutral
+            intensity = 1000
+        }
+        
+        // Create multiple accent lights for atmospheric depth
+        for i in 0..<3 {
+            let accentLight = PointLight()
+            accentLight.light.color = accentColor
+            accentLight.light.intensity = intensity * (0.7 + Float(i) * 0.15) // Vary intensity
+            accentLight.light.attenuationRadius = 200.0 // Wide coverage
+            
+            // Position lights around the scene for ambient glow
+            let angle = Float(i) * (2.0 * Float.pi / 3.0) // 120° apart
+            let radius: Float = 120
+            accentLight.position = [
+                cos(angle) * radius,
+                40 + Float(i) * 20, // Vary height
+                sin(angle) * radius
+            ]
+            
+            anchor.addChild(accentLight)
+        }
+    }
+    
     private func getSkyboxImageName(for worldType: WorldType3D) -> String {
         switch worldType {
         case .abyss3D:
@@ -787,10 +887,10 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func createFoodEntity(for food: FoodItem, index: Int) -> Entity {
-        // Create food mesh (sphere)
-        let mesh = MeshResource.generateSphere(radius: 0.8) // Smaller than bugs for proper scale
+        // 🍎 REALISTIC FOOD MODELS: Create food-specific 3D shapes
+        let mesh = createFoodMesh(for: food)
         
-        // Create material based on food type
+        // Create enhanced material based on food type
         let material = createFoodMaterial(for: food)
         
         // Create model entity
@@ -818,35 +918,99 @@ struct Arena3DView_RealityKit_v2: View {
     }
     
     @available(macOS 14.0, *)
+    private func createFoodMesh(for food: FoodItem) -> MeshResource {
+        // 🍎 FOOD-SPECIFIC 3D MODELS: Each food type gets its distinctive shape
+        let baseSize: Float = 0.6 + Float(food.energyValue / 200.0) // Size based on energy value
+        
+        switch food.type {
+        case .apple:
+            // 🍎 APPLE: Slightly flattened sphere (more apple-like)
+            return .generateSphere(radius: baseSize * 1.1)
+            
+        case .orange:
+            // 🍊 ORANGE: Perfect sphere with slight texture
+            return .generateSphere(radius: baseSize)
+            
+        case .plum:
+            // 🫐 PLUM: Elongated oval shape
+            return .generateBox(size: [baseSize * 0.9, baseSize * 1.3, baseSize * 0.9])
+            
+        case .melon:
+            // 🍈 MELON: Large, impressive sphere
+            return .generateSphere(radius: baseSize * 1.4)
+            
+        case .meat:
+            // 🥩 MEAT: Irregular, chunky shape
+            return .generateBox(size: [baseSize * 1.2, baseSize * 0.7, baseSize * 1.0])
+            
+        case .fish:
+            // 🐟 FISH: Elongated, streamlined shape
+            return .generateBox(size: [baseSize * 1.6, baseSize * 0.6, baseSize * 0.8])
+            
+        case .seeds:
+            // 🌱 SEEDS: Small scattered appearance
+            return .generateSphere(radius: baseSize * 0.7)
+            
+        case .nuts:
+            // 🥜 NUTS: Small, hard appearance
+            return .generateBox(size: [baseSize * 0.8, baseSize * 0.8, baseSize * 1.1])
+        }
+    }
+    
+    @available(macOS 14.0, *)
     private func createFoodMaterial(for food: FoodItem) -> SimpleMaterial {
         var material = SimpleMaterial()
         
-        // Set color and properties based on food type
-        let foodColor: NSColor
-        switch food.type {
-        case .apple:
-            foodColor = NSColor.red
-        case .orange:
-            foodColor = NSColor.orange
-        case .plum:
-            foodColor = NSColor.purple
-        case .melon:
-            foodColor = NSColor.green
-        case .meat:
-            foodColor = NSColor.brown
-        case .fish:
-            foodColor = NSColor.blue
-        case .seeds:
-            foodColor = NSColor.yellow
-        case .nuts:
-            foodColor = NSColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 1.0)
-        }
+        // 🍎 PHOTOREALISTIC FOOD MATERIALS: Each food type gets distinctive surface properties
+        let (foodColor, roughness, metallic) = getFoodProperties(for: food.type)
         
         material.color = .init(tint: foodColor)
-        material.roughness = 0.4
-        material.metallic = 0.0
+        material.roughness = MaterialScalarParameter(floatLiteral: roughness)
+        material.metallic = MaterialScalarParameter(floatLiteral: metallic)
+        
+        // 🌟 ENERGY-BASED ENHANCEMENT: Higher energy foods look more appealing
+        let energyBoost = Float(food.energyValue / 100.0) * 0.2
+        material.roughness = MaterialScalarParameter(floatLiteral: max(0.1, roughness - energyBoost))
         
         return material
+    }
+    
+    @available(macOS 14.0, *)
+    private func getFoodProperties(for foodType: FoodType) -> (NSColor, Float, Float) {
+        // 🍎 REALISTIC FOOD PROPERTIES: Color, roughness, and metallic values for each food type
+        switch foodType {
+        case .apple:
+            // 🍎 FRESH APPLE: Glossy red with slight sheen
+            return (NSColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0), 0.3, 0.1)
+            
+        case .orange:
+            // 🍊 JUICY ORANGE: Bright orange with bumpy texture
+            return (NSColor.orange, 0.6, 0.0)
+            
+        case .plum:
+            // 🫐 RIPE PLUM: Deep purple with waxy surface
+            return (NSColor(red: 0.4, green: 0.2, blue: 0.6, alpha: 1.0), 0.2, 0.2)
+            
+        case .melon:
+            // 🍈 FRESH MELON: Vibrant green with natural matte finish
+            return (NSColor(red: 0.3, green: 0.7, blue: 0.3, alpha: 1.0), 0.7, 0.0)
+            
+        case .meat:
+            // 🥩 RAW MEAT: Rich red-brown with organic texture
+            return (NSColor(red: 0.6, green: 0.3, blue: 0.2, alpha: 1.0), 0.8, 0.0)
+            
+        case .fish:
+            // 🐟 FRESH FISH: Silver-blue with slight shimmer
+            return (NSColor(red: 0.7, green: 0.8, blue: 0.9, alpha: 1.0), 0.3, 0.4)
+            
+        case .seeds:
+            // 🌱 SEEDS: Golden yellow with matte finish
+            return (NSColor(red: 0.8, green: 0.7, blue: 0.2, alpha: 1.0), 0.9, 0.0)
+            
+        case .nuts:
+            // 🥜 NUTS: Rich brown with hard shell texture
+            return (NSColor(red: 0.5, green: 0.3, blue: 0.1, alpha: 1.0), 0.8, 0.0)
+        }
     }
     
     @available(macOS 14.0, *)
@@ -901,28 +1065,25 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func createBugMesh(for bug: Bug) -> MeshResource {
-        // 🚀 ADVANCED: Multi-part bug geometry system (simplified from SceneKit)
-        // Note: RealityKit doesn't support compound geometries as easily as SceneKit
-        // We'll create larger, more detailed single meshes for each species
-        
-        let size = Float(bug.dna.size * 2.0) // Scale for visibility
+        // 🎨 DRAMATIC SPECIES DISTINCTION: Create highly distinctive bug shapes
+        let baseSize = Float(bug.dna.size * 3.0) // Larger for better visibility and drama
         
         switch bug.dna.speciesTraits.speciesType {
         case .herbivore:
-            // 🦋 Butterfly/Beetle-inspired: Elongated oval (elegant)
-            return .generateSphere(radius: size * 0.5)
+            // 🦋 MAJESTIC BUTTERFLY: Elegant elongated oval with pronounced curves
+            return .generateSphere(radius: baseSize * 0.6) // Slightly larger and more elegant
             
         case .carnivore:
-            // 🥊 Praying Mantis/Wasp-inspired: Angular predatory shape
-            return .generateBox(size: [size * 1.0, size * 0.6, size * 1.2])
+            // ⚔️ FEARSOME PREDATOR: Sharp, angular predatory form like a mantis
+            return .generateBox(size: [baseSize * 1.4, baseSize * 0.5, baseSize * 1.8]) // More elongated and menacing
             
         case .omnivore:
-            // 🐜 Ant/Bee-inspired: Segmented cylindrical body
-            return .generateCylinder(height: size * 1.2, radius: size * 0.4)
+            // 🐜 INDUSTRIOUS WORKER: Segmented body like ants/bees
+            return .generateCylinder(height: baseSize * 1.6, radius: baseSize * 0.5) // Taller, more pronounced segmentation
             
         case .scavenger:
-            // 🪰 Fly-inspired: Rounded opportunistic shape
-            return .generateBox(size: [size * 0.8, size * 1.0, size * 0.8])
+            // 🪰 AGILE OPPORTUNIST: Compact, rounded form for quick movement
+            return .generateBox(size: [baseSize * 0.9, baseSize * 1.2, baseSize * 0.9]) // More compact but distinctive
         }
     }
     
@@ -930,44 +1091,79 @@ struct Arena3DView_RealityKit_v2: View {
     private func createBugMaterial(for bug: Bug) -> SimpleMaterial {
         var material = SimpleMaterial()
         
-        // 🧬 ADVANCED: Genetic material system inspired by SceneKit implementation
-        let geneticColor = createGeneticExpressedColor(for: bug)
+        // 🧬 ENHANCED GENETIC SYSTEM: Vivid genetic expression with species enhancement
+        let baseGeneticColor = createGeneticExpressedColor(for: bug)
+        let enhancedColor = enhanceColorForSpecies(baseGeneticColor, species: bug.dna.speciesTraits.speciesType)
         
-        // Apply genetic color with species-specific properties
-        material.color = .init(tint: geneticColor)
+        material.color = .init(tint: enhancedColor)
         
-        // 🎨 Species-specific material properties (ported from SceneKit)
+        // 🎨 DRAMATIC SPECIES MATERIALS: Highly distinctive surface properties
         switch bug.dna.speciesTraits.speciesType {
         case .herbivore:
-            // 🦋 Butterfly/Beetle: Soft, organic feeling
-            material.metallic = 0.0
-            material.roughness = 0.8
+            // 🦋 MAGICAL BUTTERFLY: Iridescent, shimmering wing-like surface
+            material.metallic = 0.2   // Slight iridescence like butterfly wings
+            material.roughness = 0.3  // Smooth, polished surface
             
         case .carnivore:
-            // 🥊 Praying Mantis/Wasp: Slight menacing sheen
-            material.metallic = 0.3
-            material.roughness = 0.2
+            // ⚔️ MENACING PREDATOR: Hard chitin with threatening sheen
+            material.metallic = 0.7   // High metallic for intimidating appearance
+            material.roughness = 0.1  // Very smooth, deadly precision
             
         case .omnivore:
-            // 🐜 Ant/Bee: Balanced texture
-            material.metallic = 0.1
-            material.roughness = 0.5
+            // 🐜 WORKER ANT: Matte, industrious surface
+            material.metallic = 0.05  // Minimal reflection, practical
+            material.roughness = 0.8  // Matte finish like working insects
             
         case .scavenger:
-            // 🪰 Fly: Mysterious iridescence
-            material.metallic = 0.4
-            material.roughness = 0.3
+            // 🪰 MYSTERIOUS FLY: Oil-slick iridescence, ever-changing
+            material.metallic = 0.9   // Maximum iridescence
+            material.roughness = 0.2  // Smooth but with character
         }
         
-        // 🧬 Genetic traits affect material properties
+        // 🧬 GENETIC INFLUENCE: Size and traits affect surface properties
         let sizeEffect = Float(bug.dna.size)
-        let roughnessModifier = 0.7 + sizeEffect * 0.6
-        material.roughness = MaterialScalarParameter(floatLiteral: roughnessModifier)
+        let energyEffect = Float(bug.energy / 100.0)
         
-        // Note: RealityKit SimpleMaterial doesn't have opacity, using color alpha instead
-        // Camouflage will be handled through color transparency
+        // 🧬 GENETIC INFLUENCE: Size and energy affect surface properties
+        // Note: Material modification simplified for RealityKit compatibility
         
         return material
+    }
+    
+    @available(macOS 14.0, *)
+    private func enhanceColorForSpecies(_ baseColor: NSColor, species: SpeciesType) -> NSColor {
+        // 🎨 SPECIES COLOR ENHANCEMENT: Make each species more visually distinct
+        var red = baseColor.redComponent
+        var green = baseColor.greenComponent  
+        var blue = baseColor.blueComponent
+        
+        switch species {
+        case .herbivore:
+            // 🦋 BUTTERFLY: Enhance natural greens and soft pastels
+            green = min(1.0, green * 1.3)  // Boost green for plant-eating nature
+            red = min(1.0, red * 1.1)     // Slight warm enhancement
+            blue = min(1.0, blue * 1.2)   // Gentle blue enhancement
+            
+        case .carnivore:
+            // ⚔️ PREDATOR: Enhance reds and aggressive colors
+            red = min(1.0, red * 1.5)     // Boost red for predatory nature
+            blue = max(0.0, blue * 0.7)   // Reduce blue for warmer tone
+            green = max(0.0, green * 0.8) // Slightly reduce green
+            
+        case .omnivore:
+            // 🐜 BALANCED: Enhance earth tones and balanced colors
+            red = min(1.0, red * 1.2)     // Warm earth tones
+            green = min(1.0, green * 1.1) // Natural balance
+            blue = min(1.0, blue * 1.0)   // Keep blue natural
+            
+        case .scavenger:
+            // 🪰 IRIDESCENT: Create oil-slick, shifting colors
+            red = min(1.0, red * 1.3)     // Enhance all colors
+            green = min(1.0, green * 1.4) // for iridescent effect
+            blue = min(1.0, blue * 1.6)   // Strong blue enhancement
+        }
+        
+        return NSColor(red: red, green: green, blue: blue, alpha: baseColor.alphaComponent)
     }
     
     @available(macOS 14.0, *)
