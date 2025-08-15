@@ -201,8 +201,8 @@ class AAAFoodGeometry {
                 let segmentAngle = Float(segment) / Float(segments) * 2.0 * Float.pi
                 
                 // 🌍 BASIC SPHERICAL COORDINATES WITH APPLE WAIST
-                var x = sin(ringAngle) * cos(segmentAngle) * baseRadius * radiusMultiplier
-                var z = sin(ringAngle) * sin(segmentAngle) * baseRadius * radiusMultiplier
+                let x = sin(ringAngle) * cos(segmentAngle) * baseRadius * radiusMultiplier
+                let z = sin(ringAngle) * sin(segmentAngle) * baseRadius * radiusMultiplier
                 var currentY = y
                 
                 // 🍎 STEM INDENT: Create characteristic apple top indentation
@@ -491,8 +491,8 @@ class AAAFoodGeometry {
                 z *= (1.0 + irregularity)
                 
                 // 🍖 MARBLING SURFACE: Fine surface texture variation
-                let marblingU = sin(Float(segments * 1.5) * segmentAngle)
-                let marblingV = sin(Float(rings * 1.5) * ringAngle)
+                let marblingU = sin(Float(Double(segments) * 1.5) * segmentAngle)
+                let marblingV = sin(Float(Double(rings) * 1.5) * ringAngle)
                 let marblingPattern = marblingU * marblingV
                 let marblingFactor = 1.0 + marbling * marblingPattern * 0.3
                 x *= marblingFactor
