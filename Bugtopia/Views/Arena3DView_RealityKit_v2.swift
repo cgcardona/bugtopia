@@ -32,7 +32,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
     @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
-    @State private var cameraPosition = SIMD3<Float>(100, 200, 75)  // 📷 INSIDE TERRAIN: Center of 200×150 terrain (Z: 0-150)
+    @State private var cameraPosition = SIMD3<Float>(112, 200, 112)  // 📷 CENTERED: Above 225×225 terrain center
     @State private var cameraPitch: Float = -1.57  // 🎮 LOOKING DOWN: 90° downward to see terrain directly below
     @State private var cameraYaw: Float = Float.pi     // 🎮 FIXED: Look AT the world (180°), not away from it
     
@@ -58,7 +58,7 @@ struct Arena3DView_RealityKit_v2: View {
     // MARK: - Debug Functions
     
     private func updateDebugInfo() {
-        let terrain = "Terrain: 200×200 units (32×6.25 scale)"
+        let terrain = "Terrain: 225×225 units (36×6.25 scale)" // Updated to match new coordinate system
         let camera = String(format: "Cam: (%.1f, %.1f, %.1f)", cameraPosition.x, cameraPosition.y, cameraPosition.z)
         let rotation = String(format: "Rot: P%.1f° Y%.1f°", cameraPitch * 180 / .pi, cameraYaw * 180 / .pi)
         let mode = isGodMode ? "🌟 GOD" : "🚶 WALK"
@@ -88,7 +88,7 @@ struct Arena3DView_RealityKit_v2: View {
                     Text("Expected Bounds:")
                         .font(.caption)
                         .foregroundColor(.yellow)
-                    Text("X: 0 to 200 | Z: 0 to 200")
+                    Text("X: 0 to 225 | Z: 0 to 225") // Updated to match new terrain size
                         .font(.system(.caption2, design: .monospaced))
                         .foregroundColor(.white)
                         .padding(4)
@@ -217,7 +217,7 @@ struct Arena3DView_RealityKit_v2: View {
         let anchor = AnchorEntity(.world(transform: Transform.identity.matrix))
         
         // Position the world anchor for elevated overview
-        anchor.transform.translation = [-100, -200, -75]  // Centered on unified 200×150 terrain
+        anchor.transform.translation = [-112, -200, -112]  // Centered on unified 225×225 terrain
         
         // 🎯 INITIAL ROTATION: Set the camera looking down at terrain
         anchor.transform.rotation = createOrientationLockedRotation()
@@ -410,8 +410,9 @@ struct Arena3DView_RealityKit_v2: View {
         // Generate vertices with extended bounds and edge skirts
         for x in 0..<extendedResolution {
             for z in 0..<extendedResolution {
-                let worldX = Float(x - extendedResolution/2) * scale
-                let worldZ = Float(z - extendedResolution/2) * scale
+                // 🎯 COORDINATE FIX: Align terrain with food/bug coordinates (0-200 range)
+                let worldX = Float(x) * scale  // 0 to 36*6.25 = 0 to 225
+                let worldZ = Float(z) * scale  // 0 to 36*6.25 = 0 to 225
                 
                 var worldY: Float
                 
