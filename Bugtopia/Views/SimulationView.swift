@@ -819,17 +819,6 @@ struct SimulationView: View {
                     Text("🌍 Environment Analytics")
                         .font(.title2)
                         .fontWeight(.bold)
-                    Spacer()
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showingStatistics = false
-                        }
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
                 }
                 
                 Divider()
