@@ -663,12 +663,30 @@ struct Arena3DView_RealityKit_v2: View {
     private func setupWorldLighting(in anchor: Entity) {
         // Soft sunlight from above
         let sunLight = DirectionalLight()
-        sunLight.light.intensity = 1500  // Increased for better visibility
-        sunLight.position = [0, 20, 10]
-        sunLight.look(at: [0, 0, 0], from: sunLight.position, relativeTo: nil)
+        sunLight.light.intensity = 5000  // 🔆 MUCH BRIGHTER: For debugging visibility
+        sunLight.position = [100, 50, 75]  // Position near camera/terrain center
+        sunLight.look(at: [100, 0, 75], from: sunLight.position, relativeTo: nil)
         anchor.addChild(sunLight)
         
-        print("☀️ [RealityKit] World lighting added")
+        // 🌟 ADD BRIGHT AMBIENT LIGHT: For debugging terrain visibility
+        let ambientLight = Entity()
+        ambientLight.components.set(DirectionalLightComponent(
+            color: .white,
+            intensity: 3000
+        ))
+        ambientLight.position = [100, 100, 75]  // Above terrain center
+        ambientLight.look(at: [100, 0, 75], from: ambientLight.position, relativeTo: nil)
+        anchor.addChild(ambientLight)
+        
+        // 🌍 ADD OVERALL SCENE ILLUMINATION: High-intensity environment light
+        let environmentLight = Entity()
+        environmentLight.components.set(ImageBasedLightComponent(
+            source: .single(.init(color: .white)),
+            intensityExponent: 2.0  // Very bright
+        ))
+        anchor.addChild(environmentLight)
+        
+        print("☀️ [RealityKit] Enhanced lighting added - Sun: 5000, Ambient: 3000, Environment: 2.0")
     }
     
     @available(macOS 14.0, *)
