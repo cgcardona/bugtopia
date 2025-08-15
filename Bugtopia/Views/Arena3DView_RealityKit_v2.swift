@@ -945,6 +945,13 @@ struct Arena3DView_RealityKit_v2: View {
         
         anchor.addChild(foodContainer)
         print("✅ [RealityKit] Added \(foods.count) food entities across terrain")
+        
+        // 🐛 HELLO WORLD DEBUG: Test known coordinate points
+        let testPoints = [(0.0, 0.0), (112.0, 112.0), (225.0, 225.0)] 
+        for (x, z) in testPoints {
+            let height = getTerrainHeightAtPosition(x: Float(x), z: Float(z))
+            print("🎯 [TEST POINT] (\(x), \(z)) -> Height: \(height)")
+        }
     }
     
     @available(macOS 14.0, *)
@@ -964,10 +971,14 @@ struct Arena3DView_RealityKit_v2: View {
         let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
         let scaledPosition = SIMD3<Float>(
             scaledX, // Use consistent simulation scaling
-            terrainHeight + 1.0, // Slightly above terrain
+            max(terrainHeight + 0.5, 0.5), // At least 0.5 above ground, or 0.5 above terrain
             scaledZ  // Use consistent simulation scaling
         )
         foodEntity.position = scaledPosition
+        
+        // 🐛 HELLO WORLD DEBUG: Log food positioning
+        let finalY = max(terrainHeight + 0.5, 0.5)
+        print("🍎 [FOOD POS] Sim: (\(food.position.x), \(food.position.y)) -> RK: (\(scaledX), \(scaledZ)) -> TerrainH: \(String(format: "%.2f", terrainHeight)) -> Final: (\(scaledX), \(String(format: "%.2f", finalY)), \(scaledZ))")
         
         // Set entity name for identification
         foodEntity.name = "Food_\(index)"
@@ -1138,7 +1149,8 @@ struct Arena3DView_RealityKit_v2: View {
             let bugZ = Float(bug.position3D.y) * 0.1  // 1500 sim units -> 150 RK units
             
             // 🏔️ TERRAIN FOLLOWING: Position bugs at appropriate height above terrain
-            let bugY = getTerrainHeightAtPosition(x: bugX, z: bugZ) + 3.0  // 3 units above terrain
+            let terrainHeight = getTerrainHeightAtPosition(x: bugX, z: bugZ)
+            let bugY = max(terrainHeight + 1.0, 1.0)  // At least 1 unit above ground/terrain
             
             bugEntity.position = [bugX, bugY, bugZ]
             // 🎯 FIXED: Use actual bug UUID for proper identification
@@ -1631,10 +1643,10 @@ struct Arena3DView_RealityKit_v2: View {
         let heightMap = voxelWorld.heightMap
         let resolution = heightMap.count
         
-        // Convert world position to height map coordinates
-        let terrainSize: Float = 8.0 * 32.0  // Match terrain scale * resolution
-        let normalizedX = (x + terrainSize/2) / terrainSize  // 0-1 range
-        let normalizedZ = (z + terrainSize/2) / terrainSize  // 0-1 range
+        // Convert world position to height map coordinates  
+        let terrainSize: Float = 6.25 * 36.0  // FIXED: Match current terrain scale * extended resolution
+        let normalizedX = x / terrainSize  // 0-1 range (terrain starts at 0, not centered)
+        let normalizedZ = z / terrainSize  // 0-1 range
         
         // Clamp to valid range and sample height map
         let clampedX = max(0, min(0.99, normalizedX))
@@ -1644,7 +1656,12 @@ struct Arena3DView_RealityKit_v2: View {
         let mapZ = Int(clampedZ * Float(resolution))
         
         let height = heightMap[mapX][mapZ]
-        return Float(height) * 0.8  // Match heightScale from terrain creation
+        let scaledHeight = Float(height) * 0.8  // Match heightScale from terrain creation
+        
+        // 🐛 HELLO WORLD DEBUG: Log every terrain height lookup
+        print("🏔️ [TERRAIN HEIGHT] Input: (\(x), \(z)) -> Normalized: (\(String(format: "%.3f", normalizedX)), \(String(format: "%.3f", normalizedZ))) -> Map: (\(mapX), \(mapZ)) -> Height: \(String(format: "%.2f", scaledHeight))")
+        
+        return scaledHeight
     }
     
     @available(macOS 14.0, *)
@@ -1661,7 +1678,8 @@ struct Arena3DView_RealityKit_v2: View {
                 // Convert simulation coordinates to RealityKit coordinates
                 let bugX = Float(bug.position3D.x) * simulationScale
                 let bugZ = Float(bug.position3D.y) * simulationScale
-                let bugY = getTerrainHeightAtPosition(x: bugX, z: bugZ) + 3.0
+                let terrainHeight = getTerrainHeightAtPosition(x: bugX, z: bugZ)
+                let bugY = max(terrainHeight + 1.0, 1.0)  // At least 1 unit above ground/terrain
                 
                 // Smooth movement to prevent jarring updates
                 let targetPosition = SIMD3<Float>(bugX, bugY, bugZ)
@@ -2428,7 +2446,7 @@ struct Arena3DView_RealityKit_v2: View {
                 let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
                 let newPosition = SIMD3<Float>(
                     scaledX, // Use consistent simulation scaling
-                    terrainHeight + 1.5, // Above terrain
+                    max(terrainHeight + 1.0, 1.0), // At least 1 unit above ground/terrain
                     scaledZ  // Use consistent simulation scaling
                 )
                 
