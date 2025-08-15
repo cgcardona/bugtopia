@@ -27,9 +27,9 @@ struct Arena3DView_RealityKit_v2: View {
     @State private var lastUpdateTime = CACurrentMediaTime()
     @State private var movementSpeed: Float = 50.0  // ⚡ SIMPLIFIED: Basic movement speed
     @State private var sceneAnchor: AnchorEntity?
-    @State private var cameraPosition = SIMD3<Float>(0, 10, 0)  // 📷 SIMPLIFIED: Basic camera position
-    @State private var cameraPitch: Float = 0.0  // 🎮 TRACKPAD: Up/down look angle (pitch)
-    @State private var cameraYaw: Float = 0.0    // 🎮 TRACKPAD: Left/right look angle (yaw)
+    @State private var cameraPosition = SIMD3<Float>(0, 80, 80)  // 📷 ELEVATED: High overview camera position
+    @State private var cameraPitch: Float = -0.8  // 🎮 ANGLED DOWN: Look down at terrain from elevated position
+    @State private var cameraYaw: Float = 0.0     // 🎮 TRACKPAD: Left/right look angle (yaw)
     
     // MARK: - Selection System
     
@@ -163,8 +163,8 @@ struct Arena3DView_RealityKit_v2: View {
         // Create scene anchor positioned like SceneKit camera view
         let anchor = AnchorEntity(.world(transform: Transform.identity.matrix))
         
-        // Position the world anchor for optimal viewing
-        anchor.transform.translation = [0, -5, -8]  // Lower and further away for better overview
+        // Position the world anchor for elevated overview
+        anchor.transform.translation = [0, -80, -80]  // Much lower and further to match elevated camera
         
         // Store reference for camera manipulation
         sceneAnchor = anchor

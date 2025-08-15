@@ -1540,9 +1540,9 @@ struct Arena3DView: NSViewRepresentable {
         
         switch worldType {
         case .continental3D:
-            // 🎉 FULL SIMULATION: Overview position for observing 20 bugs across the terrain
-            let cameraPos = SCNVector3(centerX + 30, 20, centerY + 40)  // Higher overview for multiple bugs
-            let lookAt = SCNVector3(centerX, -5, centerY)                // Look at world center
+            // 🎉 ELEVATED OVERVIEW: High angle position for observing terrain and food distribution
+            let cameraPos = SCNVector3(centerX + 60, 80, centerY + 80)  // Much higher elevated view
+            let lookAt = SCNVector3(centerX, 0, centerY)                 // Look at terrain surface
             return (cameraPos, lookAt)
             
         case .archipelago3D:
