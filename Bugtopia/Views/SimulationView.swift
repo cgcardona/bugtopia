@@ -414,9 +414,9 @@ struct SimulationView: View {
                 
 
                 
-                // 🎮 AAA PERFORMANCE: Performance report
+                // 🎮 AAA PERFORMANCE: Performance report (smart engine detection)
                 Button(action: {
-                    engineManager.arena3DView.triggerPerformanceAnalysis()
+                    triggerSmartPerformanceAnalysis()
                 }) {
                     Text("📊 Perf")
                         .font(.caption)
@@ -631,6 +631,25 @@ struct SimulationView: View {
         }
     }
     
+    // MARK: - Smart Performance Analysis
+    
+    /// 🎮 Smart Performance Analysis - works with both SceneKit and RealityKit
+    private func triggerSmartPerformanceAnalysis() {
+        let config = RenderingConfiguration.shared
+        
+        switch config.activeEngine {
+        case .sceneKit:
+            // Use SceneKit's comprehensive performance logger
+            engineManager.arena3DView.triggerPerformanceAnalysis()
+            print("📊 [Performance] SceneKit analysis completed - check console for detailed report")
+            
+        case .realityKit:
+            // Use RealityKit's built-in debug overlay and basic metrics
+            config.debugMode.toggle()
+            print("📊 [Performance] RealityKit debug overlay toggled: \(config.debugMode ? "ON" : "OFF")")
+            print("📊 [Performance] RealityKit metrics available in debug overlay")
+        }
+    }
 
     
     // MARK: - Statistics Panels
