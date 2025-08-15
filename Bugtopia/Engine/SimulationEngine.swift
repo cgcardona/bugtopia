@@ -736,7 +736,7 @@ class SimulationEngine {
         
         // Spawn majority of food distributed in open areas, hills, AND forests for better distribution
         let availableVoxels = openVoxels + hillVoxels + forestVoxels
-        let targetFoodCount = maxFoodItems / 4
+        let targetFoodCount = maxFoodItems / 2  // Double the food density for better distribution
         print("🎯 [FOOD DEBUG] Attempting to spawn \(targetFoodCount) foods in \(availableVoxels.count) available voxels")
         
         var successfulSpawns = 0
@@ -748,8 +748,8 @@ class SimulationEngine {
                     y: Double.random(in: -20...20)
                 )
                 
-                // Much more liberal food spawning - only avoid very close to edges
-                let minDistanceFromEdge = 30.0
+                // Much more liberal food spawning - reduce edge restriction for better distribution
+                let minDistanceFromEdge = 10.0  // Reduced from 30 to allow more terrain coverage
                 let bounds = voxelWorld.worldBounds
                 let xDistance = min(voxel.position.x - bounds.minX, bounds.maxX - voxel.position.x)
                 let yDistance = min(voxel.position.y - bounds.minY, bounds.maxY - voxel.position.y)
@@ -766,6 +766,30 @@ class SimulationEngine {
                 )
                 
                 // Generate biome and season appropriate food type
+                let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
+                let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
+                let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+                newFoods.append(foodItem)
+                successfulSpawns += 1
+            }
+        }
+        
+        // ADDITIONAL PASS: Ensure good coverage across the entire terrain
+        let additionalTargetCount = min(50, availableVoxels.count / 100)  // 1% coverage minimum
+        print("🎯 [FOOD DEBUG] Additional distribution pass: \(additionalTargetCount) more foods")
+        
+        for _ in 0..<additionalTargetCount {
+            if let voxel = availableVoxels.randomElement() {
+                let randomOffset = CGPoint(
+                    x: Double.random(in: -15...15),
+                    y: Double.random(in: -15...15)
+                )
+                let foodPosition = CGPoint(
+                    x: voxel.position.x + randomOffset.x,
+                    y: voxel.position.y + randomOffset.y
+                )
+                
+                // More liberal placement for coverage
                 let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
                 let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
                 let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
