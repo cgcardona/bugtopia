@@ -831,6 +831,16 @@ class SimulationEngine {
             print("   Sample positions: \(samplePositions)")
         }
         
+        // DEBUG: Analyze food type distribution
+        print("🍎 [FOOD DEBUG] Food type distribution analysis:")
+        let foodTypeCounts = Dictionary(grouping: newFoods, by: { $0.type })
+            .mapValues { $0.count }
+            .sorted { $0.value > $1.value }
+        for (foodType, count) in foodTypeCounts {
+            let percentage = Double(count) / Double(newFoods.count) * 100
+            print("   \(foodType.emoji) \(foodType.rawValue): \(count) (\(String(format: "%.1f", percentage))%)")
+        }
+        
         print("🍎 [FOOD DEBUG] Final results:")
         print("✅ Successful spawns: \(successfulSpawns)")
         print("❌ Edge skips: \(edgeSkips)")
