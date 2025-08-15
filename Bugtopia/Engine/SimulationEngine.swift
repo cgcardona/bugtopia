@@ -696,13 +696,26 @@ class SimulationEngine {
     private func spawnInitialFood() {
         var newFoods: [FoodItem] = []
         
-        // Removed hard-coded test food spawning to use proper biome-based distribution
+        // 🐛 DEBUG: Analyze terrain distribution for food spawning
+        let allSurfaceVoxels = voxelWorld.getVoxelsInLayer(.surface)
+        let foodVoxels = allSurfaceVoxels.filter { $0.terrainType == .food }
+        let openVoxels = allSurfaceVoxels.filter { $0.terrainType == .open }
+        let hillVoxels = allSurfaceVoxels.filter { $0.terrainType == .hill }
+        let forestVoxels = allSurfaceVoxels.filter { $0.terrainType == .forest }
+        let waterVoxels = allSurfaceVoxels.filter { $0.terrainType == .water }
+        
+        print("🍎 [FOOD DEBUG] Surface voxel terrain analysis:")
+        print("📊 Total surface voxels: \(allSurfaceVoxels.count)")
+        print("🍇 Food zones: \(foodVoxels.count)")
+        print("🌾 Open areas: \(openVoxels.count)")
+        print("⛰️ Hills: \(hillVoxels.count)")
+        print("🌲 Forests: \(forestVoxels.count)")
+        print("🌊 Water: \(waterVoxels.count)")
         
         // Original logic (reduced for focused debugging)
         let herbivoreFoodRatio = 0.8 // 80% herbivore foods for now
         
         // Spawn food in designated food zones (limited to prevent oversaturation)
-        let foodVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .food }
         for voxel in foodVoxels.prefix(min(5, maxFoodItems / 40)) { // Very conservative initial food zone spawning
             let randomOffset = CGPoint(
                 x: Double.random(in: -15...15),
@@ -720,11 +733,14 @@ class SimulationEngine {
             newFoods.append(foodItem)
         }
         
-        // Spawn majority of food distributed in open areas AND hills for better distribution
-        let openVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .open }
-        let hillVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .hill }
-        let availableVoxels = openVoxels + hillVoxels
-        for _ in 0..<(maxFoodItems / 4) { // More conservative initial food spawning
+        // Spawn majority of food distributed in open areas, hills, AND forests for better distribution
+        let availableVoxels = openVoxels + hillVoxels + forestVoxels
+        let targetFoodCount = maxFoodItems / 4
+        print("🎯 [FOOD DEBUG] Attempting to spawn \(targetFoodCount) foods in \(availableVoxels.count) available voxels")
+        
+        var successfulSpawns = 0
+        var edgeSkips = 0
+        for _ in 0..<targetFoodCount { // More conservative initial food spawning
             if let voxel = availableVoxels.randomElement() {
                 let randomOffset = CGPoint(
                     x: Double.random(in: -20...20),
@@ -740,6 +756,7 @@ class SimulationEngine {
                 
                 // Only skip if extremely close to edge
                 if edgeDistance < minDistanceFromEdge {
+                    edgeSkips += 1
                     continue
                 }
                 let foodPosition = CGPoint(
@@ -752,8 +769,14 @@ class SimulationEngine {
                 let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
                 let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
                 newFoods.append(foodItem)
+                successfulSpawns += 1
             }
         }
+        
+        print("🍎 [FOOD DEBUG] Final results:")
+        print("✅ Successful spawns: \(successfulSpawns)")
+        print("❌ Edge skips: \(edgeSkips)")
+        print("🎯 Total food items created: \(newFoods.count)")
         
         foods = newFoods
     }
