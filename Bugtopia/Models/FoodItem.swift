@@ -170,10 +170,8 @@ extension FoodType {
     
     /// Generates a random food type for a species based on rarity weights
     static func randomFoodFor(species: SpeciesType) -> FoodType {
-        // 🍎🍊🍇🥜 TESTING OVERRIDE: Cycle between AAA food types for testing!
-        return .nuts   // Test nuts
+        // 🎆 AAA FOOD PIPELINE: All 8 food types now support photorealistic PBR materials!
         
-        /* ORIGINAL LOGIC - Commented out for testing
         let availableFoods = foodsFor(species: species)
         
         // Create weighted selection based on rarity
@@ -192,15 +190,12 @@ extension FoodType {
             // Fallback to any available food
             return availableFoods.randomElement() ?? .plum
         }
-        */
     }
     
     /// Randomly selects biome-appropriate food for a species type
     static func randomFoodFor(species: SpeciesType, biome: BiomeType) -> FoodType {
-        // 🍎🍊🍇🥜 TESTING OVERRIDE: Cycle between AAA food types for testing!
-        return .nuts   // Test nuts
+        // 🎆 AAA FOOD PIPELINE: All 8 food types now support photorealistic PBR materials!
         
-        /* ORIGINAL LOGIC - Commented out for testing
         let compatibleFoods = foodsFor(species: species)
         let biomeFoods = compatibleFoods.filter { $0.preferredBiomes.contains(biome) }
         
@@ -211,15 +206,12 @@ extension FoodType {
         
         // Otherwise, fall back to any compatible food
         return randomFoodFor(species: species)
-        */
     }
     
     /// Randomly selects seasonal food for a species type
     static func randomFoodFor(species: SpeciesType, season: Season) -> FoodType {
-        // 🍎🍊🍇🥜 TESTING OVERRIDE: Cycle between AAA food types for testing!
-        return .nuts   // Test nuts
+        // 🎆 AAA FOOD PIPELINE: All 8 food types now support photorealistic PBR materials!
         
-        /* ORIGINAL LOGIC - Commented out for testing
         let compatibleFoods = foodsFor(species: species)
         let seasonalFoods = compatibleFoods.filter { $0.preferredSeasons.contains(season) }
         
@@ -230,24 +222,23 @@ extension FoodType {
         
         // Otherwise, fall back to any compatible food
         return randomFoodFor(species: species)
-        */
     }
     
     /// Randomly selects biome and season appropriate food for a species type
     static func randomFoodFor(species: SpeciesType, biome: BiomeType, season: Season) -> FoodType {
-        // 🍎🍊🍇🍈 TESTING OVERRIDE: Cycle between AAA food types for testing!
-        // Change this line to test different food types:
+        // 🎆 AAA FOOD PIPELINE: All 8 food types now support photorealistic PBR materials!
         
-        // return .plum    // Test plums
-        // return .apple   // Test apples
-        // return .orange  // Test oranges
-        // return .melon   // Test melons
-        // return .meat   // Test meat
-        // return .fish   // Test fish
-        // return .seeds   // Test seeds
-        return .nuts   // Test nuts
+        /* AAA TESTING HISTORY - All food types successfully tested:
+        ✅ .plum    - Photorealistic plum with stem indent and natural asymmetry
+        ✅ .apple   - Natural apple shape with waist tapering and stem indentation
+        ✅ .orange  - Citrus segments with surface texture and realistic proportions
+        ✅ .melon   - Netted cantaloupe surface with ridge patterns and oblate shape
+        ✅ .meat    - Organic chunky meat with marbling detail and irregular surface
+        ✅ .fish    - Streamlined aquatic shape with fin ridges and metallic scales
+        ✅ .seeds   - Clustered seed arrangement with surface bumps and asymmetry
+        ✅ .nuts    - Mixed nut shells with cracks, ridges, and natural variation
+        */
         
-        /* ORIGINAL LOGIC - Commented out for testing
         let compatibleFoods = foodsFor(species: species)
         let biomeFoods = compatibleFoods.filter { $0.preferredBiomes.contains(biome) }
         let seasonalFoods = compatibleFoods.filter { $0.preferredSeasons.contains(season) }
@@ -270,7 +261,6 @@ extension FoodType {
         
         // Fallback to any compatible food
         return randomFoodFor(species: species)
-        */
     }
     
     /// Helper to select random food from list with rarity weighting
