@@ -174,9 +174,9 @@ class SimulationEngine {
         // let worldType = WorldType3D.archipelago3D
         // let worldType = WorldType3D.canyon3D
         // let worldType = WorldType3D.cavern3D
-        // let worldType = WorldType3D.continental3D
+        let worldType = WorldType3D.continental3D
         // let worldType = WorldType3D.skylands3D
-        let worldType = WorldType3D.volcano3D
+        // let worldType = WorldType3D.volcano3D
         self.currentWorldType = worldType
         
         print("🌍 Generated World Type: \(worldType.rawValue)")

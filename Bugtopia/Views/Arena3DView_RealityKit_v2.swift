@@ -175,8 +175,9 @@ struct Arena3DView_RealityKit_v2: View {
         // 2. Add continuous terrain surface (like SceneKit)
         setupGroundPlane(in: anchor)
         
-        // 3. Add simulation terrain (hills, forest, etc.)
-        addSimulationTerrain(in: anchor)
+        // 🗑️ DISABLED: Individual voxel terrain (creates grey cubes)
+        // SceneKit uses only smooth terrain mesh for continuous surface
+        // addSimulationTerrain(in: anchor)
         
         // 4. Add lighting for proper visibility
         setupWorldLighting(in: anchor)
@@ -437,118 +438,6 @@ struct Arena3DView_RealityKit_v2: View {
         print("📐 [RealityKit] Extended resolution: \(extendedResolution)x\(extendedResolution) (was \(resolution)x\(resolution))")
         
         return terrainEntity
-    }
-    
-    // 🎮 AAA Simple Position struct for voxels
-    private struct SimplePosition {
-        let x: Int
-        let y: Int
-        let z: Int
-    }
-    
-    @available(macOS 14.0, *)
-    private func addAAATerrain(in anchor: Entity) {
-        // 🎮 AAA TERRAIN SYSTEM: Individual voxels with proper materials per terrain type
-        print("🚀 [RealityKit] Creating AAA multi-material terrain system...")
-        
-        // 🎮 SIMPLIFIED: Create sample terrain chunks instead of using complex voxel system
-        // This demonstrates the AAA approach with basic terrain types
-        let terrainTypes: [TerrainType] = [.hill, .forest, .water, .sand, .open]
-        
-        // Group positions by terrain type for efficient rendering
-        var voxelsByType: [TerrainType: [SimplePosition]] = [:]
-        
-        // 🎮 DEMO: Create sample terrain layout
-        for (index, terrainType) in terrainTypes.enumerated() {
-            voxelsByType[terrainType] = []
-            
-            // Create a small cluster of each terrain type
-            for i in 0..<10 {
-                let pos = SimplePosition(
-                    x: index * 10 + (i % 5) * 2, // Smaller spacing
-                    y: (i / 5) * 2,              // Smaller spacing
-                    z: terrainType == .hill ? 2 : 0 // Smaller hill height
-                )
-                voxelsByType[terrainType]?.append(pos)
-            }
-        }
-        
-        // Create terrain container
-        let terrainContainer = Entity()
-        terrainContainer.name = "AAA_TerrainContainer"
-        
-        // Create voxel groups by terrain type
-        for (terrainType, positions) in voxelsByType {
-            let terrainGroup = Entity()
-            terrainGroup.name = "TerrainGroup_\(terrainType.rawValue)"
-            
-            // Create proper material for this terrain type
-            let material = createTerrainMaterial(for: terrainType)
-            
-            for (index, pos) in positions.enumerated() {
-                if index >= 50 { break } // Limit per terrain type
-                
-                // 🎮 AAA VOXEL: Each voxel gets proper mesh + material
-                let voxelEntity = createAAATVoxel(
-                    position: pos, 
-                    terrainType: terrainType, 
-                    material: material
-                )
-                
-                terrainGroup.addChild(voxelEntity)
-            }
-            
-            terrainContainer.addChild(terrainGroup)
-            print("🎨 [RealityKit] Created \(min(50, positions.count)) \(terrainType) voxels")
-        }
-        
-        anchor.addChild(terrainContainer)
-        print("✅ [RealityKit] AAA terrain system complete!")
-    }
-    
-    @available(macOS 14.0, *)
-    private func createAAATVoxel(position: SimplePosition, terrainType: TerrainType, material: RealityKit.Material) -> Entity {
-        // 🎮 AAA VOXEL: Create detailed voxel with proper topology
-        let voxelSize: Float = 4.0  // Smaller size for better visibility
-        
-        // Create mesh based on terrain type
-        let mesh = createVoxelMesh(for: terrainType, size: voxelSize)
-        
-        // Create entity with proper material
-        let voxelEntity = ModelEntity(mesh: mesh, materials: [material])
-        
-        // Position in world space at ground level
-        let worldPosition = SIMD3<Float>(
-            Float(position.x),                    // X position in world
-            terrainType == .hill ? Float(position.z) + 2.0 : 0.0, // Hills slightly elevated
-            Float(position.y)                     // Z position in world
-        )
-        voxelEntity.position = worldPosition
-        voxelEntity.name = "Voxel_\(terrainType.rawValue)_\(position.x)_\(position.y)_\(position.z)"
-        
-        return voxelEntity
-    }
-    
-    @available(macOS 14.0, *)
-    private func createVoxelMesh(for terrainType: TerrainType, size: Float) -> MeshResource {
-        // 🎮 AAA MESH: Create terrain-specific mesh geometry
-        switch terrainType {
-        case .hill:
-            // 🏔️ HILLS: Elevated, rounded terrain
-            return .generateBox(size: [size, size * 1.5, size])
-        case .water:
-            // 🌊 WATER: Flat, reflective surface
-            return .generateBox(size: [size, size * 0.3, size])
-        case .forest:
-            // 🌲 FOREST: Textured ground with vertical elements
-            return .generateBox(size: [size, size * 1.2, size])
-        case .sand:
-            // 🏖️ SAND: Granular, soft surface
-            return .generateBox(size: [size, size * 0.8, size])
-        default:
-            // Standard voxel mesh
-            return .generateBox(size: [size, size, size])
-        }
     }
     
     @available(macOS 14.0, *)
@@ -816,7 +705,7 @@ struct Arena3DView_RealityKit_v2: View {
             material.color = .init(tint: .green)
         case .hill:
             // 🏔️ CLAY HILLS: Using Style Guide color palette #CC8E35 for elevated, ancient terrain
-            let clayColor = NSColor(red: 0.8, green: 0.557, blue: 0.208, alpha: 1.0)
+            let clayColor = NSColor(red: 0.8, green: 0.557, blue: 0.208, alpha: 1.0) // Clay from style guide
             material.color = .init(tint: clayColor)
         case .wall:
             material.color = .init(tint: .gray)
@@ -1035,8 +924,10 @@ struct Arena3DView_RealityKit_v2: View {
             return .generateSphere(radius: baseSize)
             
         case .plum:
-            // 🫐 PLUM: Elongated oval shape
-            return .generateBox(size: [baseSize * 0.9, baseSize * 1.3, baseSize * 0.9])
+            // 🍇 PLUM: AAA PHOTOREALISTIC MODEL with proper topology!
+            print("🚀 [AAA] Creating photorealistic plum with scale: \(baseSize)")
+            let plumMesh = AAAPLumGeometry.createStandardPlum()
+            return plumMesh
             
         case .melon:
             // 🍈 MELON: Large, impressive sphere
@@ -1061,7 +952,19 @@ struct Arena3DView_RealityKit_v2: View {
     }
     
     @available(macOS 14.0, *)
-    private func createFoodMaterial(for food: FoodItem) -> SimpleMaterial {
+    private func createFoodMaterial(for food: FoodItem) -> RealityKit.Material {
+        
+        // 🍇 SPECIAL CASE: AAA PBR Material for Plums!
+        if food.type == .plum {
+            print("🎨 [AAA] Creating photorealistic PBR plum material...")
+            let energyFactor = Float(food.energyValue / 50.0) // Normalize energy
+            return AAAPBRMaterials.createAAAPlumMaterial(
+                energyLevel: energyFactor,
+                freshness: 1.0  // Fresh food in simulation
+            )
+        }
+        
+        // 🍎 STANDARD MATERIALS: For other food types (will upgrade later)
         var material = SimpleMaterial()
         
         // 🍎 PHOTOREALISTIC FOOD MATERIALS: Each food type gets distinctive surface properties
