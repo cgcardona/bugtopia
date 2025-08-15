@@ -33,7 +33,7 @@ struct Arena3DView_RealityKit_v2: View {
     @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
     @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
     @State private var cameraPosition = SIMD3<Float>(112, 150, 112)  // 📷 OVERHEAD: Looking down at terrain from above
-    @State private var cameraPitch: Float = -1.57  // 🎮 LOOKING DOWN: 90° downward to see terrain directly below
+    @State private var cameraPitch: Float = -0.8  // 🎮 ANGLED VIEW: 45° downward to see both terrain and horizon
     @State private var cameraYaw: Float = Float.pi     // 🎮 FIXED: Look AT the world (180°), not away from it
     
     // MARK: - Selection System
@@ -356,9 +356,9 @@ struct Arena3DView_RealityKit_v2: View {
             materials: [skyboxMaterial]
         )
         
-        // 🎨 SKYBOX POSITIONING: Position far away so camera sees terrain, not skybox interior
-        backgroundSphere.scale = [1, 1, 1]  // Normal orientation - don't invert
-        backgroundSphere.position = [100, -1000, 75]  // Far below terrain so it acts as distant horizon
+        // 🎨 SKYBOX POSITIONING: Center skybox around world origin for proper visibility
+        backgroundSphere.scale = [-1, 1, -1]  // Invert X and Z to view from inside
+        backgroundSphere.position = [112, 0, 112]  // Center on terrain with camera inside sphere
         
         // 🌅 RE-ENABLED: Skybox should work now that terrain is visible
         anchor.addChild(backgroundSphere)
