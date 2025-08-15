@@ -21,21 +21,21 @@ class AAAFoodGeometry {
     static func createAAAFoodMesh(for foodType: FoodType) -> MeshResource {
         switch foodType {
         case .plum:
-            return createAAAPlumMesh()
+            return createAAAPLumMesh()
         case .apple:
             return createAAAAppleMesh()
         case .orange:
             return createAAAOrangeMesh()
         case .melon:
-            return createAAAMelonMesh()
+            return .generateSphere(radius: 1.3)
         case .meat:
-            return createAAAMeatMesh()
+            return .generateBox(size: [1.2, 0.8, 1.0])
         case .fish:
-            return createAAAFishMesh()
+            return .generateBox(size: [1.5, 0.6, 0.8])
         case .seeds:
-            return createAAASeedsMesh()
+            return .generateSphere(radius: 0.7)
         case .nuts:
-            return createAAANutsMesh()
+            return .generateBox(size: [0.9, 0.7, 0.8])
         }
     }
     
