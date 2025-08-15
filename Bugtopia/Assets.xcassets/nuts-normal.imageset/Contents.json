@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "nuts-normal.png",
       "idiom" : "universal",
       "scale" : "1x"
     },

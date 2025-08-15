@@ -21,7 +21,7 @@ class AAAFoodGeometry {
     static func createAAAFoodMesh(for foodType: FoodType) -> MeshResource {
         switch foodType {
         case .plum:
-            return createAAAPLumMesh()
+            return createAAAPlumMesh()
         case .apple:
             return createAAAAppleMesh()
         case .orange:
@@ -35,7 +35,7 @@ class AAAFoodGeometry {
         case .seeds:
             return createAAASeedsMesh()
         case .nuts:
-            return .generateBox(size: [0.9, 0.7, 0.8])
+            return createAAANutsMesh()
         }
     }
     
@@ -48,7 +48,7 @@ class AAAFoodGeometry {
     ///   - asymmetry: Natural plum asymmetry factor (0.0 = perfect sphere, 0.2 = realistic)
     ///   - stemIndent: Whether to create natural stem indentation
     /// - Returns: High-quality plum mesh optimized for mobile AR
-    static func createAAAPLumMesh(
+    static func createAAAPlumMesh(
         segments: Int = 32,
         rings: Int = 16, 
         asymmetry: Float = 0.15,
@@ -773,6 +773,124 @@ class AAAFoodGeometry {
         }
     }
     
+    /// Creates a photorealistic nuts mix with proper topology and UV coordinates  
+    /// - Returns: High-quality nuts mesh with mixed nut shapes and textures
+    static func createAAANutsMesh() -> MeshResource {
+        print("🥜 [AAA] Generating photorealistic nuts geometry...")
+        
+        var vertices: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
+        var indices: [UInt32] = []
+        
+        let segments = 24
+        let rings = 16
+        
+        // 🥜 NUTS SHAPE PARAMETERS: Mixed nut collection
+        let baseRadius: Float = 0.6
+        let nutScale: Float = 1.1     // Overall size
+        let shellRoughness: Float = 0.2  // Shell surface texture
+        let nutVariation: Float = 0.4    // Individual nut shape variation
+        let crackDetail: Float = 0.15    // Natural shell cracks and ridges
+        
+        // 🎨 GENERATE VERTICES WITH NATURAL NUT SHAPES
+        for ring in 0...rings {
+            let ringAngle = Float(ring) / Float(rings) * Float.pi
+            let y = cos(ringAngle) * nutScale
+            
+            for segment in 0...segments {
+                let segmentAngle = Float(segment) / Float(segments) * 2.0 * Float.pi
+                
+                // 🌍 BASIC ELLIPSOIDAL COORDINATES
+                var x = sin(ringAngle) * cos(segmentAngle) * baseRadius * nutScale
+                var z = sin(ringAngle) * sin(segmentAngle) * baseRadius * nutScale
+                let currentY = y
+                
+                // 🥜 NUT VARIETY: Different nut shapes (almonds, walnuts, pecans)
+                let nutTypeU = sin(Float(ring * 2) * ringAngle) * cos(Float(segment * 3) * segmentAngle)
+                let nutTypeV = cos(Float(ring * 3) * ringAngle) * sin(Float(segment * 2) * segmentAngle)
+                let nutShapeFactor = 1.0 + nutVariation * (nutTypeU + nutTypeV) * 0.5
+                
+                x *= nutShapeFactor
+                z *= nutShapeFactor
+                
+                // 🌰 SHELL TEXTURE: Natural nut shell ridges and patterns
+                let shellU = sin(Float(Double(segments) * 1.8) * segmentAngle)
+                let shellV = sin(Float(Double(rings) * 1.8) * ringAngle)
+                let shellPattern = shellRoughness * shellU * shellV * sin(ringAngle)
+                
+                let shellRadius = sqrt(x * x + z * z)
+                if shellRadius > 0 {
+                    x += (x / shellRadius) * shellPattern
+                    z += (z / shellRadius) * shellPattern
+                }
+                
+                // 🔍 CRACK DETAILS: Natural shell cracks and lines
+                let crackU = sin(Float(segment * 7) * segmentAngle) * cos(Float(ring * 5) * ringAngle)
+                let crackV = cos(Float(segment * 5) * segmentAngle) * sin(Float(ring * 7) * ringAngle)
+                let crackIndentation = crackDetail * crackU * crackV * 0.3
+                
+                if crackIndentation > 0.05 {
+                    let crackRadius = sqrt(x * x + z * z)
+                    if crackRadius > 0 {
+                        x -= (x / crackRadius) * crackIndentation
+                        z -= (z / crackRadius) * crackIndentation
+                    }
+                }
+                
+                // 🥜 NATURAL NUT ASYMMETRY: Nuts aren't perfectly round
+                let asymmetryFactor = 1.0 - abs(sin(segmentAngle * 2.0)) * 0.15
+                x *= asymmetryFactor
+                
+                let vertex = SIMD3<Float>(x, currentY, z)
+                vertices.append(vertex)
+                
+                // 🔆 CALCULATE NORMALS
+                let normal = normalize(vertex)
+                normals.append(normal)
+                
+                // 🗺️ UV MAPPING: Mixed nut texture friendly
+                let u = Float(segment) / Float(segments)
+                let v = Float(ring) / Float(rings)
+                uvs.append(SIMD2<Float>(u, v))
+            }
+        }
+        
+        // 🔗 GENERATE INDICES
+        for ring in 0..<rings {
+            for segment in 0..<segments {
+                let current = ring * (segments + 1) + segment
+                let next = current + segments + 1
+                
+                indices.append(UInt32(current))
+                indices.append(UInt32(next))
+                indices.append(UInt32(current + 1))
+                
+                indices.append(UInt32(current + 1))
+                indices.append(UInt32(next))
+                indices.append(UInt32(next + 1))
+            }
+        }
+        
+        print("✅ [AAA] Generated nuts: \(vertices.count) vertices, \(indices.count/3) triangles")
+        
+        // 🚀 CREATE REALITYKIT MESH
+        var meshDescriptor = MeshDescriptor()
+        meshDescriptor.positions = .init(vertices)
+        meshDescriptor.normals = .init(normals)
+        meshDescriptor.textureCoordinates = .init(uvs)
+        meshDescriptor.primitives = .triangles(indices)
+        
+        do {
+            let mesh = try MeshResource.generate(from: [meshDescriptor])
+            print("🏆 [AAA] Nuts mesh generation complete!")
+            return mesh
+        } catch {
+            print("❌ [AAA] Nuts mesh generation failed: \(error)")
+            return .generateBox(size: [0.9, 0.7, 0.8])
+        }
+    }
+    
     // MARK: - LOD System for Mobile Optimization
     
     /// Creates multiple Level-of-Detail meshes for performance optimization
@@ -780,13 +898,13 @@ class AAAFoodGeometry {
     static func createLODMeshes() -> [MeshResource] {
         return [
             // LOD 0: High detail for close viewing
-            createAAAPLumMesh(segments: 32, rings: 16, asymmetry: 0.15),
+            createAAAPlumMesh(segments: 32, rings: 16, asymmetry: 0.15),
             
             // LOD 1: Medium detail for mid-range
-            createAAAPLumMesh(segments: 20, rings: 12, asymmetry: 0.15),
+            createAAAPlumMesh(segments: 20, rings: 12, asymmetry: 0.15),
             
             // LOD 2: Low detail for distant viewing
-            createAAAPLumMesh(segments: 12, rings: 8, asymmetry: 0.10),
+            createAAAPlumMesh(segments: 12, rings: 8, asymmetry: 0.10),
             
             // LOD 3: Ultra-low for very distant (fallback sphere)
             .generateSphere(radius: 1.0)
@@ -815,7 +933,7 @@ extension AAAFoodGeometry {
     
     /// Quick method to create a standard AAA plum with optimal settings
     static func createStandardPlum() -> MeshResource {
-        return createAAAPLumMesh(
+        return createAAAPlumMesh(
             segments: 28,      // Smooth but mobile-friendly
             rings: 14,         // Good vertical detail
             asymmetry: 0.15,   // Natural plum shape
@@ -825,7 +943,7 @@ extension AAAFoodGeometry {
     
     /// Creates a performance-optimized plum for mobile devices
     static func createMobilePlum() -> MeshResource {
-        return createAAAPLumMesh(
+        return createAAAPlumMesh(
             segments: 20,      // Lower polygon count
             rings: 10,         // Fewer rings
             asymmetry: 0.12,   // Slightly less complex
@@ -861,5 +979,10 @@ extension AAAFoodGeometry {
     /// Quick method to create a standard AAA seeds with optimal settings
     static func createStandardSeeds() -> MeshResource {
         return createAAASeedsMesh()
+    }
+    
+    /// Quick method to create a standard AAA nuts with optimal settings
+    static func createStandardNuts() -> MeshResource {
+        return createAAANutsMesh()
     }
 }

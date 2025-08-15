@@ -484,11 +484,60 @@ class AAAPBRMaterials {
     }
     
     static func createAAANutsMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
-        var material = PhysicallyBasedMaterial()
-        material.baseColor = .init(tint: NSColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 1.0))
-        material.roughness = .init(floatLiteral: 0.8)
-        material.metallic = .init(floatLiteral: 0.0)
-        return material
+        
+        print("🥜 [PBR] Creating AAA nuts material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "nuts-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded nuts diffuse texture")
+        } else {
+            // Fallback color matching mixed nuts
+            let fallbackColor = NSColor(red: 0.7, green: 0.5, blue: 0.3, alpha: 1.0) // Rich brown nuts
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback nuts color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "nuts-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded nuts normal map")
+        } else {
+            print("⚠️ [PBR] Nuts normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "nuts-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded nuts roughness map")
+        } else {
+            // Fallback: Slightly rough nut shell surface
+            pbrMaterial.roughness = .init(floatLiteral: 0.75) // Natural shell texture
+            print("⚠️ [PBR] Using fallback nuts roughness")
+        }
+        
+        // 🥇 METALLIC PROPERTIES: Nuts are completely non-metallic organic matter
+        pbrMaterial.metallic = .init(floatLiteral: 0.0)
+        
+        // 🌟 ENERGY-BASED ENHANCEMENT
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.25, (energyLevel - 1.0) * 0.08)
+            let emissionColor = NSColor(red: 0.9, green: 0.7, blue: 0.4, alpha: 1.0) // Warm nutty glow
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+            print("✨ [PBR] Added nuts energy glow: \(emissionIntensity)")
+        }
+        
+        // 🍃 FRESHNESS EFFECTS: Fresh nuts have smoother shells, aged ones get rougher
+        let baseRoughness: Float = 0.75
+        let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.3, freshness)) * 0.3)
+        pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
+        
+        print("🏆 [PBR] AAA nuts material created successfully!")
+        return pbrMaterial
     }
     
     // MARK: - Texture Loading System

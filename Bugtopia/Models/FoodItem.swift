@@ -170,8 +170,8 @@ extension FoodType {
     
     /// Generates a random food type for a species based on rarity weights
     static func randomFoodFor(species: SpeciesType) -> FoodType {
-        // 🍎🍊🍇🌱 TESTING OVERRIDE: Cycle between AAA food types for testing!
-        return .seeds   // Test seeds
+        // 🍎🍊🍇🥜 TESTING OVERRIDE: Cycle between AAA food types for testing!
+        return .nuts   // Test nuts
         
         /* ORIGINAL LOGIC - Commented out for testing
         let availableFoods = foodsFor(species: species)
@@ -197,8 +197,8 @@ extension FoodType {
     
     /// Randomly selects biome-appropriate food for a species type
     static func randomFoodFor(species: SpeciesType, biome: BiomeType) -> FoodType {
-        // 🍎🍊🍇🌱 TESTING OVERRIDE: Cycle between AAA food types for testing!
-        return .seeds   // Test seeds
+        // 🍎🍊🍇🥜 TESTING OVERRIDE: Cycle between AAA food types for testing!
+        return .nuts   // Test nuts
         
         /* ORIGINAL LOGIC - Commented out for testing
         let compatibleFoods = foodsFor(species: species)
@@ -216,8 +216,8 @@ extension FoodType {
     
     /// Randomly selects seasonal food for a species type
     static func randomFoodFor(species: SpeciesType, season: Season) -> FoodType {
-        // 🍎🍊🍇🌱 TESTING OVERRIDE: Cycle between AAA food types for testing!
-        return .seeds   // Test seeds
+        // 🍎🍊🍇🥜 TESTING OVERRIDE: Cycle between AAA food types for testing!
+        return .nuts   // Test nuts
         
         /* ORIGINAL LOGIC - Commented out for testing
         let compatibleFoods = foodsFor(species: species)
@@ -244,7 +244,8 @@ extension FoodType {
         // return .melon   // Test melons
         // return .meat   // Test meat
         // return .fish   // Test fish
-        return .seeds   // Test seeds
+        // return .seeds   // Test seeds
+        return .nuts   // Test nuts
         
         /* ORIGINAL LOGIC - Commented out for testing
         let compatibleFoods = foodsFor(species: species)
