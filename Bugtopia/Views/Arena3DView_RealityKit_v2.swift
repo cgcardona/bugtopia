@@ -1973,8 +1973,8 @@ struct Arena3DView_RealityKit_v2: View {
         // Move camera position left (negative X)
         cameraPosition.x -= distance
         
-        // Update the world anchor (negative because we move the world opposite to camera)
-        anchor.transform.translation = -cameraPosition
+        // 🌍 TERRAIN CENTERING: Keep terrain visible by repositioning relative to camera
+        updateTerrainPosition(anchor: anchor)
         
         // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
         anchor.transform.rotation = createOrientationLockedRotation()
@@ -1989,8 +1989,8 @@ struct Arena3DView_RealityKit_v2: View {
         // Move camera position right (positive X)
         cameraPosition.x += distance
         
-        // Update the world anchor (negative because we move the world opposite to camera)
-        anchor.transform.translation = -cameraPosition
+        // 🌍 TERRAIN CENTERING: Keep terrain visible by repositioning relative to camera
+        updateTerrainPosition(anchor: anchor)
         
         // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
         anchor.transform.rotation = createOrientationLockedRotation()
@@ -2005,8 +2005,8 @@ struct Arena3DView_RealityKit_v2: View {
         // 🔧 FIXED: Move camera position forward (negative Z in RealityKit)
         cameraPosition.z -= distance
         
-        // Update the world anchor (negative because we move the world opposite to camera)
-        anchor.transform.translation = -cameraPosition
+        // 🌍 TERRAIN CENTERING: Keep terrain visible by repositioning relative to camera
+        updateTerrainPosition(anchor: anchor)
         
         // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
         anchor.transform.rotation = createOrientationLockedRotation()
@@ -2021,8 +2021,8 @@ struct Arena3DView_RealityKit_v2: View {
         // 🔧 FIXED: Move camera position backward (positive Z in RealityKit)
         cameraPosition.z += distance
         
-        // Update the world anchor (negative because we move the world opposite to camera)
-        anchor.transform.translation = -cameraPosition
+        // 🌍 TERRAIN CENTERING: Keep terrain visible by repositioning relative to camera
+        updateTerrainPosition(anchor: anchor)
         
         // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
         anchor.transform.rotation = createOrientationLockedRotation()
@@ -2051,6 +2051,29 @@ struct Arena3DView_RealityKit_v2: View {
                         // No roll component - prevents tilting!
         
         return quaternion
+    }
+    
+    // 🌍 TERRAIN CENTERING: Keep terrain visible when camera moves far away
+    private func updateTerrainPosition(anchor: AnchorEntity) {
+        // Calculate how far the camera has moved from origin
+        let cameraDistance = simd_length(cameraPosition)
+        
+        // If camera has moved too far (beyond terrain size), reposition terrain
+        let maxDistance: Float = 100.0  // Adjust based on terrain size
+        
+        if cameraDistance > maxDistance {
+            // Reposition terrain to keep it centered around camera
+            // Instead of moving world opposite to camera, keep terrain relatively close
+            let normalizedCameraPos = simd_normalize(cameraPosition)
+            let terrainOffset = normalizedCameraPos * (maxDistance * 0.7)  // Keep terrain 70% of max distance
+            
+            anchor.transform.translation = -terrainOffset
+            
+            print("🌍 [RealityKit] Repositioned terrain: camera distance \(cameraDistance), offset \(terrainOffset)")
+        } else {
+            // Normal movement: move world opposite to camera
+            anchor.transform.translation = -cameraPosition
+        }
     }
 
     
