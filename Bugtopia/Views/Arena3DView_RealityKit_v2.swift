@@ -393,12 +393,19 @@ struct Arena3DView_RealityKit_v2: View {
         let terrainMesh = try! MeshResource.generate(from: [meshDescriptor])
         
         // 🔧 DOUBLE-SIDED TERRAIN: Create material that's visible from all angles
-        var terrainMaterial = UnlitMaterial()
+        var terrainMaterial = PhysicallyBasedMaterial()
         
         // Set terrain color based on dominant biome
         let dominantBiome = findDominantBiome(biomeMap: biomeMap)
         let terrainColor = getTerrainColor(for: dominantBiome)
-        terrainMaterial.color = .init(tint: terrainColor)
+        
+        // Configure material for visibility from all angles
+        terrainMaterial.baseColor = .init(tint: terrainColor)
+        terrainMaterial.roughness = 0.8
+        terrainMaterial.metallic = 0.1
+        
+        // 🔧 CRITICAL: Enable double-sided rendering to fix backface culling
+        terrainMaterial.faceCulling = .none  // Render both front and back faces
         
         let terrainEntity = ModelEntity(mesh: terrainMesh, materials: [terrainMaterial])
         terrainEntity.name = "WatertightTerrain"
@@ -432,14 +439,14 @@ struct Arena3DView_RealityKit_v2: View {
         if waterAreaCount > (resolution * resolution) / 50 {  // 🌊 LESS WATER: Only 2% threshold (was 5%)
             // Create large water plane that integrates with terrain edges
             let waterSize = Float(resolution + 4) * scale  // 🌊 FULL COVERAGE: Match extended terrain bounds
-            let waterMesh = MeshResource.generatePlane(width: waterSize, depth: waterSize)
-            let waterMaterial = createWaterMaterial(height: waterLevel)
-            
-            let waterEntity = ModelEntity(mesh: waterMesh, materials: [waterMaterial])
+        let waterMesh = MeshResource.generatePlane(width: waterSize, depth: waterSize)
+        let waterMaterial = createWaterMaterial(height: waterLevel)
+        
+        let waterEntity = ModelEntity(mesh: waterMesh, materials: [waterMaterial])
             waterEntity.position = [0, Float(waterLevel) * 0.8, 0]  // 🌊 INTEGRATED: Match terrain floor level
             waterEntity.name = "IntegratedWater"
-            
-            waterContainer.addChild(waterEntity)
+        
+        waterContainer.addChild(waterEntity)
             
             print("🌊 [RealityKit] Created integrated water plane covering \(waterAreaCount) valley areas")
         } else {
@@ -516,7 +523,13 @@ struct Arena3DView_RealityKit_v2: View {
         if isWater {
             material = createWaterMaterial(height: height)
         } else {
-            material = UnlitMaterial(color: terrainColor)
+            // Create double-sided terrain material
+            var terrainMat = PhysicallyBasedMaterial()
+            terrainMat.baseColor = .init(tint: terrainColor)
+            terrainMat.roughness = 0.8
+            terrainMat.metallic = 0.1
+            terrainMat.faceCulling = .none  // Double-sided rendering
+            material = terrainMat
         }
         
         let terrainPatch = ModelEntity(mesh: mesh, materials: [material])
@@ -526,10 +539,10 @@ struct Arena3DView_RealityKit_v2: View {
     }
     
     @available(macOS 14.0, *)
-    private func createWaterMaterial(height: Double) -> UnlitMaterial {
-        var waterMaterial = UnlitMaterial()
+    private func createWaterMaterial(height: Double) -> SimpleMaterial {
+        var waterMaterial = SimpleMaterial()
         
-        // 🔧 CONSISTENT VISIBILITY: Use UnlitMaterial like terrain for backface culling fix
+        // 🌊 TRANSPARENT WATER: Use SimpleMaterial for proper transparency support
         // Water color based on depth (deeper = darker blue)
         let waterDepth = abs(height + 5) / 15.0  // Normalize depth (0-1)
         let blueIntensity = 0.3 + (waterDepth * 0.7)  // Deeper water is more blue
@@ -542,6 +555,8 @@ struct Arena3DView_RealityKit_v2: View {
         )
         
         waterMaterial.color = .init(tint: waterColor)
+        waterMaterial.roughness = 0.1  // Very smooth water surface
+        waterMaterial.metallic = 0.8   // Reflective like water
         
         return waterMaterial
     }
@@ -1140,7 +1155,7 @@ struct Arena3DView_RealityKit_v2: View {
             material.metallic = 0.0
             material.roughness = 0.8
         case .waist, .antennae:
-            material.metallic = 0.2
+        material.metallic = 0.2
             material.roughness = 0.5
         case .legs:
             material.metallic = 0.3
