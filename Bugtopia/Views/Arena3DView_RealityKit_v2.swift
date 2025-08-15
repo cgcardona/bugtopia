@@ -32,7 +32,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
     @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
-    @State private var cameraPosition = SIMD3<Float>(112, 200, 112)  // 📷 CENTERED: Above 225×225 terrain center
+    @State private var cameraPosition = SIMD3<Float>(112, 150, 112)  // 📷 OVERHEAD: Looking down at terrain from above
     @State private var cameraPitch: Float = -1.57  // 🎮 LOOKING DOWN: 90° downward to see terrain directly below
     @State private var cameraYaw: Float = Float.pi     // 🎮 FIXED: Look AT the world (180°), not away from it
     
@@ -58,7 +58,7 @@ struct Arena3DView_RealityKit_v2: View {
     // MARK: - Debug Functions
     
     private func updateDebugInfo() {
-        let terrain = "Terrain: 225×225 units (36×6.25 scale)" // Updated to match new coordinate system
+        let terrain = "Terrain: 225×225 units at Y=0-20" // Updated with height info
         let camera = String(format: "Cam: (%.1f, %.1f, %.1f)", cameraPosition.x, cameraPosition.y, cameraPosition.z)
         let rotation = String(format: "Rot: P%.1f° Y%.1f°", cameraPitch * 180 / .pi, cameraYaw * 180 / .pi)
         let mode = isGodMode ? "🌟 GOD" : "🚶 WALK"
@@ -217,7 +217,7 @@ struct Arena3DView_RealityKit_v2: View {
         let anchor = AnchorEntity(.world(transform: Transform.identity.matrix))
         
         // Position the world anchor for elevated overview
-        anchor.transform.translation = [-112, -200, -112]  // Centered on unified 225×225 terrain
+        anchor.transform.translation = [-112, 0, -112]  // Centered horizontally, terrain at Y=0
         
         // 🎯 INITIAL ROTATION: Set the camera looking down at terrain
         anchor.transform.rotation = createOrientationLockedRotation()
@@ -360,9 +360,9 @@ struct Arena3DView_RealityKit_v2: View {
         backgroundSphere.scale = [1, 1, 1]  // Normal orientation - don't invert
         backgroundSphere.position = [100, -1000, 75]  // Far below terrain so it acts as distant horizon
         
-        // 🚫 TEMPORARILY DISABLED: Skip skybox to debug terrain visibility
-        // anchor.addChild(backgroundSphere)
-        print("🚫 [DEBUG] Skybox temporarily disabled to check terrain visibility")
+        // 🌅 RE-ENABLED: Skybox should work now that terrain is visible
+        anchor.addChild(backgroundSphere)
+        print("🌅 [SKYBOX] Continental skybox re-enabled")
     }
     
     @available(macOS 14.0, *)
@@ -389,8 +389,17 @@ struct Arena3DView_RealityKit_v2: View {
         let waterSurfaces = createWaterSurfaces(heightMap: heightMap, resolution: resolution)
         terrainContainer.addChild(waterSurfaces)
         
+        // 🎯 DEBUG: Add a bright marker at terrain center for positioning reference
+        let centerMarker = ModelEntity(
+            mesh: .generateSphere(radius: 3.0),
+            materials: [SimpleMaterial(color: .magenta, isMetallic: false)]
+        )
+        centerMarker.position = [112, 25, 112]  // Above terrain center
+        terrainContainer.addChild(centerMarker)
+        
         anchor.addChild(terrainContainer)
         print("✅ [RealityKit] Smooth navigable terrain created for bug movement")
+        print("🎯 [DEBUG] Added magenta marker at terrain center (112, 25, 112)")
     }
     
     @available(macOS 14.0, *)
@@ -442,16 +451,16 @@ struct Arena3DView_RealityKit_v2: View {
                 let topLeft = UInt32((x + 1) * extendedResolution + z)
                 let topRight = UInt32((x + 1) * extendedResolution + z + 1)
                 
-                // 🔧 CONSISTENT WINDING: Ensure counter-clockwise winding for all triangles
-                // First triangle (bottom-left, bottom-right, top-left)
+                // 🔧 FIXED WINDING: Clockwise winding for upward-facing normals
+                // First triangle (bottom-left, top-left, bottom-right)
                 indices.append(bottomLeft)
-                indices.append(bottomRight)
                 indices.append(topLeft)
+                indices.append(bottomRight)
                 
-                // Second triangle (bottom-right, top-right, top-left)
+                // Second triangle (bottom-right, top-left, top-right)
                 indices.append(bottomRight)
-                indices.append(topRight)
                 indices.append(topLeft)
+                indices.append(topRight)
             }
         }
         
