@@ -797,11 +797,14 @@ struct Arena3DView_RealityKit_v2: View {
         let foodEntity = ModelEntity(mesh: mesh, materials: [material])
         
         // Position on terrain surface with proper scaling
-        let terrainHeight = getTerrainHeightAtPosition(x: Float(food.position.x), z: Float(food.position.y))
+        let simulationScale: Float = 0.05  // Same scale used for bugs
+        let scaledX = Float(food.position.x) * simulationScale
+        let scaledZ = Float(food.position.y) * simulationScale
+        let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
         let scaledPosition = SIMD3<Float>(
-            Float(food.position.x) * 4.0, // Match terrain scale
+            scaledX, // Use consistent simulation scaling
             terrainHeight + 1.0, // Slightly above terrain
-            Float(food.position.y) * 4.0 // Match terrain scale  
+            scaledZ  // Use consistent simulation scaling
         )
         foodEntity.position = scaledPosition
         
@@ -875,18 +878,21 @@ struct Arena3DView_RealityKit_v2: View {
             // 🚀 ADVANCED: Create detailed multi-part bug entity (ported from SceneKit)
             let bugEntity = createDetailedBugEntity(for: bug, index: index)
             
-            // 🌍 MASSIVE TERRAIN: Scatter bugs across the large terrain like in SceneKit
-            let terrainSize: Float = 8.0 * 32.0  // Match terrain scale * resolution
-            let bugX = Float.random(in: -terrainSize/2...terrainSize/2)
-            let bugZ = Float.random(in: -terrainSize/2...terrainSize/2)
+            // 🎯 FIXED: Use actual simulation coordinates with proper scaling
+            let simulationScale: Float = 0.05  // Scale down simulation coordinates to fit terrain
+            let bugX = Float(bug.position3D.x) * simulationScale
+            let bugZ = Float(bug.position3D.y) * simulationScale  // Note: simulation Y becomes RealityKit Z
             
             // 🏔️ TERRAIN FOLLOWING: Position bugs at appropriate height above terrain
             let bugY = getTerrainHeightAtPosition(x: bugX, z: bugZ) + 3.0  // 3 units above terrain
             
             bugEntity.position = [bugX, bugY, bugZ]
-            bugEntity.name = "Bug_\(index)"
+            // 🎯 FIXED: Use actual bug UUID for proper identification
+            bugEntity.name = "Bug_\(bug.id.uuidString)"
             
             bugContainer.addChild(bugEntity)
+            
+            print("🐛 [RealityKit] Bug \(index): Sim(\(bug.position3D.x), \(bug.position3D.y)) -> RK(\(bugX), \(bugZ))")
         }
         
         anchor.addChild(bugContainer)
@@ -1015,7 +1021,7 @@ struct Arena3DView_RealityKit_v2: View {
     private func createDetailedBugEntity(for bug: Bug, index: Int) -> Entity {
         // 🚀 ADVANCED: Multi-part bug entity system (ported from SceneKit)
         let bugEntity = Entity()
-        bugEntity.name = "DetailedBug_\(index)"
+        // 🎯 Note: Parent will set the proper "Bug_\(uuid)" name
         
         let size = Float(bug.dna.size * 2.0) // Scale for visibility
         let species = bug.dna.speciesTraits.speciesType
@@ -1357,14 +1363,29 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func updateBugPositions() {
-        // DISABLED: Dynamic position updates causing bugs to fly off-screen
-        // Keep bugs in their initial grid positions for now
-        // TODO: Fix coordinate system mapping between simulation and RealityKit
+        // ✅ ENABLED: Real-time position updates with proper coordinate scaling
+        guard let anchor = sceneAnchor,
+              let bugContainer = anchor.findEntity(named: "BugContainer") else { return }
         
-        // Future implementation will properly map:
-        // - Simulation world coordinates (large scale)
-        // - RealityKit world coordinates (small scale)
-        // - Proper terrain following
+        let simulationScale: Float = 0.05  // Same scale used for initial positioning
+        
+        // Update positions for all live bugs
+        for bug in simulationEngine.bugs.filter({ $0.isAlive }) {
+            if let bugEntity = bugContainer.findEntity(named: "Bug_\(bug.id.uuidString)") {
+                // Convert simulation coordinates to RealityKit coordinates
+                let bugX = Float(bug.position3D.x) * simulationScale
+                let bugZ = Float(bug.position3D.y) * simulationScale
+                let bugY = getTerrainHeightAtPosition(x: bugX, z: bugZ) + 3.0
+                
+                // Smooth movement to prevent jarring updates
+                let targetPosition = SIMD3<Float>(bugX, bugY, bugZ)
+                let currentPosition = bugEntity.position
+                let lerpFactor: Float = 0.1  // Smooth interpolation
+                let newPosition = simd_mix(currentPosition, targetPosition, SIMD3<Float>(repeating: lerpFactor))
+                
+                bugEntity.position = newPosition
+            }
+        }
     }
 
     
@@ -1624,45 +1645,56 @@ struct Arena3DView_RealityKit_v2: View {
             return
         }
         
+        // Add more debug info
+        print("🎯 [RealityKit] Camera position: \(cameraPosition)")
+        print("🎯 [RealityKit] Scene anchor exists, attempting entity selection...")
+        
         // Perform entity selection
         selectEntityAt(location: location, in: anchor)
     }
     
     @available(macOS 14.0, *)
     private func selectEntityAt(location: CGPoint, in anchor: AnchorEntity) {
-        // Convert tap location to 3D ray for entity selection
-        // Note: RealityKit doesn't have direct hit testing like SceneKit,
-        // so we'll use proximity-based selection as a practical alternative
+        print("🎯 [RealityKit] Starting entity selection at \(location)...")
         
-        // Find closest entity to the tap location
+        // 🎯 IMPROVED: Use proper raycasting for entity selection
+        // For now, we'll implement a distance-based selection as proper raycasting 
+        // requires more complex RealityView integration
+        
         var closestBugEntity: Entity?
         var closestFoodEntity: Entity?
         var closestBugDistance: Float = Float.greatestFiniteMagnitude
         var closestFoodDistance: Float = Float.greatestFiniteMagnitude
         
-        // Get camera position for distance calculations
-        let cameraPosition = self.cameraPosition
-        
-        // Check bug entities
+        // Find closest bug entity to the tap location
         if let bugContainer = anchor.findEntity(named: "BugContainer") {
+            print("🐛 [RealityKit] Found BugContainer with \(bugContainer.children.count) children")
+            
             for child in bugContainer.children {
                 if child.name.hasPrefix("Bug_") {
-                    let distance = simd_distance(child.position, cameraPosition)
-                    if distance < closestBugDistance {
-                        closestBugDistance = distance
+                    // Simple distance check from camera center (more sophisticated raycasting would be ideal)
+                    let bugPosition = child.position
+                    let distanceFromCenter = simd_length(bugPosition - cameraPosition)
+                    
+                    if distanceFromCenter < closestBugDistance {
+                        closestBugDistance = distanceFromCenter
                         closestBugEntity = child
                     }
                 }
             }
         }
         
-        // Check food entities
+        // Find closest food entity to the tap location
         if let foodContainer = anchor.findEntity(named: "FoodContainer") {
+            print("🍎 [RealityKit] Found FoodContainer with \(foodContainer.children.count) children")
+            
             for child in foodContainer.children {
                 if child.name.hasPrefix("Food_") {
-                    let distance = simd_distance(child.position, cameraPosition)
-                    if distance < closestFoodDistance {
-                        closestFoodDistance = distance
+                    let foodPosition = child.position
+                    let distanceFromCenter = simd_length(foodPosition - cameraPosition)
+                    
+                    if distanceFromCenter < closestFoodDistance {
+                        closestFoodDistance = distanceFromCenter
                         closestFoodEntity = child
                     }
                 }
@@ -1670,12 +1702,15 @@ struct Arena3DView_RealityKit_v2: View {
         }
         
         // Select the closest entity (bug or food)
-        if closestBugDistance < closestFoodDistance && closestBugDistance < 20.0 { // Within reasonable selection range
-            selectBugEntity(closestBugEntity)
-        } else if closestFoodDistance < 20.0 { // Within reasonable selection range
-            selectFoodEntity(closestFoodEntity)
+        if let bugEntity = closestBugEntity, 
+           (closestFoodEntity == nil || closestBugDistance < closestFoodDistance) {
+            print("🎯 [RealityKit] Selecting closest bug: \(bugEntity.name) at distance \(closestBugDistance)")
+            selectBugEntity(bugEntity)
+        } else if let foodEntity = closestFoodEntity {
+            print("🎯 [RealityKit] Selecting closest food: \(foodEntity.name) at distance \(closestFoodDistance)")
+            selectFoodEntity(foodEntity)
         } else {
-            // No entity close enough - deselect all
+            print("❌ [RealityKit] No entities found to select")
             deselectAllEntities()
         }
     }
@@ -1686,20 +1721,36 @@ struct Arena3DView_RealityKit_v2: View {
             return
         }
         
+        print("🎯 [RealityKit] Attempting to select bug entity: \(entity.name)")
+        
         // Extract bug ID from entity name
         let name = entity.name
         if name.hasPrefix("Bug_") {
             let bugIdString = String(name.dropFirst(4)) // Remove "Bug_" prefix
+            print("🎯 [RealityKit] Extracted bug ID string: \(bugIdString)")
+            
             if let bugId = UUID(uuidString: bugIdString) {
+                print("🎯 [RealityKit] Parsed bug UUID: \(bugId)")
+                
                 // Find the corresponding bug from the simulation
+                let totalBugs = simulationEngine.bugs.count
+                print("🎯 [RealityKit] Searching through \(totalBugs) simulation bugs...")
+                
                 if let bug = simulationEngine.bugs.first(where: { $0.id == bugId }) {
+                    print("✅ [RealityKit] Found matching bug!")
                     print("🐛 [RealityKit] Selected bug: \(bug.dna.speciesTraits.speciesType.rawValue) (\(bugId))")
                     
                     // Notify the selection system (similar to SceneKit)
                     notifyBugSelection(bug)
                     return
+                } else {
+                    print("❌ [RealityKit] No matching bug found in simulation")
                 }
+            } else {
+                print("❌ [RealityKit] Could not parse UUID from: \(bugIdString)")
             }
+        } else {
+            print("❌ [RealityKit] Entity name doesn't start with 'Bug_': \(name)")
         }
         
         print("❌ [RealityKit] Could not find bug data for entity: \(name)")
@@ -1746,11 +1797,27 @@ struct Arena3DView_RealityKit_v2: View {
         DispatchQueue.main.async {
             self.onBugSelectedCallback?(bug)
         }
+        
+        // 🎯 Add visual feedback for selection
+        if let bug = bug {
+            print("✅ [RealityKit] Successfully selected bug: \(bug.dna.speciesTraits.speciesType.rawValue)")
+            print("📊 [RealityKit] Bug Stats - Energy: \(bug.energy), Speed: \(bug.dna.speed), Size: \(bug.dna.size)")
+        } else {
+            print("🔄 [RealityKit] Bug deselected")
+        }
     }
     
     private func notifyFoodSelection(_ food: FoodItem?) {
         DispatchQueue.main.async {
             self.onFoodSelectedCallback?(food)
+        }
+        
+        // 🍎 Add visual feedback for food selection
+        if let food = food {
+            print("✅ [RealityKit] Successfully selected food: \(food.type.rawValue)")
+            print("📊 [RealityKit] Food Stats - Energy: \(food.energyValue), Position: \(food.position)")
+        } else {
+            print("🔄 [RealityKit] Food deselected")
         }
     }
     
@@ -1949,7 +2016,7 @@ struct Arena3DView_RealityKit_v2: View {
         // Create visual representations for current bugs
         for (index, bug) in simulationEngine.bugs.prefix(20).enumerated() {
             let bugEntity = Entity()
-            bugEntity.name = "Bug_\(index)"
+            bugEntity.name = "Bug_\(bug.id.uuidString)"
             
             // Create sphere geometry for bugs
             let sphereMesh = MeshResource.generateSphere(radius: 2.0) // Visible size
@@ -1958,11 +2025,12 @@ struct Arena3DView_RealityKit_v2: View {
             
             bugEntity.components.set(modelComponent)
             
-            // Position bug in 3D space
+            // Position bug in 3D space with proper coordinate scaling
+            let simulationScale: Float = 0.05  // Same scale used everywhere else
             let position = SIMD3<Float>(
-                Float(bug.position.x),
-                Float(bug.position.z + 5), // Slightly above terrain
-                Float(bug.position.y)
+                Float(bug.position3D.x) * simulationScale,
+                Float(bug.position3D.z + 5), // Slightly above terrain
+                Float(bug.position3D.y) * simulationScale
             )
             bugEntity.position = position
             
@@ -2064,11 +2132,14 @@ struct Arena3DView_RealityKit_v2: View {
         for bug in currentBugs {
             if let bugEntity = bugContainer.findEntity(named: "Bug_\(bug.id.uuidString)") {
                 // Calculate new position with terrain following
-                let terrainHeight = getTerrainHeightAtPosition(x: Float(bug.position3D.x), z: Float(bug.position3D.y))
+                let simulationScale: Float = 0.05  // Consistent scaling
+                let scaledX = Float(bug.position3D.x) * simulationScale
+                let scaledZ = Float(bug.position3D.y) * simulationScale
+                let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
                 let newPosition = SIMD3<Float>(
-                    Float(bug.position3D.x) * 4.0, // Match terrain scale
+                    scaledX, // Use consistent simulation scaling
                     terrainHeight + 1.5, // Above terrain
-                    Float(bug.position3D.y) * 4.0 // Match terrain scale
+                    scaledZ  // Use consistent simulation scaling
                 )
                 
                 // Smooth interpolation for natural movement
@@ -2097,6 +2168,7 @@ struct Arena3DView_RealityKit_v2: View {
         for bug in currentBugs {
             if bugContainer.findEntity(named: "Bug_\(bug.id.uuidString)") == nil {
                 let bugEntity = createDetailedBugEntity(for: bug, index: 0)
+                bugEntity.name = "Bug_\(bug.id.uuidString)"
                 bugContainer.addChild(bugEntity)
             }
         }
