@@ -170,8 +170,11 @@ extension FoodType {
     
     /// Generates a random food type for a species based on rarity weights
     static func randomFoodFor(species: SpeciesType) -> FoodType {
-        // 🎆 AAA FOOD PIPELINE: All 8 food types now support photorealistic PBR materials!
+        // 🍎 AAA APPLE TESTING: Force apple generation for focused quality improvement
+        return .apple
         
+        // 🎆 AAA FOOD PIPELINE: All 8 food types now support photorealistic PBR materials!
+        /*
         let availableFoods = foodsFor(species: species)
         
         // Create weighted selection based on rarity
@@ -190,6 +193,7 @@ extension FoodType {
             // Fallback to any available food
             return availableFoods.randomElement() ?? .plum
         }
+        */
     }
     
     /// Randomly selects biome-appropriate food for a species type
