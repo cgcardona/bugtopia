@@ -412,16 +412,7 @@ struct SimulationView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 
-                // PHASE 1 DEBUG: Manual debug trigger
-                Button(action: {
-                    engineManager.arena3DView.triggerPhase1Debug()
-                }) {
-                    Text("🔍 Debug")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                }
-                .buttonStyle(.bordered)
-                .foregroundColor(.orange)
+
                 
                 // 🎮 AAA PERFORMANCE: Performance report
                 Button(action: {

@@ -106,50 +106,9 @@ struct Arena3DView: NSViewRepresentable {
     
 
     
-    /// DEBUG: Trigger simulation state verification from UI
-    func triggerPhase1Debug() {
-        DispatchQueue.main.async {
-            // ✅ FIXED: Use global persistent scene to avoid @State access during view updates
-            if Arena3DView.globalPersistentScene != nil {
-                self.performDebugVerification()
-                
-                // 🎯 Additional bug selection debugging
-                self.debugBugSelectionState()
-            }
-        }
-    }
+
     
-    /// 🎯 Debug: Check bug selection system state
-    private func debugBugSelectionState() {
-        
-        // Check mappings
-        
-        // Check if NavigationResponder is set up
-        if let navResponder = navigationResponder {
-        } else {
-        }
-        
-        // Check bug nodes in scene
-        guard let sceneView = sceneView,
-              let scene = sceneView.scene,
-              let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else {
-            return
-        }
-        
-        let bugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
-        
-        // Check if nodes are in mapping
-        for (index, bugNode) in bugNodes.prefix(3).enumerated() {
-            let nodeName = bugNode.name ?? "unnamed"
-            let hasBug = bugNodeToBugMapping[bugNode] != nil
-            let hasNavBug = navigationResponder?.bugNodeToBugMapping[bugNode] != nil
-            
-            // Check node geometry
-            let childCount = bugNode.childNodes.count
-            let hasGeometry = bugNode.geometry != nil || !bugNode.childNodes.isEmpty
-        }
-        
-    }
+
     
     /// 🎮 AAA PERFORMANCE: Public method to trigger performance analysis
     func triggerPerformanceAnalysis() {
@@ -163,19 +122,7 @@ struct Arena3DView: NSViewRepresentable {
     
 
     
-    /// DEBUG: Internal simulation state verification
-    private func performDebugVerification() {
-        // ✅ FIXED: Use global persistent scene to avoid @State access during view updates
-        guard let scene = Arena3DView.globalPersistentScene,
-              let bugContainer = scene.rootNode.childNode(withName: "BugContainer", recursively: false) else {
-            return
-        }
-        
-        let bugModels = simulationEngine.bugs
-        let bugNodes = bugContainer.childNodes.filter { $0.name?.hasPrefix("Bug_") == true }
-        let aliveBugs = simulationEngine.bugs.filter { $0.isAlive }.count
-        
-    }
+
     
     // MARK: - 🎯 Bug Selection System
     
