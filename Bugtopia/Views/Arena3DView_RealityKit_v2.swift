@@ -356,12 +356,13 @@ struct Arena3DView_RealityKit_v2: View {
             materials: [skyboxMaterial]
         )
         
-        // 🎨 SKYBOX ENHANCEMENT: Invert normals and add atmospheric depth
-        backgroundSphere.scale = [-1, 1, 1]  // Invert to see from inside
-        backgroundSphere.position = [0, -500, 0]  // Lower position for better horizon effect
+        // 🎨 SKYBOX POSITIONING: Position far away so camera sees terrain, not skybox interior
+        backgroundSphere.scale = [1, 1, 1]  // Normal orientation - don't invert
+        backgroundSphere.position = [100, -1000, 75]  // Far below terrain so it acts as distant horizon
         
-        anchor.addChild(backgroundSphere)
-        print("✅ [RealityKit] Positioned skybox sphere for \(worldType) (radius: 2000, centered at origin)")
+        // 🚫 TEMPORARILY DISABLED: Skip skybox to debug terrain visibility
+        // anchor.addChild(backgroundSphere)
+        print("🚫 [DEBUG] Skybox temporarily disabled to check terrain visibility")
     }
     
     @available(macOS 14.0, *)
