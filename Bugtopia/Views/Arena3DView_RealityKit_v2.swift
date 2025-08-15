@@ -934,12 +934,16 @@ struct Arena3DView_RealityKit_v2: View {
             return orangeMesh
             
         case .melon:
-            // 🍈 MELON: Large, impressive sphere
-            return .generateSphere(radius: baseSize * 1.4)
+            // 🍈 MELON: AAA PHOTOREALISTIC MODEL with netted cantaloupe texture!
+            print("🚀 [AAA] Creating photorealistic melon with scale: \(baseSize)")
+            let melonMesh = AAAFoodGeometry.createStandardMelon()
+            return melonMesh
             
         case .meat:
-            // 🥩 MEAT: Irregular, chunky shape
-            return .generateBox(size: [baseSize * 1.2, baseSize * 0.7, baseSize * 1.0])
+            // 🥩 MEAT: AAA PHOTOREALISTIC MODEL with organic chunky shape!
+            print("🚀 [AAA] Creating photorealistic meat with scale: \(baseSize)")
+            let meatMesh = AAAFoodGeometry.createStandardMeat()
+            return meatMesh
             
         case .fish:
             // 🐟 FISH: Elongated, streamlined shape
@@ -958,8 +962,8 @@ struct Arena3DView_RealityKit_v2: View {
     @available(macOS 14.0, *)
     private func createFoodMaterial(for food: FoodItem) -> RealityKit.Material {
         
-        // 🍎🍊🍇🍈 AAA PBR MATERIALS: Check if this food type has AAA materials!
-        if [.plum, .apple, .orange, .melon].contains(food.type) {
+        // 🍎🍊🍇🍈🥩 AAA PBR MATERIALS: Check if this food type has AAA materials!
+        if [.plum, .apple, .orange, .melon, .meat].contains(food.type) {
             print("🎨 [AAA] Creating photorealistic PBR \(food.type.rawValue) material...")
             let energyFactor = Float(food.energyValue / 50.0) // Normalize energy
             return AAAPBRMaterials.createAAAFoodMaterial(

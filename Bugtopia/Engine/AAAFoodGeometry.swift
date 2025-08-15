@@ -29,7 +29,7 @@ class AAAFoodGeometry {
         case .melon:
             return createAAAMelonMesh()
         case .meat:
-            return .generateBox(size: [1.2, 0.8, 1.0])
+            return createAAAMeatMesh()
         case .fish:
             return .generateBox(size: [1.5, 0.6, 0.8])
         case .seeds:
@@ -448,6 +448,109 @@ class AAAFoodGeometry {
         }
     }
     
+    /// Creates a photorealistic meat chunk with proper topology and UV coordinates  
+    /// - Returns: High-quality meat mesh with realistic organic shape
+    static func createAAAMeatMesh() -> MeshResource {
+        print("🥩 [AAA] Generating photorealistic meat geometry...")
+        
+        var vertices: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
+        var indices: [UInt32] = []
+        
+        let segments = 24
+        let rings = 16
+        
+        // 🥩 MEAT SHAPE PARAMETERS: Irregular chunk proportions
+        let baseRadius: Float = 1.0
+        let lengthScale: Float = 1.3   // Meat chunks are longer than round
+        let widthScale: Float = 0.9    // Slightly compressed width
+        let heightScale: Float = 0.8   // Lower profile
+        let irregularityFactor: Float = 0.25  // High irregularity for organic look
+        let marbling: Float = 0.15     // Surface texture variation
+        
+        // 🎨 GENERATE VERTICES WITH NATURAL MEAT CHUNK SHAPE
+        for ring in 0...rings {
+            let ringAngle = Float(ring) / Float(rings) * Float.pi
+            let y = cos(ringAngle) * heightScale
+            
+            for segment in 0...segments {
+                let segmentAngle = Float(segment) / Float(segments) * 2.0 * Float.pi
+                
+                // 🌍 BASIC ELLIPSOIDAL COORDINATES
+                var x = sin(ringAngle) * cos(segmentAngle) * baseRadius * widthScale
+                var z = sin(ringAngle) * sin(segmentAngle) * baseRadius * lengthScale
+                let currentY = y
+                
+                // 🥩 ORGANIC IRREGULARITY: Random deformations for natural meat shape
+                let noiseU = sin(Float(segment * 3) * segmentAngle) * sin(Float(ring * 2) * ringAngle)
+                let noiseV = cos(Float(segment * 2) * segmentAngle) * cos(Float(ring * 3) * ringAngle)
+                let irregularity = irregularityFactor * (noiseU + noiseV) * 0.5
+                
+                x *= (1.0 + irregularity)
+                z *= (1.0 + irregularity)
+                
+                // 🍖 MARBLING SURFACE: Fine surface texture variation
+                let marblingU = sin(Float(segments * 1.5) * segmentAngle)
+                let marblingV = sin(Float(rings * 1.5) * ringAngle)
+                let marblingPattern = marblingU * marblingV
+                let marblingFactor = 1.0 + marbling * marblingPattern * 0.3
+                x *= marblingFactor
+                z *= marblingFactor
+                
+                // 🥩 CHUNK EDGES: Slightly beveled for realistic appearance
+                let edgeFactor = sin(ringAngle) // Natural tapering
+                let adjustedY = currentY * (1.0 + edgeFactor * 0.1)
+                
+                let vertex = SIMD3<Float>(x, adjustedY, z)
+                vertices.append(vertex)
+                
+                // 🔆 CALCULATE NORMALS
+                let normal = normalize(vertex)
+                normals.append(normal)
+                
+                // 🗺️ UV MAPPING
+                let u = Float(segment) / Float(segments)
+                let v = Float(ring) / Float(rings)
+                uvs.append(SIMD2<Float>(u, v))
+            }
+        }
+        
+        // 🔗 GENERATE INDICES
+        for ring in 0..<rings {
+            for segment in 0..<segments {
+                let current = ring * (segments + 1) + segment
+                let next = current + segments + 1
+                
+                indices.append(UInt32(current))
+                indices.append(UInt32(next))
+                indices.append(UInt32(current + 1))
+                
+                indices.append(UInt32(current + 1))
+                indices.append(UInt32(next))
+                indices.append(UInt32(next + 1))
+            }
+        }
+        
+        print("✅ [AAA] Generated meat: \(vertices.count) vertices, \(indices.count/3) triangles")
+        
+        // 🚀 CREATE REALITYKIT MESH
+        var meshDescriptor = MeshDescriptor()
+        meshDescriptor.positions = .init(vertices)
+        meshDescriptor.normals = .init(normals)
+        meshDescriptor.textureCoordinates = .init(uvs)
+        meshDescriptor.primitives = .triangles(indices)
+        
+        do {
+            let mesh = try MeshResource.generate(from: [meshDescriptor])
+            print("🏆 [AAA] Meat mesh generation complete!")
+            return mesh
+        } catch {
+            print("❌ [AAA] Meat mesh generation failed: \(error)")
+            return .generateBox(size: [1.2, 0.8, 1.0])
+        }
+    }
+    
     // MARK: - LOD System for Mobile Optimization
     
     /// Creates multiple Level-of-Detail meshes for performance optimization
@@ -521,5 +624,10 @@ extension AAAFoodGeometry {
     /// Quick method to create a standard AAA melon with optimal settings
     static func createStandardMelon() -> MeshResource {
         return createAAAMelonMesh()
+    }
+    
+    /// Quick method to create a standard AAA meat with optimal settings
+    static func createStandardMeat() -> MeshResource {
+        return createAAAMeatMesh()
     }
 }

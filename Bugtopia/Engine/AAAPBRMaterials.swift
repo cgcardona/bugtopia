@@ -308,11 +308,60 @@ class AAAPBRMaterials {
     }
     
     static func createAAAMeatMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
-        var material = PhysicallyBasedMaterial()
-        material.baseColor = .init(tint: NSColor.brown)
-        material.roughness = .init(floatLiteral: 0.8)
-        material.metallic = .init(floatLiteral: 0.0)
-        return material
+        
+        print("🥩 [PBR] Creating AAA meat material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "meat-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded meat diffuse texture")
+        } else {
+            // Fallback color matching raw red meat
+            let fallbackColor = NSColor(red: 0.8, green: 0.2, blue: 0.15, alpha: 1.0) // Rich red meat color
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback meat color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "meat-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded meat normal map")
+        } else {
+            print("⚠️ [PBR] Meat normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "meat-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded meat roughness map")
+        } else {
+            // Fallback: Slightly moist meat surface
+            pbrMaterial.roughness = .init(floatLiteral: 0.6) // Moist but not wet
+            print("⚠️ [PBR] Using fallback meat roughness")
+        }
+        
+        // 🥇 METALLIC PROPERTIES: Meat is completely non-metallic
+        pbrMaterial.metallic = .init(floatLiteral: 0.0)
+        
+        // 🌟 ENERGY-BASED ENHANCEMENT
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.15, (energyLevel - 1.0) * 0.06)
+            let emissionColor = NSColor(red: 0.9, green: 0.3, blue: 0.2, alpha: 1.0) // Warm red meat glow
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+            print("✨ [PBR] Added meat energy glow: \(emissionIntensity)")
+        }
+        
+        // 🍃 FRESHNESS EFFECTS: Fresh meat has consistent moisture
+        let baseRoughness: Float = 0.6
+        let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.3, freshness)) * 0.4) // Gets rougher as it ages
+        pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
+        
+        print("🏆 [PBR] AAA meat material created successfully!")
+        return pbrMaterial
     }
     
     static func createAAAFishMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
