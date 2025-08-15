@@ -389,17 +389,9 @@ struct Arena3DView_RealityKit_v2: View {
         let waterSurfaces = createWaterSurfaces(heightMap: heightMap, resolution: resolution)
         terrainContainer.addChild(waterSurfaces)
         
-        // 🎯 DEBUG: Add a bright marker at terrain center for positioning reference
-        let centerMarker = ModelEntity(
-            mesh: .generateSphere(radius: 3.0),
-            materials: [SimpleMaterial(color: .magenta, isMetallic: false)]
-        )
-        centerMarker.position = [112, 25, 112]  // Above terrain center
-        terrainContainer.addChild(centerMarker)
-        
+
         anchor.addChild(terrainContainer)
         print("✅ [RealityKit] Smooth navigable terrain created for bug movement")
-        print("🎯 [DEBUG] Added magenta marker at terrain center (112, 25, 112)")
     }
     
     @available(macOS 14.0, *)
@@ -451,16 +443,16 @@ struct Arena3DView_RealityKit_v2: View {
                 let topLeft = UInt32((x + 1) * extendedResolution + z)
                 let topRight = UInt32((x + 1) * extendedResolution + z + 1)
                 
-                // 🔧 FIXED WINDING: Clockwise winding for upward-facing normals
-                // First triangle (bottom-left, top-left, bottom-right)
+                // 🔧 PROPER QUAD TRIANGULATION: Two triangles forming a quad
+                // First triangle: bottom-left → bottom-right → top-left
                 indices.append(bottomLeft)
-                indices.append(topLeft)
                 indices.append(bottomRight)
+                indices.append(topLeft)
                 
-                // Second triangle (bottom-right, top-left, top-right)
+                // Second triangle: bottom-right → top-right → top-left  
                 indices.append(bottomRight)
-                indices.append(topLeft)
                 indices.append(topRight)
+                indices.append(topLeft)
             }
         }
         
@@ -1661,7 +1653,7 @@ struct Arena3DView_RealityKit_v2: View {
         guard let anchor = sceneAnchor,
               let bugContainer = anchor.findEntity(named: "BugContainer") else { return }
         
-        let simulationScale: Float = 0.05  // Same scale used for initial positioning
+        let simulationScale: Float = 0.1  // UNIFIED: Same scale as food positioning
         
         // Update positions for all live bugs
         for bug in simulationEngine.bugs.filter({ $0.isAlive }) {
@@ -2324,7 +2316,7 @@ struct Arena3DView_RealityKit_v2: View {
             bugEntity.components.set(modelComponent)
             
             // Position bug in 3D space with proper coordinate scaling
-            let simulationScale: Float = 0.05  // Same scale used everywhere else
+            let simulationScale: Float = 0.1  // UNIFIED: Same scale as food and main bug positioning
             let position = SIMD3<Float>(
                 Float(bug.position3D.x) * simulationScale,
                 Float(bug.position3D.z + 5), // Slightly above terrain
