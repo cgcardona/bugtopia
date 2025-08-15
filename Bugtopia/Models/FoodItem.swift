@@ -199,8 +199,8 @@ extension FoodType {
         let compatibleFoods = foodsFor(species: species)
         let biomeFoods = compatibleFoods.filter { $0.preferredBiomes.contains(biome) }
         
-        // If biome has preferred foods, use them with higher probability
-        if !biomeFoods.isEmpty && Double.random(in: 0...1) < 0.8 {
+        // If biome has preferred foods, use them with moderate probability for more variety
+        if !biomeFoods.isEmpty && Double.random(in: 0...1) < 0.4 {
             return randomFoodFromList(biomeFoods)
         }
         
@@ -215,8 +215,8 @@ extension FoodType {
         let compatibleFoods = foodsFor(species: species)
         let seasonalFoods = compatibleFoods.filter { $0.preferredSeasons.contains(season) }
         
-        // If season has preferred foods, use them with higher probability
-        if !seasonalFoods.isEmpty && Double.random(in: 0...1) < 0.7 {
+        // If season has preferred foods, use them with moderate probability for more variety
+        if !seasonalFoods.isEmpty && Double.random(in: 0...1) < 0.4 {
             return randomFoodFromList(seasonalFoods)
         }
         
@@ -243,19 +243,19 @@ extension FoodType {
         let biomeFoods = compatibleFoods.filter { $0.preferredBiomes.contains(biome) }
         let seasonalFoods = compatibleFoods.filter { $0.preferredSeasons.contains(season) }
         
-        // Perfect match: both biome and season
+        // Perfect match: both biome and season (reduced probability for more variety)
         let perfectMatch = biomeFoods.filter { seasonalFoods.contains($0) }
-        if !perfectMatch.isEmpty && Double.random(in: 0...1) < 0.9 {
+        if !perfectMatch.isEmpty && Double.random(in: 0...1) < 0.4 {
             return randomFoodFromList(perfectMatch)
         }
         
-        // Good match: biome preferred
-        if !biomeFoods.isEmpty && Double.random(in: 0...1) < 0.7 {
+        // Good match: biome preferred (reduced probability)
+        if !biomeFoods.isEmpty && Double.random(in: 0...1) < 0.3 {
             return randomFoodFromList(biomeFoods)
         }
         
-        // Decent match: season preferred
-        if !seasonalFoods.isEmpty && Double.random(in: 0...1) < 0.5 {
+        // Decent match: season preferred (reduced probability)
+        if !seasonalFoods.isEmpty && Double.random(in: 0...1) < 0.2 {
             return randomFoodFromList(seasonalFoods)
         }
         

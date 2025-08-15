@@ -711,6 +711,7 @@ class SimulationEngine {
         print("⛰️ Hills: \(hillVoxels.count)")
         print("🌲 Forests: \(forestVoxels.count)")
         print("🌊 Water: \(waterVoxels.count)")
+        print("🌱 Current season: \(seasonalManager.currentSeason.rawValue) \(seasonalManager.currentSeason.emoji)")
         
         // Original logic (reduced for focused debugging)
         let herbivoreFoodRatio = 0.8 // 80% herbivore foods for now
