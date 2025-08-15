@@ -739,8 +739,26 @@ class SimulationEngine {
         let targetFoodCount = maxFoodItems / 2  // Double the food density for better distribution
         print("🎯 [FOOD DEBUG] Attempting to spawn \(targetFoodCount) foods in \(availableVoxels.count) available voxels")
         
+        // DEBUG: Sample voxel positions to understand distribution
+        let sampleVoxels = Array(availableVoxels.prefix(10))
+        print("📍 [FOOD DEBUG] Sample voxel positions:")
+        for (i, voxel) in sampleVoxels.enumerated() {
+            print("   Voxel \(i): \(voxel.terrainType) at (\(voxel.position.x), \(voxel.position.y)) in \(voxel.biome)")
+        }
+        print("🌍 [FOOD DEBUG] World bounds: \(voxelWorld.worldBounds)")
+        
+        // DEBUG: Analyze voxel distribution
+        if !availableVoxels.isEmpty {
+            let voxelX = availableVoxels.map { $0.position.x }
+            let voxelY = availableVoxels.map { $0.position.y }
+            print("📊 [VOXEL DEBUG] Available voxel coordinate ranges:")
+            print("   X: \(voxelX.min()!) to \(voxelX.max()!) (span: \(voxelX.max()! - voxelX.min()!))")
+            print("   Y: \(voxelY.min()!) to \(voxelY.max()!) (span: \(voxelY.max()! - voxelY.min()!))")
+        }
+        
         var successfulSpawns = 0
         var edgeSkips = 0
+        var foodPositions: [CGPoint] = []  // Track where food actually gets placed
         for _ in 0..<targetFoodCount { // More conservative initial food spawning
             if let voxel = availableVoxels.randomElement() {
                 let randomOffset = CGPoint(
@@ -770,6 +788,7 @@ class SimulationEngine {
                 let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
                 let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
                 newFoods.append(foodItem)
+                foodPositions.append(foodPosition)
                 successfulSpawns += 1
             }
         }
@@ -794,8 +813,22 @@ class SimulationEngine {
                 let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
                 let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
                 newFoods.append(foodItem)
+                foodPositions.append(foodPosition)
                 successfulSpawns += 1
             }
+        }
+        
+        // DEBUG: Analyze food position distribution
+        print("📍 [FOOD DEBUG] Food position analysis after main pass:")
+        if !foodPositions.isEmpty {
+            let minX = foodPositions.map { $0.x }.min()!
+            let maxX = foodPositions.map { $0.x }.max()!
+            let minY = foodPositions.map { $0.y }.min()!
+            let maxY = foodPositions.map { $0.y }.max()!
+            print("   X range: \(minX) to \(maxX) (span: \(maxX - minX))")
+            print("   Y range: \(minY) to \(maxY) (span: \(maxY - minY))")
+            let samplePositions = Array(foodPositions.prefix(5))
+            print("   Sample positions: \(samplePositions)")
         }
         
         print("🍎 [FOOD DEBUG] Final results:")
