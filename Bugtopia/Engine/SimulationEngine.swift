@@ -167,8 +167,16 @@ class SimulationEngine {
     
     init(worldBounds: CGRect) {
         // 🌍 DYNAMIC WORLD TYPES: Randomly select a world type each app launch for variety
-        //let worldType = WorldType3D.allCases.randomElement() ?? .continental3D
+        // Uncomment if you want to randomly select a world type
+        // let wordType = WorldType3D.allCases.randomElement() ?? .continental3D
+        // Uncomment if you want to test a specific world type
+        // let worldType = WorldType3D.abyss3D
+        // let worldType = WorldType3D.archipelago3D
+        // let worldType = WorldType3D.canyon3D
+        // let worldType = WorldType3D.cavern3D
         let worldType = WorldType3D.continental3D
+        // let worldType = WorldType3D.skylands3D
+        // let worldType = WorldType3D.volcano3D
         self.currentWorldType = worldType
         
         print("🌍 Generated World Type: \(worldType.rawValue)")
@@ -235,6 +243,9 @@ class SimulationEngine {
     
     /// Resets the simulation to initial state
     func reset() {
+        // Store the current running state to restore it after reset
+        let wasRunning = isRunning
+        
         pause()
         bugs.removeAll()
         foods.removeAll()
@@ -263,6 +274,11 @@ class SimulationEngine {
         setupInitialPopulation()
         spawnInitialFood()
         spawnInitialResources()
+        
+        // Restore the previous running state - if it was running, keep it running!
+        if wasRunning {
+            start()
+        }
     }
     
     /// Advances the simulation by one tick
@@ -374,6 +390,22 @@ class SimulationEngine {
         // Clean up old speciation events every 50 ticks to prevent memory buildup
         if tickCount % 50 == 0 {
             speciationManager.cleanupOldEvents()
+        }
+        
+        // 🔍 MEMORY LEAK DEBUG: Track array sizes every 30 ticks
+        if tickCount % 30 == 0 {
+            MemoryLeakTracker.shared.trackArraySizes(
+                bugs: bugs.count,
+                foods: foods.count,
+                signals: signals.count,
+                resources: resources.count,
+                tools: tools.count
+            )
+        }
+        
+        // 🔍 MEMORY LEAK DEBUG: Generate comprehensive memory report every 300 ticks (10 seconds)
+        if tickCount % 300 == 0 {
+            MemoryLeakTracker.shared.generateMemoryReport()
         }
         
         // Update statistics
@@ -664,13 +696,27 @@ class SimulationEngine {
     private func spawnInitialFood() {
         var newFoods: [FoodItem] = []
         
-        // Removed hard-coded test food spawning to use proper biome-based distribution
+        // 🐛 DEBUG: Analyze terrain distribution for food spawning
+        let allSurfaceVoxels = voxelWorld.getVoxelsInLayer(.surface)
+        let foodVoxels = allSurfaceVoxels.filter { $0.terrainType == .food }
+        let openVoxels = allSurfaceVoxels.filter { $0.terrainType == .open }
+        let hillVoxels = allSurfaceVoxels.filter { $0.terrainType == .hill }
+        let forestVoxels = allSurfaceVoxels.filter { $0.terrainType == .forest }
+        let waterVoxels = allSurfaceVoxels.filter { $0.terrainType == .water }
+        
+        print("🍎 [FOOD DEBUG] Surface voxel terrain analysis:")
+        print("📊 Total surface voxels: \(allSurfaceVoxels.count)")
+        print("🍇 Food zones: \(foodVoxels.count)")
+        print("🌾 Open areas: \(openVoxels.count)")
+        print("⛰️ Hills: \(hillVoxels.count)")
+        print("🌲 Forests: \(forestVoxels.count)")
+        print("🌊 Water: \(waterVoxels.count)")
+        print("🌱 Current season: \(seasonalManager.currentSeason.rawValue) \(seasonalManager.currentSeason.emoji)")
         
         // Original logic (reduced for focused debugging)
         let herbivoreFoodRatio = 0.8 // 80% herbivore foods for now
         
         // Spawn food in designated food zones (limited to prevent oversaturation)
-        let foodVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .food }
         for voxel in foodVoxels.prefix(min(5, maxFoodItems / 40)) { // Very conservative initial food zone spawning
             let randomOffset = CGPoint(
                 x: Double.random(in: -15...15),
@@ -688,19 +734,40 @@ class SimulationEngine {
             newFoods.append(foodItem)
         }
         
-        // Spawn majority of food distributed in open areas AND hills for better distribution
-        let openVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .open }
-        let hillVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .hill }
-        let availableVoxels = openVoxels + hillVoxels
-        for _ in 0..<(maxFoodItems / 4) { // More conservative initial food spawning
+        // Spawn majority of food distributed in open areas, hills, AND forests for better distribution
+        let availableVoxels = openVoxels + hillVoxels + forestVoxels
+        let targetFoodCount = maxFoodItems / 2  // Double the food density for better distribution
+        print("🎯 [FOOD DEBUG] Attempting to spawn \(targetFoodCount) foods in \(availableVoxels.count) available voxels")
+        
+        // DEBUG: Sample voxel positions to understand distribution
+        let sampleVoxels = Array(availableVoxels.prefix(10))
+        print("📍 [FOOD DEBUG] Sample voxel positions:")
+        for (i, voxel) in sampleVoxels.enumerated() {
+            print("   Voxel \(i): \(voxel.terrainType) at (\(voxel.position.x), \(voxel.position.y)) in \(voxel.biome)")
+        }
+        print("🌍 [FOOD DEBUG] World bounds: \(voxelWorld.worldBounds)")
+        
+        // DEBUG: Analyze voxel distribution
+        if !availableVoxels.isEmpty {
+            let voxelX = availableVoxels.map { $0.position.x }
+            let voxelY = availableVoxels.map { $0.position.y }
+            print("📊 [VOXEL DEBUG] Available voxel coordinate ranges:")
+            print("   X: \(voxelX.min()!) to \(voxelX.max()!) (span: \(voxelX.max()! - voxelX.min()!))")
+            print("   Y: \(voxelY.min()!) to \(voxelY.max()!) (span: \(voxelY.max()! - voxelY.min()!))")
+        }
+        
+        var successfulSpawns = 0
+        var edgeSkips = 0
+        var foodPositions: [CGPoint] = []  // Track where food actually gets placed
+        for _ in 0..<targetFoodCount { // More conservative initial food spawning
             if let voxel = availableVoxels.randomElement() {
                 let randomOffset = CGPoint(
                     x: Double.random(in: -20...20),
                     y: Double.random(in: -20...20)
                 )
                 
-                // Much more liberal food spawning - only avoid very close to edges
-                let minDistanceFromEdge = 30.0
+                // Much more liberal food spawning - reduce edge restriction for better distribution
+                let minDistanceFromEdge = 10.0  // Reduced from 30 to allow more terrain coverage
                 let bounds = voxelWorld.worldBounds
                 let xDistance = min(voxel.position.x - bounds.minX, bounds.maxX - voxel.position.x)
                 let yDistance = min(voxel.position.y - bounds.minY, bounds.maxY - voxel.position.y)
@@ -708,6 +775,7 @@ class SimulationEngine {
                 
                 // Only skip if extremely close to edge
                 if edgeDistance < minDistanceFromEdge {
+                    edgeSkips += 1
                     continue
                 }
                 let foodPosition = CGPoint(
@@ -720,8 +788,64 @@ class SimulationEngine {
                 let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
                 let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
                 newFoods.append(foodItem)
+                foodPositions.append(foodPosition)
+                successfulSpawns += 1
             }
         }
+        
+        // ADDITIONAL PASS: Ensure good coverage across the entire terrain
+        let additionalTargetCount = min(50, availableVoxels.count / 100)  // 1% coverage minimum
+        print("🎯 [FOOD DEBUG] Additional distribution pass: \(additionalTargetCount) more foods")
+        
+        for _ in 0..<additionalTargetCount {
+            if let voxel = availableVoxels.randomElement() {
+                let randomOffset = CGPoint(
+                    x: Double.random(in: -15...15),
+                    y: Double.random(in: -15...15)
+                )
+                let foodPosition = CGPoint(
+                    x: voxel.position.x + randomOffset.x,
+                    y: voxel.position.y + randomOffset.y
+                )
+                
+                // More liberal placement for coverage
+                let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
+                let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
+                let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+                newFoods.append(foodItem)
+                foodPositions.append(foodPosition)
+                successfulSpawns += 1
+            }
+        }
+        
+        // DEBUG: Analyze food position distribution
+        print("📍 [FOOD DEBUG] Food position analysis after main pass:")
+        if !foodPositions.isEmpty {
+            let minX = foodPositions.map { $0.x }.min()!
+            let maxX = foodPositions.map { $0.x }.max()!
+            let minY = foodPositions.map { $0.y }.min()!
+            let maxY = foodPositions.map { $0.y }.max()!
+            print("   X range: \(minX) to \(maxX) (span: \(maxX - minX))")
+            print("   Y range: \(minY) to \(maxY) (span: \(maxY - minY))")
+            let samplePositions = Array(foodPositions.prefix(5))
+            print("   Sample positions: \(samplePositions)")
+        }
+        
+        // DEBUG: Analyze food type distribution
+        print("🍎 [FOOD DEBUG] Food type distribution analysis:")
+        let foodTypeCounts = Dictionary(grouping: newFoods, by: { $0.type })
+            .mapValues { $0.count }
+            .sorted { $0.value > $1.value }
+        for (foodType, count) in foodTypeCounts {
+            let percentage = Double(count) / Double(newFoods.count) * 100
+            let emoji = foodTypeEmoji(foodType)
+            print("   \(emoji) \(foodType.rawValue): \(count) (\(String(format: "%.1f", percentage))%)")
+        }
+        
+        print("🍎 [FOOD DEBUG] Final results:")
+        print("✅ Successful spawns: \(successfulSpawns)")
+        print("❌ Edge skips: \(edgeSkips)")
+        print("🎯 Total food items created: \(newFoods.count)")
         
         foods = newFoods
     }
@@ -1099,6 +1223,20 @@ class SimulationEngine {
         statistics.averageStickiness = stickiness.reduce(0, +) / count
         statistics.averageCamouflage = camouflages.reduce(0, +) / count
         statistics.averageCuriosity = curiosities.reduce(0, +) / count
+    }
+    
+    /// Helper function to get emoji for food types
+    private func foodTypeEmoji(_ foodType: FoodType) -> String {
+        switch foodType {
+        case .plum: return "🍇"
+        case .apple: return "🍎"
+        case .orange: return "🍊"
+        case .melon: return "🍈"
+        case .meat: return "🥩"
+        case .fish: return "🐟"
+        case .seeds: return "🌱"
+        case .nuts: return "🥜"
+        }
     }
 }
 

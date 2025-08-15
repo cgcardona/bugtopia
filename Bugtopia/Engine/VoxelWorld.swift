@@ -1081,12 +1081,68 @@ class VoxelWorld {
             return .hill                                     // Volcanic ground
             
         case .continental3D:
-            // 🌍 CONTINENTAL: Coherent, functional terrain with logical features
-            return generateContinentalTerrain(height: height, noise: noise)
+            // 🌍 CONTINENTAL: Hybrid approach - respect biome diversity with height modulation
+            return generateHybridContinentalTerrain(baseTerrain: baseTerrain, height: height, noise: noise)
         }
     }
     
-    /// 🌍 ENHANCED CONTINENTAL TERRAIN: Creates diverse terrain for all layers
+    /// 🌍 HYBRID CONTINENTAL TERRAIN: Respects biome diversity with height structure  
+    private func generateHybridContinentalTerrain(baseTerrain: TerrainType, height: Double, noise: Double) -> TerrainType {
+        // 🎯 BIOME-FIRST APPROACH: Start with biome terrain, then apply height modulation
+        
+        // 🌊 EXTREME HEIGHT OVERRIDES: Only override biomes in extreme cases
+        if height < -25 {
+            return .water  // Deep water always wins
+        }
+        
+        if height > 40 {
+            // High mountains override most biomes
+            if noise > 0.3 { return .wall }    // Rocky cliffs
+            if noise > -0.2 { return .hill }   // Mountain slopes
+            return .hill                       // Mountain terrain
+        }
+        
+        // 🌍 MODERATE HEIGHT MODULATION: Enhance biome terrain with height awareness
+        switch baseTerrain {
+        case .open:
+            // Open areas can become hills or food based on height and fertility
+            if height > 15 && noise > 0.4 { return .hill }      // Elevated open becomes hills
+            if height < 0 && noise > 0.5 { return .food }       // Low fertile areas get more food
+            return .open  // Keep most open areas as-is
+            
+        case .food:
+            // Food zones are enhanced by height - more food in fertile areas
+            if height < -5 { return .food }       // Low areas stay very fertile
+            if height > 20 && noise < 0.0 { return .open }  // High areas become less fertile
+            return .food  // Keep most food zones
+            
+        case .forest:
+            // Forests vary with elevation
+            if height > 25 { return .hill }       // High elevation forests become hills
+            if height < -10 { return .swamp }     // Low forests become swampy
+            return .forest  // Keep forest identity
+            
+        case .hill:
+            // Hills are enhanced by height
+            if height > 30 { return .wall }       // Very high hills become walls
+            if height < -15 { return .open }      // Low hills flatten to open
+            return .hill
+            
+        case .water:
+            // Water enhanced by height and depth
+            if height > 10 { return .open }       // High water becomes land
+            if height < -15 { return .water }     // Deep water stays water
+            return .water
+            
+        default:
+            // Other terrain types (sand, swamp, etc.) mostly preserved
+            if height < -20 { return .water }     // Very low becomes water
+            if height > 35 { return .hill }       // Very high becomes hills
+            return baseTerrain  // Preserve biome character
+        }
+    }
+    
+    /// 🌍 LEGACY CONTINENTAL TERRAIN: Pure height-based generation (kept for reference)
     private func generateContinentalTerrain(height: Double, noise: Double) -> TerrainType {
         // 🎯 HEIGHT-BASED TERRAIN WITH MORE DIVERSITY
         

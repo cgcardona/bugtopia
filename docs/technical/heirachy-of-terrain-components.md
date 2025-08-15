@@ -97,16 +97,16 @@ The 10 biome types are determined by **temperature + moisture**, but **constrain
 
 | Biome | Temperature | Moisture | Vegetation Density | Primary Terrain |
 |-------|-------------|----------|-------------------|-----------------|
-| **🌲 Temperate Forest** | -0.3 to 0.3 | ≥ 0.3 | 0.9 (90%) | Forest |
-| **🌴 Tropical Rainforest** | > 0.3 | ≥ 0.7 | 1.0 (100%) | Forest |
-| **🌾 Temperate Grassland** | -0.3 to 0.3 | < 0.3 | 0.4 (40%) | Open |
+| **⛰️ Alpine** | Cold | Various | 0.2 (20%) | Hill/Ice |
+| **🌲 Boreal Forest** | < -0.3 | ≥ 0.3 | 0.7 (70%) | Forest |
+| **🏖️ Coastal** | Moderate | High | 0.5 (50%) | Water/Sand |
 | **🏜️ Desert** | ≥ 0.3 | < 0.3 | 0.05 (5%) | Sand |
 | **🌿 Savanna** | ≥ 0.3 | 0.3-0.7 | 0.3 (30%) | Open |
+| **🌾 Temperate Grassland** | -0.3 to 0.3 | < 0.3 | 0.4 (40%) | Open |
+| **🌲 Temperate Forest** | -0.3 to 0.3 | ≥ 0.3 | 0.9 (90%) | Forest |
+| **🌴 Tropical Rainforest** | > 0.3 | ≥ 0.7 | 1.0 (100%) | Forest |
 | **❄️ Tundra** | < -0.3 | < 0.3 | 0.1 (10%) | Ice |
-| **🌲 Boreal Forest** | < -0.3 | ≥ 0.3 | 0.7 (70%) | Forest |
 | **💧 Wetlands** | Various | High | 0.8 (80%) | Water/Swamp |
-| **⛰️ Alpine** | Cold | Various | 0.2 (20%) | Hill/Ice |
-| **🏖️ Coastal** | Moderate | High | 0.5 (50%) | Water/Sand |
 
 ### 🎯 **World Type Filtering**
 
