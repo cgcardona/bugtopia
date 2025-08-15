@@ -175,8 +175,8 @@ struct Arena3DView_RealityKit_v2: View {
         // 2. Add continuous terrain surface (like SceneKit)
         setupGroundPlane(in: anchor)
         
-        // 3. Add AAA terrain system (individual voxels with proper materials)
-        addAAATerrain(in: anchor)
+        // 3. Add simulation terrain (hills, forest, etc.)
+        addSimulationTerrain(in: anchor)
         
         // 4. Add lighting for proper visibility
         setupWorldLighting(in: anchor)
@@ -430,16 +430,13 @@ struct Arena3DView_RealityKit_v2: View {
         // 🔧 CRITICAL: Enable double-sided rendering to fix backface culling
         terrainMaterial.faceCulling = .none  // Render both front and back faces
         
-        // 🎮 AAA APPROACH: Don't create one big mesh - create individual terrain voxels!
-        // This allows each terrain type to have its own proper material
-        print("🚫 [RealityKit] Skipping monolithic terrain mesh for AAA multi-material approach")
-        print("📐 [RealityKit] Will create individual voxels with proper materials instead")
+        let terrainEntity = ModelEntity(mesh: terrainMesh, materials: [terrainMaterial])
+        terrainEntity.name = "WatertightTerrain"
         
-        // Return empty ModelEntity - we'll create the real terrain in addIndividualVoxels()
-        let emptyMesh = MeshResource.generateSphere(radius: 0.001) // Tiny invisible mesh
-        let emptyEntity = ModelEntity(mesh: emptyMesh, materials: [])
-        emptyEntity.name = "AAA_TerrainContainer"
-        return emptyEntity
+        print("🌍 [RealityKit] Created watertight terrain: \(vertices.count) vertices, \(indices.count/3) triangles")
+        print("📐 [RealityKit] Extended resolution: \(extendedResolution)x\(extendedResolution) (was \(resolution)x\(resolution))")
+        
+        return terrainEntity
     }
     
     // 🎮 AAA Simple Position struct for voxels
@@ -468,9 +465,9 @@ struct Arena3DView_RealityKit_v2: View {
             // Create a small cluster of each terrain type
             for i in 0..<10 {
                 let pos = SimplePosition(
-                    x: index * 20 + (i % 5) * 4,
-                    y: (i / 5) * 4,
-                    z: terrainType == .hill ? 5 : 0
+                    x: index * 10 + (i % 5) * 2, // Smaller spacing
+                    y: (i / 5) * 2,              // Smaller spacing
+                    z: terrainType == .hill ? 2 : 0 // Smaller hill height
                 )
                 voxelsByType[terrainType]?.append(pos)
             }
@@ -512,7 +509,7 @@ struct Arena3DView_RealityKit_v2: View {
     @available(macOS 14.0, *)
     private func createAAATVoxel(position: SimplePosition, terrainType: TerrainType, material: RealityKit.Material) -> Entity {
         // 🎮 AAA VOXEL: Create detailed voxel with proper topology
-        let voxelSize: Float = 8.0  // Standard voxel size
+        let voxelSize: Float = 4.0  // Smaller size for better visibility
         
         // Create mesh based on terrain type
         let mesh = createVoxelMesh(for: terrainType, size: voxelSize)
@@ -520,11 +517,11 @@ struct Arena3DView_RealityKit_v2: View {
         // Create entity with proper material
         let voxelEntity = ModelEntity(mesh: mesh, materials: [material])
         
-        // Position in world space
+        // Position in world space at ground level
         let worldPosition = SIMD3<Float>(
-            Float(position.x) * voxelSize,
-            Float(position.z) * voxelSize,
-            Float(position.y) * voxelSize
+            Float(position.x),                    // X position in world
+            terrainType == .hill ? Float(position.z) + 2.0 : 0.0, // Hills slightly elevated
+            Float(position.y)                     // Z position in world
         )
         voxelEntity.position = worldPosition
         voxelEntity.name = "Voxel_\(terrainType.rawValue)_\(position.x)_\(position.y)_\(position.z)"
@@ -819,7 +816,7 @@ struct Arena3DView_RealityKit_v2: View {
             material.color = .init(tint: .green)
         case .hill:
             // 🏔️ CLAY HILLS: Using Style Guide color palette #CC8E35 for elevated, ancient terrain
-            let clayColor = NSColor(red: 0.8, green: 0.557, blue: 0.208, alpha: 1.0) // Clay from style guide
+            let clayColor = NSColor(red: 0.8, green: 0.557, blue: 0.208, alpha: 1.0)
             material.color = .init(tint: clayColor)
         case .wall:
             material.color = .init(tint: .gray)
