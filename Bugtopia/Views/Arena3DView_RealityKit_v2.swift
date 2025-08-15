@@ -71,7 +71,11 @@ struct Arena3DView_RealityKit_v2: View {
         }
         .onAppear {
             startPerformanceMonitoring()
-            print("🚀 [RealityKit] View appeared, FPS monitoring enabled")
+            startEntityUpdates()
+            print("🚀 [RealityKit] View appeared, FPS monitoring and entity updates enabled")
+        }
+        .onDisappear {
+            stopEntityUpdates()
         }
         .onTapGesture { location in
             handleTap(at: location)
@@ -170,6 +174,9 @@ struct Arena3DView_RealityKit_v2: View {
         
         // 5. Add bug entities
         addBugEntities(in: anchor)
+        
+        // 6. Add food entities
+        addFoodEntities(in: anchor)
         
         // Add to scene
         content.add(anchor)
@@ -744,6 +751,102 @@ struct Arena3DView_RealityKit_v2: View {
         default:
             return .blue
         }
+    }
+    
+    @available(macOS 14.0, *)
+    private func addFoodEntities(in anchor: Entity) {
+        print("🍎 [RealityKit] Adding food entities...")
+        
+        // Create food container
+        let foodContainer = Entity()
+        foodContainer.name = "FoodContainer"
+        
+        // Get current food items from simulation
+        let foods = simulationEngine.foods
+        print("🍎 [RealityKit] Found \(foods.count) food items to render")
+        
+        // Create visual entities for each food item
+        for (index, food) in foods.enumerated() {
+            let foodEntity = createFoodEntity(for: food, index: index)
+            foodContainer.addChild(foodEntity)
+        }
+        
+        anchor.addChild(foodContainer)
+        print("✅ [RealityKit] Added \(foods.count) food entities across terrain")
+    }
+    
+    @available(macOS 14.0, *)
+    private func createFoodEntity(for food: FoodItem, index: Int) -> Entity {
+        // Create food mesh (sphere)
+        let mesh = MeshResource.generateSphere(radius: 0.8) // Smaller than bugs for proper scale
+        
+        // Create material based on food type
+        let material = createFoodMaterial(for: food)
+        
+        // Create model entity
+        let foodEntity = ModelEntity(mesh: mesh, materials: [material])
+        
+        // Position on terrain surface with proper scaling
+        let terrainHeight = getTerrainHeightAtPosition(x: Float(food.position.x), z: Float(food.position.y))
+        let scaledPosition = SIMD3<Float>(
+            Float(food.position.x) * 4.0, // Match terrain scale
+            terrainHeight + 1.0, // Slightly above terrain
+            Float(food.position.y) * 4.0 // Match terrain scale  
+        )
+        foodEntity.position = scaledPosition
+        
+        // Set entity name for identification
+        foodEntity.name = "Food_\(index)"
+        
+        // Add gentle pulsing animation to make food noticeable
+        addFoodAnimation(to: foodEntity)
+        
+        return foodEntity
+    }
+    
+    @available(macOS 14.0, *)
+    private func createFoodMaterial(for food: FoodItem) -> SimpleMaterial {
+        var material = SimpleMaterial()
+        
+        // Set color and properties based on food type
+        let foodColor: NSColor
+        switch food.type {
+        case .apple:
+            foodColor = NSColor.red
+        case .orange:
+            foodColor = NSColor.orange
+        case .plum:
+            foodColor = NSColor.purple
+        case .melon:
+            foodColor = NSColor.green
+        case .meat:
+            foodColor = NSColor.brown
+        case .fish:
+            foodColor = NSColor.blue
+        case .seeds:
+            foodColor = NSColor.yellow
+        case .nuts:
+            foodColor = NSColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 1.0)
+        }
+        
+        material.color = .init(tint: foodColor)
+        material.roughness = 0.4
+        material.metallic = 0.0
+        
+        return material
+    }
+    
+    @available(macOS 14.0, *)
+    private func addFoodAnimation(to entity: Entity) {
+        // Create gentle pulsing animation
+        // Note: RealityKit animations work differently than SceneKit
+        // This is a placeholder - animations can be enhanced later
+        let startTransform = entity.transform
+        var pulseTransform = startTransform
+        pulseTransform.scale *= 1.1
+        
+        // Simple transform animation (RealityKit style)
+        entity.transform = startTransform
     }
     
     @available(macOS 14.0, *)
@@ -1774,6 +1877,116 @@ struct Arena3DView_RealityKit_v2: View {
     private func startPerformanceMonitoring() {
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             updateFPS()
+        }
+    }
+    
+    // MARK: - Entity Update System
+    
+    private func startEntityUpdates() {
+        lastUpdateTime = CACurrentMediaTime()
+        
+        // Start entity update timer (30 FPS for smooth movement)
+        Timer.scheduledTimer(withTimeInterval: 1.0/30.0, repeats: true) { timer in
+            self.updateEntities()
+        }
+    }
+    
+    private func stopEntityUpdates() {
+        // Timer cleanup handled by weak reference
+    }
+    
+    private func updateEntities() {
+        guard let anchor = sceneAnchor else { return }
+        
+        let currentTime = CACurrentMediaTime()
+        let deltaTime = currentTime - lastUpdateTime
+        lastUpdateTime = currentTime
+        
+        // Update bug positions and behaviors
+        updateBugEntities(in: anchor, deltaTime: Float(deltaTime))
+        
+        // Update food entities (spawn new, remove consumed)
+        updateFoodEntities(in: anchor)
+        
+        // Update performance metrics (if accessible)
+        // bugEntityManager.performanceMetrics.lastUpdateDuration = deltaTime
+    }
+    
+    private func updateBugEntities(in anchor: Entity, deltaTime: Float) {
+        guard let bugContainer = anchor.findEntity(named: "BugContainer") else { return }
+        
+        let currentBugs = simulationEngine.bugs.filter { $0.isAlive }
+        
+        // Update existing bug positions
+        for bug in currentBugs {
+            if let bugEntity = bugContainer.findEntity(named: "Bug_\(bug.id.uuidString)") {
+                // Calculate new position with terrain following
+                let terrainHeight = getTerrainHeightAtPosition(x: Float(bug.position3D.x), z: Float(bug.position3D.y))
+                let newPosition = SIMD3<Float>(
+                    Float(bug.position3D.x) * 4.0, // Match terrain scale
+                    terrainHeight + 1.5, // Above terrain
+                    Float(bug.position3D.y) * 4.0 // Match terrain scale
+                )
+                
+                // Smooth interpolation for natural movement
+                let currentPosition = bugEntity.position
+                let lerpFactor: Float = min(1.0, deltaTime * 5.0) // Smooth lerp
+                let mixedPosition = simd_mix(currentPosition, newPosition, SIMD3<Float>(repeating: lerpFactor))
+                bugEntity.position = mixedPosition
+            }
+        }
+        
+        // Remove entities for dead bugs
+        for child in bugContainer.children {
+            if child.name.hasPrefix("Bug_") {
+                let name = child.name
+                let bugIdString = String(name.dropFirst(4)) // Remove "Bug_" prefix
+                if let bugId = UUID(uuidString: bugIdString) {
+                    let bugExists = currentBugs.contains { $0.id == bugId }
+                    if !bugExists {
+                        child.removeFromParent()
+                    }
+                }
+            }
+        }
+        
+        // Add entities for new bugs
+        for bug in currentBugs {
+            if bugContainer.findEntity(named: "Bug_\(bug.id.uuidString)") == nil {
+                let bugEntity = createDetailedBugEntity(for: bug, index: 0)
+                bugContainer.addChild(bugEntity)
+            }
+        }
+    }
+    
+    private func updateFoodEntities(in anchor: Entity) {
+        guard let foodContainer = anchor.findEntity(named: "FoodContainer") else { return }
+        
+        let currentFoods = simulationEngine.foods
+        let existingFoodEntities = foodContainer.children
+        
+        // Remove consumed food entities
+        for foodEntity in existingFoodEntities {
+            if foodEntity.name.hasPrefix("Food_") {
+                let name = foodEntity.name
+                let indexString = String(name.dropFirst(5)) // Remove "Food_" prefix
+                if let index = Int(indexString) {
+                    // Check if food still exists at this index
+                    if index >= currentFoods.count {
+                        foodEntity.removeFromParent()
+                    }
+                }
+            }
+        }
+        
+        // Add new food entities
+        let existingCount = existingFoodEntities.count
+        if currentFoods.count > existingCount {
+            for index in existingCount..<currentFoods.count {
+                let food = currentFoods[index]
+                let foodEntity = createFoodEntity(for: food, index: index)
+                foodContainer.addChild(foodEntity)
+            }
         }
     }
     
