@@ -33,8 +33,8 @@ struct Arena3DView_RealityKit_v2: View {
     
     // MARK: - Selection System
     
-    var onBugSelected: ((Bug?) -> Void)?
-    var onFoodSelected: ((FoodItem?) -> Void)?
+    private let onBugSelectedCallback: ((Bug?) -> Void)?
+    private let onFoodSelectedCallback: ((FoodItem?) -> Void)?
     
     // MARK: - Entity Management
     
@@ -56,6 +56,16 @@ struct Arena3DView_RealityKit_v2: View {
     // MARK: - Update Management
     
     @State private var updateTimer: Timer?
+    
+    // MARK: - Initialization
+    
+    init(simulationEngine: SimulationEngine, 
+         onBugSelected: ((Bug?) -> Void)? = nil, 
+         onFoodSelected: ((FoodItem?) -> Void)? = nil) {
+        self.simulationEngine = simulationEngine
+        self.onBugSelectedCallback = onBugSelected
+        self.onFoodSelectedCallback = onFoodSelected
+    }
     
     // MARK: - Body
     
@@ -1608,7 +1618,140 @@ struct Arena3DView_RealityKit_v2: View {
     
     private func handleTap(at location: CGPoint) {
         print("🎯 [RealityKit] Tap at \(location)")
-        // TODO: Implement ray casting for entity selection
+        
+        guard let anchor = sceneAnchor else {
+            print("❌ [RealityKit] No scene anchor found for tap detection")
+            return
+        }
+        
+        // Perform entity selection
+        selectEntityAt(location: location, in: anchor)
+    }
+    
+    @available(macOS 14.0, *)
+    private func selectEntityAt(location: CGPoint, in anchor: AnchorEntity) {
+        // Convert tap location to 3D ray for entity selection
+        // Note: RealityKit doesn't have direct hit testing like SceneKit,
+        // so we'll use proximity-based selection as a practical alternative
+        
+        // Find closest entity to the tap location
+        var closestBugEntity: Entity?
+        var closestFoodEntity: Entity?
+        var closestBugDistance: Float = Float.greatestFiniteMagnitude
+        var closestFoodDistance: Float = Float.greatestFiniteMagnitude
+        
+        // Get camera position for distance calculations
+        let cameraPosition = self.cameraPosition
+        
+        // Check bug entities
+        if let bugContainer = anchor.findEntity(named: "BugContainer") {
+            for child in bugContainer.children {
+                if child.name.hasPrefix("Bug_") {
+                    let distance = simd_distance(child.position, cameraPosition)
+                    if distance < closestBugDistance {
+                        closestBugDistance = distance
+                        closestBugEntity = child
+                    }
+                }
+            }
+        }
+        
+        // Check food entities
+        if let foodContainer = anchor.findEntity(named: "FoodContainer") {
+            for child in foodContainer.children {
+                if child.name.hasPrefix("Food_") {
+                    let distance = simd_distance(child.position, cameraPosition)
+                    if distance < closestFoodDistance {
+                        closestFoodDistance = distance
+                        closestFoodEntity = child
+                    }
+                }
+            }
+        }
+        
+        // Select the closest entity (bug or food)
+        if closestBugDistance < closestFoodDistance && closestBugDistance < 20.0 { // Within reasonable selection range
+            selectBugEntity(closestBugEntity)
+        } else if closestFoodDistance < 20.0 { // Within reasonable selection range
+            selectFoodEntity(closestFoodEntity)
+        } else {
+            // No entity close enough - deselect all
+            deselectAllEntities()
+        }
+    }
+    
+    private func selectBugEntity(_ entity: Entity?) {
+        guard let entity = entity else {
+            print("❌ [RealityKit] No bug entity to select")
+            return
+        }
+        
+        // Extract bug ID from entity name
+        let name = entity.name
+        if name.hasPrefix("Bug_") {
+            let bugIdString = String(name.dropFirst(4)) // Remove "Bug_" prefix
+            if let bugId = UUID(uuidString: bugIdString) {
+                // Find the corresponding bug from the simulation
+                if let bug = simulationEngine.bugs.first(where: { $0.id == bugId }) {
+                    print("🐛 [RealityKit] Selected bug: \(bug.dna.speciesTraits.speciesType.rawValue) (\(bugId))")
+                    
+                    // Notify the selection system (similar to SceneKit)
+                    notifyBugSelection(bug)
+                    return
+                }
+            }
+        }
+        
+        print("❌ [RealityKit] Could not find bug data for entity: \(name)")
+        deselectAllEntities()
+    }
+    
+    private func selectFoodEntity(_ entity: Entity?) {
+        guard let entity = entity else {
+            print("❌ [RealityKit] No food entity to select")
+            return
+        }
+        
+        // Extract food index from entity name
+        let name = entity.name
+        if name.hasPrefix("Food_") {
+            let indexString = String(name.dropFirst(5)) // Remove "Food_" prefix
+            if let index = Int(indexString) {
+                // Find the corresponding food from the simulation
+                let foods = simulationEngine.foods
+                if index < foods.count {
+                    let food = foods[index]
+                    print("🍎 [RealityKit] Selected food: \(food.type.rawValue) at \(food.position)")
+                    
+                    // Notify the selection system (similar to SceneKit)
+                    notifyFoodSelection(food)
+                    return
+                }
+            }
+        }
+        
+        print("❌ [RealityKit] Could not find food data for entity: \(name)")
+        deselectAllEntities()
+    }
+    
+    private func deselectAllEntities() {
+        print("🔄 [RealityKit] Deselecting all entities")
+        notifyBugSelection(nil)
+        notifyFoodSelection(nil)
+    }
+    
+    // MARK: - Selection Notification System
+    
+    private func notifyBugSelection(_ bug: Bug?) {
+        DispatchQueue.main.async {
+            self.onBugSelectedCallback?(bug)
+        }
+    }
+    
+    private func notifyFoodSelection(_ food: FoodItem?) {
+        DispatchQueue.main.async {
+            self.onFoodSelectedCallback?(food)
+        }
     }
     
     // MARK: - Camera Controls
