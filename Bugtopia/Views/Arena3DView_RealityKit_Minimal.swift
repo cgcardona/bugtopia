@@ -18,11 +18,11 @@ struct Arena3DView_RealityKit_Minimal: View {
     
     let simulationEngine: SimulationEngine
     
-    // MARK: - Coordinate System Constants (FROM MASTERY DOCS)
+    // MARK: - Coordinate System Constants (SQUARED SYSTEM!)
     
     private let simulationScale: Float = 0.1  // Sacred constant - never change
     private let terrainScale: Float = 6.25    // Terrain scale factor 
-    private let terrainSize: Float = 225.0    // 6.25 * 36 = 225 units
+    private let terrainSize: Float = 200.0    // 🟫 SQUARED: 2000 * 0.1 = 200 units (PERFECT MATCH!)
     
     // MARK: - Camera System (ADJUSTED FOR TERRAIN LEVEL)
     
@@ -44,8 +44,8 @@ struct Arena3DView_RealityKit_Minimal: View {
     
     private let testPoints: [(Float, Float)] = [
         (0.0, 0.0),      // Origin
-        (112.0, 112.0),  // Center
-        (225.0, 225.0)   // Far corner
+        (100.0, 100.0),  // Center of SQUARE terrain (200/2 = 100)
+        (200.0, 200.0)   // Far corner of SQUARE terrain
     ]
     
     init(simulationEngine: SimulationEngine) {
@@ -68,10 +68,17 @@ struct Arena3DView_RealityKit_Minimal: View {
             if showDebugOverlay {
                 minimalDebugOverlay
             }
+            
+            // Navigation instructions
+            navigationInstructions
         }
         .onAppear {
             print("🚀 [MINIMAL] Starting coordinate system reconstruction...")
             validateCoordinateSystem()
+        }
+        .onTapGesture {
+            // For now, tapping moves camera to see different areas
+            moveToNextViewpoint()
         }
     }
     
@@ -94,11 +101,11 @@ struct Arena3DView_RealityKit_Minimal: View {
         let anchor = AnchorEntity(.world(transform: Transform.identity.matrix))
         anchor.name = "MinimalWorldAnchor"
         
-        // 🎯 CAMERA FIX: Position world so terrain is visible from default camera position
-        // Default RealityView camera looks at origin from a few meters back
+        // 🎯 CAMERA FIX: Position world so SQUARED terrain is visible from default camera position
+        // Default RealityView camera looks at origin from a few meters back  
         // Move world center to be visible and properly oriented
-        anchor.position = [-112, 0, -50]  // Center terrain in view
-        print("📷 [CAMERA FIX] World anchor positioned at (-112, 0, -50) for visibility")
+        anchor.position = [-100, 0, -50]  // Center SQUARED terrain in view (200/2 = 100)
+        print("📷 [CAMERA FIX] World anchor positioned at (-100, 0, -50) for SQUARED visibility")
         
         // Store reference
         sceneAnchor = anchor
@@ -108,6 +115,9 @@ struct Arena3DView_RealityKit_Minimal: View {
         
         // STEP 3: Add coordinate system validation markers
         addTestMarkers(in: anchor)
+        
+        // STEP 3.5: Add central test cube for immediate visibility
+        addCentralTestCube(in: anchor)
         
         // STEP 4: Add basic lighting
         setupMinimalLighting(in: anchor)
@@ -137,7 +147,7 @@ struct Arena3DView_RealityKit_Minimal: View {
         // Test terrain height calculation immediately
         testTerrainHeightCalculation()
         
-        print("✅ [MINIMAL] Terrain created with 0-225 coordinate range")
+        print("✅ [MINIMAL] Terrain created with 0-200 SQUARED coordinate range")
     }
     
     @available(macOS 14.0, *)
@@ -147,16 +157,16 @@ struct Arena3DView_RealityKit_Minimal: View {
         var vertices: [SIMD3<Float>] = []
         var indices: [UInt32] = []
         
-        // UNIFIED COORDINATE FORMULA: From mastery docs
-        // Terrain covers 0-225 range to match simulation scale of 0.1
+        // UNIFIED COORDINATE FORMULA: SQUARED SYSTEM!
+        // Terrain covers 0-200 range to match simulation scale of 0.1 (2000*0.1=200)
         let heightScale: Float = 0.8  // Match RealityKit v2
         
-        // Generate vertices in 0-225 range
+        // Generate vertices in 0-200 range (SQUARED!)
         for x in 0..<resolution {
             for z in 0..<resolution {
-                // EXACT COORDINATE MAPPING: 0 to 225 units
-                let worldX = Float(x) * terrainScale  // 0 to 36*6.25 = 0 to 225
-                let worldZ = Float(z) * terrainScale  // 0 to 36*6.25 = 0 to 225
+                // EXACT COORDINATE MAPPING: 0 to 200 units (SQUARED!)
+                let worldX = Float(x) * terrainScale  // 0 to 32*6.25 = 0 to 200
+                let worldZ = Float(z) * terrainScale  // 0 to 32*6.25 = 0 to 200
                 let worldY = Float(heightMap[x][z]) * heightScale
                 
                 vertices.append(SIMD3<Float>(worldX, worldY, worldZ))
@@ -216,8 +226,8 @@ struct Arena3DView_RealityKit_Minimal: View {
                 materials: [SimpleMaterial(color: index == 0 ? .red : index == 1 ? .yellow : .blue, isMetallic: false)]
             )
             
-            // Position using UNIFIED coordinates
-            marker.position = SIMD3<Float>(x, terrainHeight + 3.0, z)
+            // Position using UNIFIED coordinates - elevated for visibility
+            marker.position = SIMD3<Float>(x, terrainHeight + 10.0, z)  // Higher above terrain
             marker.name = "TestMarker_\(index)"
             
             anchor.addChild(marker)
@@ -226,6 +236,25 @@ struct Arena3DView_RealityKit_Minimal: View {
         }
         
         print("✅ [TEST] Added \(testPoints.count) validation markers")
+    }
+    
+    // MARK: - Central Test Cube
+    
+    @available(macOS 14.0, *)
+    private func addCentralTestCube(in anchor: Entity) {
+        // Bright cube at world center for immediate visibility test
+        let cube = ModelEntity(
+            mesh: .generateBox(size: 10.0),  // Large cube
+            materials: [SimpleMaterial(color: .red, isMetallic: false)]
+        )
+        
+        // Position near camera view for immediate visibility
+        cube.position = SIMD3<Float>(0, 10, -20)  // In front of camera view
+        cube.name = "CentralTestCube"
+        
+        anchor.addChild(cube)
+        
+        print("🟥 [TEST CUBE] Added bright red cube at (0, 10, 0) for visibility test")
     }
     
     // MARK: - Terrain Height Calculation (FROM MASTERY DOCS)
@@ -287,10 +316,10 @@ struct Arena3DView_RealityKit_Minimal: View {
                     Text("Simulation Scale: \(simulationScale, specifier: "%.1f")")
                         .foregroundColor(.white)
                     
-                    Text("Terrain Size: \(terrainSize, specifier: "%.1f") units")
+                    Text("Terrain Size: \(terrainSize, specifier: "%.1f") units (SQUARED!)")
                         .foregroundColor(.white)
                     
-                    Text("World Anchor: (-112, 0, -50)")
+                    Text("World Anchor: (-100, 0, -50)")
                         .foregroundColor(.white)
                     
                     Text("Expected Camera: Default RealityView position")
@@ -317,6 +346,56 @@ struct Arena3DView_RealityKit_Minimal: View {
         }
     }
     
+    // MARK: - Navigation Instructions
+    
+    private var navigationInstructions: some View {
+        VStack {
+            Spacer()
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("🎮 NAVIGATION CONTROLS")
+                        .font(.headline)
+                        .foregroundColor(.cyan)
+                    
+                    Text("Click: Cycle viewpoints")
+                        .foregroundColor(.white)
+                        .font(.caption)
+                    
+                    Text("R: Reset to origin")
+                        .foregroundColor(.yellow)
+                        .font(.caption)
+                }
+                .padding()
+                .background(Color.black.opacity(0.7))
+                .cornerRadius(8)
+                
+                Spacer()
+            }
+        }
+    }
+    
+    // MARK: - Simple Navigation
+    
+    @State private var currentViewpoint = 0
+    
+    private func moveToNextViewpoint() {
+        guard let anchor = sceneAnchor else { return }
+        
+        // Cycle through different viewpoints to explore the SQUARED world
+        let viewpoints: [SIMD3<Float>] = [
+            [-100, 0, -50],   // Original position (center of 200x200)
+            [0, 0, 0],        // World center (should see red cube!)
+            [-200, 0, -100],  // Far view (edge of 200x200)
+            [-50, 20, -25],   // Elevated close view
+            [-100, -20, 0]    // Low angle at center
+        ]
+        
+        currentViewpoint = (currentViewpoint + 1) % viewpoints.count
+        anchor.position = viewpoints[currentViewpoint]
+        
+        print("📷 [VIEWPOINT \(currentViewpoint)] Moved to: \(anchor.position)")
+    }
+    
     // MARK: - Validation
     
     private func validateCoordinateSystem() {
@@ -326,9 +405,9 @@ struct Arena3DView_RealityKit_Minimal: View {
             let height = getTerrainHeightAtPosition(x: point.0, z: point.1)
             print("🎯 [TEST POINT \(index)] (\(point.0), \(point.1)) -> Height: \(height)")
             
-            // Validate bounds (FROM MASTERY DOCS)
-            assert(point.0 >= 0 && point.0 <= 225, "X coordinate out of bounds: \(point.0)")
-            assert(point.1 >= 0 && point.1 <= 225, "Z coordinate out of bounds: \(point.1)")
+            // Validate bounds (SQUARED SYSTEM!)
+            assert(point.0 >= 0 && point.0 <= 200, "X coordinate out of bounds: \(point.0)")
+            assert(point.1 >= 0 && point.1 <= 200, "Z coordinate out of bounds: \(point.1)")
         }
         
         print("✅ [VALIDATION] Coordinate system integrity confirmed")

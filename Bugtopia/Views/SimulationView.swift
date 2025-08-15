@@ -43,7 +43,7 @@ class SimulationEngineManager: ObservableObject {
         return Arena3DView_RealityKit_Minimal(simulationEngine: engine)
     }
     
-    init(worldSize: CGSize = CGSize(width: 2000, height: 1500)) {
+    init(worldSize: CGSize = CGSize(width: 2000, height: 2000)) {  // 🟫 SQUARED: Perfect coordinate alignment!
         let bounds = CGRect(origin: .zero, size: worldSize)
         self.engine = SimulationEngine(worldBounds: bounds)
     }
