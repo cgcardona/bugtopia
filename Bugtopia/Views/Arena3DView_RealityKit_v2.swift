@@ -33,7 +33,7 @@ struct Arena3DView_RealityKit_v2: View {
     @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
     @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
     @State private var cameraPosition = SIMD3<Float>(0, 80, 80)  // 📷 ELEVATED: High overview camera position
-    @State private var cameraPitch: Float = -0.8  // 🎮 ANGLED DOWN: Look down at terrain from elevated position
+    @State private var cameraPitch: Float = -1.57  // 🎮 MAXIMUM DOWNWARD: Look directly down at terrain (90°)
     @State private var cameraYaw: Float = Float.pi     // 🎮 FIXED: Look AT the world (180°), not away from it
     
     // MARK: - Selection System
@@ -161,6 +161,10 @@ struct Arena3DView_RealityKit_v2: View {
         
         // Position the world anchor for elevated overview
         anchor.transform.translation = [0, -80, -80]  // Much lower and further to match elevated camera
+        
+        // 🎯 INITIAL ROTATION: Set the camera looking down at terrain
+        anchor.transform.rotation = createOrientationLockedRotation()
+        print("📷 [SETUP] Initial camera rotation applied - Pitch: \(cameraPitch * 180 / .pi)°, Yaw: \(cameraYaw * 180 / .pi)°")
         
         // Store reference for camera manipulation
         sceneAnchor = anchor
