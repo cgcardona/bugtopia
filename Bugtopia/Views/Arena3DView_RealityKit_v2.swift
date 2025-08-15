@@ -51,7 +51,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     // MARK: - Debug
     
-    @State private var debugMode: Bool = true
+    @State private var debugMode: Bool = false
     
     // MARK: - Update Management
     
@@ -144,16 +144,7 @@ struct Arena3DView_RealityKit_v2: View {
         .onDisappear {
             stopKeyboardMonitoring()
         }
-        .overlay(alignment: .bottomTrailing) {
-            // Simple overlay to confirm RealityView is active
-            Text("🌍 RealityKit Active")
-                .font(.caption)
-                .foregroundColor(.green)
-                .padding(4)
-                .background(Color.black.opacity(0.7))
-                .cornerRadius(4)
-                .padding()
-        }
+
     }
     
     @available(macOS 14.0, *)
