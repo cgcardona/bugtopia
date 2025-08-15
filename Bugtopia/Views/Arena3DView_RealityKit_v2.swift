@@ -41,6 +41,11 @@ struct Arena3DView_RealityKit_v2: View {
     private let onBugSelectedCallback: ((Bug?) -> Void)?
     private let onFoodSelectedCallback: ((FoodItem?) -> Void)?
     
+    // MARK: - Debug System
+    
+    @State private var showDebugOverlay: Bool = true  // 🐛 Visual debugging enabled
+    @State private var debugInfo: String = "Debug Loading..."
+    
     // MARK: - Entity Management
     
     @StateObject private var bugEntityManager = BugEntityManager()
@@ -49,6 +54,52 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var frameCount: Int = 0
     @State private var lastFPSUpdate: Date = Date()
+    
+    // MARK: - Debug Functions
+    
+    private func updateDebugInfo() {
+        let terrain = "Terrain: 200×150 units (32×6.25 scale)"
+        let camera = String(format: "Cam: (%.1f, %.1f, %.1f)", cameraPosition.x, cameraPosition.y, cameraPosition.z)
+        let rotation = String(format: "Rot: P%.1f° Y%.1f°", cameraPitch * 180 / .pi, cameraYaw * 180 / .pi)
+        let mode = isGodMode ? "🌟 GOD" : "🚶 WALK"
+        
+        debugInfo = "\(mode) | \(terrain)\n\(camera) | \(rotation)"
+    }
+    
+    // MARK: - Visual Debug Overlay
+    
+    private var coordinateDebugOverlay: some View {
+        VStack {
+            Spacer()
+            HStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("🐛 COORDINATE DEBUG")
+                        .font(.headline)
+                        .foregroundColor(.green)
+                    
+                    Text(debugInfo)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.white)
+                        .padding(8)
+                        .background(Color.black.opacity(0.8))
+                        .cornerRadius(8)
+                    
+                    // Terrain bounds indicator
+                    Text("Expected Bounds:")
+                        .font(.caption)
+                        .foregroundColor(.yellow)
+                    Text("X: 0 to 200 | Z: 0 to 150")
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundColor(.white)
+                        .padding(4)
+                        .background(Color.orange.opacity(0.8))
+                        .cornerRadius(4)
+                }
+                Spacer()
+            }
+            .padding()
+        }
+    }
     @State private var currentFPS: Double = 0.0
     @State private var performanceMetrics = Phase2PerformanceMetrics()
     
@@ -83,10 +134,16 @@ struct Arena3DView_RealityKit_v2: View {
             if debugMode {
                 debugOverlay
             }
+            
+            // Visual Debug System
+            if showDebugOverlay {
+                coordinateDebugOverlay
+            }
         }
         .onAppear {
             startPerformanceMonitoring()
             startEntityUpdates()
+            updateDebugInfo()
             print("🚀 [RealityKit] View appeared, FPS monitoring and entity updates enabled")
         }
         .onDisappear {
@@ -2746,7 +2803,8 @@ struct Arena3DView_RealityKit_v2: View {
         // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
         anchor.transform.rotation = createOrientationLockedRotation()
         
-        print("🎮 SIMPLIFIED: Moved FORWARD to position: \(cameraPosition)")
+        updateDebugInfo()
+        print("⬆️ [FORWARD] Camera: Z \(cameraPosition.z + distance) → \(cameraPosition.z) | Anchor: \(-cameraPosition)")
     }
     
     // 🎮 SIMPLIFIED: Basic backward movement
