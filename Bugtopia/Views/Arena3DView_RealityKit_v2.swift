@@ -32,7 +32,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
     @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
-    @State private var cameraPosition = SIMD3<Float>(128, 100, 180)  // 📷 CENTERED: Above 256×256 terrain center
+    @State private var cameraPosition = SIMD3<Float>(100, 200, 120)  // 📷 CENTERED: Above 200×150 terrain center
     @State private var cameraPitch: Float = -1.2  // 🎮 DOWNWARD ANGLE: Look down at terrain with some perspective (~70°)
     @State private var cameraYaw: Float = Float.pi     // 🎮 FIXED: Look AT the world (180°), not away from it
     
@@ -160,7 +160,7 @@ struct Arena3DView_RealityKit_v2: View {
         let anchor = AnchorEntity(.world(transform: Transform.identity.matrix))
         
         // Position the world anchor for elevated overview
-        anchor.transform.translation = [-128, -100, -180]  // Centered on terrain with proper offset
+        anchor.transform.translation = [-100, -200, -120]  // Centered on unified 200×150 terrain
         
         // 🎯 INITIAL ROTATION: Set the camera looking down at terrain
         anchor.transform.rotation = createOrientationLockedRotation()
@@ -338,7 +338,7 @@ struct Arena3DView_RealityKit_v2: View {
     @available(macOS 14.0, *)
     private func createSmoothTerrainMesh(heightMap: [[Double]], biomeMap: [[BiomeType]], resolution: Int) -> ModelEntity {
         // Create a single smooth terrain mesh using height map data
-        let scale: Float = 8.0  // 🚀 MASSIVE SCALE: 4x larger for SceneKit-style terrain (was 2.0)
+        let scale: Float = 6.25  // 🎯 UNIFIED SCALE: 32*6.25=200 units to match simulation/food coordinates
         let heightScale: Float = 0.8  // 🏔️ NAVIGABLE: Gentle slopes for bug navigation (was 1.0)
         let minHeight: Float = -20.0  // 🌊 WATERTIGHT: Minimum terrain floor height
         
@@ -445,7 +445,7 @@ struct Arena3DView_RealityKit_v2: View {
         let waterContainer = Entity()
         waterContainer.name = "WaterSurfaces"
         
-        let scale: Float = 8.0  // 🌊 MASSIVE SCALE: Match new terrain scale (was 2.0)
+        let scale: Float = 6.25  // 🌊 UNIFIED SCALE: Match terrain scale for consistency
         let waterLevel: Double = -15.0  // 🏔️ DEEPER: Only in deep valleys (was -5.0)
         
         // 🌊 VALLEY WATER: Only create water in actual valleys/low areas
@@ -888,10 +888,9 @@ struct Arena3DView_RealityKit_v2: View {
         // Create model entity
         let foodEntity = ModelEntity(mesh: mesh, materials: [material])
         
-        // Position on terrain surface with CONSISTENT scaling to match terrain
-        let simulationScale: Float = 256.0 / 2000.0  // Scale simulation (2000) to terrain (256)
-        let scaledX = Float(food.position.x) * simulationScale  
-        let scaledZ = Float(food.position.y) * simulationScale
+        // UNIFIED COORDINATE SYSTEM: Direct 1:1 mapping from simulation to RealityKit
+        let scaledX = Float(food.position.x) * 0.1  // 2000 sim units -> 200 RK units
+        let scaledZ = Float(food.position.y) * 0.1  // 1500 sim units -> 150 RK units
         let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
         let scaledPosition = SIMD3<Float>(
             scaledX, // Use consistent simulation scaling
@@ -1064,9 +1063,9 @@ struct Arena3DView_RealityKit_v2: View {
             let bugEntity = createDetailedBugEntity(for: bug, index: index)
             
             // 🎯 FIXED: Use actual simulation coordinates with proper scaling
-            let simulationScale: Float = 256.0 / 2000.0  // CONSISTENT: Scale simulation (2000) to terrain (256) 
-            let bugX = Float(bug.position3D.x) * simulationScale
-            let bugZ = Float(bug.position3D.y) * simulationScale  // Note: simulation Y becomes RealityKit Z
+            // UNIFIED COORDINATE SYSTEM: Same scaling as food items
+            let bugX = Float(bug.position3D.x) * 0.1  // 2000 sim units -> 200 RK units
+            let bugZ = Float(bug.position3D.y) * 0.1  // 1500 sim units -> 150 RK units
             
             // 🏔️ TERRAIN FOLLOWING: Position bugs at appropriate height above terrain
             let bugY = getTerrainHeightAtPosition(x: bugX, z: bugZ) + 3.0  // 3 units above terrain
