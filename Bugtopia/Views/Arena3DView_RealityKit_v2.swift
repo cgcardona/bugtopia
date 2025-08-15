@@ -32,8 +32,8 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
     @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
-    @State private var cameraPosition = SIMD3<Float>(100, 200, 120)  // 📷 CENTERED: Above 200×150 terrain center
-    @State private var cameraPitch: Float = -1.2  // 🎮 DOWNWARD ANGLE: Look down at terrain with some perspective (~70°)
+    @State private var cameraPosition = SIMD3<Float>(100, 200, 75)  // 📷 INSIDE TERRAIN: Center of 200×150 terrain (Z: 0-150)
+    @State private var cameraPitch: Float = -1.57  // 🎮 LOOKING DOWN: 90° downward to see terrain directly below
     @State private var cameraYaw: Float = Float.pi     // 🎮 FIXED: Look AT the world (180°), not away from it
     
     // MARK: - Selection System
@@ -58,7 +58,7 @@ struct Arena3DView_RealityKit_v2: View {
     // MARK: - Debug Functions
     
     private func updateDebugInfo() {
-        let terrain = "Terrain: 200×150 units (32×6.25 scale)"
+        let terrain = "Terrain: 200×200 units (32×6.25 scale)"
         let camera = String(format: "Cam: (%.1f, %.1f, %.1f)", cameraPosition.x, cameraPosition.y, cameraPosition.z)
         let rotation = String(format: "Rot: P%.1f° Y%.1f°", cameraPitch * 180 / .pi, cameraYaw * 180 / .pi)
         let mode = isGodMode ? "🌟 GOD" : "🚶 WALK"
@@ -88,7 +88,7 @@ struct Arena3DView_RealityKit_v2: View {
                     Text("Expected Bounds:")
                         .font(.caption)
                         .foregroundColor(.yellow)
-                    Text("X: 0 to 200 | Z: 0 to 150")
+                    Text("X: 0 to 200 | Z: 0 to 200")
                         .font(.system(.caption2, design: .monospaced))
                         .foregroundColor(.white)
                         .padding(4)
@@ -217,7 +217,7 @@ struct Arena3DView_RealityKit_v2: View {
         let anchor = AnchorEntity(.world(transform: Transform.identity.matrix))
         
         // Position the world anchor for elevated overview
-        anchor.transform.translation = [-100, -200, -120]  // Centered on unified 200×150 terrain
+        anchor.transform.translation = [-100, -200, -75]  // Centered on unified 200×150 terrain
         
         // 🎯 INITIAL ROTATION: Set the camera looking down at terrain
         anchor.transform.rotation = createOrientationLockedRotation()
@@ -2804,7 +2804,7 @@ struct Arena3DView_RealityKit_v2: View {
         anchor.transform.rotation = createOrientationLockedRotation()
         
         updateDebugInfo()
-        print("⬆️ [FORWARD] Camera: Z \(cameraPosition.z + distance) → \(cameraPosition.z) | Anchor: \(-cameraPosition)")
+        print("⬆️ [FORWARD] Camera: Z \(cameraPosition.z - distance) → \(cameraPosition.z) | Anchor: \(-cameraPosition)")
     }
     
     // 🎮 SIMPLIFIED: Basic backward movement
