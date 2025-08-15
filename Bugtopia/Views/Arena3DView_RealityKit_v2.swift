@@ -32,8 +32,8 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
     @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
-    @State private var cameraPosition = SIMD3<Float>(112, 150, 112)  // 📷 OVERHEAD: Looking down at terrain from above
-    @State private var cameraPitch: Float = -0.8  // 🎮 ANGLED VIEW: 45° downward to see both terrain and horizon
+    @State private var cameraPosition = SIMD3<Float>(112, 100, 50)   // 🎮 BETTER VIEW: Lower and closer for optimal perspective  
+    @State private var cameraPitch: Float = -0.3  // 🎮 GENTLE ANGLE: 17° downward for better horizon view
     @State private var cameraYaw: Float = Float.pi     // 🎮 FIXED: Look AT the world (180°), not away from it
     
     // MARK: - Selection System
@@ -623,8 +623,8 @@ struct Arena3DView_RealityKit_v2: View {
     }
     
     @available(macOS 14.0, *)
-    private func createWaterMaterial(height: Double) -> SimpleMaterial {
-        var waterMaterial = SimpleMaterial()
+    private func createWaterMaterial(height: Double) -> PhysicallyBasedMaterial {
+        var waterMaterial = PhysicallyBasedMaterial()
         
         // 🌊 PHOTOREALISTIC WATER: Enhanced depth-based water rendering
         let waterDepth = abs(height + 5) / 15.0  // Normalize depth (0-1)
@@ -637,9 +637,10 @@ struct Arena3DView_RealityKit_v2: View {
             alpha: 0.65 + (waterDepth * 0.25)  // Deeper water is less transparent
         )
         
-        waterMaterial.color = .init(tint: waterColor)
+        waterMaterial.baseColor = .init(tint: waterColor)
         waterMaterial.roughness = 0.1  // Very smooth water surface
         waterMaterial.metallic = 0.8   // Reflective like water
+        waterMaterial.faceCulling = .none  // 🔧 TWO-SIDED: Visible from above AND below
         
         return waterMaterial
     }
@@ -976,9 +977,11 @@ struct Arena3DView_RealityKit_v2: View {
         )
         foodEntity.position = scaledPosition
         
-        // 🐛 HELLO WORLD DEBUG: Log food positioning
-        let finalY = max(terrainHeight + 0.5, 0.5)
-        print("🍎 [FOOD POS] Sim: (\(food.position.x), \(food.position.y)) -> RK: (\(scaledX), \(scaledZ)) -> TerrainH: \(String(format: "%.2f", terrainHeight)) -> Final: (\(scaledX), \(String(format: "%.2f", finalY)), \(scaledZ))")
+        // 🐛 HELLO WORLD DEBUG: Log food positioning (reduced frequency)
+        if index < 5 {  // Only log first 5 food items to reduce noise
+            let finalY = max(terrainHeight + 0.5, 0.5)
+            print("🍎 [FOOD POS] Sim: (\(food.position.x), \(food.position.y)) -> RK: (\(scaledX), \(scaledZ)) -> TerrainH: \(String(format: "%.2f", terrainHeight)) -> Final: (\(scaledX), \(String(format: "%.2f", finalY)), \(scaledZ))")
+        }
         
         // Set entity name for identification
         foodEntity.name = "Food_\(index)"
@@ -1658,8 +1661,10 @@ struct Arena3DView_RealityKit_v2: View {
         let height = heightMap[mapX][mapZ]
         let scaledHeight = Float(height) * 0.8  // Match heightScale from terrain creation
         
-        // 🐛 HELLO WORLD DEBUG: Log every terrain height lookup
-        print("🏔️ [TERRAIN HEIGHT] Input: (\(x), \(z)) -> Normalized: (\(String(format: "%.3f", normalizedX)), \(String(format: "%.3f", normalizedZ))) -> Map: (\(mapX), \(mapZ)) -> Height: \(String(format: "%.2f", scaledHeight))")
+        // 🐛 HELLO WORLD DEBUG: Log terrain height lookup (reduced frequency)
+        if Int.random(in: 1...50) == 1 {  // Log only 2% of height lookups to reduce noise
+            print("🏔️ [TERRAIN HEIGHT] Input: (\(x), \(z)) -> Normalized: (\(String(format: "%.3f", normalizedX)), \(String(format: "%.3f", normalizedZ))) -> Map: (\(mapX), \(mapZ)) -> Height: \(String(format: "%.2f", scaledHeight))")
+        }
         
         return scaledHeight
     }
