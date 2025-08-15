@@ -38,6 +38,11 @@ class SimulationEngineManager: ObservableObject {
         })
     }
     
+    // 🔧 MINIMAL: Coordinate system debugging implementation
+    func createMinimalRealityKitView() -> Arena3DView_RealityKit_Minimal {
+        return Arena3DView_RealityKit_Minimal(simulationEngine: engine)
+    }
+    
     init(worldSize: CGSize = CGSize(width: 2000, height: 1500)) {
         let bounds = CGRect(origin: .zero, size: worldSize)
         self.engine = SimulationEngine(worldBounds: bounds)
@@ -621,8 +626,8 @@ struct SimulationView: View {
                             ))
                     },
                     realityKit: {
-                        // 🚀 RealityKit (Future) - Next-generation spatial computing
-                        engineManager.createRealityKitView()
+                        // 🔧 MINIMAL RealityKit - Coordinate system debugging
+                        engineManager.createMinimalRealityKitView()
                             .transition(.asymmetric(
                                 insertion: .scale.combined(with: .opacity),
                                 removal: .scale.combined(with: .opacity)
