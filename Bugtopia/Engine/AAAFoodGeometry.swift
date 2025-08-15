@@ -31,7 +31,7 @@ class AAAFoodGeometry {
         case .meat:
             return createAAAMeatMesh()
         case .fish:
-            return .generateBox(size: [1.5, 0.6, 0.8])
+            return createAAAFishMesh()
         case .seeds:
             return .generateSphere(radius: 0.7)
         case .nuts:
@@ -551,6 +551,123 @@ class AAAFoodGeometry {
         }
     }
     
+    /// Creates a photorealistic fish with proper topology and UV coordinates  
+    /// - Returns: High-quality fish mesh with streamlined aquatic shape
+    static func createAAAFishMesh() -> MeshResource {
+        print("🐟 [AAA] Generating photorealistic fish geometry...")
+        
+        var vertices: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
+        var indices: [UInt32] = []
+        
+        let segments = 32
+        let rings = 16
+        
+        // 🐟 FISH SHAPE PARAMETERS: Streamlined aquatic proportions
+        let baseRadius: Float = 0.8
+        let lengthScale: Float = 2.2   // Fish are much longer than wide
+        let heightScale: Float = 0.9   // Slightly compressed vertically
+        let widthScale: Float = 0.7    // Narrow profile for swimming
+        let tailTaper: Float = 0.8     // How much the tail tapers
+        let finDetail: Float = 0.1     // Subtle fin ridges
+        
+        // 🎨 GENERATE VERTICES WITH NATURAL FISH SHAPE
+        for ring in 0...rings {
+            let ringProgress = Float(ring) / Float(rings)
+            let ringAngle = ringProgress * Float.pi
+            
+            // 🐟 FISH BODY PROFILE: Streamlined from head to tail
+            var bodyRadius = sin(ringAngle) * baseRadius
+            
+            // 🏊 STREAMLINED TAPERING: Wide in middle, narrow at ends
+            let streamlineFactor: Float
+            if ringProgress < 0.3 {
+                // Head region - gradual taper
+                streamlineFactor = ringProgress / 0.3 * 0.9
+            } else if ringProgress > 0.7 {
+                // Tail region - dramatic taper
+                let tailProgress = (ringProgress - 0.7) / 0.3
+                streamlineFactor = (1.0 - tailProgress * tailTaper) * 0.9
+            } else {
+                // Body region - full width
+                streamlineFactor = 0.9
+            }
+            bodyRadius *= streamlineFactor
+            
+            let y = cos(ringAngle) * heightScale * streamlineFactor
+            
+            for segment in 0...segments {
+                let segmentAngle = Float(segment) / Float(segments) * 2.0 * Float.pi
+                
+                // 🌍 BASIC ELLIPSOIDAL COORDINATES
+                var x = sin(ringAngle) * cos(segmentAngle) * bodyRadius * widthScale
+                let z = sin(ringAngle) * sin(segmentAngle) * bodyRadius * lengthScale
+                var currentY = y
+                
+                // 🐟 DORSAL/VENTRAL FINS: Subtle ridges along top and bottom
+                let dorsalVentralFactor = abs(cos(segmentAngle * 2.0)) // Top and bottom
+                let finRidge = finDetail * dorsalVentralFactor * sin(ringAngle) * streamlineFactor
+                
+                if cos(segmentAngle) > 0.7 { // Dorsal (top)
+                    currentY += finRidge
+                } else if cos(segmentAngle) < -0.7 { // Ventral (bottom)
+                    currentY -= finRidge * 0.5 // Smaller ventral fins
+                }
+                
+                // 🏊 LATERAL COMPRESSION: Fish are compressed side-to-side
+                let lateralCompressionFactor = 1.0 - abs(sin(segmentAngle)) * 0.2
+                x *= lateralCompressionFactor
+                
+                let vertex = SIMD3<Float>(x, currentY, z)
+                vertices.append(vertex)
+                
+                // 🔆 CALCULATE NORMALS
+                let normal = normalize(vertex)
+                normals.append(normal)
+                
+                // 🗺️ UV MAPPING: Scale pattern friendly
+                let u = Float(segment) / Float(segments)
+                let v = Float(ring) / Float(rings)
+                uvs.append(SIMD2<Float>(u, v))
+            }
+        }
+        
+        // 🔗 GENERATE INDICES
+        for ring in 0..<rings {
+            for segment in 0..<segments {
+                let current = ring * (segments + 1) + segment
+                let next = current + segments + 1
+                
+                indices.append(UInt32(current))
+                indices.append(UInt32(next))
+                indices.append(UInt32(current + 1))
+                
+                indices.append(UInt32(current + 1))
+                indices.append(UInt32(next))
+                indices.append(UInt32(next + 1))
+            }
+        }
+        
+        print("✅ [AAA] Generated fish: \(vertices.count) vertices, \(indices.count/3) triangles")
+        
+        // 🚀 CREATE REALITYKIT MESH
+        var meshDescriptor = MeshDescriptor()
+        meshDescriptor.positions = .init(vertices)
+        meshDescriptor.normals = .init(normals)
+        meshDescriptor.textureCoordinates = .init(uvs)
+        meshDescriptor.primitives = .triangles(indices)
+        
+        do {
+            let mesh = try MeshResource.generate(from: [meshDescriptor])
+            print("🏆 [AAA] Fish mesh generation complete!")
+            return mesh
+        } catch {
+            print("❌ [AAA] Fish mesh generation failed: \(error)")
+            return .generateBox(size: [1.5, 0.6, 0.8])
+        }
+    }
+    
     // MARK: - LOD System for Mobile Optimization
     
     /// Creates multiple Level-of-Detail meshes for performance optimization
@@ -629,5 +746,10 @@ extension AAAFoodGeometry {
     /// Quick method to create a standard AAA meat with optimal settings
     static func createStandardMeat() -> MeshResource {
         return createAAAMeatMesh()
+    }
+    
+    /// Quick method to create a standard AAA fish with optimal settings
+    static func createStandardFish() -> MeshResource {
+        return createAAAFishMesh()
     }
 }

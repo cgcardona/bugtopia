@@ -365,11 +365,65 @@ class AAAPBRMaterials {
     }
     
     static func createAAAFishMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
-        var material = PhysicallyBasedMaterial()
-        material.baseColor = .init(tint: NSColor.cyan)
-        material.roughness = .init(floatLiteral: 0.3)
-        material.metallic = .init(floatLiteral: 0.4)
-        return material
+        
+        print("🐟 [PBR] Creating AAA fish material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "fish-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded fish diffuse texture")
+        } else {
+            // Fallback color matching silvery fish scales
+            let fallbackColor = NSColor(red: 0.7, green: 0.8, blue: 0.9, alpha: 1.0) // Silvery blue fish
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback fish color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "fish-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded fish normal map")
+        } else {
+            print("⚠️ [PBR] Fish normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "fish-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded fish roughness map")
+        } else {
+            // Fallback: Wet fish scales with some metallic reflection
+            pbrMaterial.roughness = .init(floatLiteral: 0.2) // Smooth wet scales
+            print("⚠️ [PBR] Using fallback fish roughness")
+        }
+        
+        // 🥇 METALLIC PROPERTIES: Fish scales have natural metallic reflection
+        pbrMaterial.metallic = .init(floatLiteral: 0.6) // Natural scale shimmer
+        
+        // 🌟 ENERGY-BASED ENHANCEMENT
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.3, (energyLevel - 1.0) * 0.1)
+            let emissionColor = NSColor(red: 0.6, green: 0.8, blue: 1.0, alpha: 1.0) // Cool blue fish glow
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+            print("✨ [PBR] Added fish energy glow: \(emissionIntensity)")
+        }
+        
+        // 🍃 FRESHNESS EFFECTS: Fresh fish have bright, reflective scales
+        let baseMetallic: Float = 0.6
+        let adjustedMetallic = baseMetallic * max(0.3, freshness) // Duller scales when not fresh
+        pbrMaterial.metallic = .init(floatLiteral: min(1.0, adjustedMetallic))
+        
+        // Fresh fish are smoother (wet), aged fish get rougher
+        let baseRoughness: Float = 0.2
+        let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.4, freshness)) * 0.6)
+        pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
+        
+        print("🏆 [PBR] AAA fish material created successfully!")
+        return pbrMaterial
     }
     
     static func createAAASeedsMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
