@@ -55,7 +55,7 @@ class AAAFoodGeometry {
         stemIndent: Bool = true
     ) -> MeshResource {
         
-        print("🍇 [AAA] Generating photorealistic plum geometry...")
+        // 🍇 Generating photorealistic plum geometry...
         print("📐 [AAA] Segments: \(segments), Rings: \(rings), Asymmetry: \(asymmetry)")
         
         var vertices: [SIMD3<Float>] = []
@@ -164,7 +164,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic apple with proper topology and UV coordinates
     /// - Returns: High-quality apple mesh with natural apple shape
     static func createAAAAppleMesh() -> MeshResource {
-        print("🍎 [AAA] Generating UV-optimized apple geometry...")
+        // 🍎 Generating UV-optimized apple geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -247,7 +247,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated apple: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // ✅ Generated apple: \(vertices.count) vertices, \(indices.count/3) triangles
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -258,7 +258,7 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Apple mesh generation complete!")
+            // 🏆 Apple mesh generation complete!
             return mesh
         } catch {
             print("❌ [AAA] Apple mesh generation failed: \(error)")
@@ -269,7 +269,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic orange with proper topology and UV coordinates  
     /// - Returns: High-quality orange mesh with natural citrus shape
     static func createAAAOrangeMesh() -> MeshResource {
-        print("🍊 [AAA] Generating photorealistic orange geometry...")
+        // 🍊 Generating photorealistic orange geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -356,7 +356,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic melon with proper topology and UV coordinates  
     /// - Returns: High-quality melon mesh with characteristic netted cantaloupe surface
     static func createAAAMelonMesh() -> MeshResource {
-        print("🍈 [AAA] Generating photorealistic melon geometry...")
+        // 🍈 Generating photorealistic melon geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -452,7 +452,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic meat chunk with proper topology and UV coordinates  
     /// - Returns: High-quality meat mesh with realistic organic shape
     static func createAAAMeatMesh() -> MeshResource {
-        print("🥩 [AAA] Generating photorealistic meat geometry...")
+        // 🥩 Generating photorealistic meat geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -555,7 +555,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic fish with proper topology and UV coordinates  
     /// - Returns: High-quality fish mesh with streamlined aquatic shape
     static func createAAAFishMesh() -> MeshResource {
-        print("🐟 [AAA] Generating photorealistic fish geometry...")
+        // 🐟 Generating photorealistic fish geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -672,7 +672,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic seeds cluster with proper topology and UV coordinates  
     /// - Returns: High-quality seeds mesh with natural clustered arrangement
     static func createAAASeedsMesh() -> MeshResource {
-        print("🌱 [AAA] Generating photorealistic seeds geometry...")
+        // 🌱 Generating photorealistic seeds geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -777,7 +777,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic nuts mix with proper topology and UV coordinates  
     /// - Returns: High-quality nuts mesh with mixed nut shapes and textures
     static func createAAANutsMesh() -> MeshResource {
-        print("🥜 [AAA] Generating photorealistic nuts geometry...")
+        // 🥜 Generating photorealistic nuts geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []

@@ -917,7 +917,7 @@ struct Arena3DView_RealityKit_v2: View {
         switch food.type {
         case .apple:
             // 🍎 APPLE: AAA PHOTOREALISTIC MODEL with natural apple shape!
-            print("🚀 [AAA] Creating photorealistic apple with scale: \(baseSize)")
+            // 🚀 Creating photorealistic apple with scale: \(baseSize)
             let appleMesh = AAAFoodGeometry.createStandardApple()
             return appleMesh
             
@@ -970,7 +970,7 @@ struct Arena3DView_RealityKit_v2: View {
         
         // 🍎🍊🍇🍈🥩🐟🌱🥜 AAA PBR MATERIALS: Check if this food type has AAA materials!
         if [.plum, .apple, .orange, .melon, .meat, .fish, .seeds, .nuts].contains(food.type) {
-            print("🎨 [AAA] Creating photorealistic PBR \(food.type.rawValue) material...")
+            // 🎨 Creating photorealistic PBR \(food.type.rawValue) material...
             let energyFactor = Float(food.energyValue / 50.0) // Normalize energy
             return AAAPBRMaterials.createAAAFoodMaterial(
                 for: food.type,

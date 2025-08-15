@@ -127,8 +127,7 @@ class AAAPBRMaterials {
     /// - Returns: Complete PBR material with all texture maps
     static func createAAAAppleMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🍎 [PBR] Creating AAA apple material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // 🍎 Creating AAA apple material (Energy: \(energyLevel), Freshness: \(freshness))
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -136,7 +135,7 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "apple-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded apple diffuse texture")
+            // ✅ Loaded apple diffuse texture
         } else {
             // Fallback color matching apple
             let fallbackColor = NSColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0) // Red apple
@@ -147,7 +146,7 @@ class AAAPBRMaterials {
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "apple-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded apple normal map")
+            // ✅ Loaded apple normal map
         } else {
             print("⚠️ [PBR] Apple normal map not found")
         }
@@ -155,7 +154,7 @@ class AAAPBRMaterials {
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "apple-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded apple roughness map")
+            // ✅ Loaded apple roughness map
         } else {
             // Fallback: Glossy apple skin
             pbrMaterial.roughness = .init(floatLiteral: 0.3) // Glossy like real apple
@@ -182,7 +181,7 @@ class AAAPBRMaterials {
         pbrMaterial.clearcoat = .init(floatLiteral: 0.2)  // Natural waxy surface
         pbrMaterial.clearcoatRoughness = .init(floatLiteral: 0.1)  // Very smooth wax
         
-        print("🏆 [PBR] AAA apple material created successfully!")
+        // 🏆 AAA apple material created successfully!
         return pbrMaterial
     }
     
