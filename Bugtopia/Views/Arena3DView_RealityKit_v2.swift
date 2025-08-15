@@ -27,9 +27,14 @@ struct Arena3DView_RealityKit_v2: View {
     @State private var lastUpdateTime = CACurrentMediaTime()
     @State private var movementSpeed: Float = 50.0  // ⚡ SIMPLIFIED: Basic movement speed
     @State private var sceneAnchor: AnchorEntity?
+    
+    // MARK: - God/Walk Mode System
+    
+    @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
+    @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
     @State private var cameraPosition = SIMD3<Float>(0, 80, 80)  // 📷 ELEVATED: High overview camera position
     @State private var cameraPitch: Float = -0.8  // 🎮 ANGLED DOWN: Look down at terrain from elevated position
-    @State private var cameraYaw: Float = 0.0     // 🎮 TRACKPAD: Left/right look angle (yaw)
+    @State private var cameraYaw: Float = Float.pi     // 🎮 FIXED: Look AT the world (180°), not away from it
     
     // MARK: - Selection System
     
@@ -2520,14 +2525,73 @@ struct Arena3DView_RealityKit_v2: View {
     
     private func handleKeyDown(_ event: NSEvent) {
         let keyCode = event.keyCode
+        
+        // 🌟 SPACE BAR: Toggle god/walk mode (keyCode 49)
+        if keyCode == 49 {
+            toggleGodWalkMode()
+            return  // Don't add space to pressed keys for movement
+        }
+        
         pressedKeys.insert(keyCode)
-        print("🎮 SIMPLIFIED: Key pressed: \(keyCode)")
+        print("🎮 NAVIGATION: Key pressed: \(keyCode) | God Mode: \(isGodMode)")
     }
     
     private func handleKeyUp(_ event: NSEvent) {
         let keyCode = event.keyCode
         pressedKeys.remove(keyCode)
         print("🎮 Key released: \(keyCode)")
+    }
+    
+    // MARK: - God/Walk Mode Toggle System
+    
+    private func toggleGodWalkMode() {
+        isGodMode.toggle()
+        
+        if isGodMode {
+            print("🌟 [MODE] Switched to GOD MODE - Free flying navigation")
+            print("📊 [GOD] Camera Position: \(cameraPosition)")
+            print("📊 [GOD] Camera Pitch: \(cameraPitch * 180 / .pi)°")
+            print("📊 [GOD] Camera Yaw: \(cameraYaw * 180 / .pi)°")
+        } else {
+            print("🚶 [MODE] Switched to WALK MODE - Terrain collision")
+            
+            // 🏃 WALK MODE: Move camera to terrain level
+            let terrainHeight = getTerrainHeightAt(x: cameraPosition.x, z: cameraPosition.z)
+            cameraPosition.y = terrainHeight + walkModeHeight
+            
+            print("📊 [WALK] Terrain Height: \(terrainHeight)")
+            print("📊 [WALK] New Camera Height: \(cameraPosition.y)")
+            print("📊 [WALK] Walk Mode Height Offset: \(walkModeHeight)")
+            
+            // Update scene anchor to new position
+            if let anchor = sceneAnchor {
+                anchor.transform.translation = -cameraPosition
+                print("📊 [WALK] Updated anchor translation: \(-cameraPosition)")
+            }
+        }
+    }
+    
+    private func getTerrainHeightAt(x: Float, z: Float) -> Float {
+        // 🌍 TERRAIN HEIGHT: Get the actual terrain height at this position
+        // For now, return ground level - this should eventually query the voxel world
+        let groundLevel: Float = 0.0
+        
+        // TODO: Query SimulationEngine's VoxelWorld for actual terrain height
+        // This would require converting camera coordinates back to voxel coordinates
+        
+        print("🌍 [TERRAIN] Getting height at (\(x), \(z)) = \(groundLevel)")
+        return groundLevel
+    }
+    
+    private func canMoveToPosition(x: Float, z: Float) -> Bool {
+        // 🚫 COLLISION DETECTION: Check if we can move to this position in walk mode
+        // For now, always allow movement - this should eventually check for solid terrain
+        
+        // TODO: Check SimulationEngine's VoxelWorld for solid voxels at this position
+        // This would prevent walking through mountains, trees, etc.
+        
+        print("🚫 [COLLISION] Checking movement to (\(x), \(z)) = allowed")
+        return true
     }
     
     private func setupScrollWheelMonitoring() {
@@ -2546,6 +2610,9 @@ struct Arena3DView_RealityKit_v2: View {
         let pitchDelta = Float(event.deltaY) * sensitivity   // Vertical scroll for pitch
         let yawDelta = Float(event.deltaX) * sensitivity     // Horizontal scroll for yaw
         
+        print("🎮 [TRACKPAD] Raw deltas - X: \(event.deltaX), Y: \(event.deltaY)")
+        print("🎮 [TRACKPAD] Calculated deltas - Pitch: \(pitchDelta * 180 / .pi)°, Yaw: \(yawDelta * 180 / .pi)°")
+        
         var rotationChanged = false
         
         // Handle vertical scrolling (pitch - up/down look)
@@ -2557,7 +2624,7 @@ struct Arena3DView_RealityKit_v2: View {
             cameraPitch = max(-Float.pi/2.1, min(Float.pi/2.1, cameraPitch))
             rotationChanged = true
             
-            // print("🎮 TWO-FINGER PITCH: \(oldPitch * 180 / .pi)° → \(cameraPitch * 180 / .pi)° (delta: \(pitchDelta * 180 / .pi)°)")
+            print("🎮 [PITCH] \(oldPitch * 180 / .pi)° → \(cameraPitch * 180 / .pi)° (delta: \(pitchDelta * 180 / .pi)°)")
         }
         
         // Handle horizontal scrolling (yaw - left/right look)
@@ -2570,15 +2637,20 @@ struct Arena3DView_RealityKit_v2: View {
             while cameraYaw < -Float.pi { cameraYaw += 2 * Float.pi }
             rotationChanged = true
             
-            // print("🎮 TWO-FINGER YAW: \(oldYaw * 180 / .pi)° → \(cameraYaw * 180 / .pi)° (delta: \(yawDelta * 180 / .pi)°)")
+            print("🎮 [YAW] \(oldYaw * 180 / .pi)° → \(cameraYaw * 180 / .pi)° (delta: \(yawDelta * 180 / .pi)°)")
         }
         
         // Apply combined rotation to the scene
         if rotationChanged {
-            guard let anchor = sceneAnchor else { return }
+            guard let anchor = sceneAnchor else { 
+                print("❌ [TRACKPAD] No scene anchor available for rotation")
+                return 
+            }
             
             // 🔒 ORIENTATION LOCK: Create rotation that maintains up vector
-            anchor.transform.rotation = createOrientationLockedRotation()
+            let newRotation = createOrientationLockedRotation()
+            anchor.transform.rotation = newRotation
+            print("🔄 [ROTATION] Applied new rotation to scene anchor")
         }
     }
     
@@ -2609,12 +2681,32 @@ struct Arena3DView_RealityKit_v2: View {
     // 🎮 SIMPLIFIED: Basic left movement
     private func moveLeft(deltaTime: Float, anchor: AnchorEntity) {
         let distance = movementSpeed * deltaTime
+        let oldPosition = cameraPosition
         
-        // Move camera position left (negative X)
-        cameraPosition.x -= distance
+        // 🌟 GOD MODE: Free movement vs 🚶 WALK MODE: Constrained movement
+        if isGodMode {
+            // Move camera position left (negative X)
+            cameraPosition.x -= distance
+            print("⬅️ [GOD] Moving LEFT: \(oldPosition.x) → \(cameraPosition.x) (distance: \(distance))")
+        } else {
+            // Walk mode: check for collision and stay at terrain level
+            let newX = cameraPosition.x - distance
+            let terrainHeight = getTerrainHeightAt(x: newX, z: cameraPosition.z)
+            
+            // Only move if not colliding with terrain obstacles
+            if canMoveToPosition(x: newX, z: cameraPosition.z) {
+                cameraPosition.x = newX
+                cameraPosition.y = terrainHeight + walkModeHeight
+                print("⬅️ [WALK] Moving LEFT: \(oldPosition.x) → \(cameraPosition.x) (terrain: \(terrainHeight))")
+            } else {
+                print("⬅️ [WALK] BLOCKED: Cannot move left due to terrain collision")
+                return  // Exit early if blocked
+            }
+        }
         
         // Update the world anchor (negative because we move the world opposite to camera)
         anchor.transform.translation = -cameraPosition
+        print("📍 [ANCHOR] Translation updated: \(-cameraPosition)")
         
         // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
         anchor.transform.rotation = createOrientationLockedRotation()

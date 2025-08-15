@@ -164,7 +164,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic apple with proper topology and UV coordinates
     /// - Returns: High-quality apple mesh with natural apple shape
     static func createAAAAppleMesh() -> MeshResource {
-        print("🍎 [AAA] Generating photorealistic apple geometry...")
+        print("🍎 [AAA] Generating UV-optimized apple geometry...")
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -179,8 +179,8 @@ class AAAFoodGeometry {
         let heightScale: Float = 1.2  // Apples are taller than wide
         let waistPosition: Float = 0.6  // Where the apple narrows (60% up)
         let waistFactor: Float = 0.85  // How much it narrows at waist
-        let stemIndentDepth: Float = 0.4  // Deep stem indent
-        let stemIndentRadius: Float = 0.3  // Narrow stem area
+        let stemIndentDepth: Float = 0.15  // REDUCED: Gentler stem indent to prevent UV distortion
+        let stemIndentRadius: Float = 0.25  // REDUCED: Smaller stem area for better UV mapping
         
         // 🎨 GENERATE VERTICES WITH NATURAL APPLE SHAPE
         for ring in 0...rings {
@@ -205,12 +205,13 @@ class AAAFoodGeometry {
                 let z = sin(ringAngle) * sin(segmentAngle) * baseRadius * radiusMultiplier
                 var currentY = y
                 
-                // 🍎 STEM INDENT: Create characteristic apple top indentation
-                if ring < rings / 4 {
+                // 🍎 GENTLE STEM INDENT: Reduced distortion for better UV mapping
+                if ring < rings / 6 {  // REDUCED: Affect fewer rings
                     let distanceFromCenter = sqrt(x * x + z * z)
                     if distanceFromCenter < stemIndentRadius {
                         let indentFactor = (stemIndentRadius - distanceFromCenter) / stemIndentRadius
-                        currentY -= stemIndentDepth * indentFactor * indentFactor
+                        // SMOOTHER: Use quartic curve instead of quadratic for gentler transition
+                        currentY -= stemIndentDepth * indentFactor * indentFactor * indentFactor * indentFactor
                     }
                 }
                 
