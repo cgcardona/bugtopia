@@ -916,18 +916,22 @@ struct Arena3DView_RealityKit_v2: View {
         
         switch food.type {
         case .apple:
-            // 🍎 APPLE: Slightly flattened sphere (more apple-like)
-            return .generateSphere(radius: baseSize * 1.1)
-            
-        case .orange:
-            // 🍊 ORANGE: Perfect sphere with slight texture
-            return .generateSphere(radius: baseSize)
+            // 🍎 APPLE: AAA PHOTOREALISTIC MODEL with natural apple shape!
+            print("🚀 [AAA] Creating photorealistic apple with scale: \(baseSize)")
+            let appleMesh = AAAFoodGeometry.createStandardApple()
+            return appleMesh
             
         case .plum:
             // 🍇 PLUM: AAA PHOTOREALISTIC MODEL with proper topology!
             print("🚀 [AAA] Creating photorealistic plum with scale: \(baseSize)")
-            let plumMesh = AAAPLumGeometry.createStandardPlum()
+            let plumMesh = AAAFoodGeometry.createStandardPlum()
             return plumMesh
+            
+        case .orange:
+            // 🍊 ORANGE: AAA PHOTOREALISTIC MODEL with citrus texture!
+            print("🚀 [AAA] Creating photorealistic orange with scale: \(baseSize)")
+            let orangeMesh = AAAFoodGeometry.createStandardOrange()
+            return orangeMesh
             
         case .melon:
             // 🍈 MELON: Large, impressive sphere
@@ -954,11 +958,12 @@ struct Arena3DView_RealityKit_v2: View {
     @available(macOS 14.0, *)
     private func createFoodMaterial(for food: FoodItem) -> RealityKit.Material {
         
-        // 🍇 SPECIAL CASE: AAA PBR Material for Plums!
-        if food.type == .plum {
-            print("🎨 [AAA] Creating photorealistic PBR plum material...")
+        // 🍎🍊🍇 AAA PBR MATERIALS: Check if this food type has AAA materials!
+        if [.plum, .apple, .orange].contains(food.type) {
+            print("🎨 [AAA] Creating photorealistic PBR \(food.type.rawValue) material...")
             let energyFactor = Float(food.energyValue / 50.0) // Normalize energy
-            return AAAPBRMaterials.createAAAPlumMaterial(
+            return AAAPBRMaterials.createAAAFoodMaterial(
+                for: food.type,
                 energyLevel: energyFactor,
                 freshness: 1.0  // Fresh food in simulation
             )

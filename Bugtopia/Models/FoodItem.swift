@@ -170,8 +170,8 @@ extension FoodType {
     
     /// Generates a random food type for a species based on rarity weights
     static func randomFoodFor(species: SpeciesType) -> FoodType {
-        // 🍇 TESTING OVERRIDE: Only generate plums for easy AAA testing!
-        return .plum
+        // 🍎🍊🍇 TESTING OVERRIDE: Cycle between AAA food types for testing!
+        return .apple   // Test apples
         
         /* ORIGINAL LOGIC - Commented out for testing
         let availableFoods = foodsFor(species: species)
@@ -197,8 +197,8 @@ extension FoodType {
     
     /// Randomly selects biome-appropriate food for a species type
     static func randomFoodFor(species: SpeciesType, biome: BiomeType) -> FoodType {
-        // 🍇 TESTING OVERRIDE: Only generate plums for easy AAA testing!
-        return .plum
+        // 🍎🍊🍇 TESTING OVERRIDE: Cycle between AAA food types for testing!
+        return .apple   // Test apples
         
         /* ORIGINAL LOGIC - Commented out for testing
         let compatibleFoods = foodsFor(species: species)
@@ -216,8 +216,8 @@ extension FoodType {
     
     /// Randomly selects seasonal food for a species type
     static func randomFoodFor(species: SpeciesType, season: Season) -> FoodType {
-        // 🍇 TESTING OVERRIDE: Only generate plums for easy AAA testing!
-        return .plum
+        // 🍎🍊🍇 TESTING OVERRIDE: Cycle between AAA food types for testing!
+        return .apple   // Test apples
         
         /* ORIGINAL LOGIC - Commented out for testing
         let compatibleFoods = foodsFor(species: species)
@@ -235,8 +235,12 @@ extension FoodType {
     
     /// Randomly selects biome and season appropriate food for a species type
     static func randomFoodFor(species: SpeciesType, biome: BiomeType, season: Season) -> FoodType {
-        // 🍇 TESTING OVERRIDE: Only generate plums for easy AAA testing!
-        return .plum
+        // 🍎🍊🍇 TESTING OVERRIDE: Cycle between AAA food types for testing!
+        // Change this line to test different food types:
+        
+        // return .plum    // Test plums
+        return .apple   // Test apples
+        // return .orange  // Test oranges
         
         /* ORIGINAL LOGIC - Commented out for testing
         let compatibleFoods = foodsFor(species: species)

@@ -20,6 +20,35 @@ class AAAPBRMaterials {
     
     // MARK: - AAA Plum Material Creation
     
+    /// Creates AAA PBR material based on food type
+    /// - Parameters:
+    ///   - foodType: The type of food to create material for
+    ///   - energyLevel: Food energy level (affects emission/glow)
+    ///   - freshness: Freshness factor (affects surface properties)
+    /// - Returns: Complete PBR material with all texture maps
+    static func createAAAFoodMaterial(for foodType: FoodType, energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        switch foodType {
+        case .plum:
+            return createAAAPlumMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .apple:
+            return createAAAAppleMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .orange:
+            return createAAAOrangeMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .melon:
+            return createAAAMelonMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .meat:
+            return createAAAMeatMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .fish:
+            return createAAAFishMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .seeds:
+            return createAAASeedsMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .nuts:
+            return createAAANutsMaterial(energyLevel: energyLevel, freshness: freshness)
+        }
+    }
+    
+    // MARK: - Individual Food Materials
+    
     /// Creates a photorealistic PBR material for plums using DALL-E textures
     /// - Parameters:
     ///   - energyLevel: Food energy level (affects emission/glow)
@@ -89,6 +118,176 @@ class AAAPBRMaterials {
         
         print("🏆 [PBR] AAA plum material created successfully!")
         return pbrMaterial
+    }
+    
+    /// Creates a photorealistic PBR material for apples using DALL-E textures
+    /// - Parameters:
+    ///   - energyLevel: Food energy level (affects emission/glow)
+    ///   - freshness: Freshness factor (affects surface properties)
+    /// - Returns: Complete PBR material with all texture maps
+    static func createAAAAppleMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        
+        print("🍎 [PBR] Creating AAA apple material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "apple-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded apple diffuse texture")
+        } else {
+            // Fallback color matching apple
+            let fallbackColor = NSColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0) // Red apple
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback apple color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "apple-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded apple normal map")
+        } else {
+            print("⚠️ [PBR] Apple normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "apple-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded apple roughness map")
+        } else {
+            // Fallback: Glossy apple skin
+            pbrMaterial.roughness = .init(floatLiteral: 0.3) // Glossy like real apple
+            print("⚠️ [PBR] Using fallback apple roughness")
+        }
+        
+        // 🥇 METALLIC PROPERTIES: Apples are non-metallic but can have slight sheen
+        pbrMaterial.metallic = .init(floatLiteral: 0.1) // Slight natural sheen
+        
+        // 🌟 ENERGY-BASED ENHANCEMENT
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.2, (energyLevel - 1.0) * 0.08)
+            let emissionColor = NSColor(red: 1.0, green: 0.9, blue: 0.8, alpha: 1.0) // Warm glow
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+            print("✨ [PBR] Added apple energy glow: \(emissionIntensity)")
+        }
+        
+        // 🍃 FRESHNESS EFFECTS: Fresh apples are very glossy
+        let baseRoughness: Float = 0.3
+        let adjustedRoughness = baseRoughness * (2.0 - max(0.5, freshness))
+        pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
+        
+        // 🌈 NATURAL APPLE SURFACE: Waxy coating
+        pbrMaterial.clearcoat = .init(floatLiteral: 0.2)  // Natural waxy surface
+        pbrMaterial.clearcoatRoughness = .init(floatLiteral: 0.1)  // Very smooth wax
+        
+        print("🏆 [PBR] AAA apple material created successfully!")
+        return pbrMaterial
+    }
+    
+    /// Creates a photorealistic PBR material for oranges using DALL-E textures
+    /// - Parameters:
+    ///   - energyLevel: Food energy level (affects emission/glow)
+    ///   - freshness: Freshness factor (affects surface properties)
+    /// - Returns: Complete PBR material with all texture maps
+    static func createAAAOrangeMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        
+        print("🍊 [PBR] Creating AAA orange material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "orange-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded orange diffuse texture")
+        } else {
+            // Fallback color matching orange
+            let fallbackColor = NSColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1.0) // Bright orange
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback orange color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "orange-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded orange normal map")
+        } else {
+            print("⚠️ [PBR] Orange normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "orange-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded orange roughness map")
+        } else {
+            // Fallback: Textured orange peel
+            pbrMaterial.roughness = .init(floatLiteral: 0.7) // Rough citrus peel
+            print("⚠️ [PBR] Using fallback orange roughness")
+        }
+        
+        // 🥇 METALLIC PROPERTIES: Oranges are completely non-metallic
+        pbrMaterial.metallic = .init(floatLiteral: 0.0)
+        
+        // 🌟 ENERGY-BASED ENHANCEMENT
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.25, (energyLevel - 1.0) * 0.1)
+            let emissionColor = NSColor(red: 1.0, green: 0.7, blue: 0.3, alpha: 1.0) // Citrus glow
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+            print("✨ [PBR] Added orange energy glow: \(emissionIntensity)")
+        }
+        
+        // 🍃 FRESHNESS EFFECTS: Fresh oranges have consistent texture
+        let baseRoughness: Float = 0.7
+        let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.5, freshness)) * 0.3)
+        pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
+        
+        print("🏆 [PBR] AAA orange material created successfully!")
+        return pbrMaterial
+    }
+    
+    // MARK: - Placeholder Materials for Future Food Types
+    
+    static func createAAAMelonMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: NSColor.green)
+        material.roughness = .init(floatLiteral: 0.6)
+        material.metallic = .init(floatLiteral: 0.0)
+        return material
+    }
+    
+    static func createAAAMeatMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: NSColor.brown)
+        material.roughness = .init(floatLiteral: 0.8)
+        material.metallic = .init(floatLiteral: 0.0)
+        return material
+    }
+    
+    static func createAAAFishMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: NSColor.cyan)
+        material.roughness = .init(floatLiteral: 0.3)
+        material.metallic = .init(floatLiteral: 0.4)
+        return material
+    }
+    
+    static func createAAASeedsMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: NSColor.yellow)
+        material.roughness = .init(floatLiteral: 0.9)
+        material.metallic = .init(floatLiteral: 0.0)
+        return material
+    }
+    
+    static func createAAANutsMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: NSColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 1.0))
+        material.roughness = .init(floatLiteral: 0.8)
+        material.metallic = .init(floatLiteral: 0.0)
+        return material
     }
     
     // MARK: - Texture Loading System
