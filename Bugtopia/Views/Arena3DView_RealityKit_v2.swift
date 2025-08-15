@@ -2409,7 +2409,7 @@ struct Arena3DView_RealityKit_v2: View {
         for bug in currentBugs {
             if let bugEntity = bugContainer.findEntity(named: "Bug_\(bug.id.uuidString)") {
                 // Calculate new position with terrain following
-                let simulationScale: Float = 0.05  // Consistent scaling
+                let simulationScale: Float = 0.1  // UNIFIED: Same as food items
                 let scaledX = Float(bug.position3D.x) * simulationScale
                 let scaledZ = Float(bug.position3D.y) * simulationScale
                 let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
@@ -2794,8 +2794,8 @@ struct Arena3DView_RealityKit_v2: View {
     private func moveForward(deltaTime: Float, anchor: AnchorEntity) {
         let distance = movementSpeed * deltaTime
         
-        // 🔧 FIXED: Move camera position forward (negative Z in RealityKit)
-        cameraPosition.z -= distance
+        // 🔧 FORWARD: Move INTO the 200×150 terrain (positive Z direction)
+        cameraPosition.z += distance
         
         // Update the world anchor (negative because we move the world opposite to camera)
         anchor.transform.translation = -cameraPosition
@@ -2811,8 +2811,8 @@ struct Arena3DView_RealityKit_v2: View {
     private func moveBackward(deltaTime: Float, anchor: AnchorEntity) {
         let distance = movementSpeed * deltaTime
         
-        // 🔧 FIXED: Move camera position backward (positive Z in RealityKit)
-        cameraPosition.z += distance
+        // 🔧 BACKWARD: Move OUT of the 200×150 terrain (negative Z direction)  
+        cameraPosition.z -= distance
         
         // Update the world anchor (negative because we move the world opposite to camera)
         anchor.transform.translation = -cameraPosition
