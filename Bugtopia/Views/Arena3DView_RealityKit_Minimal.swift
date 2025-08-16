@@ -24,12 +24,15 @@ struct Arena3DView_RealityKit_Minimal: View {
     private let terrainScale: Float = 6.25    // Terrain scale factor 
     private let terrainSize: Float = 200.0    // 🟫 SQUARED: 2000 * 0.1 = 200 units (PERFECT MATCH!)
     
-    // MARK: - Camera System (ADJUSTED FOR TERRAIN LEVEL)
+    // MARK: - Camera System (ADVANCED NAVIGATION)
     
     @State private var cameraPosition = SIMD3<Float>(112, 25, 50)   // LOWERED: Match terrain level (~-16 to +9)
     @State private var cameraPitch: Float = -0.3     // 17° downward 
     @State private var cameraYaw: Float = Float.pi   // Face world center
     @State private var isGodMode: Bool = true
+    @State private var isFlightMode: Bool = true     // true = fly, false = walk
+    private let movementSpeed: Float = 10.0          // Units per key press
+    private let lookSpeed: Float = 0.1               // Radians per key press
     
     // MARK: - Scene References
     
@@ -80,6 +83,61 @@ struct Arena3DView_RealityKit_Minimal: View {
             // For now, tapping moves camera to see different areas
             moveToNextViewpoint()
         }
+        .onKeyPress(.init("r")) {
+            // Reset to origin for debugging
+            if let anchor = sceneAnchor {
+                anchor.position = [0, 0, 0]
+                currentViewpoint = 0
+                print("🔄 [RESET] World anchor reset to origin (0, 0, 0)")
+            }
+            return .handled
+        }
+        .onKeyPress(.init(" ")) {
+            // Spacebar: Toggle between fly and walk modes
+            isFlightMode.toggle()
+            print("🎮 [MODE] Switched to \(isFlightMode ? "FLY" : "WALK") mode")
+            return .handled
+        }
+        .onKeyPress(.init("w")) {
+            moveCamera(direction: .forward)
+            return .handled
+        }
+        .onKeyPress(.init("a")) {
+            moveCamera(direction: .left)
+            return .handled
+        }
+        .onKeyPress(.init("s")) {
+            moveCamera(direction: .backward)
+            return .handled
+        }
+        .onKeyPress(.init("d")) {
+            moveCamera(direction: .right)
+            return .handled
+        }
+        .onKeyPress(.init("q")) {
+            moveCamera(direction: .up)
+            return .handled
+        }
+        .onKeyPress(.init("e")) {
+            moveCamera(direction: .down)
+            return .handled
+        }
+        .onKeyPress(.upArrow) {
+            lookCamera(direction: .up)
+            return .handled
+        }
+        .onKeyPress(.downArrow) {
+            lookCamera(direction: .down)
+            return .handled
+        }
+        .onKeyPress(.leftArrow) {
+            lookCamera(direction: .left)
+            return .handled
+        }
+        .onKeyPress(.rightArrow) {
+            lookCamera(direction: .right)
+            return .handled
+        }
     }
     
     // MARK: - Minimal RealityView
@@ -104,8 +162,8 @@ struct Arena3DView_RealityKit_Minimal: View {
         // 🎯 CAMERA FIX: Position world so SQUARED terrain is visible from default camera position
         // Default RealityView camera looks at origin from a few meters back  
         // Move world center to be visible and properly oriented
-        anchor.position = [-100, 0, -50]  // Center SQUARED terrain in view (200/2 = 100)
-        print("📷 [CAMERA FIX] World anchor positioned at (-100, 0, -50) for SQUARED visibility")
+        anchor.position = [0, 0, 0]  // Keep world at origin, camera moves instead
+        print("📷 [CAMERA FIX] World anchor at origin (0, 0, 0) - camera controls view")
         
         // Store reference
         sceneAnchor = anchor
@@ -113,11 +171,17 @@ struct Arena3DView_RealityKit_Minimal: View {
         // STEP 2: Add minimal terrain ONLY
         setupMinimalTerrain(in: anchor)
         
-        // STEP 3: Add coordinate system validation markers
-        addTestMarkers(in: anchor)
+        // STEP 3: Add comprehensive coordinate mastery demonstration
+        print("🎯 [DEBUG] About to call addCoordinateMasteryDemo...")
+        addCoordinateMasteryDemo(in: anchor)
+        print("🎯 [DEBUG] addCoordinateMasteryDemo completed")
         
-        // STEP 3.5: Add central test cube for immediate visibility
-        addCentralTestCube(in: anchor)
+        // EMERGENCY DEBUG: Add super simple red cube at origin
+        print("🚨 [EMERGENCY] Adding simple debug cube at origin...")
+        let debugCube = ModelEntity(mesh: .generateBox(size: 50.0), materials: [SimpleMaterial(color: .red, isMetallic: false)])
+        debugCube.position = SIMD3<Float>(0, 25, 0)  // Right at origin, elevated
+        anchor.addChild(debugCube)
+        print("🚨 [EMERGENCY] Debug cube added at (0, 25, 0)")
         
         // STEP 4: Add basic lighting
         setupMinimalLighting(in: anchor)
@@ -254,7 +318,94 @@ struct Arena3DView_RealityKit_Minimal: View {
         
         anchor.addChild(cube)
         
-        print("🟥 [TEST CUBE] Added bright red cube at (0, 10, 0) for visibility test")
+        print("🟥 [TEST CUBE] Added bright red cube at (0, 10, -20) for visibility test")
+    }
+    
+    // MARK: - Coordinate Mastery Demonstration
+    
+    @available(macOS 14.0, *)
+    private func addCoordinateMasteryDemo(in anchor: Entity) {
+        print("🎯 [DEBUG] Starting addCoordinateMasteryDemo...")
+        print("🎯 [DEBUG] Anchor received: \(anchor)")
+        
+        // SINGLE OBJECT FOCUS - One bright red cube at world center for systematic testing
+        let demoObjects: [(position: SIMD3<Float>, shape: String, color: NSColor, size: Float, name: String)] = [
+            // ONE BRIGHT RED CUBE at world center (100, 50, 100)
+            (SIMD3<Float>(100, 50, 100), "cube", .red, 30.0, "TARGET: Red Cube at World Center")
+        ]
+        
+        print("🎯 [DEBUG] Demo objects array created with \(demoObjects.count) objects")
+        
+        // Create and position each demo object
+        for (index, demo) in demoObjects.enumerated() {
+            print("🎯 [DEBUG] Creating object \(index): \(demo.name)")
+            print("🎯 [DEBUG] Target position: \(demo.position)")
+            
+            let entity = createGeometricShape(
+                shape: demo.shape,
+                size: demo.size,
+                color: demo.color,
+                name: "\(index): \(demo.name)"
+            )
+            
+            print("🎯 [DEBUG] Entity created: \(entity)")
+            
+            // Get terrain height at this position for proper ground-following
+            let terrainHeight = getTerrainHeightAtPosition(x: demo.position.x, z: demo.position.z)
+            print("🎯 [DEBUG] Terrain height at (\(demo.position.x), \(demo.position.z)): \(terrainHeight)")
+            
+            let finalPosition = SIMD3<Float>(
+                demo.position.x,
+                max(demo.position.y, terrainHeight + demo.size/2), // Ensure above terrain
+                demo.position.z
+            )
+            
+            print("🎯 [DEBUG] Final position: \(finalPosition)")
+            
+            entity.position = finalPosition
+            anchor.addChild(entity)
+            
+            print("🎯 [DEBUG] Entity added to anchor successfully")
+            print("🎨 [DEMO \(index)] \(demo.name): \(demo.shape) at (\(finalPosition.x), \(finalPosition.y), \(finalPosition.z))")
+        }
+        
+        print("✅ [PRECISION COORDINATE MASTERY] Created \(demoObjects.count) targeted objects for perfect viewpoint alignment")
+    }
+    
+    @available(macOS 14.0, *)
+    private func createGeometricShape(shape: String, size: Float, color: NSColor, name: String) -> ModelEntity {
+        let mesh: MeshResource
+        
+        switch shape.lowercased() {
+        case "cube":
+            mesh = .generateBox(size: size)
+        case "sphere":
+            mesh = .generateSphere(radius: size/2)
+        case "cylinder":
+            mesh = .generateCylinder(height: size * 1.5, radius: size/3)  // Taller cylinders
+        case "pyramid":
+            // Create a simple pyramid using box with custom scaling
+            mesh = .generateBox(size: size)
+        default:
+            mesh = .generateBox(size: size)
+        }
+        
+        // Create bright, non-metallic material
+        var material = SimpleMaterial()
+        material.color = .init(tint: color)
+        material.roughness = 0.2  // Less rough = more reflective
+        material.metallic = 0.0   // Not metallic
+        
+        let entity = ModelEntity(mesh: mesh, materials: [material])
+        entity.name = name
+        
+        // For pyramids, add a distinct rotation to make them stand out
+        if shape.lowercased() == "pyramid" {
+            entity.transform.rotation = simd_quatf(angle: Float.pi/4, axis: [0, 1, 0])
+            entity.transform.scale = SIMD3<Float>(1.0, 2.0, 1.0)  // Make pyramids taller
+        }
+        
+        return entity
     }
     
     // MARK: - Terrain Height Calculation (FROM MASTERY DOCS)
@@ -307,41 +458,35 @@ struct Arena3DView_RealityKit_Minimal: View {
     private var minimalDebugOverlay: some View {
         VStack {
             HStack {
-                Spacer()
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("🔧 MINIMAL COORDINATE DEBUG")
+                // Compact main header
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("🎯 PRECISION COORDINATE MASTERY")
                         .font(.headline)
                         .foregroundColor(.cyan)
                     
-                    Text("Simulation Scale: \(simulationScale, specifier: "%.1f")")
-                        .foregroundColor(.white)
-                    
-                    Text("Terrain Size: \(terrainSize, specifier: "%.1f") units (SQUARED!)")
-                        .foregroundColor(.white)
-                    
-                    Text("World Anchor: (-100, 0, -50)")
-                        .foregroundColor(.white)
-                    
-                    Text("Expected Camera: Default RealityView position")
-                        .foregroundColor(.gray)
+                    Text("1 Red Cube | Systematic Orbiting")
+                        .foregroundColor(.green)
                         .font(.caption)
-                    
-                    Divider()
-                    
-                    Text("Test Points:")
-                        .foregroundColor(.yellow)
-                    
-                    ForEach(Array(testPoints.enumerated()), id: \.offset) { index, point in
-                        let height = getTerrainHeightAtPosition(x: point.0, z: point.1)
-                        Text("(\(point.0, specifier: "%.0f"), \(point.1, specifier: "%.0f")) → H: \(height, specifier: "%.1f")")
-                            .foregroundColor(index == 0 ? .red : index == 1 ? .yellow : .blue)
-                            .font(.caption)
-                    }
                 }
-                .padding()
-                .background(Color.black.opacity(0.7))
-                .cornerRadius(8)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.black.opacity(0.75))
+                .cornerRadius(6)
+                
+                Spacer()
+                
+                // Compact viewpoint indicator
+                Text("Viewpoint \(currentViewpoint)/7")
+                    .foregroundColor(.yellow)
+                    .font(.caption)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.black.opacity(0.75))
+                    .cornerRadius(4)
             }
+            .padding(.top, 8)
+            .padding(.horizontal, 8)
+            
             Spacer()
         }
     }
@@ -353,15 +498,19 @@ struct Arena3DView_RealityKit_Minimal: View {
             Spacer()
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("🎮 NAVIGATION CONTROLS")
+                    Text("🎮 ADVANCED NAVIGATION")
                         .font(.headline)
                         .foregroundColor(.cyan)
                     
-                    Text("Click: Cycle viewpoints")
+                    Text("WASD: Move | QE: Up/Down | Arrows: Look")
                         .foregroundColor(.white)
                         .font(.caption)
                     
-                    Text("R: Reset to origin")
+                    Text("Space: Toggle \(isFlightMode ? "FLY" : "WALK") mode")
+                        .foregroundColor(.green)
+                        .font(.caption)
+                    
+                    Text("Click: Cycle viewpoints | R: Reset")
                         .foregroundColor(.yellow)
                         .font(.caption)
                 }
@@ -381,19 +530,38 @@ struct Arena3DView_RealityKit_Minimal: View {
     private func moveToNextViewpoint() {
         guard let anchor = sceneAnchor else { return }
         
-        // Cycle through different viewpoints to explore the SQUARED world
-        let viewpoints: [SIMD3<Float>] = [
-            [-100, 0, -50],   // Original position (center of 200x200)
-            [0, 0, 0],        // World center (should see red cube!)
-            [-200, 0, -100],  // Far view (edge of 200x200)
-            [-50, 20, -25],   // Elevated close view
-            [-100, -20, 0]    // Low angle at center
+        // OPTIMIZED world positions for better viewing angles
+        // Adjusted heights to prevent looking up from below terrain
+        // CORRECTED CAMERA POSITIONS to see EMERGENCY CUBE at (0, 25, 0) and RED CUBE at (100, 50, 100)
+        let worldPositions: [SIMD3<Float>] = [
+            [0, -25, -50],     // 0: Look at EMERGENCY cube at origin from front
+            [0, -25, -30],     // 1: Look at EMERGENCY cube - closer view
+            [-100, -50, -80],  // 2: Look at RED cube from front  
+            [-100, -50, -120], // 3: Look at RED cube from behind
+            [-80, -50, -100],  // 4: Look at RED cube from right
+            [-120, -50, -100], // 5: Look at RED cube from left
+            [-100, -30, -100], // 6: Look at RED cube from above
+            [-100, -70, -100]  // 7: Look at RED cube from below
         ]
         
-        currentViewpoint = (currentViewpoint + 1) % viewpoints.count
-        anchor.position = viewpoints[currentViewpoint]
+        currentViewpoint = (currentViewpoint + 1) % worldPositions.count
+        anchor.position = worldPositions[currentViewpoint]
         
-        print("📷 [VIEWPOINT \(currentViewpoint)] Moved to: \(anchor.position)")
+        // PRECISION DESCRIPTIONS - Exactly what should be visible
+        // CORRECTED DESCRIPTIONS - Emergency cube at (0,25,0) and Red cube at (100,50,100)
+        let viewpointDescriptions = [
+            "EMERGENCY CUBE: Large red cube (50 units) at origin should FILL screen",
+            "EMERGENCY CUBE: Same red cube at origin but closer view",
+            "RED CUBE: Target red cube (30 units) at (100,50,100) from front", 
+            "RED CUBE: Target red cube at (100,50,100) from behind",
+            "RED CUBE: Target red cube at (100,50,100) from right side",
+            "RED CUBE: Target red cube at (100,50,100) from left side",
+            "RED CUBE: Target red cube at (100,50,100) from above",
+            "RED CUBE: Target red cube at (100,50,100) from below"
+        ]
+        
+        print("📷 [VIEWPOINT \(currentViewpoint)] World moved to: \(worldPositions[currentViewpoint])")
+        print("👁️ [EXPECTED] \(viewpointDescriptions[currentViewpoint])")
     }
     
     // MARK: - Validation
@@ -413,6 +581,88 @@ struct Arena3DView_RealityKit_Minimal: View {
         print("✅ [VALIDATION] Coordinate system integrity confirmed")
     }
     
+    // MARK: - Advanced Camera Movement
+    
+    enum CameraDirection {
+        case forward, backward, left, right, up, down
+    }
+    
+    private func moveCamera(direction: CameraDirection) {
+        guard let anchor = sceneAnchor else { return }
+        
+        let currentPos = anchor.position
+        var newPos = currentPos
+        
+        // FIXED: Use axis-aligned movement vectors for proper WASD navigation
+        switch direction {
+        case .forward:
+            newPos.z += movementSpeed             // Move world forward (camera forward)
+        case .backward:
+            newPos.z -= movementSpeed             // Move world backward (camera backward)
+        case .left:
+            newPos.x += movementSpeed             // Move world left (camera left)
+        case .right:
+            newPos.x -= movementSpeed             // Move world right (camera right)
+        case .up:
+            newPos.y -= movementSpeed             // Move world down (camera up)
+        case .down:
+            if isFlightMode {
+                newPos.y += movementSpeed         // Move world up (camera down)
+            } else {
+                // In walk mode, follow terrain height
+                let terrainHeight = getTerrainHeightAtPosition(x: -newPos.x, z: -newPos.z)
+                newPos.y = -(terrainHeight + 10.0)  // Stay 10 units above terrain
+            }
+        }
+        
+        // Apply movement
+        anchor.position = newPos
+        
+        // In walk mode, always adjust Y to follow terrain
+        if !isFlightMode {
+            let terrainHeight = getTerrainHeightAtPosition(x: -newPos.x, z: -newPos.z)
+            anchor.position.y = -(terrainHeight + 10.0)  // Stay 10 units above terrain
+        }
+        
+        print("🎮 [MOVE] \(direction) in \(isFlightMode ? "FLY" : "WALK") mode -> Position: \(anchor.position)")
+    }
+    
+    private func lookCamera(direction: CameraDirection) {
+        switch direction {
+        case .up:
+            cameraPitch = max(cameraPitch - lookSpeed, -Float.pi/2)  // Look up (pitch down)
+        case .down:
+            cameraPitch = min(cameraPitch + lookSpeed, Float.pi/2)   // Look down (pitch up)
+        case .left:
+            cameraYaw -= lookSpeed                                   // Look left
+        case .right:
+            cameraYaw += lookSpeed                                   // Look right
+        default:
+            break  // forward/backward don't apply to looking
+        }
+        
+        // Normalize yaw to 0-2π
+        if cameraYaw < 0 { cameraYaw += 2 * Float.pi }
+        if cameraYaw > 2 * Float.pi { cameraYaw -= 2 * Float.pi }
+        
+        print("🎮 [LOOK] \(direction) -> Pitch: \(cameraPitch), Yaw: \(cameraYaw)")
+        
+        // FIXED: Apply rotation to the world anchor for actual visual changes
+        if let anchor = sceneAnchor {
+            // Create rotation transform from pitch and yaw
+            let pitchRotation = simd_quatf(angle: cameraPitch, axis: SIMD3<Float>(1, 0, 0))  // X-axis rotation
+            let yawRotation = simd_quatf(angle: cameraYaw, axis: SIMD3<Float>(0, 1, 0))      // Y-axis rotation
+            
+            // Combine rotations: yaw first, then pitch
+            let combinedRotation = pitchRotation * yawRotation
+            
+            // Apply rotation to anchor
+            anchor.orientation = combinedRotation
+            
+            print("🎮 [ROTATION] Applied rotation - Pitch: \(cameraPitch), Yaw: \(cameraYaw)")
+        }
+    }
+    
     private func testTerrainHeightCalculation() {
         print("🏔️ [TERRAIN TEST] Validating height calculation...")
         
@@ -422,12 +672,4 @@ struct Arena3DView_RealityKit_Minimal: View {
             print("🏔️ [HEIGHT] (\(point.0), \(point.1)) -> \(height)")
         }
     }
-}
-
-#Preview {
-    // Create preview simulation engine
-    let previewEngine = SimulationEngine(worldBounds: CGRect(x: 0, y: 0, width: 2000, height: 1500))
-    
-    return Arena3DView_RealityKit_Minimal(simulationEngine: previewEngine)
-        .frame(width: 800, height: 600)
 }
