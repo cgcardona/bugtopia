@@ -300,10 +300,8 @@ class Bug: Identifiable, Hashable {
         // 🚶 CONTINENTAL WORLD: Re-enable 2D movement system (voxel pathfinding disabled)
         executeMovement(in: arena, modifiers: modifiers, seasonalManager: seasonalManager, weatherManager: weatherManager, disasterManager: disasterManager)
         
-        // Species-specific behaviors
-        if dna.speciesTraits.speciesType.canEatPlants {
-            checkFoodConsumption(foods: foods)
-        }
+        // 🍽️ UNIVERSAL FOOD CONSUMPTION: All species can eat appropriate food
+        checkFoodConsumption(foods: foods, pheromoneManager: nil) // TODO: Pass pheromone manager from update function
         
         if dna.speciesTraits.speciesType.canHunt && huntingCooldown == 0 {
             handleHuntingBehavior(otherBugs: otherBugs)
@@ -362,11 +360,11 @@ class Bug: Identifiable, Hashable {
         
         // Neural network can override hardcoded food targeting
         if let decision = lastDecision {
-            // 🍎 FOOD TARGETING FIX: Only clear food targets when actively exploring AND well-fed
-            if decision.exploration > 0.7 && energy > 70.0 {  // Raised threshold and added energy condition
+            // 🍎 CRITICAL FIX: Only abandon food targets when well-fed AND not hungry
+            if decision.exploration > 0.8 && energy > 85.0 {  // Much higher thresholds to prioritize survival
                 targetFood = nil
-            } else if dna.speciesTraits.speciesType.canEatPlants {
-                // Use traditional food seeking when exploitation mode (for herbivores/omnivores)
+            } else {
+                // 🍴 ALL SPECIES FOOD TARGETING: Every species needs to find appropriate food
                 updateTargetFood(foods: foods, arena: arena)
             }
         }
@@ -456,17 +454,21 @@ class Bug: Identifiable, Hashable {
                 y: huntVelocity.y * 0.7 + neuralVelocity.y * 0.3
             )
         }
-        // 3. FOOD SEEKING - third priority (lowered threshold to encourage more exploration)
-        else if let target = targetFood, decision.exploration < 0.4 {
+        // 3. 🍎 FOOD SEEKING - HIGH PRIORITY for survival (increased threshold for food seeking)
+        else if let target = targetFood, decision.exploration < 0.6 {
             let rawDirection = CGPoint(x: target.x - position.x, y: target.y - position.y)
             let distanceToFood = sqrt(rawDirection.x * rawDirection.x + rawDirection.y * rawDirection.y)
             
-            // 🔧 FIX: Avoid normalize() bug when on top of food - use pure neural movement instead
-            if distanceToFood < 2.0 {
-                // Too close to food - use pure neural movement to prevent sticking
-                finalVelocity = neuralVelocity
+            // 🍎 FOOD CONSUMPTION FIX: When very close to food, move slowly and precisely
+            if distanceToFood < 5.0 {
+                // Close to food - use slow, precise movement for consumption
+                let preciseDirection = normalize(rawDirection)
+                finalVelocity = CGPoint(
+                    x: preciseDirection.x * terrainSpeed * 0.3,  // Slow down near food
+                    y: preciseDirection.y * terrainSpeed * 0.3
+                )
                 
-                // Too close to food - use pure neural movement
+                // Precise food approach movement
             } else {
                 let direction = normalize(rawDirection)
                 let foodVelocity = CGPoint(
@@ -474,10 +476,10 @@ class Bug: Identifiable, Hashable {
                     y: direction.y * terrainSpeed
                 )
                 
-                // Blend food seeking with neural movement (60% food, 40% neural)
+                // 🍎 SURVIVAL PRIORITY: Heavily weight food seeking over neural exploration
                 finalVelocity = CGPoint(
-                    x: foodVelocity.x * 0.6 + neuralVelocity.x * 0.4,
-                    y: foodVelocity.y * 0.6 + neuralVelocity.y * 0.4
+                    x: foodVelocity.x * 0.85 + neuralVelocity.x * 0.15,  // 85% food seeking!
+                    y: foodVelocity.y * 0.85 + neuralVelocity.y * 0.15
                 )
                 
                 // Food seeking blend applied
@@ -699,11 +701,11 @@ class Bug: Identifiable, Hashable {
         return max(0.05, min(0.95, totalSuccess)) // Clamp between 5% and 95%
     }
     
-    /// Finds and targets the nearest food within vision range, accounting for terrain
+    /// 🍽️ UNIVERSAL FOOD TARGETING: All species can find appropriate food
     private func updateTargetFood(foods: [FoodItem], arena: Arena) {
         // Get current vision modifier from terrain
         let modifiers = arena.movementModifiers(at: position, for: dna)
-        let effectiveVision = dna.visionRadius * modifiers.vision
+        let effectiveVision = dna.visionRadius * modifiers.vision * 1.5  // Increased vision for food detection
         
         let visibleFoods = foods.filter { food in
             let dist = distance(to: food.position)
@@ -711,8 +713,12 @@ class Bug: Identifiable, Hashable {
             // Check if food is within vision range
             if dist > effectiveVision { return false }
             
-            // Simple line-of-sight check for walls
-            let steps = max(1, Int(dist / 10)) // Check every 10 units, minimum 1 step
+            // 🍴 SPECIES FOOD PREFERENCES: Only target appropriate food types
+            if !canEat(food: food) { return false }
+            
+            // 🔍 RELAXED LINE-OF-SIGHT: Allow food detection through some obstacles
+            let steps = max(1, Int(dist / 15)) // Larger steps, more forgiving
+            var blockedCount = 0
             for i in 0...steps {
                 let t = steps > 0 ? Double(i) / Double(steps) : 0.0
                 let checkPoint = CGPoint(
@@ -721,11 +727,12 @@ class Bug: Identifiable, Hashable {
                 )
                 
                 if arena.terrainAt(checkPoint) == .wall {
-                    return false // Blocked by wall
+                    blockedCount += 1
                 }
             }
             
-            return true
+            // Allow up to 30% of the path to be blocked (bugs can navigate around)
+            return Double(blockedCount) / Double(steps + 1) <= 0.3
         }
         
         // Prioritize food based on distance and terrain difficulty
@@ -749,6 +756,21 @@ class Bug: Identifiable, Hashable {
             let deltaX = target.x - position.x
             let deltaY = target.y - position.y
 
+        }
+    }
+    
+    /// 🍽️ SPECIES FOOD COMPATIBILITY: Determines if this bug can eat the given food
+    private func canEat(food: FoodItem) -> Bool {
+        let speciesType = dna.speciesTraits.speciesType
+        
+        switch food.type {
+        // 🌱 PLANT FOODS: Herbivores, omnivores can eat
+        case .apple, .orange, .plum, .melon, .nuts, .seeds:
+            return speciesType.canEatPlants
+            
+        // 🥩 ANIMAL FOODS: Carnivores, omnivores, scavengers can eat  
+        case .meat, .fish:
+            return speciesType.canHunt || speciesType == .scavenger || speciesType == .omnivore
         }
     }
     
@@ -998,14 +1020,17 @@ class Bug: Identifiable, Hashable {
         }
     }
     
-    /// Checks if bug is close enough to consume food with resource sharing mechanics
-    private func checkFoodConsumption(foods: [FoodItem]) {
-        guard dna.speciesTraits.speciesType.canEatPlants else { return }
+    /// 🍽️ ENHANCED FOOD CONSUMPTION: All species can consume appropriate food types
+    private func checkFoodConsumption(foods: [FoodItem], pheromoneManager: PheromoneFieldManager?) {
+        // Remove the restrictive guard - all species should be able to eat appropriate food
         
-        // Find the closest food within consumption range 
-        let consumptionRange = max(8.0, visualRadius * 1.5)  // Reduced range for more realistic consumption
+        // 🍎 ENHANCED FOOD CONSUMPTION: Much larger, more realistic consumption range
+        let consumptionRange = max(25.0, visualRadius * 2.5)  // Significantly increased for realistic consumption
         
-        if let nearestFood = foods.min(by: { distance(to: $0.position) < distance(to: $1.position) }) {
+        // 🍴 FIND COMPATIBLE FOOD: Only consider food this species can actually eat
+        let compatibleFoods = foods.filter { canEat(food: $0) }
+        
+        if let nearestFood = compatibleFoods.min(by: { distance(to: $0.position) < distance(to: $1.position) }) {
             let distanceToFood = distance(to: nearestFood.position)
             
             if distanceToFood < consumptionRange {
@@ -1035,6 +1060,11 @@ class Bug: Identifiable, Hashable {
                 } else {
                     // Normal consumption - keep all energy
                     energy += nearestFood.energyValue
+                }
+                
+                // 🧪 SUCCESS PHEROMONE: Leave strong trail when successfully finding food
+                if let pheromoneManager = pheromoneManager {
+                    layPheromoneTrail(signalType: .foodFound, strength: 0.8, pheromoneManager: pheromoneManager)
                 }
                 
                 // Clear target if this was the targeted food
