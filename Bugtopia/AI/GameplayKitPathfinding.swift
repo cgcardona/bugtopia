@@ -86,8 +86,8 @@ class PheromoneFieldManager {
         let signalIndex = SignalType.allCases.firstIndex(of: signal.type) ?? 0
         let currentTime = Date().timeIntervalSince1970
         
-        // 🎯 SIGNAL STRENGTH: Base intensity modified by signal properties
-        let baseIntensity = signal.strength * signal.type.priority
+        // 🌈 ENHANCED SIGNAL STRENGTH: Each type has unique characteristics
+        let baseIntensity = signal.strength * getEnhancedSignalStrength(for: signal.type)
         
         // 🌊 GAMEPLAYKIT ENHANCEMENT: Use noise for realistic trail variation
         let noiseX = Float(signal.position.x / worldBounds.width)
@@ -99,8 +99,15 @@ class PheromoneFieldManager {
         let noiseMultiplier = 1.0 + (Double(noiseValue) * 0.2)
         let finalIntensity = baseIntensity * noiseMultiplier
         
-        // Add to pheromone grid with spatial spreading
-        addPheromoneWithSpread(gridX: gridX, gridY: gridY, signalIndex: signalIndex, intensity: finalIntensity)
+        // 🛣️ HIGHWAY DETECTION: Food discovery trails can become superhighways
+        let currentStrength = pheromoneGrid[gridX][gridY][signalIndex]
+        if signal.type == .foodFound && currentStrength > 0.6 {
+            // This is becoming a highway! Make it extra strong and spread wider
+            createPheromoneHighway(gridX: gridX, gridY: gridY, signalIndex: signalIndex, intensity: finalIntensity)
+        } else {
+            // Normal pheromone placement with spreading
+            addPheromoneWithSpread(gridX: gridX, gridY: gridY, signalIndex: signalIndex, intensity: finalIntensity)
+        }
         
         // Track for updates
         pheromoneUpdates.append((
@@ -111,6 +118,45 @@ class PheromoneFieldManager {
         ))
         
         print("🧪 [PHEROMONE] Added \(signal.type.emoji) signal at (\(gridX), \(gridY)) intensity: \(String(format: "%.2f", finalIntensity))")
+    }
+    
+    /// 🌈 Enhanced signal strength based on signal type importance
+    private func getEnhancedSignalStrength(for signalType: SignalType) -> Double {
+        switch signalType {
+        case .helpRequest: return 0.95    // Maximum urgency! 🆘
+        case .dangerAlert: return 0.9     // Critical safety information ⚠️
+        case .foodFound: return 0.8       // Strong signal for food success! 🍃
+        case .retreat: return 0.75        // Important safety routes 🏃
+        case .huntCall: return 0.7        // Strong coordination need 🎯
+        case .foodShare: return 0.7       // Important social behavior 🍃
+        case .mateCall: return 0.6        // Moderate but persistent 💕
+        case .groupForm: return 0.5       // Social coordination 🤝
+        case .territoryMark: return 0.3   // Baseline exploration 🏴
+        }
+    }
+    
+    /// 🛣️ Creates pheromone highways - reinforced successful routes
+    private func createPheromoneHighway(gridX: Int, gridY: Int, signalIndex: Int, intensity: Double) {
+        // Strengthen the core cell
+        pheromoneGrid[gridX][gridY][signalIndex] = min(1.0, pheromoneGrid[gridX][gridY][signalIndex] + intensity * 1.3)
+        
+        // 🌟 SPREAD TO ADJACENT CELLS: Highways have wider influence
+        let highwayRadius = 2 // Larger radius for highways
+        
+        for dx in -highwayRadius...highwayRadius {
+            for dy in -highwayRadius...highwayRadius {
+                let adjX = gridX + dx
+                let adjY = gridY + dy
+                if isValidGridPosition(x: adjX, y: adjY) {
+                    let distance = sqrt(Double(dx * dx + dy * dy))
+                    let strengthMultiplier = max(0.1, 1.0 - (distance / Double(highwayRadius)))
+                    let adjacentStrength = pheromoneGrid[adjX][adjY][signalIndex]
+                    pheromoneGrid[adjX][adjY][signalIndex] = min(1.0, adjacentStrength + intensity * 0.5 * strengthMultiplier)
+                }
+            }
+        }
+        
+        print("🛣️ [HIGHWAY] Created pheromone superhighway at (\(gridX), \(gridY))")
     }
     
     private func addPheromoneWithSpread(gridX: Int, gridY: Int, signalIndex: Int, intensity: Double) {
