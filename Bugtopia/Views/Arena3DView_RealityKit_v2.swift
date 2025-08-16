@@ -21,12 +21,16 @@ struct Arena3DView_RealityKit_v2: View {
     
     let simulationEngine: SimulationEngine
     
-    // MARK: - Simplified Navigation System
+    // MARK: - Coordinate System Constants (SQUARED SYSTEM!) 
     
-    @State private var pressedKeys: Set<UInt16> = []
-    @State private var lastUpdateTime = CACurrentMediaTime()
-    @State private var movementSpeed: Float = 50.0  // ⚡ SIMPLIFIED: Basic movement speed
+    private let simulationScale: Float = 0.1  // 🎯 SACRED: Never change - 2000 → 200 scaling
+    private let terrainScale: Float = 6.25    // 🏔️ TERRAIN: Scale factor for mesh generation
+    private let terrainSize: Float = 200.0    // 🟫 SQUARED: 2000 * 0.1 = 200 units (PERFECT MATCH!)
+    
+    // MARK: - Scene References
+    
     @State private var sceneAnchor: AnchorEntity?
+    @State private var lastUpdateTime = CACurrentMediaTime()
     
     // MARK: - God/Walk Mode System
     
@@ -58,7 +62,7 @@ struct Arena3DView_RealityKit_v2: View {
     // MARK: - Debug Functions
     
     private func updateDebugInfo() {
-        let terrain = "Terrain: 225×225 units at Y=0-20" // Updated with height info
+        let terrain = "Terrain: 200×200 units at Y=0-20" // 🟫 SQUARED: Fixed coordinate system
         let camera = String(format: "Cam: (%.1f, %.1f, %.1f)", cameraPosition.x, cameraPosition.y, cameraPosition.z)
         let rotation = String(format: "Rot: P%.1f° Y%.1f°", cameraPitch * 180 / .pi, cameraYaw * 180 / .pi)
         let mode = isGodMode ? "🌟 GOD" : "🚶 WALK"
@@ -88,7 +92,7 @@ struct Arena3DView_RealityKit_v2: View {
                     Text("Expected Bounds:")
                         .font(.caption)
                         .foregroundColor(.yellow)
-                    Text("X: 0 to 225 | Z: 0 to 225") // Updated to match new terrain size
+                    Text("X: 0 to 200 | Z: 0 to 200") // 🟫 SQUARED: Fixed coordinate bounds
                         .font(.system(.caption2, design: .monospaced))
                         .foregroundColor(.white)
                         .padding(4)
@@ -146,6 +150,65 @@ struct Arena3DView_RealityKit_v2: View {
             updateDebugInfo()
             print("🚀 [RealityKit] View appeared, FPS monitoring and entity updates enabled")
         }
+        .focusable()  // 🎯 FIX: Enable keyboard focus for navigation
+        .onTapGesture {
+            // Ensure focus is maintained when clicking
+        }
+        // 🎮 PORTED NAVIGATION: Battle-tested movement system from minimal implementation
+        .onKeyPress(.init("w")) {
+            moveCamera(direction: .forward)
+            return .handled
+        }
+        .onKeyPress(.init("a")) {
+            moveCamera(direction: .left)
+            return .handled
+        }
+        .onKeyPress(.init("s")) {
+            moveCamera(direction: .backward)
+            return .handled
+        }
+        .onKeyPress(.init("d")) {
+            moveCamera(direction: .right)
+            return .handled
+        }
+        .onKeyPress(.init("q")) {
+            moveCamera(direction: .up)
+            return .handled
+        }
+        .onKeyPress(.init("e")) {
+            moveCamera(direction: .down)
+            return .handled
+        }
+        .onKeyPress(.upArrow) {
+            lookCamera(direction: .up)
+            return .handled
+        }
+        .onKeyPress(.downArrow) {
+            lookCamera(direction: .down)
+            return .handled
+        }
+        .onKeyPress(.leftArrow) {
+            lookCamera(direction: .left)
+            return .handled
+        }
+        .onKeyPress(.rightArrow) {
+            lookCamera(direction: .right)
+            return .handled
+        }
+        .onKeyPress(.init(" ")) {
+            // Spacebar: Toggle between fly and walk modes
+            isGodMode.toggle()
+            print("🎮 [MODE] Switched to \(isGodMode ? "FLY" : "WALK") mode")
+            return .handled
+        }
+        .onKeyPress(.init("r")) {
+            // Reset to origin for debugging
+            if let anchor = sceneAnchor {
+                anchor.position = [0, 0, 0]
+                print("🔄 [RESET] World anchor reset to origin (0, 0, 0)")
+            }
+            return .handled
+        }
         .onDisappear {
             stopEntityUpdates()
         }
@@ -199,13 +262,7 @@ struct Arena3DView_RealityKit_v2: View {
             updateBugPositions()
         }
         // 🎮 TWO-FINGER ONLY: Using scroll wheel events, no single-finger drag needed
-        .onAppear {
-            startNavigationUpdates()
-            setupKeyboardMonitoring()
-        }
-        .onDisappear {
-            stopKeyboardMonitoring()
-        }
+
 
     }
     
@@ -220,7 +277,7 @@ struct Arena3DView_RealityKit_v2: View {
         anchor.transform.translation = [-112, 0, -112]  // Centered horizontally, terrain at Y=0
         
         // 🎯 INITIAL ROTATION: Set the camera looking down at terrain
-        anchor.transform.rotation = createOrientationLockedRotation()
+        // Note: Orientation will be handled by new navigation system
         print("📷 [SETUP] Initial camera rotation applied - Pitch: \(cameraPitch * 180 / .pi)°, Yaw: \(cameraYaw * 180 / .pi)°")
         
         // Store reference for camera manipulation
@@ -411,9 +468,9 @@ struct Arena3DView_RealityKit_v2: View {
         // Generate vertices with extended bounds and edge skirts
         for x in 0..<extendedResolution {
             for z in 0..<extendedResolution {
-                // 🎯 COORDINATE FIX: Align terrain with food/bug coordinates (0-200 range)
-                let worldX = Float(x) * scale  // 0 to 36*6.25 = 0 to 225
-                let worldZ = Float(z) * scale  // 0 to 36*6.25 = 0 to 225
+                // 🎯 COORDINATE FIX: Align terrain with food/bug coordinates (0-200 range) - SQUARED SYSTEM!
+                let worldX = Float(x) * scale  // 0 to 32*6.25 = 0 to 200 ✅ FIXED
+                let worldZ = Float(z) * scale  // 0 to 32*6.25 = 0 to 200 ✅ FIXED
                 
                 var worldY: Float
                 
@@ -521,13 +578,13 @@ struct Arena3DView_RealityKit_v2: View {
         
         // Only add water if there are significant valley areas
         if waterAreaCount > (resolution * resolution) / 50 {  // 🌊 LESS WATER: Only 2% threshold (was 5%)
-            // Create large water plane that integrates with terrain edges
-            let waterSize = Float(resolution + 4) * scale  // 🌊 FULL COVERAGE: Match extended terrain bounds
+            // Create large water plane that matches our squared coordinate system
+            let waterSize = terrainSize  // 🟫 SQUARED: Use unified 200-unit coordinate system
         let waterMesh = MeshResource.generatePlane(width: waterSize, depth: waterSize)
         let waterMaterial = createWaterMaterial(height: waterLevel)
         
         let waterEntity = ModelEntity(mesh: waterMesh, materials: [waterMaterial])
-            waterEntity.position = [0, Float(waterLevel) * 0.8, 0]  // 🌊 INTEGRATED: Match terrain floor level
+            waterEntity.position = [terrainSize/2, Float(waterLevel) * 0.8, terrainSize/2]  // 🟫 SQUARED: Centered at (100, y, 100)
             waterEntity.name = "IntegratedWater"
         
         waterContainer.addChild(waterEntity)
@@ -1647,7 +1704,7 @@ struct Arena3DView_RealityKit_v2: View {
         let resolution = heightMap.count
         
         // Convert world position to height map coordinates  
-        let terrainSize: Float = 6.25 * 36.0  // FIXED: Match current terrain scale * extended resolution
+        // 🎯 USE UNIFIED CONSTANTS: Squared coordinate system  
         let normalizedX = x / terrainSize  // 0-1 range (terrain starts at 0, not centered)
         let normalizedZ = z / terrainSize  // 0-1 range
         
@@ -1675,7 +1732,7 @@ struct Arena3DView_RealityKit_v2: View {
         guard let anchor = sceneAnchor,
               let bugContainer = anchor.findEntity(named: "BugContainer") else { return }
         
-        let simulationScale: Float = 0.1  // UNIFIED: Same scale as food positioning
+        // 🎯 USE UNIFIED CONSTANTS: From class-level constants
         
         // Update positions for all live bugs
         for bug in simulationEngine.bugs.filter({ $0.isAlive }) {
@@ -2339,7 +2396,7 @@ struct Arena3DView_RealityKit_v2: View {
             bugEntity.components.set(modelComponent)
             
             // Position bug in 3D space with proper coordinate scaling
-            let simulationScale: Float = 0.1  // UNIFIED: Same scale as food and main bug positioning
+            // 🎯 USE UNIFIED CONSTANTS: From class-level constants
             let position = SIMD3<Float>(
                 Float(bug.position3D.x) * simulationScale,
                 Float(bug.position3D.z + 5), // Slightly above terrain
@@ -2445,7 +2502,7 @@ struct Arena3DView_RealityKit_v2: View {
         for bug in currentBugs {
             if let bugEntity = bugContainer.findEntity(named: "Bug_\(bug.id.uuidString)") {
                 // Calculate new position with terrain following
-                let simulationScale: Float = 0.1  // UNIFIED: Same as food items
+                // 🎯 USE UNIFIED CONSTANTS: From class-level constants
                 let scaledX = Float(bug.position3D.x) * simulationScale
                 let scaledZ = Float(bug.position3D.y) * simulationScale
                 let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
@@ -2571,333 +2628,95 @@ struct Arena3DView_RealityKit_v2: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
-    
-    // MARK: - Navigation System Implementation
-    
-    @State private var keyboardEventMonitor: Any?
-    @State private var keyUpEventMonitor: Any?
-    @State private var scrollWheelMonitor: Any?  // 🎮 TWO-FINGER: For trackpad scroll events
-    
-    private func startNavigationUpdates() {
-        Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { _ in
-            updateMovement()
-        }
-    }
-    
-    private func setupKeyboardMonitoring() {
-        // Monitor key down events globally
-        keyboardEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            handleKeyDown(event)
-            return nil // Allow event to continue
-        }
-        
-        // Monitor key up events globally
-        keyUpEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyUp) { event in
-            handleKeyUp(event)
-            return nil // Allow event to continue
-        }
-        
-        print("🎮 SIMPLIFIED: Basic keyboard monitoring started")
-        
-        // Also setup scroll wheel monitoring for two-finger trackpad gestures
-        setupScrollWheelMonitoring()
-    }
-    
-    private func stopKeyboardMonitoring() {
-        if let monitor = keyboardEventMonitor {
-            NSEvent.removeMonitor(monitor)
-            keyboardEventMonitor = nil
-        }
-        if let monitor = keyUpEventMonitor {
-            NSEvent.removeMonitor(monitor)
-            keyUpEventMonitor = nil
-        }
-        if let monitor = scrollWheelMonitor {
-            NSEvent.removeMonitor(monitor)
-            scrollWheelMonitor = nil
-        }
-        print("🎮 SIMPLIFIED: Basic keyboard and scroll monitoring stopped")
-    }
-    
-    private func handleKeyDown(_ event: NSEvent) {
-        let keyCode = event.keyCode
-        
-        // 🌟 SPACE BAR: Toggle god/walk mode (keyCode 49)
-        if keyCode == 49 {
-            toggleGodWalkMode()
-            return  // Don't add space to pressed keys for movement
-        }
-        
-        pressedKeys.insert(keyCode)
-        print("🎮 NAVIGATION: Key pressed: \(keyCode) | God Mode: \(isGodMode)")
-    }
-    
-    private func handleKeyUp(_ event: NSEvent) {
-        let keyCode = event.keyCode
-        pressedKeys.remove(keyCode)
-        print("🎮 Key released: \(keyCode)")
-    }
-    
-    // MARK: - God/Walk Mode Toggle System
-    
-    private func toggleGodWalkMode() {
-        isGodMode.toggle()
-        
-        if isGodMode {
-            print("🌟 [MODE] Switched to GOD MODE - Free flying navigation")
-            print("📊 [GOD] Camera Position: \(cameraPosition)")
-            print("📊 [GOD] Camera Pitch: \(cameraPitch * 180 / .pi)°")
-            print("📊 [GOD] Camera Yaw: \(cameraYaw * 180 / .pi)°")
-        } else {
-            print("🚶 [MODE] Switched to WALK MODE - Terrain collision")
-            
-            // 🏃 WALK MODE: Move camera to terrain level
-            let terrainHeight = getTerrainHeightAt(x: cameraPosition.x, z: cameraPosition.z)
-            cameraPosition.y = terrainHeight + walkModeHeight
-            
-            print("📊 [WALK] Terrain Height: \(terrainHeight)")
-            print("📊 [WALK] New Camera Height: \(cameraPosition.y)")
-            print("📊 [WALK] Walk Mode Height Offset: \(walkModeHeight)")
-            
-            // Update scene anchor to new position
-            if let anchor = sceneAnchor {
-                anchor.transform.translation = -cameraPosition
-                print("📊 [WALK] Updated anchor translation: \(-cameraPosition)")
-            }
-        }
-    }
-    
-    private func getTerrainHeightAt(x: Float, z: Float) -> Float {
-        // 🌍 TERRAIN HEIGHT: Get the actual terrain height at this position
-        // For now, return ground level - this should eventually query the voxel world
-        let groundLevel: Float = 0.0
-        
-        // TODO: Query SimulationEngine's VoxelWorld for actual terrain height
-        // This would require converting camera coordinates back to voxel coordinates
-        
-        print("🌍 [TERRAIN] Getting height at (\(x), \(z)) = \(groundLevel)")
-        return groundLevel
-    }
-    
-    private func canMoveToPosition(x: Float, z: Float) -> Bool {
-        // 🚫 COLLISION DETECTION: Check if we can move to this position in walk mode
-        // For now, always allow movement - this should eventually check for solid terrain
-        
-        // TODO: Check SimulationEngine's VoxelWorld for solid voxels at this position
-        // This would prevent walking through mountains, trees, etc.
-        
-        print("🚫 [COLLISION] Checking movement to (\(x), \(z)) = allowed")
-        return true
-    }
-    
-    private func setupScrollWheelMonitoring() {
-        // Monitor scroll wheel events globally for two-finger trackpad gestures
-        scrollWheelMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
-            handleScrollWheel(event)
-            return nil // Allow event to continue
-        }
-        
-        print("🎮 TWO-FINGER: Scroll wheel monitoring started for trackpad gestures")
-    }
-    
-    private func handleScrollWheel(_ event: NSEvent) {
-        // Two-finger scroll wheel event - use both vertical and horizontal scrolling
-        let sensitivity: Float = 0.02  // Higher sensitivity for scroll events
-        let pitchDelta = Float(event.deltaY) * sensitivity   // Vertical scroll for pitch
-        let yawDelta = Float(event.deltaX) * sensitivity     // Horizontal scroll for yaw
-        
-        print("🎮 [TRACKPAD] Raw deltas - X: \(event.deltaX), Y: \(event.deltaY)")
-        print("🎮 [TRACKPAD] Calculated deltas - Pitch: \(pitchDelta * 180 / .pi)°, Yaw: \(yawDelta * 180 / .pi)°")
-        
-        var rotationChanged = false
-        
-        // Handle vertical scrolling (pitch - up/down look)
-        if abs(event.deltaY) > 0.1 {
-            let oldPitch = cameraPitch
-            cameraPitch += pitchDelta
-            
-            // 🔒 CONSTRAIN PITCH: Prevent over-rotation (looking too far up/down)
-            cameraPitch = max(-Float.pi/2.1, min(Float.pi/2.1, cameraPitch))
-            rotationChanged = true
-            
-            print("🎮 [PITCH] \(oldPitch * 180 / .pi)° → \(cameraPitch * 180 / .pi)° (delta: \(pitchDelta * 180 / .pi)°)")
-        }
-        
-        // Handle horizontal scrolling (yaw - left/right look)
-        if abs(event.deltaX) > 0.1 {
-            let oldYaw = cameraYaw
-            cameraYaw += yawDelta
-            
-            // 🔄 NORMALIZE YAW: Keep yaw in 0-360° range for cleaner values
-            while cameraYaw > Float.pi { cameraYaw -= 2 * Float.pi }
-            while cameraYaw < -Float.pi { cameraYaw += 2 * Float.pi }
-            rotationChanged = true
-            
-            print("🎮 [YAW] \(oldYaw * 180 / .pi)° → \(cameraYaw * 180 / .pi)° (delta: \(yawDelta * 180 / .pi)°)")
-        }
-        
-        // Apply combined rotation to the scene
-        if rotationChanged {
-            guard let anchor = sceneAnchor else { 
-                print("❌ [TRACKPAD] No scene anchor available for rotation")
-                return 
-            }
-            
-            // 🔒 ORIENTATION LOCK: Create rotation that maintains up vector
-            let newRotation = createOrientationLockedRotation()
-            anchor.transform.rotation = newRotation
-            print("🔄 [ROTATION] Applied new rotation to scene anchor")
-        }
-    }
-    
-    private func updateMovement() {
-        let currentTime = CACurrentMediaTime()
-        let deltaTime = Float(currentTime - lastUpdateTime)
-        lastUpdateTime = currentTime
-        
-        guard let anchor = sceneAnchor else { return }
-        
-        // 🎮 SIMPLIFIED: Handle basic arrow key movement
-        for keyCode in pressedKeys {
-            switch keyCode {
-            case 123:  // Left Arrow - Move LEFT
-                moveLeft(deltaTime: deltaTime, anchor: anchor)
-            case 124:  // Right Arrow - Move RIGHT  
-                moveRight(deltaTime: deltaTime, anchor: anchor)
-            case 126:  // Up Arrow - Move FORWARD
-                moveForward(deltaTime: deltaTime, anchor: anchor)
-            case 125:  // Down Arrow - Move BACKWARD
-                moveBackward(deltaTime: deltaTime, anchor: anchor)
-            default:
-                break
-            }
-        }
-    }
-    
-    // 🎮 SIMPLIFIED: Basic left movement
-    private func moveLeft(deltaTime: Float, anchor: AnchorEntity) {
-        let distance = movementSpeed * deltaTime
-        let oldPosition = cameraPosition
-        
-        // 🌟 GOD MODE: Free movement vs 🚶 WALK MODE: Constrained movement
-        if isGodMode {
-            // Move camera position left (negative X)
-            cameraPosition.x -= distance
-            print("⬅️ [GOD] Moving LEFT: \(oldPosition.x) → \(cameraPosition.x) (distance: \(distance))")
-        } else {
-            // Walk mode: check for collision and stay at terrain level
-            let newX = cameraPosition.x - distance
-            let terrainHeight = getTerrainHeightAt(x: newX, z: cameraPosition.z)
-            
-            // Only move if not colliding with terrain obstacles
-            if canMoveToPosition(x: newX, z: cameraPosition.z) {
-                cameraPosition.x = newX
-                cameraPosition.y = terrainHeight + walkModeHeight
-                print("⬅️ [WALK] Moving LEFT: \(oldPosition.x) → \(cameraPosition.x) (terrain: \(terrainHeight))")
-            } else {
-                print("⬅️ [WALK] BLOCKED: Cannot move left due to terrain collision")
-                return  // Exit early if blocked
-            }
-        }
-        
-        // Update the world anchor (negative because we move the world opposite to camera)
-        anchor.transform.translation = -cameraPosition
-        print("📍 [ANCHOR] Translation updated: \(-cameraPosition)")
-        
-        // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
-        anchor.transform.rotation = createOrientationLockedRotation()
-        
-        print("🎮 SIMPLIFIED: Moved LEFT to position: \(cameraPosition)")
-    }
-    
-    // 🎮 SIMPLIFIED: Basic right movement  
-    private func moveRight(deltaTime: Float, anchor: AnchorEntity) {
-        let distance = movementSpeed * deltaTime
-        
-        // Move camera position right (positive X)
-        cameraPosition.x += distance
-        
-        // Update the world anchor (negative because we move the world opposite to camera)
-        anchor.transform.translation = -cameraPosition
-        
-        // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
-        anchor.transform.rotation = createOrientationLockedRotation()
-        
-        print("🎮 SIMPLIFIED: Moved RIGHT to position: \(cameraPosition)")
-    }
-    
-    // 🎮 SIMPLIFIED: Basic forward movement
-    private func moveForward(deltaTime: Float, anchor: AnchorEntity) {
-        let distance = movementSpeed * deltaTime
-        
-        // 🔧 FORWARD: Move INTO the 200×150 terrain (positive Z direction)
-        cameraPosition.z += distance
-        
-        // Update the world anchor (negative because we move the world opposite to camera)
-        anchor.transform.translation = -cameraPosition
-        
-        // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
-        anchor.transform.rotation = createOrientationLockedRotation()
-        
-        updateDebugInfo()
-        print("⬆️ [FORWARD] Camera: Z \(cameraPosition.z - distance) → \(cameraPosition.z) | Anchor: \(-cameraPosition)")
-    }
-    
-    // 🎮 SIMPLIFIED: Basic backward movement
-    private func moveBackward(deltaTime: Float, anchor: AnchorEntity) {
-        let distance = movementSpeed * deltaTime
-        
-        // 🔧 BACKWARD: Move OUT of the 200×150 terrain (negative Z direction)  
-        cameraPosition.z -= distance
-        
-        // Update the world anchor (negative because we move the world opposite to camera)
-        anchor.transform.translation = -cameraPosition
-        
-        // 🔒 MAINTAIN ORIENTATION: Keep proper up vector when moving
-        anchor.transform.rotation = createOrientationLockedRotation()
-        
-        print("🎮 SIMPLIFIED: Moved BACKWARD to position: \(cameraPosition)")
-    }
-    
-    // 🎮 SIMPLIFIED: No navigation mode toggle needed
-    
-    // MARK: - Helper Functions (matching SceneKit implementation)
-    
-    // Helper function to create SIMD3 vectors (removed SCNVector3 dependency)
-    private func createSIMD3(_ x: Float, _ y: Float, _ z: Float) -> SIMD3<Float> {
-        return SIMD3<Float>(x, y, z)
-    }
-    
-    // 🔒 SCENEKIT-STYLE ROTATION: Direct Euler angle approach like SceneKit
-    private func createOrientationLockedRotation() -> simd_quatf {
-        // DIRECT COPY of SceneKit approach: Use Euler angles with roll=0
-        // SceneKit: cameraNode.eulerAngles = SCNVector3(newPitch, newYaw, 0)
-        
-        // 🚀 DIRECT AXIS-ANGLE: Use RealityKit's direct quaternion multiplication
-        // This matches SceneKit's behavior exactly: pitch (X), yaw (Y), roll (Z=0)
-        let quaternion = simd_quatf(angle: cameraPitch, axis: SIMD3<Float>(1, 0, 0)) *  // Pitch around X-axis
-                        simd_quatf(angle: cameraYaw, axis: SIMD3<Float>(0, 1, 0))      // Yaw around Y-axis
-                        // No roll component - prevents tilting!
-        
-        return quaternion
-    }
-
-    
-    // 🎮 SIMPLIFIED: No collision checking needed
-    private func wouldCollide(at position: SIMD3<Float>) -> Bool {
-        return false  // No collision checking in simplified mode
-    }
-    
-    // 🎮 SIMPLIFIED: Helper functions removed
-    
-    // 🎮 SIMPLIFIED: Basic terrain height
-    private func getTerrainHeight(at position: SIMD3<Float>) -> Float {
-        return 0.0  // Flat ground for simplified mode
-    }
 }
 
-// MARK: - Global Keyboard Monitoring System
-// Uses NSEvent monitoring for reliable keyboard capture
+// MARK: - PORTED NAVIGATION SYSTEM (Battle-tested from minimal implementation)
+
+extension Arena3DView_RealityKit_v2 {
+    
+    enum CameraDirection {
+        case forward, backward, left, right, up, down
+    }
+    
+    private func moveCamera(direction: CameraDirection) {
+        guard let anchor = sceneAnchor else { return }
+        
+        let currentPos = anchor.position
+        var newPos = currentPos
+        let moveSpeed: Float = 10.0  // Consistent with minimal implementation
+        
+        // FIXED: Use axis-aligned movement vectors for proper WASD navigation
+        switch direction {
+        case .forward:
+            newPos.z += moveSpeed             // Move world forward (camera forward)
+        case .backward:
+            newPos.z -= moveSpeed             // Move world backward (camera backward)
+        case .left:
+            newPos.x += moveSpeed             // Move world left (camera left)
+        case .right:
+            newPos.x -= moveSpeed             // Move world right (camera right)
+        case .up:
+            newPos.y -= moveSpeed             // Move world down (camera up)
+        case .down:
+            if isGodMode {
+                newPos.y += moveSpeed         // Move world up (camera down)
+            } else {
+                // In walk mode, follow terrain height
+                let terrainHeight = getTerrainHeightAtPosition(x: -newPos.x, z: -newPos.z)
+                newPos.y = -(terrainHeight + walkModeHeight)  // Stay above terrain
+            }
+        }
+        
+        // Apply movement
+        anchor.position = newPos
+        
+        // In walk mode, always adjust Y to follow terrain
+        if !isGodMode {
+            let terrainHeight = getTerrainHeightAtPosition(x: -newPos.x, z: -newPos.z)
+            anchor.position.y = -(terrainHeight + walkModeHeight)  // Stay above terrain
+        }
+        
+        print("🎮 [MOVE] \(direction) in \(isGodMode ? "FLY" : "WALK") mode -> Position: \(anchor.position)")
+    }
+    
+    private func lookCamera(direction: CameraDirection) {
+        let lookSpeed: Float = 0.1  // Radians per key press
+        
+        switch direction {
+        case .up:
+            cameraPitch = max(cameraPitch - lookSpeed, -Float.pi/2)  // Look up (pitch down)
+        case .down:
+            cameraPitch = min(cameraPitch + lookSpeed, Float.pi/2)   // Look down (pitch up)
+        case .left:
+            cameraYaw -= lookSpeed                                   // Look left
+        case .right:
+            cameraYaw += lookSpeed                                   // Look right
+        default:
+            break  // forward/backward don't apply to looking
+        }
+        
+        // Normalize yaw to 0-2π
+        if cameraYaw < 0 { cameraYaw += 2 * Float.pi }
+        if cameraYaw > 2 * Float.pi { cameraYaw -= 2 * Float.pi }
+        
+        print("🎮 [LOOK] \(direction) -> Pitch: \(cameraPitch), Yaw: \(cameraYaw)")
+        
+        // FIXED: Apply rotation to the world anchor for actual visual changes
+        if let anchor = sceneAnchor {
+            // Create rotation transform from pitch and yaw
+            let pitchRotation = simd_quatf(angle: cameraPitch, axis: SIMD3<Float>(1, 0, 0))  // X-axis rotation
+            let yawRotation = simd_quatf(angle: cameraYaw, axis: SIMD3<Float>(0, 1, 0))      // Y-axis rotation
+            
+            // Combine rotations: yaw first, then pitch
+            let combinedRotation = pitchRotation * yawRotation
+            
+            // Apply rotation to anchor
+            anchor.orientation = combinedRotation
+            
+            print("🎮 [ROTATION] Applied rotation - Pitch: \(cameraPitch), Yaw: \(cameraYaw)")
+        }
+    }
+}
 
 // MARK: - Phase 2 Performance Metrics
 
@@ -2912,10 +2731,12 @@ struct Phase2PerformanceMetrics {
 
 #Preview {
     Arena3DView_RealityKit_v2(
-        simulationEngine: SimulationEngine(worldBounds: CGRect(x: 0, y: 0, width: 2000, height: 1500)),
+        simulationEngine: SimulationEngine(worldBounds: CGRect(x: 0, y: 0, width: 2000, height: 2000)),
         onBugSelected: { bug in
-            print("Selected bug: \(bug?.id.uuidString.prefix(8) ?? "none")")
+            print("Selected bug: \(bug?.id.uuidString ?? "nil")")
+        },
+        onFoodSelected: { food in
+            print("Selected food: \(food?.id.uuidString ?? "nil")")
         }
     )
 }
-

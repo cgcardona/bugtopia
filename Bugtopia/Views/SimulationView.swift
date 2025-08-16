@@ -626,8 +626,8 @@ struct SimulationView: View {
                             ))
                     },
                     realityKit: {
-                        // 🔧 MINIMAL RealityKit - Coordinate system debugging
-                        engineManager.createMinimalRealityKitView()
+                        // 🚀 FIXED V2 RealityKit - Full features with coordinate fixes!
+                        engineManager.createRealityKitView()
                             .transition(.asymmetric(
                                 insertion: .scale.combined(with: .opacity),
                                 removal: .scale.combined(with: .opacity)
