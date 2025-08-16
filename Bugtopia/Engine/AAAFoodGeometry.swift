@@ -56,7 +56,7 @@ class AAAFoodGeometry {
     ) -> MeshResource {
         
         // 🍇 Generating photorealistic plum geometry...
-        print("📐 [AAA] Segments: \(segments), Rings: \(rings), Asymmetry: \(asymmetry)")
+        // Generating mesh with segments, rings, and asymmetry
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -140,8 +140,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated plum: \(vertices.count) vertices, \(indices.count/3) triangles")
-        print("🎯 [AAA] Performance: \(indices.count/3) triangles (target: <1000)")
+        // Generated plum mesh
         
         // 🚀 CREATE REALITYKIT MESH with proper vertex attributes
         var meshDescriptor = MeshDescriptor()
@@ -152,10 +151,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Plum mesh generation complete!")
+            // Plum mesh generation complete
             return mesh
         } catch {
-            print("❌ [AAA] Mesh generation failed: \(error)")
+            // Mesh generation failed
             // Fallback to basic sphere
             return .generateSphere(radius: 1.0)
         }
@@ -261,7 +260,7 @@ class AAAFoodGeometry {
             // 🏆 Apple mesh generation complete!
             return mesh
         } catch {
-            print("❌ [AAA] Apple mesh generation failed: \(error)")
+            // Apple mesh generation failed
             return .generateSphere(radius: 1.0)
         }
     }
@@ -334,7 +333,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated orange: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // Generated orange mesh
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -345,10 +344,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Orange mesh generation complete!")
+            // Orange mesh generation complete
             return mesh
         } catch {
-            print("❌ [AAA] Orange mesh generation failed: \(error)")
+            // Orange mesh generation failed
             return .generateSphere(radius: 1.0)
         }
     }
@@ -430,7 +429,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated melon: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // Generated melon mesh
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -441,10 +440,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Melon mesh generation complete!")
+            // Melon mesh generation complete
             return mesh
         } catch {
-            print("❌ [AAA] Melon mesh generation failed: \(error)")
+            // Melon mesh generation failed
             return .generateSphere(radius: 1.3)
         }
     }
@@ -533,7 +532,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated meat: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // Generated meat mesh
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -544,10 +543,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Meat mesh generation complete!")
+            // Meat mesh generation complete
             return mesh
         } catch {
-            print("❌ [AAA] Meat mesh generation failed: \(error)")
+            // Meat mesh generation failed
             return .generateBox(size: [1.2, 0.8, 1.0])
         }
     }
@@ -650,7 +649,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated fish: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // Generated fish mesh
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -661,10 +660,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Fish mesh generation complete!")
+            // Fish mesh generation complete
             return mesh
         } catch {
-            print("❌ [AAA] Fish mesh generation failed: \(error)")
+            // Fish mesh generation failed
             return .generateBox(size: [1.5, 0.6, 0.8])
         }
     }
@@ -755,7 +754,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated seeds: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // Generated seeds mesh
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -766,10 +765,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Seeds mesh generation complete!")
+            // print("🏆 [AAA] Seeds mesh generation complete!")
             return mesh
         } catch {
-            print("❌ [AAA] Seeds mesh generation failed: \(error)")
+            // print("❌ [AAA] Seeds mesh generation failed: \(error)")
             return .generateSphere(radius: 0.7)
         }
     }
@@ -873,7 +872,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated nuts: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // print("✅ [AAA] Generated nuts: \(vertices.count) vertices, \(indices.count/3) triangles")
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -884,10 +883,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Nuts mesh generation complete!")
+            // print("🏆 [AAA] Nuts mesh generation complete!")
             return mesh
         } catch {
-            print("❌ [AAA] Nuts mesh generation failed: \(error)")
+            // print("❌ [AAA] Nuts mesh generation failed: \(error)")
             return .generateBox(size: [0.9, 0.7, 0.8])
         }
     }

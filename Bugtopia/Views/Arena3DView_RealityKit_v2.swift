@@ -21,6 +21,9 @@ struct Arena3DView_RealityKit_v2: View {
     
     let simulationEngine: SimulationEngine
     
+    // 🧪 GAMEPLAYKIT PHEROMONE SYSTEM: Digital chemical trails
+    @State private var pheromoneManager: PheromoneFieldManager?
+    
     // MARK: - Coordinate System Constants (SQUARED SYSTEM!) 
     
     private let simulationScale: Float = 0.1  // 🎯 SACRED: Never change - 2000 → 200 scaling
@@ -41,6 +44,12 @@ struct Arena3DView_RealityKit_v2: View {
     @State private var cameraYaw: Float = Float.pi     // 🎮 FIXED: Look AT the world (180°), not away from it
     
     // MARK: - Selection System
+    
+    @State private var selectedBug: Bug?
+    @State private var selectedFood: FoodItem?
+    @State private var cameraFollowing = false
+    @State private var bugSelectionHighlight: Entity?
+    @State private var foodSelectionHighlight: Entity?
     
     private let onBugSelectedCallback: ((Bug?) -> Void)?
     private let onFoodSelectedCallback: ((FoodItem?) -> Void)?
@@ -144,15 +153,19 @@ struct Arena3DView_RealityKit_v2: View {
                 coordinateDebugOverlay
             }
         }
+        .focusable()  // 🎯 SIMPLE FOCUS: Blue border but immediate navigation
         .onAppear {
             startPerformanceMonitoring()
             startEntityUpdates()
             updateDebugInfo()
-            print("🚀 [RealityKit] View appeared, FPS monitoring and entity updates enabled")
-        }
-        .focusable()  // 🎯 FIX: Enable keyboard focus for navigation
-        .onTapGesture {
-            // Ensure focus is maintained when clicking
+            
+            // 🧪 INITIALIZE PHEROMONE SYSTEM: GameplayKit-powered chemical trails
+            pheromoneManager = PheromoneFieldManager(
+                worldBounds: CGRect(x: 0, y: 0, width: 2000, height: 2000), // Use simulation bounds
+                resolution: 128
+            )
+            
+            // View appeared, FPS monitoring and entity updates enabled
         }
         // 🎮 PORTED NAVIGATION: Battle-tested movement system from minimal implementation
         .onKeyPress(.init("w")) {
@@ -198,14 +211,14 @@ struct Arena3DView_RealityKit_v2: View {
         .onKeyPress(.init(" ")) {
             // Spacebar: Toggle between fly and walk modes
             isGodMode.toggle()
-            print("🎮 [MODE] Switched to \(isGodMode ? "FLY" : "WALK") mode")
+            // print("🎮 [MODE] Switched to \(isGodMode ? "FLY" : "WALK") mode")
             return .handled
         }
         .onKeyPress(.init("r")) {
             // Reset to origin for debugging
             if let anchor = sceneAnchor {
                 anchor.position = [0, 0, 0]
-                print("🔄 [RESET] World anchor reset to origin (0, 0, 0)")
+                // print("🔄 [RESET] World anchor reset to origin (0, 0, 0)")
             }
             return .handled
         }
@@ -268,7 +281,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func setupHelloWorldScene(_ content: any RealityViewContentProtocol) {
-        print("🚀 [RealityKit] BUILDING BUGTOPIA WORLD...")
+        // print("🚀 [RealityKit] BUILDING BUGTOPIA WORLD...")
         
         // Create scene anchor positioned like SceneKit camera view
         let anchor = AnchorEntity(.world(transform: Transform.identity.matrix))
@@ -278,7 +291,7 @@ struct Arena3DView_RealityKit_v2: View {
         
         // 🎯 INITIAL ROTATION: Set the camera looking down at terrain
         // Note: Orientation will be handled by new navigation system
-        print("📷 [SETUP] Initial camera rotation applied - Pitch: \(cameraPitch * 180 / .pi)°, Yaw: \(cameraYaw * 180 / .pi)°")
+        // print("📷 [SETUP] Initial camera rotation applied - Pitch: \(cameraPitch * 180 / .pi)°, Yaw: \(cameraYaw * 180 / .pi)°")
         
         // Store reference for camera manipulation
         sceneAnchor = anchor
@@ -305,10 +318,13 @@ struct Arena3DView_RealityKit_v2: View {
         // 7. Add food entities
         addFoodEntities(in: anchor)
         
+        // 8. 🧪 ADD PHEROMONE VISUALIZATION: Stunning chemical trail rendering
+        addPheromoneVisualization(in: anchor)
+        
         // Add to scene
         content.add(anchor)
         
-        print("✅ [RealityKit] Bugtopia world created with proper structure")
+        // print("✅ [RealityKit] Bugtopia world created with proper structure")
     }
     
     @available(macOS 14.0, *)
@@ -327,7 +343,7 @@ struct Arena3DView_RealityKit_v2: View {
         ambientLight.look(at: [0, 0, -3], from: ambientLight.position, relativeTo: nil)
         anchor.addChild(ambientLight)
         
-        print("💡 [RealityKit] Strong lighting setup complete")
+        // print("💡 [RealityKit] Strong lighting setup complete")
     }
     
     @available(macOS 14.0, *)
@@ -371,18 +387,18 @@ struct Arena3DView_RealityKit_v2: View {
         yellowBox.orientation = simd_quatf(angle: .pi/4, axis: [1, 1, 0])
         anchor.addChild(yellowBox)
         
-        print("🎨 [RealityKit] Added 4 test objects with strong colors")
+        // print("🎨 [RealityKit] Added 4 test objects with strong colors")
     }
     
     @available(macOS 14.0, *)
     private func setupSkybox(in anchor: Entity) {
-        print("🌌 [RealityKit] Setting up skybox...")
+        // print("🌌 [RealityKit] Setting up skybox sphere...")
         
         // Get current world type from simulation
         let worldType = simulationEngine.voxelWorld.worldType
         let skyboxImageName = getSkyboxImageName(for: worldType)
         
-        print("🌍 [RealityKit] World type: \(worldType), skybox: \(skyboxImageName)")
+        // print("🌍 [RealityKit] World type: \(worldType), skybox: \(skyboxImageName)")
         
         // Create skybox material with actual texture
         var skyboxMaterial: SimpleMaterial
@@ -390,48 +406,51 @@ struct Arena3DView_RealityKit_v2: View {
         // Try to load the actual skybox texture from Assets.xcassets (macOS)
         if let skyboxImage = NSImage(named: skyboxImageName),
            let cgImage = skyboxImage.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-            print("✅ [RealityKit] Loaded skybox texture: \(skyboxImageName)")
+            // print("✅ [RealityKit] Loaded skybox texture: \(skyboxImageName)")
             
             // Create texture resource from CGImage
             do {
-                let textureResource = try TextureResource.generate(from: cgImage, options: .init(semantic: .color))
+                let textureResource = try TextureResource(image: cgImage, options: .init(semantic: .color))
                 skyboxMaterial = SimpleMaterial()
                 skyboxMaterial.color = .init(texture: .init(textureResource))
                 skyboxMaterial.roughness = 1.0
+                skyboxMaterial.metallic = 0.0
             } catch {
-                print("⚠️ [RealityKit] Failed to create texture resource: \(error)")
+                // print("⚠️ [RealityKit] Failed to create texture resource: \(error)")
                 skyboxMaterial = SimpleMaterial(color: getSkyboxFallbackColor(for: worldType), isMetallic: false)
             }
         } else {
-            print("⚠️ [RealityKit] Could not load skybox image: \(skyboxImageName), using fallback color")
+            // print("⚠️ [RealityKit] Could not load skybox image: \(skyboxImageName), using fallback color")
             skyboxMaterial = SimpleMaterial(color: getSkyboxFallbackColor(for: worldType), isMetallic: false)
         }
         
-        // 🌌 IMMERSIVE SKYBOX: Create massive sphere for true horizon-to-horizon coverage
-        let backgroundSphere = ModelEntity(
-            mesh: .generateSphere(radius: 5000), // 🌍 MASSIVE: Even larger for true immersion
+        // 🌌 CLOSER SKYBOX SPHERE: Make it visible and properly sized
+        let skyboxSphere = ModelEntity(
+            mesh: .generateSphere(radius: 500), // 🔧 SMALLER: Ensure it's visible from camera
             materials: [skyboxMaterial]
         )
         
-        // 🎨 SKYBOX POSITIONING: Center skybox around world origin for proper visibility
-        backgroundSphere.scale = [-1, 1, -1]  // Invert X and Z to view from inside
-        backgroundSphere.position = [112, 0, 112]  // Center on terrain with camera inside sphere
+        // 🎨 SKYBOX SETUP: Invert sphere to view from inside & center on terrain
+        skyboxSphere.scale = [-1, 1, -1]  // Invert X and Z to view from inside
+        skyboxSphere.position = [100, 20, 100]  // 🔧 ELEVATED: Lift above terrain level
         
-        // 🌅 RE-ENABLED: Skybox should work now that terrain is visible
-        anchor.addChild(backgroundSphere)
-        print("🌅 [SKYBOX] Continental skybox re-enabled")
+        // print("🌌 [SKYBOX] Sphere created at position: \(skyboxSphere.position), radius: 500")
+        
+        // Add to scene
+        anchor.addChild(skyboxSphere)
+        // print("🌅 [SKYBOX] Sphere skybox added successfully")
     }
     
     @available(macOS 14.0, *)
     private func setupGroundPlane(in anchor: Entity) {
-        print("🌍 [RealityKit] Creating smooth navigable terrain...")
+        // print("🌍 [RealityKit] Creating smooth navigable terrain...")
         
         let voxelWorld = simulationEngine.voxelWorld
         let heightMap = voxelWorld.heightMap
         let biomeMap = voxelWorld.biomeMap
         let resolution = heightMap.count
         
-        print("📊 [RealityKit] Processing \(resolution)x\(resolution) height map for smooth terrain")
+        // print("📊 [RealityKit] Processing \(resolution)x\(resolution) height map for smooth terrain")
         
         // Create main terrain container
         let terrainContainer = Entity()
@@ -448,7 +467,7 @@ struct Arena3DView_RealityKit_v2: View {
         
 
         anchor.addChild(terrainContainer)
-        print("✅ [RealityKit] Smooth navigable terrain created for bug movement")
+        // print("✅ [RealityKit] Smooth navigable terrain created for bug movement")
     }
     
     @available(macOS 14.0, *)
@@ -551,8 +570,8 @@ struct Arena3DView_RealityKit_v2: View {
         let terrainEntity = ModelEntity(mesh: terrainMesh, materials: [terrainMaterial])
         terrainEntity.name = "WatertightTerrain"
         
-        print("🌍 [RealityKit] Created watertight terrain: \(vertices.count) vertices, \(indices.count/3) triangles")
-        print("📐 [RealityKit] Extended resolution: \(extendedResolution)x\(extendedResolution) (was \(resolution)x\(resolution))")
+        // print("🌍 [RealityKit] Created watertight terrain: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // print("📐 [RealityKit] Extended resolution: \(extendedResolution)x\(extendedResolution) (was \(resolution)x\(resolution))")
         
         return terrainEntity
     }
@@ -589,9 +608,9 @@ struct Arena3DView_RealityKit_v2: View {
         
         waterContainer.addChild(waterEntity)
             
-            print("🌊 [RealityKit] Created integrated water plane covering \(waterAreaCount) valley areas")
+            // print("🌊 [RealityKit] Created integrated water plane covering \(waterAreaCount) valley areas")
         } else {
-            print("🏔️ [RealityKit] No significant valleys found - skipping water")
+            // print("🏔️ [RealityKit] No significant valleys found - skipping water")
         }
         
         return waterContainer
@@ -738,17 +757,17 @@ struct Arena3DView_RealityKit_v2: View {
         ambientLight.look(at: [100, 0, 75], from: ambientLight.position, relativeTo: nil)
         anchor.addChild(ambientLight)
         
-        print("☀️ [RealityKit] Enhanced lighting added - Sun: 5000, Ambient: 3000")
+        // print("☀️ [RealityKit] Enhanced lighting added - Sun: 5000, Ambient: 3000")
     }
     
     @available(macOS 14.0, *)
     private func addSimulationTerrain(in anchor: Entity) {
-        print("🏔️ [RealityKit] Adding terrain from simulation...")
+        // print("🏔️ [RealityKit] Adding terrain from simulation...")
         
         let voxelWorld = simulationEngine.voxelWorld
         let surfaceVoxels = voxelWorld.getVoxelsInLayer(.surface)
         
-        print("📊 [RealityKit] Processing \(surfaceVoxels.count) surface voxels")
+        // print("📊 [RealityKit] Processing \(surfaceVoxels.count) surface voxels")
         
         // Create terrain container positioned on the ground
         let terrainContainer = Entity()
@@ -791,11 +810,11 @@ struct Arena3DView_RealityKit_v2: View {
             }
             
             terrainContainer.addChild(terrainGroup)
-            print("🎨 [RealityKit] Added \(maxVoxels) \(terrainType) voxels in grid")
+            // print("🎨 [RealityKit] Added \(maxVoxels) \(terrainType) voxels in grid")
         }
         
         anchor.addChild(terrainContainer)
-        print("✅ [RealityKit] Terrain generation complete")
+        // print("✅ [RealityKit] Terrain generation complete")
     }
     
     @available(macOS 14.0, *)
@@ -860,7 +879,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func setupDynamicLighting(in anchor: Entity) {
-        print("💡 [RealityKit] Setting up dramatic lighting system...")
+        // print("💡 [RealityKit] Setting up dramatic lighting system...")
         
         // 🌅 PRIMARY SUN LIGHT: Warm directional light simulating sun
         let sunLight = DirectionalLight()
@@ -891,7 +910,7 @@ struct Arena3DView_RealityKit_v2: View {
         let worldType = simulationEngine.voxelWorld.worldType
         addAccentLights(to: anchor, for: worldType)
         
-        print("✅ [RealityKit] Dynamic lighting system with shadows and atmosphere created")
+        // print("✅ [RealityKit] Dynamic lighting system with shadows and atmosphere created")
     }
     
     @available(macOS 14.0, *)
@@ -985,15 +1004,12 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func addFoodEntities(in anchor: Entity) {
-        print("🍎 [RealityKit] Adding food entities...")
-        
         // Create food container
         let foodContainer = Entity()
         foodContainer.name = "FoodContainer"
         
         // Get current food items from simulation
         let foods = simulationEngine.foods
-        print("🍎 [RealityKit] Found \(foods.count) food items to render")
         
         // Create visual entities for each food item
         for (index, food) in foods.enumerated() {
@@ -1002,14 +1018,6 @@ struct Arena3DView_RealityKit_v2: View {
         }
         
         anchor.addChild(foodContainer)
-        print("✅ [RealityKit] Added \(foods.count) food entities across terrain")
-        
-        // 🐛 HELLO WORLD DEBUG: Test known coordinate points
-        let testPoints = [(0.0, 0.0), (112.0, 112.0), (225.0, 225.0)] 
-        for (x, z) in testPoints {
-            let height = getTerrainHeightAtPosition(x: Float(x), z: Float(z))
-            print("🎯 [TEST POINT] (\(x), \(z)) -> Height: \(height)")
-        }
     }
     
     @available(macOS 14.0, *)
@@ -1034,14 +1042,10 @@ struct Arena3DView_RealityKit_v2: View {
         )
         foodEntity.position = scaledPosition
         
-        // 🐛 HELLO WORLD DEBUG: Log food positioning (reduced frequency)
-        if index < 5 {  // Only log first 5 food items to reduce noise
-            let finalY = max(terrainHeight + 0.5, 0.5)
-            print("🍎 [FOOD POS] Sim: (\(food.position.x), \(food.position.y)) -> RK: (\(scaledX), \(scaledZ)) -> TerrainH: \(String(format: "%.2f", terrainHeight)) -> Final: (\(scaledX), \(String(format: "%.2f", finalY)), \(scaledZ))")
-        }
+        // Food positioning debug removed for clarity
         
-        // Set entity name for identification
-        foodEntity.name = "Food_\(index)"
+        // Set entity name using food ID for stable identification
+        foodEntity.name = "Food_\(food.id.uuidString)"
         
         // Add gentle pulsing animation to make food noticeable
         addFoodAnimation(to: foodEntity)
@@ -1063,43 +1067,36 @@ struct Arena3DView_RealityKit_v2: View {
             
         case .plum:
             // 🍇 PLUM: AAA PHOTOREALISTIC MODEL with proper topology!
-            print("🚀 [AAA] Creating photorealistic plum with scale: \(baseSize)")
             let plumMesh = AAAFoodGeometry.createStandardPlum()
             return plumMesh
             
         case .orange:
             // 🍊 ORANGE: AAA PHOTOREALISTIC MODEL with citrus texture!
-            print("🚀 [AAA] Creating photorealistic orange with scale: \(baseSize)")
             let orangeMesh = AAAFoodGeometry.createStandardOrange()
             return orangeMesh
             
         case .melon:
             // 🍈 MELON: AAA PHOTOREALISTIC MODEL with netted cantaloupe texture!
-            print("🚀 [AAA] Creating photorealistic melon with scale: \(baseSize)")
             let melonMesh = AAAFoodGeometry.createStandardMelon()
             return melonMesh
             
         case .meat:
             // 🥩 MEAT: AAA PHOTOREALISTIC MODEL with organic chunky shape!
-            print("🚀 [AAA] Creating photorealistic meat with scale: \(baseSize)")
             let meatMesh = AAAFoodGeometry.createStandardMeat()
             return meatMesh
             
         case .fish:
             // 🐟 FISH: AAA PHOTOREALISTIC MODEL with streamlined aquatic shape!
-            print("🚀 [AAA] Creating photorealistic fish with scale: \(baseSize)")
             let fishMesh = AAAFoodGeometry.createStandardFish()
             return fishMesh
             
         case .seeds:
             // 🌱 SEEDS: AAA PHOTOREALISTIC MODEL with clustered seed arrangement!
-            print("🚀 [AAA] Creating photorealistic seeds with scale: \(baseSize)")
             let seedsMesh = AAAFoodGeometry.createStandardSeeds()
             return seedsMesh
             
         case .nuts:
             // 🥜 NUTS: AAA PHOTOREALISTIC MODEL with mixed nut shell textures!
-            print("🚀 [AAA] Creating photorealistic nuts with scale: \(baseSize)")
             let nutsMesh = AAAFoodGeometry.createStandardNuts()
             return nutsMesh
         }
@@ -1189,7 +1186,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func addBugEntities(in anchor: Entity) {
-        print("🐛 [RealityKit] Adding bug entities...")
+        // print("🐛 [RealityKit] Adding bug entities...")
         
         // Create bug container
         let bugContainer = Entity()
@@ -1218,11 +1215,11 @@ struct Arena3DView_RealityKit_v2: View {
             
             bugContainer.addChild(bugEntity)
             
-            print("🐛 [RealityKit] Bug \(index): Sim(\(bug.position3D.x), \(bug.position3D.y)) -> RK(\(bugX), \(bugZ))")
+            // print("🐛 [RealityKit] Bug \(index): Sim(\(bug.position3D.x), \(bug.position3D.y)) -> RK(\(bugX), \(bugZ))")
         }
         
         anchor.addChild(bugContainer)
-        print("✅ [RealityKit] Added \(bugsToShow.count) bug entities scattered across large terrain")
+        // print("✅ [RealityKit] Added \(bugsToShow.count) bug entities scattered across large terrain")
     }
     
     @available(macOS 14.0, *)
@@ -1681,6 +1678,146 @@ struct Arena3DView_RealityKit_v2: View {
     }
     
     @available(macOS 14.0, *)
+    private func addPheromoneVisualization(in anchor: Entity) {
+        // 🧪 STUNNING PHEROMONE TRAILS: GameplayKit-powered chemical visualization
+        guard let pheromoneManager = pheromoneManager else { return }
+        
+        let pheromoneContainer = Entity()
+        pheromoneContainer.name = "PheromoneContainer"
+        
+        // Get current pheromone data
+        let pheromonePoints = pheromoneManager.getPheromoneVisualizationData()
+        
+        // Create visual effects for each pheromone type
+        for point in pheromonePoints {
+            let pheromoneEntity = createPheromoneEntity(for: point)
+            pheromoneContainer.addChild(pheromoneEntity)
+        }
+        
+        anchor.addChild(pheromoneContainer)
+        print("🧪 [PHEROMONE] Added \(pheromonePoints.count) pheromone trail visualizations")
+    }
+    
+    @available(macOS 14.0, *)
+    private func createPheromoneEntity(for point: PheromoneVisualizationPoint) -> Entity {
+        // 🧪 CHEMICAL TRAIL VISUALIZATION: Different colors and effects for each signal type
+        let pheromoneEntity = Entity()
+        
+        // Create trail particle effect based on signal type
+        let trailColor = getPheromoneColor(for: point.signalType)
+        let intensity = Float(point.intensity)
+        
+        // Create glowing particle sphere
+        let particleMesh = MeshResource.generateSphere(radius: 0.5 + intensity * 0.3)
+        var particleMaterial = SimpleMaterial()
+        
+        // 🌟 GLOWING EFFECT: Transparent, emissive materials
+        particleMaterial.color = .init(tint: trailColor.withAlphaComponent(0.6))
+        particleMaterial.roughness = 0.0  // Smooth for glowing effect
+        particleMaterial.metallic = 0.0   // Non-metallic for pure color
+        
+        let modelEntity = ModelEntity(mesh: particleMesh, materials: [particleMaterial])
+        
+        // Position in 3D space with coordinate conversion
+        let scaledX = Float(point.position.x) * simulationScale
+        let scaledZ = Float(point.position.y) * simulationScale
+        let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
+        
+        // Float slightly above terrain
+        modelEntity.position = SIMD3<Float>(scaledX, terrainHeight + 2.0, scaledZ)
+        
+        // Add gentle floating animation
+        addPheromoneAnimation(to: modelEntity, signalType: point.signalType)
+        
+        pheromoneEntity.addChild(modelEntity)
+        pheromoneEntity.name = "Pheromone_\(point.signalType.rawValue)"
+        
+        return pheromoneEntity
+    }
+    
+    @available(macOS 14.0, *)
+    private func getPheromoneColor(for signalType: SignalType) -> NSColor {
+        // 🎨 SIGNAL-SPECIFIC COLORS: Each pheromone type gets its distinctive color
+        switch signalType {
+        case .foodFound:
+            return NSColor(hue: 0.3, saturation: 0.8, brightness: 0.8, alpha: 1.0)  // Bright green for food
+        case .dangerAlert:
+            return NSColor(hue: 0.0, saturation: 0.9, brightness: 0.9, alpha: 1.0)    // Bright red for danger
+        case .huntCall:
+            return NSColor(hue: 0.08, saturation: 0.8, brightness: 0.8, alpha: 1.0) // Orange for hunting
+        case .mateCall:
+            return NSColor(hue: 0.8, saturation: 0.7, brightness: 0.7, alpha: 1.0) // Magenta for mating
+        case .territoryMark:
+            return NSColor(hue: 0.6, saturation: 0.8, brightness: 0.6, alpha: 1.0)   // Blue for territory
+        case .helpRequest:
+            return NSColor(hue: 0.16, saturation: 0.9, brightness: 0.9, alpha: 1.0) // Yellow for help
+        case .groupForm:
+            return NSColor(hue: 0.5, saturation: 0.7, brightness: 0.7, alpha: 1.0)   // Cyan for grouping
+        case .retreat:
+            return NSColor(hue: 0.75, saturation: 0.8, brightness: 0.8, alpha: 1.0) // Purple for retreat
+        case .foodShare:
+            return NSColor(red: 0.5, green: 0.8, blue: 0.3, alpha: 1.0) // Light green for sharing
+        }
+    }
+    
+    @available(macOS 14.0, *)
+    private func addPheromoneAnimation(to entity: Entity, signalType: SignalType) {
+        // 🌊 FLOATING ANIMATION: Gentle movement based on signal type
+        let animationType = getPheromoneAnimationType(for: signalType)
+        
+        switch animationType {
+        case .gentle:
+            // Gentle bobbing for neutral signals
+            addGentleBobbing(to: entity)
+        case .pulsing:
+            // Pulsing for urgent signals
+            addPulsingAnimation(to: entity)
+        case .swirling:
+            // Swirling for social signals
+            addSwirlingAnimation(to: entity)
+        }
+    }
+    
+    private enum PheromoneAnimationType {
+        case gentle, pulsing, swirling
+    }
+    
+    private func getPheromoneAnimationType(for signalType: SignalType) -> PheromoneAnimationType {
+        switch signalType {
+        case .dangerAlert, .retreat, .helpRequest:
+            return .pulsing   // Urgent signals pulse
+        case .groupForm, .mateCall, .foodShare:
+            return .swirling  // Social signals swirl
+        default:
+            return .gentle    // Default gentle movement
+        }
+    }
+    
+    @available(macOS 14.0, *)
+    private func addGentleBobbing(to entity: Entity) {
+        // Simple vertical bobbing motion
+        let originalY = entity.position.y
+        let bobHeight: Float = 0.5
+        
+        // Note: RealityKit animation implementation would go here
+        // For MVP, we'll keep static visualization
+    }
+    
+    @available(macOS 14.0, *)
+    private func addPulsingAnimation(to entity: Entity) {
+        // Pulsing scale animation for urgent signals
+        // Note: RealityKit animation implementation would go here
+        // For MVP, we'll keep static visualization
+    }
+    
+    @available(macOS 14.0, *)
+    private func addSwirlingAnimation(to entity: Entity) {
+        // Gentle rotation for social signals
+        // Note: RealityKit animation implementation would go here
+        // For MVP, we'll keep static visualization
+    }
+    
+    @available(macOS 14.0, *)
     private func addClimbingGear(to bugEntity: Entity, bug: Bug, size: Float) {
         // 🧗 Add climbing appendages for climbing bugs
         for i in 0..<6 {
@@ -1720,7 +1857,7 @@ struct Arena3DView_RealityKit_v2: View {
         
         // 🐛 HELLO WORLD DEBUG: Log terrain height lookup (reduced frequency)
         if Int.random(in: 1...50) == 1 {  // Log only 2% of height lookups to reduce noise
-            print("🏔️ [TERRAIN HEIGHT] Input: (\(x), \(z)) -> Normalized: (\(String(format: "%.3f", normalizedX)), \(String(format: "%.3f", normalizedZ))) -> Map: (\(mapX), \(mapZ)) -> Height: \(String(format: "%.2f", scaledHeight))")
+            // Terrain height calculated
         }
         
         return scaledHeight
@@ -1758,13 +1895,13 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func generateSampleTerrain(in anchor: Entity) {
-        print("🌍 [RealityKit] Generating terrain from voxel data...")
+        // print("🌍 [RealityKit] Generating terrain from voxel data...")
         
         let voxelWorld = simulationEngine.voxelWorld
         let surfaceVoxels = voxelWorld.getVoxelsInLayer(.surface)
         let voxelSize = Float(voxelWorld.voxelSize)
         
-        print("📊 [RealityKit] Processing \(surfaceVoxels.count) surface voxels (size: \(voxelSize))")
+        // print("📊 [RealityKit] Processing \(surfaceVoxels.count) surface voxels (size: \(voxelSize))")
         
         // Create terrain container
         let terrainContainer = Entity()
@@ -1782,7 +1919,7 @@ struct Arena3DView_RealityKit_v2: View {
             createTerrainTypeGroup(terrainType: terrainType, voxels: typeVoxels, voxelSize: voxelSize, in: terrainContainer)
         }
         
-        print("✅ [RealityKit] Generated \(sampleSize) terrain voxels in \(voxelsByType.count) types")
+        // print("✅ [RealityKit] Generated \(sampleSize) terrain voxels in \(voxelsByType.count) types")
     }
     
     @available(macOS 14.0, *)
@@ -1813,7 +1950,7 @@ struct Arena3DView_RealityKit_v2: View {
         }
         
         container.addChild(groupEntity)
-        print("🎨 [RealityKit] Created \(renderVoxels.count) \(terrainType.rawValue) voxels")
+        // print("🎨 [RealityKit] Created \(renderVoxels.count) \(terrainType.rawValue) voxels")
     }
     
     @available(macOS 14.0, *)
@@ -1849,7 +1986,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func generateSampleBugs(in anchor: Entity) {
-        print("🐛 [RealityKit] Generating sample bugs...")
+        // print("🐛 [RealityKit] Generating sample bugs...")
         
         let bugContainer = Entity()
         bugContainer.name = "BugContainer"
@@ -1875,7 +2012,7 @@ struct Arena3DView_RealityKit_v2: View {
             bugContainer.addChild(bugEntity)
         }
         
-        print("✅ [RealityKit] Generated \(sampleBugs.count) bug entities")
+        // print("✅ [RealityKit] Generated \(sampleBugs.count) bug entities")
     }
     
 
@@ -2006,157 +2143,231 @@ struct Arena3DView_RealityKit_v2: View {
     // MARK: - Interaction Handling
     
     private func handleTap(at location: CGPoint) {
-        print("🎯 [RealityKit] Tap at \(location)")
-        
-        guard let anchor = sceneAnchor else {
-            print("❌ [RealityKit] No scene anchor found for tap detection")
-            return
-        }
-        
-        // Add more debug info
-        print("🎯 [RealityKit] Camera position: \(cameraPosition)")
-        print("🎯 [RealityKit] Scene anchor exists, attempting entity selection...")
-        
-        // Perform entity selection
+        guard let anchor = sceneAnchor else { return }
         selectEntityAt(location: location, in: anchor)
     }
     
     @available(macOS 14.0, *)
     private func selectEntityAt(location: CGPoint, in anchor: AnchorEntity) {
-        print("🎯 [RealityKit] Starting entity selection at \(location)...")
+        print("🎯 [SELECTION] Click at screen coordinates: \(location)")
         
-        // 🎯 IMPROVED: Use proper raycasting for entity selection
-        // For now, we'll implement a distance-based selection as proper raycasting 
-        // requires more complex RealityView integration
+        // 🚀 PIXEL-PERFECT RAY-CASTING: No distance limitations!
+        // Create a ray from the camera through the clicked pixel
+        // Get camera transform from current state
+        let cameraTransform = Transform(
+            rotation: simd_quatf(angle: cameraPitch, axis: [1, 0, 0]) * simd_quatf(angle: cameraYaw, axis: [0, 1, 0]),
+            translation: cameraPosition
+        )
+        let cameraPos = cameraPosition
         
-        var closestBugEntity: Entity?
-        var closestFoodEntity: Entity?
-        var closestBugDistance: Float = Float.greatestFiniteMagnitude
-        var closestFoodDistance: Float = Float.greatestFiniteMagnitude
+        // Convert screen coordinates to normalized device coordinates (-1 to 1)
+        let viewBounds = CGRect(x: 0, y: 0, width: 800, height: 600) // TODO: Get actual view bounds
+        let normalizedX = (location.x / viewBounds.width) * 2.0 - 1.0
+        let normalizedY = -((location.y / viewBounds.height) * 2.0 - 1.0) // Flip Y for screen coordinates
         
-        // Find closest bug entity to the tap location
+        // Simplified ray direction calculation
+        let forwardDir = SIMD3<Float>(0, 0, -1)
+        let rightDir = SIMD3<Float>(1, 0, 0)
+        let upDir = SIMD3<Float>(0, 1, 0)
+        
+        // Apply camera rotation
+        let worldForward = cameraTransform.rotation.act(forwardDir)
+        let worldRight = cameraTransform.rotation.act(rightDir)
+        let worldUp = cameraTransform.rotation.act(upDir)
+        
+        // Calculate ray direction (simplified)
+        let fov: Float = 60.0 * .pi / 180.0
+        let aspect: Float = Float(viewBounds.width / viewBounds.height)
+        let tanHalfFov = tan(fov / 2.0)
+        
+        let rightOffset = worldRight * Float(normalizedX) * tanHalfFov * aspect
+        let upOffset = worldUp * Float(normalizedY) * tanHalfFov
+        let rayDirection = simd_normalize(worldForward + rightOffset + upOffset)
+        
+        print("🎯 [RAY] From: \(cameraPos), Direction: \(rayDirection)")
+        
+        // Find the closest entity along the ray
+        var closestEntity: Entity?
+        var closestDistance: Float = Float.greatestFiniteMagnitude
+        
+        // Check all bug entities
         if let bugContainer = anchor.findEntity(named: "BugContainer") {
-            print("🐛 [RealityKit] Found BugContainer with \(bugContainer.children.count) children")
-            
             for child in bugContainer.children {
                 if child.name.hasPrefix("Bug_") {
-                    // Simple distance check from camera center (more sophisticated raycasting would be ideal)
-                    let bugPosition = child.position
-                    let distanceFromCenter = simd_length(bugPosition - cameraPosition)
-                    
-                    if distanceFromCenter < closestBugDistance {
-                        closestBugDistance = distanceFromCenter
-                        closestBugEntity = child
+                    if let distance = rayIntersectsEntity(rayOrigin: cameraPos, rayDirection: rayDirection, entity: child) {
+                        if distance < closestDistance {
+                            closestDistance = distance
+                            closestEntity = child
+                        }
                     }
                 }
             }
         }
         
-        // Find closest food entity to the tap location
+        // Check all food entities
         if let foodContainer = anchor.findEntity(named: "FoodContainer") {
-            print("🍎 [RealityKit] Found FoodContainer with \(foodContainer.children.count) children")
-            
+            print("🍎 [DEBUG] Found FoodContainer with \(foodContainer.children.count) children")
             for child in foodContainer.children {
                 if child.name.hasPrefix("Food_") {
-                    let foodPosition = child.position
-                    let distanceFromCenter = simd_length(foodPosition - cameraPosition)
-                    
-                    if distanceFromCenter < closestFoodDistance {
-                        closestFoodDistance = distanceFromCenter
-                        closestFoodEntity = child
+                    print("🍎 [DEBUG] Checking food entity: \(child.name) at position: \(child.position)")
+                    if let distance = rayIntersectsEntity(rayOrigin: cameraPos, rayDirection: rayDirection, entity: child) {
+                        print("🎯 [HIT] Food entity intersected at distance: \(distance)")
+                        if distance < closestDistance {
+                            closestDistance = distance
+                            closestEntity = child
+                        }
+                    } else {
+                        print("❌ [MISS] Ray missed food entity: \(child.name)")
                     }
                 }
             }
+        } else {
+            print("❌ [ERROR] FoodContainer not found!")
         }
         
-        // Select the closest entity (bug or food)
-        if let bugEntity = closestBugEntity, 
-           (closestFoodEntity == nil || closestBugDistance < closestFoodDistance) {
-            print("🎯 [RealityKit] Selecting closest bug: \(bugEntity.name) at distance \(closestBugDistance)")
-            selectBugEntity(bugEntity)
-        } else if let foodEntity = closestFoodEntity {
-            print("🎯 [RealityKit] Selecting closest food: \(foodEntity.name) at distance \(closestFoodDistance)")
-            selectFoodEntity(foodEntity)
+        // Select the closest entity found by ray-casting
+        if let entity = closestEntity {
+            if entity.name.hasPrefix("Bug_") {
+                print("🎯 SELECTED BUG (ray-cast): \(entity.name.prefix(12)) at distance \(closestDistance)")
+                selectBugEntity(entity)
+            } else if entity.name.hasPrefix("Food_") {
+                print("🎯 SELECTED FOOD (ray-cast): \(entity.name.prefix(12)) at distance \(closestDistance)")
+                selectFoodEntity(entity)
+            }
         } else {
-            print("❌ [RealityKit] No entities found to select")
+            print("🎯 NO ENTITY found along ray")
             deselectAllEntities()
         }
     }
     
-    private func selectBugEntity(_ entity: Entity?) {
-        guard let entity = entity else {
-            print("❌ [RealityKit] No bug entity to select")
-            return
+    // 🚀 RAY-ENTITY INTERSECTION: Pixel-perfect selection!
+    private func rayIntersectsEntity(rayOrigin: SIMD3<Float>, rayDirection: SIMD3<Float>, entity: Entity) -> Float? {
+        let entityPosition = entity.position
+        
+        // Simple sphere intersection test (entities treated as larger radius spheres for easier selection)
+        let entityRadius: Float = 5.0  // Increased from 2.0 for easier selection
+        
+        // Vector from ray origin to entity center
+        let toEntity = entityPosition - rayOrigin
+        
+        // Project toEntity onto ray direction to find closest point on ray
+        let projectionLength = dot(toEntity, rayDirection)
+        
+        print("🔍 [RAY] Entity: \(entity.name.prefix(8)) at \(entityPosition)")
+        print("🔍 [RAY] toEntity: \(toEntity), projectionLength: \(projectionLength)")
+        
+        // If projection is negative, entity is behind the ray origin
+        if projectionLength < 0 {
+            print("🔍 [RAY] Entity is behind camera")
+            return nil
         }
         
-        print("🎯 [RealityKit] Attempting to select bug entity: \(entity.name)")
+        // Find closest point on ray to entity center
+        let closestPointOnRay = rayOrigin + rayDirection * projectionLength
         
-        // Extract bug ID from entity name
+        // Check if closest point is within entity radius
+        let distanceToEntity = distance(closestPointOnRay, entityPosition)
+        
+        print("🔍 [RAY] Closest point on ray: \(closestPointOnRay)")
+        print("🔍 [RAY] Distance to entity: \(distanceToEntity), radius: \(entityRadius)")
+        
+        if distanceToEntity <= entityRadius {
+            // Ray intersects entity - return distance along ray
+            let intersectionDistance = projectionLength - sqrt(entityRadius * entityRadius - distanceToEntity * distanceToEntity)
+            let finalDistance = max(0, intersectionDistance)
+            print("🎯 [RAY] HIT! Intersection distance: \(finalDistance)")
+            return finalDistance
+        }
+        
+        print("❌ [RAY] MISS - distance \(distanceToEntity) > radius \(entityRadius)")
+        return nil // No intersection
+    }
+    
+    private func projectClickToTerrain(normalizedX: Float, normalizedY: Float) -> SIMD3<Float> {
+        // Simple projection: convert normalized screen coordinates to world coordinates
+        // This assumes a simple orthographic-style projection onto the terrain plane
+        
+        // Calculate the world position based on camera position and view
+        let cameraLookDirection = SIMD3<Float>(0, -1, 0) // Looking down at terrain
+        let cameraRightDirection = SIMD3<Float>(1, 0, 0)
+        let cameraUpDirection = SIMD3<Float>(0, 0, -1)
+        
+        // Project click onto terrain (Y=0 plane)
+        let viewScale: Float = 50.0 // How much of the world is visible
+        let terrainClickX = cameraPosition.x + (normalizedX * viewScale)
+        let terrainClickZ = cameraPosition.z + (normalizedY * viewScale)
+        
+        return SIMD3<Float>(terrainClickX, 0.0, terrainClickZ)
+    }
+    
+    private func selectBugEntity(_ entity: Entity?) {
+        guard let entity = entity else { return }
+        
         let name = entity.name
         if name.hasPrefix("Bug_") {
-            let bugIdString = String(name.dropFirst(4)) // Remove "Bug_" prefix
-            print("🎯 [RealityKit] Extracted bug ID string: \(bugIdString)")
-            
+            let bugIdString = String(name.dropFirst(4))
             if let bugId = UUID(uuidString: bugIdString) {
-                print("🎯 [RealityKit] Parsed bug UUID: \(bugId)")
-                
-                // Find the corresponding bug from the simulation
-                let totalBugs = simulationEngine.bugs.count
-                print("🎯 [RealityKit] Searching through \(totalBugs) simulation bugs...")
-                
                 if let bug = simulationEngine.bugs.first(where: { $0.id == bugId }) {
-                    print("✅ [RealityKit] Found matching bug!")
-                    print("🐛 [RealityKit] Selected bug: \(bug.dna.speciesTraits.speciesType.rawValue) (\(bugId))")
-                    
-                    // Notify the selection system (similar to SceneKit)
-                    notifyBugSelection(bug)
+                    print("✅ BUG MATCH: \(bug.dna.speciesTraits.speciesType.rawValue)")
+                    selectBugForFollowing(bug)
+                    onBugSelectedCallback?(bug)
                     return
                 } else {
-                    print("❌ [RealityKit] No matching bug found in simulation")
+                    print("❌ NO BUG DATA for UUID: \(bugIdString.prefix(8))")
                 }
             } else {
-                print("❌ [RealityKit] Could not parse UUID from: \(bugIdString)")
+                print("❌ INVALID BUG UUID: \(bugIdString.prefix(8))")
             }
-        } else {
-            print("❌ [RealityKit] Entity name doesn't start with 'Bug_': \(name)")
         }
-        
-        print("❌ [RealityKit] Could not find bug data for entity: \(name)")
         deselectAllEntities()
     }
     
     private func selectFoodEntity(_ entity: Entity?) {
-        guard let entity = entity else {
-            print("❌ [RealityKit] No food entity to select")
-            return
-        }
+        guard let entity = entity else { return }
         
-        // Extract food index from entity name
         let name = entity.name
         if name.hasPrefix("Food_") {
-            let indexString = String(name.dropFirst(5)) // Remove "Food_" prefix
-            if let index = Int(indexString) {
-                // Find the corresponding food from the simulation
+            let foodIdString = String(name.dropFirst(5))
+            if let foodId = UUID(uuidString: foodIdString) {
                 let foods = simulationEngine.foods
-                if index < foods.count {
-                    let food = foods[index]
-                    print("🍎 [RealityKit] Selected food: \(food.type.rawValue) at \(food.position)")
+                if let food = foods.first(where: { $0.id == foodId }) {
+                    print("✅ FOOD MATCH: \(food.type.rawValue) at \(food.position)")
                     
-                    // Notify the selection system (similar to SceneKit)
+                    // 🥇 UPDATE SELECTION STATE: Clear bugs, set food, add golden glow
+                    selectedFood = food
+                    selectedBug = nil // Clear bug selection
+                    cameraFollowing = false // Stop camera following
+                    
+                    // Create golden glow highlight
+                    createFoodSelectionHighlight(for: food)
+                    
+                    // Notify the UI
                     notifyFoodSelection(food)
                     return
+                } else {
+                    print("❌ NO FOOD DATA for UUID: \(foodIdString.prefix(8))")
                 }
+            } else {
+                print("❌ INVALID UUID: \(foodIdString.prefix(8))")
             }
         }
-        
-        print("❌ [RealityKit] Could not find food data for entity: \(name)")
         deselectAllEntities()
     }
     
     private func deselectAllEntities() {
-        print("🔄 [RealityKit] Deselecting all entities")
+        // Clear selection state
+        selectedBug = nil
+        selectedFood = nil
+        cameraFollowing = false
+        
+        // Remove highlights
+        removeSelectionHighlight()
+        
+        // Notify UI
         notifyBugSelection(nil)
         notifyFoodSelection(nil)
+        
+        print("🚫 [SELECTION] All entities deselected")
     }
     
     // MARK: - Selection Notification System
@@ -2165,27 +2376,148 @@ struct Arena3DView_RealityKit_v2: View {
         DispatchQueue.main.async {
             self.onBugSelectedCallback?(bug)
         }
-        
-        // 🎯 Add visual feedback for selection
-        if let bug = bug {
-            print("✅ [RealityKit] Successfully selected bug: \(bug.dna.speciesTraits.speciesType.rawValue)")
-            print("📊 [RealityKit] Bug Stats - Energy: \(bug.energy), Speed: \(bug.dna.speed), Size: \(bug.dna.size)")
-        } else {
-            print("🔄 [RealityKit] Bug deselected")
-        }
     }
     
     private func notifyFoodSelection(_ food: FoodItem?) {
         DispatchQueue.main.async {
             self.onFoodSelectedCallback?(food)
         }
+    }
+    
+    // MARK: - Bug Following System (SimCity-Style!)
+    
+    private func selectBugForFollowing(_ bug: Bug) {
+        selectedBug = bug
+        cameraFollowing = true
         
-        // 🍎 Add visual feedback for food selection
-        if let food = food {
-            print("✅ [RealityKit] Successfully selected food: \(food.type.rawValue)")
-            print("📊 [RealityKit] Food Stats - Energy: \(food.energyValue), Position: \(food.position)")
-        } else {
-            print("🔄 [RealityKit] Food deselected")
+        // Remove old highlight and add new one
+        removeSelectionHighlight()
+        createSelectionHighlight(for: bug)
+        
+        // Call the existing notification system too
+        notifyBugSelection(bug)
+    }
+    
+    @available(macOS 14.0, *)
+    private func createSelectionHighlight(for bug: Bug) {
+        guard let anchor = sceneAnchor else { return }
+        
+        // Create a glowing yellow ring around the selected bug
+        let ringMesh = MeshResource.generateBox(width: 3, height: 0.3, depth: 3)
+        var ringMaterial = SimpleMaterial()
+        ringMaterial.color = .init(tint: .yellow, texture: nil)
+        ringMaterial.roughness = 0.2
+        
+        let highlight = ModelEntity(mesh: ringMesh, materials: [ringMaterial])
+        highlight.name = "BugSelectionHighlight"
+        
+        // Position the highlight at the bug's location
+        let bugWorldPos = SIMD3<Float>(
+            Float(bug.position.x) * simulationScale,
+            1.0, // Just above terrain
+            Float(bug.position.y) * simulationScale
+        )
+        highlight.position = bugWorldPos
+        
+        anchor.addChild(highlight)
+        bugSelectionHighlight = highlight
+    }
+    
+    private func removeSelectionHighlight() {
+        bugSelectionHighlight?.removeFromParent()
+        bugSelectionHighlight = nil
+        foodSelectionHighlight?.removeFromParent()
+        foodSelectionHighlight = nil
+    }
+    
+    // 🥇 GOLDEN GLOW: Highlight selected food items
+    @available(macOS 14.0, *)
+    private func createFoodSelectionHighlight(for food: FoodItem) {
+        guard let anchor = sceneAnchor else { return }
+        
+        // Remove previous food highlight
+        foodSelectionHighlight?.removeFromParent()
+        
+        // Create a golden glowing ring around the selected food
+        let ringMesh = MeshResource.generateBox(width: 4, height: 0.5, depth: 4)
+        var ringMaterial = SimpleMaterial()
+        ringMaterial.color = .init(tint: .init(red: 1.0, green: 0.84, blue: 0.0, alpha: 0.8), texture: nil) // Golden color
+        ringMaterial.roughness = 0.1
+        ringMaterial.metallic = 0.3
+        
+        let highlight = ModelEntity(mesh: ringMesh, materials: [ringMaterial])
+        
+        // Position the highlight around the food
+        let foodWorldPos = SIMD3<Float>(
+            Float(food.position.x) * simulationScale,
+            2.0, // Just above terrain
+            Float(food.position.y) * simulationScale
+        )
+        highlight.position = foodWorldPos
+        
+        // Add gentle rotation animation for extra visual appeal
+        let rotationAnimation = FromToByAnimation<Transform>(
+            from: Transform(rotation: simd_quatf(angle: 0, axis: [0, 1, 0])),
+            to: Transform(rotation: simd_quatf(angle: 2 * .pi, axis: [0, 1, 0])),
+            duration: 3.0,
+            timing: .linear,
+            isAdditive: false
+        )
+        
+        if let animationResource = try? AnimationResource.generate(with: rotationAnimation) {
+            highlight.playAnimation(animationResource.repeat())
+        }
+        
+        anchor.addChild(highlight)
+        foodSelectionHighlight = highlight
+        
+        print("🥇 [SELECTION] Golden highlight created for \(food.type.rawValue)")
+    }
+    
+    private func updateCameraFollowing() {
+        print("🎥 [DEBUG] updateCameraFollowing - cameraFollowing: \(cameraFollowing), selectedBug: \(selectedBug?.id.uuidString.prefix(8) ?? "nil")")
+        
+        guard cameraFollowing,
+              let bug = selectedBug,
+              bug.isAlive else {
+            // Bug died or selection lost
+            if cameraFollowing {
+                print("🎥 [DEBUG] Stopping camera following - bug died or selection lost")
+                cameraFollowing = false
+                selectedBug = nil
+                removeSelectionHighlight()
+            }
+            return
+        }
+        
+        print("🎥 [DEBUG] FOLLOWING BUG: \(bug.id.uuidString.prefix(8))")
+        
+        // Update camera to smoothly follow bug
+        let bugWorldPos = SIMD3<Float>(
+            Float(bug.position.x) * simulationScale,
+            15.0, // Camera height above bug
+            Float(bug.position.y) * simulationScale
+        )
+        
+        // Smooth camera movement toward bug (SimCity-style following)
+        let followSpeed: Float = 0.05 // Gentle, cinematic movement
+        cameraPosition = cameraPosition + (bugWorldPos - cameraPosition) * followSpeed
+        
+        // Update highlight position to stay with bug
+        if let highlight = bugSelectionHighlight {
+            let highlightPos = SIMD3<Float>(
+                Float(bug.position.x) * simulationScale,
+                1.0,
+                Float(bug.position.y) * simulationScale
+            )
+            highlight.position = highlightPos
+        }
+        
+        // 🎥 FIXED: Only apply camera position when actively following a bug
+        // This prevents overriding manual WASD movement
+        if let anchor = sceneAnchor {
+            anchor.position = -cameraPosition
+            print("🎥 [FOLLOW] Applied camera following position: \(-cameraPosition)")
         }
     }
     
@@ -2206,7 +2538,7 @@ struct Arena3DView_RealityKit_v2: View {
     }
     
     private func setupBasicScene() {
-        print("🚀 [RealityKit] Setting up enhanced 3D world data...")
+        // print("🚀 [RealityKit] Setting up enhanced 3D world data...")
         
         // Create basic scene anchor for entity management
         let sceneAnchor = AnchorEntity(.world(transform: Transform.identity.matrix))
@@ -2221,11 +2553,11 @@ struct Arena3DView_RealityKit_v2: View {
         let surfaceVoxels = voxelWorld.getVoxelsInLayer(.surface)
         let terrainCounts = getTerrainCounts()
         
-        print("✅ [RealityKit] Enhanced world analysis complete!")
-        print("🌍 Total surface voxels: \(surfaceVoxels.count)")
-        print("🎨 Terrain types found: \(terrainCounts.count)")
+        // print("✅ [RealityKit] Enhanced world analysis complete!")
+        // print("🌍 Total surface voxels: \(surfaceVoxels.count)")
+        // print("🎨 Terrain types found: \(terrainCounts.count)")
         for (terrain, count) in terrainCounts.sorted(by: { $0.value > $1.value }) {
-            print("   - \(terrain.rawValue): \(count) voxels")
+            // print("   - \(terrain.rawValue): \(count) voxels")
         }
     }
     
@@ -2235,7 +2567,7 @@ struct Arena3DView_RealityKit_v2: View {
     /*
     @available(macOS 14.0, *)
     private func setupRealityKit3DScene(_ content: RealityViewContent) {
-        print("🚀 [RealityKit] Setting up 3D scene...")
+        // print("🚀 [RealityKit] Setting up 3D scene...")
         
         // Create main anchor for the scene
         let worldAnchor = AnchorEntity(.world(transform: Transform.identity.matrix))
@@ -2250,7 +2582,7 @@ struct Arena3DView_RealityKit_v2: View {
         // Create bug entities
         generateBugEntities3D(in: worldAnchor)
         
-        print("✅ [RealityKit] 3D scene setup complete!")
+        // print("✅ [RealityKit] 3D scene setup complete!")
     }
     
     @available(macOS 14.0, *)
@@ -2270,12 +2602,12 @@ struct Arena3DView_RealityKit_v2: View {
         light.look(at: [0, 0, 0], from: light.position, relativeTo: nil)
         anchor.addChild(light)
         
-        print("💡 [RealityKit] Lighting setup complete")
+        // print("💡 [RealityKit] Lighting setup complete")
     }
     
     @available(macOS 14.0, *)
     private func generateTerrain3D(in anchor: Entity) {
-        print("🌍 [RealityKit] Generating 3D terrain...")
+        // print("🌍 [RealityKit] Generating 3D terrain...")
         
         let voxelWorld = simulationEngine.voxelWorld
         let surfaceVoxels = voxelWorld.getVoxelsInLayer(.surface)
@@ -2290,7 +2622,7 @@ struct Arena3DView_RealityKit_v2: View {
         let maxVoxels = min(500, surfaceVoxels.count)
         let voxelsToRender = Array(surfaceVoxels.prefix(maxVoxels))
         
-        print("🔥 [RealityKit] Rendering \(voxelsToRender.count) of \(surfaceVoxels.count) voxels...")
+        // print("🔥 [RealityKit] Rendering \(voxelsToRender.count) of \(surfaceVoxels.count) voxels...")
         
         // Group by terrain type for efficiency
         let voxelsByType = Dictionary(grouping: voxelsToRender) { $0.terrainType }
@@ -2304,7 +2636,7 @@ struct Arena3DView_RealityKit_v2: View {
             )
         }
         
-        print("✅ [RealityKit] Generated terrain with \(voxelsByType.count) terrain types")
+        // print("✅ [RealityKit] Generated terrain with \(voxelsByType.count) terrain types")
     }
     
     @available(macOS 14.0, *)
@@ -2374,7 +2706,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func generateBugEntities3D(in anchor: Entity) {
-        print("🐛 [RealityKit] Generating 3D bug entities...")
+        // print("🐛 [RealityKit] Generating 3D bug entities...")
         
         let bugContainer = Entity()
         bugContainer.name = "BugContainer"
@@ -2407,7 +2739,7 @@ struct Arena3DView_RealityKit_v2: View {
             bugContainer.addChild(bugEntity)
         }
         
-        print("✅ [RealityKit] Generated \(min(20, simulationEngine.bugs.count)) bug entities")
+        // print("✅ [RealityKit] Generated \(min(20, simulationEngine.bugs.count)) bug entities")
     }
     
     @available(macOS 14.0, *)
@@ -2488,6 +2820,12 @@ struct Arena3DView_RealityKit_v2: View {
         
         // Update food entities (spawn new, remove consumed)
         updateFoodEntities(in: anchor)
+        
+        // 🧪 UPDATE PHEROMONE SYSTEM: GameplayKit chemical trail simulation
+        updatePheromoneSystem(in: anchor)
+        
+        // 🎥 UPDATE CAMERA FOLLOWING: SimCity-style bug tracking
+        updateCameraFollowing()
         
         // Update performance metrics (if accessible)
         // bugEntityManager.performanceMetrics.lastUpdateDuration = deltaTime
@@ -2573,6 +2911,48 @@ struct Arena3DView_RealityKit_v2: View {
                 foodContainer.addChild(foodEntity)
             }
         }
+    }
+    
+    private func updatePheromoneSystem(in anchor: Entity) {
+        guard let pheromoneManager = pheromoneManager else { return }
+        
+        // 🧪 PROCESS BUG SIGNALS: Convert bug communications to pheromone trails
+        for bug in simulationEngine.bugs.filter({ $0.isAlive }) {
+            // Check if bug has recent signals to convert to pheromones
+            for signal in bug.recentSignals {
+                pheromoneManager.addPheromoneSignal(signal, bugPosition: bug.position)
+            }
+            
+            // 🚶 MOVEMENT TRAILS: Bugs leave weak pheromone trails as they move
+            if bug.velocity.x != 0 || bug.velocity.y != 0 {
+                bug.layPheromoneTrail(
+                    signalType: .territoryMark, // Leave territory marks while moving
+                    strength: 0.1, // Very weak trail
+                    pheromoneManager: pheromoneManager
+                )
+            }
+        }
+        
+        // 🌊 UPDATE PHEROMONE FIELD: Diffusion, decay, and particle effects
+        pheromoneManager.updatePheromoneField()
+        
+        // 🎨 UPDATE VISUAL TRAILS: Refresh pheromone particle effects every few seconds
+        if Int.random(in: 1...180) == 1 { // Update visuals ~every 6 seconds at 30 FPS
+            updatePheromoneVisualization(in: anchor)
+        }
+    }
+    
+    @available(macOS 14.0, *)
+    private func updatePheromoneVisualization(in anchor: Entity) {
+        guard let pheromoneManager = pheromoneManager else { return }
+        
+        // Remove old pheromone container
+        if let oldContainer = anchor.findEntity(named: "PheromoneContainer") {
+            oldContainer.removeFromParent()
+        }
+        
+        // Create new pheromone visualization
+        addPheromoneVisualization(in: anchor)
     }
     
     private func updateFPS() {
@@ -2668,6 +3048,7 @@ extension Arena3DView_RealityKit_v2 {
         }
         
         // Apply movement
+        print("🎮 [MOVE] Setting anchor position to: \(newPos)")
         anchor.position = newPos
         
         // In walk mode, always adjust Y to follow terrain
@@ -2676,11 +3057,11 @@ extension Arena3DView_RealityKit_v2 {
             anchor.position.y = -(terrainHeight + walkModeHeight)  // Stay above terrain
         }
         
-        print("🎮 [MOVE] \(direction) in \(isGodMode ? "FLY" : "WALK") mode -> Position: \(anchor.position)")
+        // print("🎮 [MOVE] \(direction) in \(isGodMode ? "FLY" : "WALK") mode -> Position: \(anchor.position)")
     }
     
     private func lookCamera(direction: CameraDirection) {
-        let lookSpeed: Float = 0.1  // Radians per key press
+        let lookSpeed: Float = 0.02  // 🔧 REDUCED: Very small rotation for testing (1.1 degrees)
         
         switch direction {
         case .up:
@@ -2699,21 +3080,34 @@ extension Arena3DView_RealityKit_v2 {
         if cameraYaw < 0 { cameraYaw += 2 * Float.pi }
         if cameraYaw > 2 * Float.pi { cameraYaw -= 2 * Float.pi }
         
-        print("🎮 [LOOK] \(direction) -> Pitch: \(cameraPitch), Yaw: \(cameraYaw)")
+        // print("🎮 [LOOK] \(direction) -> Pitch: \(cameraPitch), Yaw: \(cameraYaw)")
         
-        // FIXED: Apply rotation to the world anchor for actual visual changes
+        // 🎥 CAMERA LOOK: Apply rotation to world anchor for visual camera direction
         if let anchor = sceneAnchor {
             // Create rotation transform from pitch and yaw
             let pitchRotation = simd_quatf(angle: cameraPitch, axis: SIMD3<Float>(1, 0, 0))  // X-axis rotation
             let yawRotation = simd_quatf(angle: cameraYaw, axis: SIMD3<Float>(0, 1, 0))      // Y-axis rotation
             
-            // Combine rotations: yaw first, then pitch
+            // FIXED: Apply yaw first, then pitch for proper camera behavior
             let combinedRotation = pitchRotation * yawRotation
             
-            // Apply rotation to anchor
+            // 🔍 DEBUG: Check anchor position before and after orientation change
+            let positionBefore = anchor.position
+            
+            // Apply rotation to anchor (this rotates the world to simulate camera look direction)
             anchor.orientation = combinedRotation
             
-            print("🎮 [ROTATION] Applied rotation - Pitch: \(cameraPitch), Yaw: \(cameraYaw)")
+            let positionAfter = anchor.position
+            
+            print("🎮 [LOOK] \(direction) -> Pitch: \(cameraPitch * 180 / .pi)°, Yaw: \(cameraYaw * 180 / .pi)°")
+            print("🔍 [DEBUG] Position BEFORE orientation: \(positionBefore)")
+            print("🔍 [DEBUG] Position AFTER orientation: \(positionAfter)")
+            
+            // 🚨 CRITICAL: Check if position changed unexpectedly
+            if positionBefore != positionAfter {
+                print("🚨 [BUG] Anchor position changed during orientation! Restoring...")
+                anchor.position = positionBefore
+            }
         }
     }
 }
@@ -2733,10 +3127,10 @@ struct Phase2PerformanceMetrics {
     Arena3DView_RealityKit_v2(
         simulationEngine: SimulationEngine(worldBounds: CGRect(x: 0, y: 0, width: 2000, height: 2000)),
         onBugSelected: { bug in
-            print("Selected bug: \(bug?.id.uuidString ?? "nil")")
+            // print("Selected bug: \(bug?.id.uuidString ?? "nil")")
         },
         onFoodSelected: { food in
-            print("Selected food: \(food?.id.uuidString ?? "nil")")
+            // print("Selected food: \(food?.id.uuidString ?? "nil")")
         }
     )
 }

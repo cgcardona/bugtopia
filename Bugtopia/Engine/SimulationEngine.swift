@@ -179,8 +179,8 @@ class SimulationEngine {
         // let worldType = WorldType3D.volcano3D
         self.currentWorldType = worldType
         
-        print("🌍 Generated World Type: \(worldType.rawValue)")
-        print("🌍 Expected Features:")
+        // print("🌍 Generated World Type: \(worldType.rawValue)")
+        // print("🌍 Expected Features:")
         switch worldType {
         case .abyss3D:
             print("   • Deep underwater trenches")
@@ -704,14 +704,14 @@ class SimulationEngine {
         let forestVoxels = allSurfaceVoxels.filter { $0.terrainType == .forest }
         let waterVoxels = allSurfaceVoxels.filter { $0.terrainType == .water }
         
-        print("🍎 [FOOD DEBUG] Surface voxel terrain analysis:")
-        print("📊 Total surface voxels: \(allSurfaceVoxels.count)")
-        print("🍇 Food zones: \(foodVoxels.count)")
-        print("🌾 Open areas: \(openVoxels.count)")
-        print("⛰️ Hills: \(hillVoxels.count)")
-        print("🌲 Forests: \(forestVoxels.count)")
-        print("🌊 Water: \(waterVoxels.count)")
-        print("🌱 Current season: \(seasonalManager.currentSeason.rawValue) \(seasonalManager.currentSeason.emoji)")
+        // print("🍎 [FOOD DEBUG] Surface voxel terrain analysis:")
+        // print("📊 Total surface voxels: \(allSurfaceVoxels.count)")
+        // print("🍇 Food zones: \(foodVoxels.count)")
+        // print("🌾 Open areas: \(openVoxels.count)")
+        // print("⛰️ Hills: \(hillVoxels.count)")
+        // print("🌲 Forests: \(forestVoxels.count)")
+        // print("🌊 Water: \(waterVoxels.count)")
+        // print("🌱 Current season: \(seasonalManager.currentSeason.rawValue) \(seasonalManager.currentSeason.emoji)")
         
         // Original logic (reduced for focused debugging)
         let herbivoreFoodRatio = 0.8 // 80% herbivore foods for now
@@ -737,23 +737,23 @@ class SimulationEngine {
         // Spawn majority of food distributed in open areas, hills, AND forests for better distribution
         let availableVoxels = openVoxels + hillVoxels + forestVoxels
         let targetFoodCount = maxFoodItems / 2  // Double the food density for better distribution
-        print("🎯 [FOOD DEBUG] Attempting to spawn \(targetFoodCount) foods in \(availableVoxels.count) available voxels")
+        // print("🎯 [FOOD DEBUG] Attempting to spawn \(targetFoodCount) foods in \(availableVoxels.count) available voxels")
         
         // DEBUG: Sample voxel positions to understand distribution
         let sampleVoxels = Array(availableVoxels.prefix(10))
-        print("📍 [FOOD DEBUG] Sample voxel positions:")
+        // print("📍 [FOOD DEBUG] Sample voxel positions:")
         for (i, voxel) in sampleVoxels.enumerated() {
-            print("   Voxel \(i): \(voxel.terrainType) at (\(voxel.position.x), \(voxel.position.y)) in \(voxel.biome)")
+            // print("   Voxel \(i): \(voxel.terrainType) at (\(voxel.position.x), \(voxel.position.y)) in \(voxel.biome)")
         }
-        print("🌍 [FOOD DEBUG] World bounds: \(voxelWorld.worldBounds)")
+        // print("🌍 [FOOD DEBUG] World bounds: \(voxelWorld.worldBounds)")
         
         // DEBUG: Analyze voxel distribution
         if !availableVoxels.isEmpty {
             let voxelX = availableVoxels.map { $0.position.x }
             let voxelY = availableVoxels.map { $0.position.y }
-            print("📊 [VOXEL DEBUG] Available voxel coordinate ranges:")
-            print("   X: \(voxelX.min()!) to \(voxelX.max()!) (span: \(voxelX.max()! - voxelX.min()!))")
-            print("   Y: \(voxelY.min()!) to \(voxelY.max()!) (span: \(voxelY.max()! - voxelY.min()!))")
+            // print("📊 [VOXEL DEBUG] Available voxel coordinate ranges:")
+            // print("   X: \(voxelX.min()!) to \(voxelX.max()!) (span: \(voxelX.max()! - voxelX.min()!))")
+            // print("   Y: \(voxelY.min()!) to \(voxelY.max()!) (span: \(voxelY.max()! - voxelY.min()!))")
         }
         
         var successfulSpawns = 0
@@ -795,7 +795,7 @@ class SimulationEngine {
         
         // ADDITIONAL PASS: Ensure good coverage across the entire terrain
         let additionalTargetCount = min(50, availableVoxels.count / 100)  // 1% coverage minimum
-        print("🎯 [FOOD DEBUG] Additional distribution pass: \(additionalTargetCount) more foods")
+        // print("🎯 [FOOD DEBUG] Additional distribution pass: \(additionalTargetCount) more foods")
         
         for _ in 0..<additionalTargetCount {
             if let voxel = availableVoxels.randomElement() {
@@ -819,16 +819,16 @@ class SimulationEngine {
         }
         
         // DEBUG: Analyze food position distribution
-        print("📍 [FOOD DEBUG] Food position analysis after main pass:")
+        // print("📍 [FOOD DEBUG] Food position analysis after main pass:")
         if !foodPositions.isEmpty {
             let minX = foodPositions.map { $0.x }.min()!
             let maxX = foodPositions.map { $0.x }.max()!
             let minY = foodPositions.map { $0.y }.min()!
             let maxY = foodPositions.map { $0.y }.max()!
-            print("   X range: \(minX) to \(maxX) (span: \(maxX - minX))")
-            print("   Y range: \(minY) to \(maxY) (span: \(maxY - minY))")
+            // print("   X range: \(minX) to \(maxX) (span: \(maxX - minX))")
+            // print("   Y range: \(minY) to \(maxY) (span: \(maxY - minY))")
             let samplePositions = Array(foodPositions.prefix(5))
-            print("   Sample positions: \(samplePositions)")
+            // print("   Sample positions: \(samplePositions)")
         }
         
         // DEBUG: Analyze food type distribution

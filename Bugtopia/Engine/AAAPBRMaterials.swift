@@ -56,8 +56,7 @@ class AAAPBRMaterials {
     /// - Returns: Complete PBR material with all texture maps
     static func createAAAPlumMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🍇 [PBR] Creating AAA plum material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // Creating AAA plum material (logging disabled for performance)
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -65,30 +64,29 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "plum-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded diffuse texture")
+            // Diffuse texture loaded
         } else {
             // Fallback color matching our texture
             let fallbackColor = NSColor(red: 0.6, green: 0.2, blue: 0.8, alpha: 1.0) // Purple plum
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback diffuse color")
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "plum-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded normal map")
+            // Normal map loaded
         } else {
-            print("⚠️ [PBR] Normal map not found - using flat surface")
+            // Normal map not found - using flat surface
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "plum-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded roughness map")
+            // Roughness map loaded
         } else {
             // Fallback: Natural fruit roughness
             pbrMaterial.roughness = .init(floatLiteral: 0.6) // Slightly matte like real fruit
-            print("⚠️ [PBR] Using fallback roughness value")
+            // Using fallback roughness value
         }
         
         // 🥇 METALLIC PROPERTIES: Fruits are non-metallic
@@ -100,7 +98,7 @@ class AAAPBRMaterials {
             let emissionIntensity = min(0.3, (energyLevel - 1.0) * 0.1)
             let emissionColor = NSColor(red: 1.0, green: 0.8, blue: 0.6, alpha: 1.0) // Warm amber glow
             pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
-            print("✨ [PBR] Added energy glow: \(emissionIntensity)")
+            // Energy glow added
         }
         
         // 🍃 FRESHNESS EFFECTS
@@ -116,7 +114,7 @@ class AAAPBRMaterials {
         pbrMaterial.clearcoat = .init(floatLiteral: 0.1)  // Subtle surface layer
         pbrMaterial.clearcoatRoughness = .init(floatLiteral: 0.3)  // Smooth clearcoat
         
-        print("🏆 [PBR] AAA plum material created successfully!")
+        // AAA plum material created successfully
         return pbrMaterial
     }
     
@@ -140,7 +138,7 @@ class AAAPBRMaterials {
             // Fallback color matching apple
             let fallbackColor = NSColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0) // Red apple
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback apple color")
+            // Using fallback apple color
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
@@ -148,7 +146,7 @@ class AAAPBRMaterials {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
             // ✅ Loaded apple normal map
         } else {
-            print("⚠️ [PBR] Apple normal map not found")
+            // Apple normal map not found
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
@@ -158,7 +156,7 @@ class AAAPBRMaterials {
         } else {
             // Fallback: Glossy apple skin
             pbrMaterial.roughness = .init(floatLiteral: 0.3) // Glossy like real apple
-            print("⚠️ [PBR] Using fallback apple roughness")
+            // Using fallback apple roughness
         }
         
         // 🥇 METALLIC PROPERTIES: Apples are non-metallic but can have slight sheen
@@ -169,7 +167,7 @@ class AAAPBRMaterials {
             let emissionIntensity = min(0.2, (energyLevel - 1.0) * 0.08)
             let emissionColor = NSColor(red: 1.0, green: 0.9, blue: 0.8, alpha: 1.0) // Warm glow
             pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
-            print("✨ [PBR] Added apple energy glow: \(emissionIntensity)")
+            // Apple energy glow added
         }
         
         // 🍃 FRESHNESS EFFECTS: Fresh apples are very glossy
@@ -192,8 +190,7 @@ class AAAPBRMaterials {
     /// - Returns: Complete PBR material with all texture maps
     static func createAAAOrangeMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🍊 [PBR] Creating AAA orange material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // Creating AAA orange material (logging disabled)
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -201,30 +198,30 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "orange-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded orange diffuse texture")
+            // Orange diffuse texture loaded
         } else {
             // Fallback color matching orange
             let fallbackColor = NSColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1.0) // Bright orange
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback orange color")
+            // Using fallback orange color
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "orange-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded orange normal map")
+            // Orange normal map loaded
         } else {
-            print("⚠️ [PBR] Orange normal map not found")
+            // Orange normal map not found
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "orange-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded orange roughness map")
+            // Orange roughness map loaded
         } else {
             // Fallback: Textured orange peel
             pbrMaterial.roughness = .init(floatLiteral: 0.7) // Rough citrus peel
-            print("⚠️ [PBR] Using fallback orange roughness")
+            // Using fallback orange roughness
         }
         
         // 🥇 METALLIC PROPERTIES: Oranges are completely non-metallic
@@ -235,7 +232,7 @@ class AAAPBRMaterials {
             let emissionIntensity = min(0.25, (energyLevel - 1.0) * 0.1)
             let emissionColor = NSColor(red: 1.0, green: 0.7, blue: 0.3, alpha: 1.0) // Citrus glow
             pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
-            print("✨ [PBR] Added orange energy glow: \(emissionIntensity)")
+            // Orange energy glow added
         }
         
         // 🍃 FRESHNESS EFFECTS: Fresh oranges have consistent texture
@@ -243,7 +240,7 @@ class AAAPBRMaterials {
         let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.5, freshness)) * 0.3)
         pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
         
-        print("🏆 [PBR] AAA orange material created successfully!")
+        // AAA orange material created successfully
         return pbrMaterial
     }
     
@@ -251,8 +248,7 @@ class AAAPBRMaterials {
     
     static func createAAAMelonMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🍈 [PBR] Creating AAA melon material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // Creating AAA melon material (logging disabled)
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -260,30 +256,30 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "melon-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded melon diffuse texture")
+            // Melon diffuse texture loaded
         } else {
             // Fallback color matching cantaloupe melon
             let fallbackColor = NSColor(red: 1.0, green: 0.8, blue: 0.4, alpha: 1.0) // Orange-tan cantaloupe
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback melon color")
+            // Using fallback melon color
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "melon-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded melon normal map")
+            // print("✅ [PBR] Loaded melon normal map")
         } else {
-            print("⚠️ [PBR] Melon normal map not found")
+            // print("⚠️ [PBR] Melon normal map not found")
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "melon-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded melon roughness map")
+            // print("✅ [PBR] Loaded melon roughness map")
         } else {
             // Fallback: Textured melon rind with netting
             pbrMaterial.roughness = .init(floatLiteral: 0.8) // Rough netted surface
-            print("⚠️ [PBR] Using fallback melon roughness")
+            // print("⚠️ [PBR] Using fallback melon roughness")
         }
         
         // 🥇 METALLIC PROPERTIES: Melons are completely non-metallic
@@ -294,7 +290,7 @@ class AAAPBRMaterials {
             let emissionIntensity = min(0.2, (energyLevel - 1.0) * 0.08)
             let emissionColor = NSColor(red: 1.0, green: 0.9, blue: 0.6, alpha: 1.0) // Warm melon glow
             pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
-            print("✨ [PBR] Added melon energy glow: \(emissionIntensity)")
+            // print("✨ [PBR] Added melon energy glow: \(emissionIntensity)")
         }
         
         // 🍃 FRESHNESS EFFECTS: Fresh melons have consistent netted texture
@@ -302,14 +298,13 @@ class AAAPBRMaterials {
         let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.5, freshness)) * 0.2)
         pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
         
-        print("🏆 [PBR] AAA melon material created successfully!")
+        // print("🏆 [PBR] AAA melon material created successfully!")
         return pbrMaterial
     }
     
     static func createAAAMeatMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🥩 [PBR] Creating AAA meat material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // Creating AAA meat material (logging disabled)
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -317,30 +312,29 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "meat-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded meat diffuse texture")
+            // Meat diffuse texture loaded
         } else {
             // Fallback color matching raw red meat
             let fallbackColor = NSColor(red: 0.8, green: 0.2, blue: 0.15, alpha: 1.0) // Rich red meat color
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback meat color")
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "meat-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded meat normal map")
+            // print("✅ [PBR] Loaded meat normal map")
         } else {
-            print("⚠️ [PBR] Meat normal map not found")
+            // print("⚠️ [PBR] Meat normal map not found")
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "meat-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded meat roughness map")
+            // print("✅ [PBR] Loaded meat roughness map")
         } else {
             // Fallback: Slightly moist meat surface
             pbrMaterial.roughness = .init(floatLiteral: 0.6) // Moist but not wet
-            print("⚠️ [PBR] Using fallback meat roughness")
+            // print("⚠️ [PBR] Using fallback meat roughness")
         }
         
         // 🥇 METALLIC PROPERTIES: Meat is completely non-metallic
@@ -351,7 +345,7 @@ class AAAPBRMaterials {
             let emissionIntensity = min(0.15, (energyLevel - 1.0) * 0.06)
             let emissionColor = NSColor(red: 0.9, green: 0.3, blue: 0.2, alpha: 1.0) // Warm red meat glow
             pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
-            print("✨ [PBR] Added meat energy glow: \(emissionIntensity)")
+            // print("✨ [PBR] Added meat energy glow: \(emissionIntensity)")
         }
         
         // 🍃 FRESHNESS EFFECTS: Fresh meat has consistent moisture
@@ -359,14 +353,14 @@ class AAAPBRMaterials {
         let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.3, freshness)) * 0.4) // Gets rougher as it ages
         pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
         
-        print("🏆 [PBR] AAA meat material created successfully!")
+        // print("🏆 [PBR] AAA meat material created successfully!")
         return pbrMaterial
     }
     
     static func createAAAFishMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🐟 [PBR] Creating AAA fish material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // print("🐟 [PBR] Creating AAA fish material...")
+        // print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -374,30 +368,30 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "fish-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded fish diffuse texture")
+            // print("✅ [PBR] Loaded fish diffuse texture")
         } else {
             // Fallback color matching silvery fish scales
             let fallbackColor = NSColor(red: 0.7, green: 0.8, blue: 0.9, alpha: 1.0) // Silvery blue fish
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback fish color")
+            // print("⚠️ [PBR] Using fallback fish color")
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "fish-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded fish normal map")
+            // print("✅ [PBR] Loaded fish normal map")
         } else {
-            print("⚠️ [PBR] Fish normal map not found")
+            // print("⚠️ [PBR] Fish normal map not found")
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "fish-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded fish roughness map")
+            // print("✅ [PBR] Loaded fish roughness map")
         } else {
             // Fallback: Wet fish scales with some metallic reflection
             pbrMaterial.roughness = .init(floatLiteral: 0.2) // Smooth wet scales
-            print("⚠️ [PBR] Using fallback fish roughness")
+            // print("⚠️ [PBR] Using fallback fish roughness")
         }
         
         // 🥇 METALLIC PROPERTIES: Fish scales have natural metallic reflection
@@ -408,7 +402,7 @@ class AAAPBRMaterials {
             let emissionIntensity = min(0.3, (energyLevel - 1.0) * 0.1)
             let emissionColor = NSColor(red: 0.6, green: 0.8, blue: 1.0, alpha: 1.0) // Cool blue fish glow
             pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
-            print("✨ [PBR] Added fish energy glow: \(emissionIntensity)")
+            // print("✨ [PBR] Added fish energy glow: \(emissionIntensity)")
         }
         
         // 🍃 FRESHNESS EFFECTS: Fresh fish have bright, reflective scales
@@ -421,14 +415,14 @@ class AAAPBRMaterials {
         let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.4, freshness)) * 0.6)
         pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
         
-        print("🏆 [PBR] AAA fish material created successfully!")
+        // print("🏆 [PBR] AAA fish material created successfully!")
         return pbrMaterial
     }
     
     static func createAAASeedsMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🌱 [PBR] Creating AAA seeds material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // print("🌱 [PBR] Creating AAA seeds material...")
+        // print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -436,30 +430,30 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "seeds-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded seeds diffuse texture")
+            // print("✅ [PBR] Loaded seeds diffuse texture")
         } else {
             // Fallback color matching natural seed colors
             let fallbackColor = NSColor(red: 0.8, green: 0.7, blue: 0.5, alpha: 1.0) // Tan/brown seeds
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback seeds color")
+            // print("⚠️ [PBR] Using fallback seeds color")
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "seeds-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded seeds normal map")
+            // print("✅ [PBR] Loaded seeds normal map")
         } else {
-            print("⚠️ [PBR] Seeds normal map not found")
+            // print("⚠️ [PBR] Seeds normal map not found")
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "seeds-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded seeds roughness map")
+            // print("✅ [PBR] Loaded seeds roughness map")
         } else {
             // Fallback: Rough, matte seed surface
             pbrMaterial.roughness = .init(floatLiteral: 0.85) // Matte, non-reflective
-            print("⚠️ [PBR] Using fallback seeds roughness")
+            // print("⚠️ [PBR] Using fallback seeds roughness")
         }
         
         // 🥇 METALLIC PROPERTIES: Seeds are completely non-metallic organic matter
@@ -470,7 +464,7 @@ class AAAPBRMaterials {
             let emissionIntensity = min(0.2, (energyLevel - 1.0) * 0.07)
             let emissionColor = NSColor(red: 1.0, green: 0.9, blue: 0.6, alpha: 1.0) // Warm golden seed glow
             pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
-            print("✨ [PBR] Added seeds energy glow: \(emissionIntensity)")
+            // print("✨ [PBR] Added seeds energy glow: \(emissionIntensity)")
         }
         
         // 🍃 FRESHNESS EFFECTS: Fresh seeds have smoother surfaces, aged ones get rougher
@@ -478,14 +472,14 @@ class AAAPBRMaterials {
         let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.4, freshness)) * 0.2)
         pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
         
-        print("🏆 [PBR] AAA seeds material created successfully!")
+        // print("🏆 [PBR] AAA seeds material created successfully!")
         return pbrMaterial
     }
     
     static func createAAANutsMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🥜 [PBR] Creating AAA nuts material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // print("🥜 [PBR] Creating AAA nuts material...")
+        // print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -493,30 +487,30 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "nuts-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded nuts diffuse texture")
+            // print("✅ [PBR] Loaded nuts diffuse texture")
         } else {
             // Fallback color matching mixed nuts
             let fallbackColor = NSColor(red: 0.7, green: 0.5, blue: 0.3, alpha: 1.0) // Rich brown nuts
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback nuts color")
+            // print("⚠️ [PBR] Using fallback nuts color")
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "nuts-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded nuts normal map")
+            // print("✅ [PBR] Loaded nuts normal map")
         } else {
-            print("⚠️ [PBR] Nuts normal map not found")
+            // print("⚠️ [PBR] Nuts normal map not found")
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "nuts-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded nuts roughness map")
+            // print("✅ [PBR] Loaded nuts roughness map")
         } else {
             // Fallback: Slightly rough nut shell surface
             pbrMaterial.roughness = .init(floatLiteral: 0.75) // Natural shell texture
-            print("⚠️ [PBR] Using fallback nuts roughness")
+            // print("⚠️ [PBR] Using fallback nuts roughness")
         }
         
         // 🥇 METALLIC PROPERTIES: Nuts are completely non-metallic organic matter
@@ -527,7 +521,7 @@ class AAAPBRMaterials {
             let emissionIntensity = min(0.25, (energyLevel - 1.0) * 0.08)
             let emissionColor = NSColor(red: 0.9, green: 0.7, blue: 0.4, alpha: 1.0) // Warm nutty glow
             pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
-            print("✨ [PBR] Added nuts energy glow: \(emissionIntensity)")
+            // print("✨ [PBR] Added nuts energy glow: \(emissionIntensity)")
         }
         
         // 🍃 FRESHNESS EFFECTS: Fresh nuts have smoother shells, aged ones get rougher
@@ -535,7 +529,7 @@ class AAAPBRMaterials {
         let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.3, freshness)) * 0.3)
         pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
         
-        print("🏆 [PBR] AAA nuts material created successfully!")
+        // print("🏆 [PBR] AAA nuts material created successfully!")
         return pbrMaterial
     }
     
@@ -553,12 +547,12 @@ class AAAPBRMaterials {
         
         // Load from assets
         guard let image = NSImage(named: name) else {
-            print("❌ [PBR] Failed to load image: \(name)")
+            // print("❌ [PBR] Failed to load image: \(name)")
             return nil
         }
         
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: [:]) else {
-            print("❌ [PBR] Failed to convert image to CGImage: \(name)")
+            // print("❌ [PBR] Failed to convert image to CGImage: \(name)")
             return nil
         }
         
@@ -579,11 +573,11 @@ class AAAPBRMaterials {
             // Cache for future use
             textureCache[name] = textureResource
             
-            print("✅ [PBR] Loaded and cached texture: \(name)")
+            // print("✅ [PBR] Loaded and cached texture: \(name)")
             return textureResource
             
         } catch {
-            print("❌ [PBR] Failed to create TextureResource for \(name): \(error)")
+            // print("❌ [PBR] Failed to create TextureResource for \(name): \(error)")
             return nil
         }
     }
@@ -642,7 +636,7 @@ class AAAPBRMaterials {
     /// Clears texture cache to free memory
     static func clearTextureCache() {
         textureCache.removeAll()
-        print("🗑️ [PBR] Texture cache cleared")
+        // print("🗑️ [PBR] Texture cache cleared")
     }
     
     /// Returns current cache size for debugging

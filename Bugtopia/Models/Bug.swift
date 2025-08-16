@@ -752,8 +752,8 @@ class Bug: Identifiable, Hashable {
         }
     }
     
-    /// Updates movement based on current target and terrain constraints
-    private func updateMovement(in arena: Arena) {
+    /// Updates movement based on current target and terrain constraints with pheromone enhancement
+    private func updateMovement(in arena: Arena, pheromoneManager: PheromoneFieldManager? = nil) {
         var newVelocity = CGPoint.zero
         
         // Get current terrain modifiers
@@ -762,23 +762,41 @@ class Bug: Identifiable, Hashable {
         
         // Move toward target food if available
         if let target = targetFood {
-            // Use memory for smarter pathfinding
-            if dna.memory > 0.7 {
-                // Smart pathfinding for high-memory bugs
-                let path = arena.findPath(from: position, to: target, for: dna)
-                if path.count > 1, path.indices.contains(1) {
-                    let nextWaypoint = path[1]
+            // 🧪 PHEROMONE-ENHANCED PATHFINDING: Use GameplayKit intelligence if available
+            if let pheromoneManager = pheromoneManager {
+                let enhancedPath = findPheromoneEnhancedPath(to: target, pheromoneManager: pheromoneManager)
+                if enhancedPath.count > 1 {
+                    let nextWaypoint = enhancedPath[1]
                     let direction = normalize(CGPoint(x: nextWaypoint.x - position.x, y: nextWaypoint.y - position.y))
                     newVelocity = CGPoint(x: direction.x * terrainSpeed, y: direction.y * terrainSpeed)
-                } else if let firstWaypoint = path.first {
-                    // Fallback to direct movement if pathfinding fails
-                    let direction = normalize(CGPoint(x: firstWaypoint.x - position.x, y: firstWaypoint.y - position.y))
+                    
+                    // 🧪 LAY FOOD-SEEKING TRAIL: Help other bugs find good routes
+                    layPheromoneTrail(signalType: .foodFound, strength: 0.3, pheromoneManager: pheromoneManager)
+                    
+                } else {
+                    // Fallback to direct movement
+                    let direction = normalize(CGPoint(x: target.x - position.x, y: target.y - position.y))
                     newVelocity = CGPoint(x: direction.x * terrainSpeed, y: direction.y * terrainSpeed)
                 }
             } else {
-                // Direct movement for low-memory bugs
-                let direction = normalize(CGPoint(x: target.x - position.x, y: target.y - position.y))
-                newVelocity = CGPoint(x: direction.x * terrainSpeed, y: direction.y * terrainSpeed)
+                // Use memory for smarter pathfinding (original logic)
+                if dna.memory > 0.7 {
+                    // Smart pathfinding for high-memory bugs
+                    let path = arena.findPath(from: position, to: target, for: dna)
+                    if path.count > 1, path.indices.contains(1) {
+                        let nextWaypoint = path[1]
+                        let direction = normalize(CGPoint(x: nextWaypoint.x - position.x, y: nextWaypoint.y - position.y))
+                        newVelocity = CGPoint(x: direction.x * terrainSpeed, y: direction.y * terrainSpeed)
+                    } else if let firstWaypoint = path.first {
+                        // Fallback to direct movement if pathfinding fails
+                        let direction = normalize(CGPoint(x: firstWaypoint.x - position.x, y: firstWaypoint.y - position.y))
+                        newVelocity = CGPoint(x: direction.x * terrainSpeed, y: direction.y * terrainSpeed)
+                    }
+                } else {
+                    // Direct movement for low-memory bugs
+                    let direction = normalize(CGPoint(x: target.x - position.x, y: target.y - position.y))
+                    newVelocity = CGPoint(x: direction.x * terrainSpeed, y: direction.y * terrainSpeed)
+                }
             }
         } else {
             // Exploration behavior based on curiosity
