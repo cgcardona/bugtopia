@@ -84,7 +84,7 @@ class Bug: Identifiable, Hashable {
     
     static let maxEnergy: Double = 100.0
     static let initialEnergy: Double = 80.0  // Increased from 50 to give more survival time
-    static let energyLossPerTick: Double = 0.08  // Reduced to 0.08 for better sustainability (2.4/sec)
+    static let energyLossPerTick: Double = 0.04  // 🍎 SURVIVAL FIX: Reduced to 0.04 for realistic sustainability (1.2/sec)
     static let reproductionThreshold: Double = 55.0  // Reduced to make reproduction easier
     static let reproductionCost: Double = 20.0  // Reduced from 30 to encourage reproduction
     static let maxAge: Int = 1000
@@ -454,38 +454,11 @@ class Bug: Identifiable, Hashable {
                 y: huntVelocity.y * 0.7 + neuralVelocity.y * 0.3
             )
         }
-        // 3. 🍎 FOOD SEEKING - HIGH PRIORITY for survival (increased threshold for food seeking)
-        else if let target = targetFood, decision.exploration < 0.6 {
-            let rawDirection = CGPoint(x: target.x - position.x, y: target.y - position.y)
-            let distanceToFood = sqrt(rawDirection.x * rawDirection.x + rawDirection.y * rawDirection.y)
-            
-            // 🍎 FOOD CONSUMPTION FIX: When very close to food, move slowly and precisely
-            if distanceToFood < 5.0 {
-                // Close to food - use slow, precise movement for consumption
-                let preciseDirection = normalize(rawDirection)
-                finalVelocity = CGPoint(
-                    x: preciseDirection.x * terrainSpeed * 0.3,  // Slow down near food
-                    y: preciseDirection.y * terrainSpeed * 0.3
-                )
-                
-                // Precise food approach movement
-            } else {
-                let direction = normalize(rawDirection)
-                let foodVelocity = CGPoint(
-                    x: direction.x * terrainSpeed,
-                    y: direction.y * terrainSpeed
-                )
-                
-                // 🍎 SURVIVAL PRIORITY: Heavily weight food seeking over neural exploration
-                finalVelocity = CGPoint(
-                    x: foodVelocity.x * 0.85 + neuralVelocity.x * 0.15,  // 85% food seeking!
-                    y: foodVelocity.y * 0.85 + neuralVelocity.y * 0.15
-                )
-                
-                // Food seeking blend applied
-            }
+        // 4. PURE NEURAL EXPLORATION - lowest priority (when not hungry/threatened)
+        else {
+            // Pure neural network movement
+            finalVelocity = neuralVelocity
         }
-        // 4. PURE NEURAL EXPLORATION - lowest priority
         
         velocity = finalVelocity
         
