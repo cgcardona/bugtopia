@@ -58,8 +58,15 @@ graph TB
 
 ### 💎 Token Economics
 
-**Initial Supply**: 1,000,000,000 $BUG (1B total)
-**Distribution Strategy**:
+**Native Token Supply**: 1,000,000,000 $BUG (1B total) - **Native to Bugtopia L1 blockchain**
+
+**Initial Distribution (Avalanche-CLI Auto-Allocation)**:
+- **Main Funded Account**: 1,000,000 BUG (for ecosystem development)
+- **Development Account (ewoq)**: 10 BUG (for testing and deployment)
+- **ICM System**: 600 BUG (for interchain messaging)
+- **System Accounts**: Various amounts for network operations
+
+**Distribution Strategy (Post-Launch)**:
 - 30% - Community Rewards & Airdrops
 - 25% - Development Team (4-year vesting)
 - 20% - Ecosystem Development Fund
@@ -70,6 +77,8 @@ graph TB
 - **Inflationary Pressure**: 2% annual emission for staking rewards
 - **Deflationary Mechanisms**: 15-30% burn rate on utility functions
 - **Net Supply**: Designed to be deflationary post-Year 2
+- **Native Implementation**: BUG is the native gas token on Bugtopia L1, not an ERC-20 contract
+- **Gas Economics**: All transaction fees paid in BUG, creating circular economy
 
 ---
 
