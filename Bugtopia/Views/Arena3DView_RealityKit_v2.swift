@@ -39,9 +39,9 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
     @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
-    @State private var cameraPosition = SIMD3<Float>(112, 100, 50)   // 🎮 BETTER VIEW: Lower and closer for optimal perspective  
-    @State private var cameraPitch: Float = -0.3  // 🎮 GENTLE ANGLE: 17° downward for better horizon view
-    @State private var cameraYaw: Float = Float.pi     // 🎮 FIXED: Look AT the world (180°), not away from it
+    @State private var cameraPosition = SIMD3<Float>(100, 80, 100)   // 🎮 COMPELLING VIEW: Positioned for screenshot 3 perspective
+    @State private var cameraPitch: Float = -0.6  // 🎮 BETTER ANGLE: More downward angle to see ecosystem clearly
+    @State private var cameraYaw: Float = Float.pi * 0.75     // 🎮 ANGLED VIEW: 135° for better terrain and ecosystem visibility
     
     // MARK: - Selection System
     
@@ -3023,7 +3023,7 @@ extension Arena3DView_RealityKit_v2 {
         
         let currentPos = anchor.position
         var newPos = currentPos
-        let moveSpeed: Float = 10.0  // Consistent with minimal implementation
+        let moveSpeed: Float = 2.0  // 🎮 SMOOTH MOVEMENT: Gentle camera movement for exploration
         
         // FIXED: Use axis-aligned movement vectors for proper WASD navigation
         switch direction {
