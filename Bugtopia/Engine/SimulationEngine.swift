@@ -296,19 +296,19 @@ class SimulationEngine {
         
         // 🍎 PRODUCTION: Setup evenly distributed food across entire arena
         foods.removeAll()
-        let initialFoodCount = 1   // 🍊 STYLING: Single orange for AAA quality focus
+        let initialFoodCount = 1   // 🍣 STYLING: Single tuna for AAA quality focus
         
-        // 🍊 STYLING: Position single orange near origin for easy camera positioning
-        let orangeX = 50.0   // Close to origin but not exactly at 0,0
-        let orangeY = 50.0   // Close to origin but not exactly at 0,0
-        let orangePosition = CGPoint(x: orangeX, y: orangeY)
+        // 🍣 STYLING: Position single tuna near origin for easy camera positioning
+        let tunaX = 50.0   // Close to origin but not exactly at 0,0
+        let tunaY = 50.0   // Close to origin but not exactly at 0,0
+        let tunaPosition = CGPoint(x: tunaX, y: tunaY)
         
-        // Create single AAA-quality orange
-        let orange = FoodItem(position: orangePosition, type: .orange, targetSpecies: .herbivore)
-        foods.append(orange)
+        // Create single AAA-quality grilled steak
+        let grilledSteak = FoodItem(position: tunaPosition, type: .grilledSteak, targetSpecies: .carnivore)
+        foods.append(grilledSteak)
         
-        print("🍊 [STYLING] Created single orange near origin: (\(orangeX), \(orangeY))")
-        print("🍊 [SETUP] Initial food created: \(foods.count) food items")
+        print("🔥 [STYLING] Created single grilled steak near origin: (\(tunaX), \(tunaY))")
+        print("🍣 [SETUP] Initial food created: \(foods.count) food items")
     }
     
     // MARK: - Simulation Control
@@ -436,19 +436,19 @@ class SimulationEngine {
         
         // 🍎 PRODUCTION: Setup evenly distributed food across entire arena (reset)
         foods.removeAll()
-        let initialFoodCount = 1   // 🍊 STYLING: Single orange for AAA quality focus
+        let initialFoodCount = 1   // 🍣 STYLING: Single tuna for AAA quality focus
         
-        // 🍊 STYLING: Position single orange near origin for easy camera positioning
-        let orangeX = 50.0   // Close to origin but not exactly at 0,0
-        let orangeY = 50.0   // Close to origin but not exactly at 0,0
-        let orangePosition = CGPoint(x: orangeX, y: orangeY)
+        // 🍣 STYLING: Position single tuna near origin for easy camera positioning
+        let tunaX = 50.0   // Close to origin but not exactly at 0,0
+        let tunaY = 50.0   // Close to origin but not exactly at 0,0
+        let tunaPosition = CGPoint(x: tunaX, y: tunaY)
         
-        // Create single AAA-quality orange
-        let orange = FoodItem(position: orangePosition, type: .orange, targetSpecies: .herbivore)
-        foods.append(orange)
+        // Create single AAA-quality grilled steak
+        let grilledSteak = FoodItem(position: tunaPosition, type: .grilledSteak, targetSpecies: .carnivore)
+        foods.append(grilledSteak)
         
-        print("🍊 [STYLING] Created single orange near origin: (\(orangeX), \(orangeY))")
-        print("🍊 [RESET] Food created: \(foods.count) food items")
+        print("🔥 [STYLING] Created single grilled steak near origin: (\(tunaX), \(tunaY))")
+        print("🍣 [RESET] Food created: \(foods.count) food items")
         
         // Skip spawnInitialResources for now in debug mode
         
@@ -1511,8 +1511,11 @@ class SimulationEngine {
         case .orange: return "🍊"
         case .melon: return "🍈"
         case .blackberry: return "🫐"
-        case .meat: return "🥩"
-        case .fish: return "🐟"
+        case .tuna: return "🍣"
+        case .mediumSteak: return "🥩"
+        case .rawFlesh: return "🩸"
+        case .rawSteak: return "🥩"
+        case .grilledSteak: return "🔥"
         case .seeds: return "🌱"
         case .nuts: return "🥜"
         }

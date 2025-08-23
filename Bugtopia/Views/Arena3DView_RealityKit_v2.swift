@@ -1238,15 +1238,30 @@ struct Arena3DView_RealityKit_v2: View {
             let blackberryMesh = AAAFoodGeometry.createStandardBlackberry()
             return blackberryMesh
             
-        case .meat:
-            // 🥩 MEAT: AAA PHOTOREALISTIC MODEL with organic chunky shape!
-            let meatMesh = AAAFoodGeometry.createStandardMeat()
-            return meatMesh
+        case .tuna:
+            // 🍣 TUNA: AAA PHOTOREALISTIC SUSHI PIECE with rectangular shape!
+            let tunaMesh = AAAFoodGeometry.createAAATunaMesh()
+            return tunaMesh
             
-        case .fish:
-            // 🐟 FISH: AAA PHOTOREALISTIC MODEL with streamlined aquatic shape!
-            let fishMesh = AAAFoodGeometry.createStandardFish()
-            return fishMesh
+        case .mediumSteak:
+            // 🥩 MEDIUM STEAK: AAA PHOTOREALISTIC STEAK with realistic proportions!
+            let steakMesh = AAAFoodGeometry.createAAAMediumSteakMesh()
+            return steakMesh
+            
+        case .rawFlesh:
+            // 🩸 RAW FLESH: AAA ORGANIC GLOB with irregular, natural shape!
+            let fleshMesh = AAAFoodGeometry.createAAARawFleshMesh()
+            return fleshMesh
+            
+        case .rawSteak:
+            // 🥩 RAW STEAK: AAA PHOTOREALISTIC STEAK with raw appearance!
+            let rawSteakMesh = AAAFoodGeometry.createAAARawSteakMesh()
+            return rawSteakMesh
+            
+        case .grilledSteak:
+            // 🔥 GRILLED STEAK: AAA PHOTOREALISTIC STEAK with perfect grill marks!
+            let grilledSteakMesh = AAAFoodGeometry.createAAAGrilledSteakMesh()
+            return grilledSteakMesh
             
         case .seeds:
             // 🌱 SEEDS: AAA PHOTOREALISTIC MODEL with clustered seed arrangement!
@@ -1263,8 +1278,8 @@ struct Arena3DView_RealityKit_v2: View {
     @available(macOS 14.0, *)
     private func createFoodMaterial(for food: FoodItem) -> RealityKit.Material {
         
-        // 🍎🍊🍇🍈🫐🥩🐟🌱🥜 AAA PBR MATERIALS: Check if this food type has AAA materials!
-        if [.plum, .apple, .orange, .melon, .blackberry, .meat, .fish, .seeds, .nuts].contains(food.type) {
+        // 🍎🍊🍇🍈🫐🍣🥩🩸🥩🔥🌱🥜 AAA PBR MATERIALS: Check if this food type has AAA materials!
+        if [.plum, .apple, .orange, .melon, .blackberry, .tuna, .mediumSteak, .rawFlesh, .rawSteak, .grilledSteak, .seeds, .nuts].contains(food.type) {
             // 🎨 Creating photorealistic PBR \(food.type.rawValue) material...
             let energyFactor = Float(food.energyValue / 50.0) // Normalize energy
             return AAAPBRMaterials.createAAAFoodMaterial(
@@ -1315,13 +1330,25 @@ struct Arena3DView_RealityKit_v2: View {
             // 🫐 FRESH BLACKBERRY: Deep purple-black with slight gloss
             return (NSColor(red: 0.15, green: 0.05, blue: 0.25, alpha: 1.0), 0.4, 0.0)
             
-        case .meat:
-            // 🥩 RAW MEAT: Rich red-brown with organic texture
-            return (NSColor(red: 0.6, green: 0.3, blue: 0.2, alpha: 1.0), 0.8, 0.0)
+        case .tuna:
+            // 🍣 SUSHI TUNA: Deep red with smooth fresh surface
+            return (NSColor(red: 0.8, green: 0.3, blue: 0.3, alpha: 1.0), 0.15, 0.1)
             
-        case .fish:
-            // 🐟 FRESH FISH: Silver-blue with slight shimmer
-            return (NSColor(red: 0.7, green: 0.8, blue: 0.9, alpha: 1.0), 0.3, 0.4)
+        case .mediumSteak:
+            // 🥩 MEDIUM STEAK: Rich brown with cooked surface texture
+            return (NSColor(red: 0.7, green: 0.3, blue: 0.2, alpha: 1.0), 0.6, 0.05)
+            
+        case .rawFlesh:
+            // 🩸 RAW FLESH: Deep red with wet, organic surface
+            return (NSColor(red: 0.9, green: 0.2, blue: 0.2, alpha: 1.0), 0.7, 0.0)
+            
+        case .rawSteak:
+            // 🥩 RAW STEAK: Deep red with raw meat texture
+            return (NSColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0), 0.6, 0.0)
+            
+        case .grilledSteak:
+            // 🔥 GRILLED STEAK: Cooked brown with grill marks
+            return (NSColor(red: 0.6, green: 0.3, blue: 0.2, alpha: 1.0), 0.4, 0.0)
             
         case .seeds:
             // 🌱 SEEDS: Golden yellow with matte finish

@@ -38,9 +38,12 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
     case melon = "melon"
     case blackberry = "blackberry"
     
-    // Future: Carnivore Foods (for expansion)
-    case meat = "meat"
-    case fish = "fish"
+    // Carnivore Foods
+    case tuna = "tuna"
+    case mediumSteak = "mediumSteak"
+    case rawFlesh = "rawFlesh"
+    case rawSteak = "rawSteak"
+    case grilledSteak = "grilledSteak"
     
     // Future: Omnivore Foods
     case seeds = "seeds"
@@ -56,9 +59,12 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         case .melon: return 60.0    // 10x multiplier (rare)
         case .blackberry: return 35.0  // Sweet berries (common)
         
-        // Carnivore foods (future)
-        case .meat: return 45.0
-        case .fish: return 35.0
+        // Carnivore foods
+        case .tuna: return 25.0  // High protein fish
+        case .mediumSteak: return 55.0  // Premium cooked steak
+        case .rawFlesh: return 40.0  // Raw meat - high protein but uncooked
+        case .rawSteak: return 50.0  // Raw steak - premium cut, high protein
+        case .grilledSteak: return 60.0  // Grilled steak - perfectly cooked, highest energy
         
         // Omnivore foods (future)
         case .seeds: return 20.0
@@ -74,8 +80,11 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         case .orange: return Color.orange
         case .melon: return Color.green
         case .blackberry: return Color.black
-        case .meat: return Color.brown
-        case .fish: return Color.blue
+        case .tuna: return Color(red: 0.8, green: 0.4, blue: 0.4) // Pinkish tuna color
+        case .mediumSteak: return Color(red: 0.7, green: 0.3, blue: 0.2) // Medium-rare steak color
+        case .rawFlesh: return Color(red: 0.9, green: 0.2, blue: 0.2) // Deep red raw flesh
+        case .rawSteak: return Color(red: 0.8, green: 0.2, blue: 0.2) // Raw steak color
+        case .grilledSteak: return Color(red: 0.6, green: 0.3, blue: 0.2) // Grilled steak color
         case .seeds: return Color.yellow
         case .nuts: return Color(red: 0.6, green: 0.4, blue: 0.2) // Brown
         }
@@ -86,7 +95,7 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         switch self {
         case .plum, .apple, .blackberry: return .common      // 70% of spawns
         case .orange, .melon: return .rare      // 30% of spawns
-        case .meat, .fish: return .common       // For carnivores
+        case .tuna, .mediumSteak, .rawFlesh, .rawSteak, .grilledSteak: return .common       // For carnivores
         case .seeds, .nuts: return .common      // For omnivores
         }
     }
@@ -96,7 +105,7 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         switch self {
         case .plum, .apple, .orange, .melon, .blackberry:
             return [.herbivore, .omnivore]
-        case .meat, .fish:
+        case .tuna, .mediumSteak, .rawFlesh, .rawSteak, .grilledSteak:
             return [.carnivore, .omnivore]
         case .seeds, .nuts:
             return [.omnivore] // Could be eaten by all but optimized for omnivores
@@ -111,8 +120,11 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         case .orange: return "Orange"
         case .melon: return "Melon"
         case .blackberry: return "Blackberry"
-        case .meat: return "Meat"
-        case .fish: return "Fish"
+        case .tuna: return "Tuna"
+        case .mediumSteak: return "Medium Steak"
+        case .rawFlesh: return "Raw Flesh"
+        case .rawSteak: return "Raw Steak"
+        case .grilledSteak: return "Grilled Steak"
         case .seeds: return "Seeds"
         case .nuts: return "Nuts"
         }
@@ -126,8 +138,11 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         case .orange: return [.tropicalRainforest, .savanna]
         case .melon: return [.temperateGrassland, .savanna]
         case .blackberry: return [.temperateForest, .borealForest, .temperateGrassland]
-        case .meat: return [.tundra, .temperateGrassland, .savanna] // Where prey animals are
-        case .fish: return [.wetlands, .coastal] // Near water sources
+        case .tuna: return [.coastal] // Deep ocean fish
+        case .mediumSteak: return [.temperateGrassland, .savanna] // Premium cooked meat
+        case .rawFlesh: return [.tundra, .savanna, .desert] // Scavenged from harsh environments
+        case .rawSteak: return [.temperateGrassland, .savanna] // Premium raw cut
+        case .grilledSteak: return [.temperateGrassland, .savanna] // Premium grilled cuisine
         case .seeds: return [.temperateGrassland, .desert, .savanna]
         case .nuts: return [.temperateForest, .borealForest, .tropicalRainforest]
         }
@@ -141,8 +156,11 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         case .orange: return [.winter, .spring] // Citrus season
         case .melon: return [.summer] // Peak summer fruit
         case .blackberry: return [.summer, .fall] // Berry season
-        case .meat: return [.fall, .winter] // Hunting season
-        case .fish: return [.spring, .summer] // Active fish season
+        case .tuna: return [.summer, .fall] // Peak tuna season
+        case .mediumSteak: return [.fall, .winter] // Premium cooking season
+        case .rawFlesh: return [.winter, .spring] // Scavenging season
+        case .rawSteak: return [.fall, .winter] // Premium hunting season
+        case .grilledSteak: return [.summer, .fall] // Grilling season
         case .seeds: return [.fall] // Seed collection time
         case .nuts: return [.fall] // Nut gathering season
         }

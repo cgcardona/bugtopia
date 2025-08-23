@@ -38,10 +38,16 @@ class AAAPBRMaterials {
             return createAAAMelonMaterial(energyLevel: energyLevel, freshness: freshness)
         case .blackberry:
             return createAAABlackberryMaterial(energyLevel: energyLevel, freshness: freshness)
-        case .meat:
-            return createAAAMeatMaterial(energyLevel: energyLevel, freshness: freshness)
-        case .fish:
-            return createAAAFishMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .tuna:
+            return createAAATunaMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .mediumSteak:
+            return createAAAMediumSteakMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .rawFlesh:
+            return createAAARawFleshMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .rawSteak:
+            return createAAARawSteakMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .grilledSteak:
+            return createAAAGrilledSteakMaterial(energyLevel: energyLevel, freshness: freshness)
         case .seeds:
             return createAAASeedsMaterial(energyLevel: energyLevel, freshness: freshness)
         case .nuts:
@@ -515,6 +521,358 @@ class AAAPBRMaterials {
         pbrMaterial.roughness = .init(floatLiteral: min(1.0, adjustedRoughness))
         
         // print("🏆 [PBR] AAA fish material created successfully!")
+        return pbrMaterial
+    }
+    
+    static func createAAATunaMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        
+        print("🍣 [PBR] Creating AAA sushi-grade tuna material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "tuna-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded tuna diffuse texture")
+        } else {
+            // Fallback color: Deep red sushi tuna
+            let fallbackColor = NSColor(red: 0.8, green: 0.3, blue: 0.3, alpha: 1.0) // Deep red tuna
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback sushi tuna color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "tuna-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded tuna normal map")
+        } else {
+            print("⚠️ [PBR] Tuna normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "tuna-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded tuna roughness map")
+        } else {
+            // Fallback: Fresh sushi tuna is smooth and slightly moist
+            pbrMaterial.roughness = .init(floatLiteral: 0.15) // Very smooth, fresh cut
+            print("⚠️ [PBR] Using fallback tuna roughness")
+        }
+        
+        // 🌫️ LOAD AMBIENT OCCLUSION MAP (Depth and Shadow Detail)
+        if let aoTexture = loadTexture(named: "tuna-ao") {
+            pbrMaterial.ambientOcclusion = .init(texture: .init(aoTexture))
+            print("✅ [PBR] Loaded tuna AO map")
+        } else {
+            print("⚠️ [PBR] Tuna AO map not found")
+        }
+        
+        // 🥇 METALLIC PROPERTIES: Fresh tuna has subtle sheen but not metallic
+        pbrMaterial.metallic = .init(floatLiteral: 0.1) // Minimal metallic, more organic
+        
+        // 🌟 ENERGY-BASED ENHANCEMENT
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.2, (energyLevel - 1.0) * 0.08)
+            let emissionColor = NSColor(red: 1.0, green: 0.4, blue: 0.4, alpha: 1.0) // Warm red glow
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+            // print("✨ [PBR] Added tuna energy glow: \(emissionIntensity)")
+        }
+        
+        // 🍃 FRESHNESS EFFECTS: Fresh sushi tuna is smooth and vibrant
+        let baseRoughness: Float = 0.15
+        let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.5, freshness)) * 0.4)
+        pbrMaterial.roughness = .init(floatLiteral: min(0.6, adjustedRoughness))
+        
+        // Fresh tuna has more vibrant color, older tuna gets duller
+        if freshness < 0.7 {
+            let dullnessFactor = 1.0 - (freshness * 0.3)
+            let dullColor = NSColor(red: 0.6, green: 0.25, blue: 0.25, alpha: 1.0) // Duller red
+            pbrMaterial.baseColor = .init(tint: dullColor)
+        }
+        
+        print("🏆 [PBR] AAA sushi tuna material created successfully!")
+        return pbrMaterial
+    }
+    
+    static func createAAAMediumSteakMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        
+        print("🥩 [PBR] Creating AAA medium steak material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "steak-medium-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded medium steak diffuse texture")
+        } else {
+            // Fallback color: Medium-rare steak color
+            let fallbackColor = NSColor(red: 0.7, green: 0.3, blue: 0.2, alpha: 1.0) // Medium-rare red-brown
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback medium steak color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "steak-medium-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded medium steak normal map")
+        } else {
+            print("⚠️ [PBR] Medium steak normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "steak-medium-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded medium steak roughness map")
+        } else {
+            // Fallback: Cooked steak has moderate roughness
+            pbrMaterial.roughness = .init(floatLiteral: 0.6) // Cooked surface texture
+            print("⚠️ [PBR] Using fallback medium steak roughness")
+        }
+        
+        // 🌫️ LOAD AMBIENT OCCLUSION MAP (Depth and Shadow Detail)
+        if let aoTexture = loadTexture(named: "steak-medium-ao") {
+            pbrMaterial.ambientOcclusion = .init(texture: .init(aoTexture))
+            print("✅ [PBR] Loaded medium steak AO map")
+        } else {
+            print("⚠️ [PBR] Medium steak AO map not found")
+        }
+        
+        // 🥇 METALLIC PROPERTIES: Cooked steak has minimal metallic properties
+        pbrMaterial.metallic = .init(floatLiteral: 0.05) // Very minimal metallic, organic surface
+        
+        // 🌟 ENERGY-BASED ENHANCEMENT
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.15, (energyLevel - 1.0) * 0.06)
+            let emissionColor = NSColor(red: 0.8, green: 0.4, blue: 0.2, alpha: 1.0) // Warm steak glow
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+        }
+        
+        // 🍃 FRESHNESS EFFECTS: Fresh steak is more vibrant and less rough
+        let baseRoughness: Float = 0.6
+        let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.5, freshness)) * 0.3)
+        pbrMaterial.roughness = .init(floatLiteral: min(0.8, adjustedRoughness))
+        
+        // Fresh steak has more vibrant color, older steak gets grayer
+        if freshness < 0.7 {
+            let grayColor = NSColor(red: 0.5, green: 0.3, blue: 0.2, alpha: 1.0) // Grayer steak
+            pbrMaterial.baseColor = .init(tint: grayColor)
+        }
+        
+        print("🏆 [PBR] AAA medium steak material created successfully!")
+        return pbrMaterial
+    }
+    
+    static func createAAARawFleshMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        
+        print("🩸 [PBR] Creating AAA raw flesh material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "flesh-raw-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded raw flesh diffuse texture")
+        } else {
+            // Fallback: Deep red raw flesh color
+            let fallbackColor = NSColor(red: 0.9, green: 0.2, blue: 0.2, alpha: 1.0)
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback raw flesh color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail) - RealityKit doesn't support normal scale
+        if let normalTexture = loadTexture(named: "flesh-raw-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded raw flesh normal map")
+        } else {
+            print("⚠️ [PBR] Raw flesh normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "flesh-raw-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded raw flesh roughness map")
+        } else {
+            // Fallback: Raw flesh is quite rough and wet
+            pbrMaterial.roughness = .init(floatLiteral: 0.7)
+            print("⚠️ [PBR] Using fallback raw flesh roughness")
+        }
+        
+        // 🌫️ LOAD AMBIENT OCCLUSION MAP (Depth/Shadows)
+        if let aoTexture = loadTexture(named: "flesh-raw-ao") {
+            pbrMaterial.ambientOcclusion = .init(texture: .init(aoTexture))
+            print("✅ [PBR] Loaded raw flesh AO map")
+        } else {
+            print("⚠️ [PBR] Raw flesh AO map not found")
+        }
+        
+        // 🔧 MATERIAL PROPERTIES: Raw flesh characteristics
+        pbrMaterial.metallic = .init(floatLiteral: 0.0)  // Organic material, not metallic
+        
+        // 💡 ENERGY-BASED EFFECTS: High energy raw flesh might have slight glow
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.15, (energyLevel - 1.0) * 0.06)
+            let emissionColor = NSColor(red: 1.0, green: 0.3, blue: 0.3, alpha: 1.0)
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+        }
+        
+        // 🦠 FRESHNESS EFFECTS: Less fresh = more dull and rough
+        let baseRoughness: Float = 0.7
+        let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.3, freshness)) * 0.5)
+        pbrMaterial.roughness = .init(floatLiteral: min(0.9, adjustedRoughness))
+        
+        // Color degradation for less fresh flesh
+        if freshness < 0.6 {
+            let dullColor = NSColor(red: 0.7, green: 0.15, blue: 0.15, alpha: 1.0)
+            pbrMaterial.baseColor = .init(tint: dullColor)
+        }
+        
+        print("🏆 [PBR] AAA raw flesh material created successfully!")
+        return pbrMaterial
+    }
+    
+    static func createAAARawSteakMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        
+        print("🥩 [PBR] Creating AAA raw steak material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "steak-raw-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded raw steak diffuse texture")
+        } else {
+            // Fallback: Raw steak color
+            let fallbackColor = NSColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0)
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback raw steak color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "steak-raw-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded raw steak normal map")
+        } else {
+            print("⚠️ [PBR] Raw steak normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "steak-raw-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded raw steak roughness map")
+        } else {
+            // Fallback: Raw steak surface properties
+            pbrMaterial.roughness = .init(floatLiteral: 0.6)
+            print("⚠️ [PBR] Using fallback raw steak roughness")
+        }
+        
+        // 🌫️ LOAD AMBIENT OCCLUSION MAP (Depth/Shadows)
+        if let aoTexture = loadTexture(named: "steak-raw-ao") {
+            pbrMaterial.ambientOcclusion = .init(texture: .init(aoTexture))
+            print("✅ [PBR] Loaded raw steak AO map")
+        } else {
+            print("⚠️ [PBR] Raw steak AO map not found")
+        }
+        
+        // 🔧 MATERIAL PROPERTIES: Raw steak characteristics
+        pbrMaterial.metallic = .init(floatLiteral: 0.0)  // Organic material, not metallic
+        
+        // 💡 ENERGY-BASED EFFECTS: High energy raw steak might have slight glow
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.1, (energyLevel - 1.0) * 0.05)
+            let emissionColor = NSColor(red: 1.0, green: 0.3, blue: 0.3, alpha: 1.0)
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+        }
+        
+        // 🥩 FRESHNESS EFFECTS: Less fresh = more dull and rough
+        let baseRoughness: Float = 0.6
+        let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.4, freshness)) * 0.4)
+        pbrMaterial.roughness = .init(floatLiteral: min(0.8, adjustedRoughness))
+        
+        // Color degradation for less fresh steak
+        if freshness < 0.7 {
+            let dullColor = NSColor(red: 0.6, green: 0.18, blue: 0.18, alpha: 1.0)
+            pbrMaterial.baseColor = .init(tint: dullColor)
+        }
+        
+        print("🏆 [PBR] AAA raw steak material created successfully!")
+        return pbrMaterial
+    }
+    
+    static func createAAAGrilledSteakMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        
+        print("🔥 [PBR] Creating AAA grilled steak material...")
+        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        if let diffuseTexture = loadTexture(named: "steak-grilled-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("✅ [PBR] Loaded grilled steak diffuse texture")
+        } else {
+            // Fallback: Grilled steak color
+            let fallbackColor = NSColor(red: 0.6, green: 0.3, blue: 0.2, alpha: 1.0)
+            pbrMaterial.baseColor = .init(tint: fallbackColor)
+            print("⚠️ [PBR] Using fallback grilled steak color")
+        }
+        
+        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "steak-grilled-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("✅ [PBR] Loaded grilled steak normal map")
+        } else {
+            print("⚠️ [PBR] Grilled steak normal map not found")
+        }
+        
+        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "steak-grilled-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("✅ [PBR] Loaded grilled steak roughness map")
+        } else {
+            // Fallback: Grilled steak surface properties
+            pbrMaterial.roughness = .init(floatLiteral: 0.4)
+            print("⚠️ [PBR] Using fallback grilled steak roughness")
+        }
+        
+        // 🌫️ LOAD AMBIENT OCCLUSION MAP (Depth/Shadows)
+        if let aoTexture = loadTexture(named: "steak-grilled-ao") {
+            pbrMaterial.ambientOcclusion = .init(texture: .init(aoTexture))
+            print("✅ [PBR] Loaded grilled steak AO map")
+        } else {
+            print("⚠️ [PBR] Grilled steak AO map not found")
+        }
+        
+        // 🔧 MATERIAL PROPERTIES: Grilled steak characteristics
+        pbrMaterial.metallic = .init(floatLiteral: 0.0)  // Organic material, not metallic
+        
+        // 💡 ENERGY-BASED EFFECTS: High energy grilled steak might have warm glow
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.15, (energyLevel - 1.0) * 0.08)
+            let emissionColor = NSColor(red: 1.0, green: 0.6, blue: 0.3, alpha: 1.0)
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+        }
+        
+        // 🔥 FRESHNESS EFFECTS: Less fresh = more dull and rough
+        let baseRoughness: Float = 0.4  // Grilled surface is smoother than raw
+        let adjustedRoughness = baseRoughness * (1.0 + (1.0 - max(0.5, freshness)) * 0.3)
+        pbrMaterial.roughness = .init(floatLiteral: min(0.7, adjustedRoughness))
+        
+        // Color degradation for less fresh grilled steak
+        if freshness < 0.8 {
+            let dullColor = NSColor(red: 0.5, green: 0.25, blue: 0.18, alpha: 1.0)
+            pbrMaterial.baseColor = .init(tint: dullColor)
+        }
+        
+        print("🏆 [PBR] AAA grilled steak material created successfully!")
         return pbrMaterial
     }
     

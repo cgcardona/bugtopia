@@ -909,7 +909,7 @@ class Bug: Identifiable, Hashable {
             return speciesType.canEatPlants
             
         // 🥩 ANIMAL FOODS: Carnivores, omnivores, scavengers can eat  
-        case .meat, .fish:
+        case .tuna, .mediumSteak, .rawFlesh, .rawSteak, .grilledSteak:
             return speciesType.canHunt || speciesType == .scavenger || speciesType == .omnivore
         }
     }

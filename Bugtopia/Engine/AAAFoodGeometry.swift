@@ -30,10 +30,16 @@ class AAAFoodGeometry {
             return createAAAMelonMesh()
         case .blackberry:
             return createAAABlackberryMesh()
-        case .meat:
-            return createAAAMeatMesh()
-        case .fish:
-            return createAAAFishMesh()
+        case .tuna:
+            return createAAATunaMesh()
+        case .mediumSteak:
+            return createAAAMediumSteakMesh()
+        case .rawFlesh:
+            return createAAARawFleshMesh()
+        case .rawSteak:
+            return createAAARawSteakMesh()
+        case .grilledSteak:
+            return createAAAGrilledSteakMesh()
         case .seeds:
             return createAAASeedsMesh()
         case .nuts:
@@ -778,6 +784,165 @@ class AAAFoodGeometry {
             // Fish mesh generation failed
             return .generateBox(size: [1.5, 0.6, 0.8])
         }
+    }
+    
+    /// Creates a photorealistic sushi tuna piece with rectangular shape and smooth surface
+    /// - Returns: High-quality tuna mesh optimized for sushi presentation
+    static func createAAATunaMesh() -> MeshResource {
+        // 🍣 Generating proper 3D sushi tuna geometry...
+        
+        // 🍣 SUSHI TUNA PARAMETERS: Rectangular piece dimensions
+        let width: Float = 1.2      // Width of tuna piece
+        let height: Float = 1.0     // Height (thickness) of piece - proper sushi thickness!
+        let depth: Float = 0.8      // Depth of tuna piece
+        
+        // 🏗️ CREATE PROPER 3D BOX MESH with all 6 faces
+        let mesh = MeshResource.generateBox(width: width, height: height, depth: depth)
+        print("🍣 [GEOMETRY] AAA 3D sushi tuna box created successfully! (w:\(width) h:\(height) d:\(depth))")
+        return mesh
+    }
+    
+    /// Creates a photorealistic medium steak with proper topology and UV coordinates
+    /// - Returns: High-quality medium steak mesh with realistic proportions and rounded edges
+    static func createAAAMediumSteakMesh() -> MeshResource {
+        // 🥩 Generating AAA medium steak geometry with rounded edges...
+        
+        // 🥩 MEDIUM STEAK PARAMETERS: More rectangular, realistic steak dimensions
+        let width: Float = 1.8      // Width of steak (more rectangular)
+        let height: Float = 0.7     // Height (thickness) - medium steak thickness
+        let depth: Float = 1.1      // Depth of steak (less square)
+        let cornerRadius: Float = 0.08  // Rounded edges for natural appearance
+        
+        // 🏗️ CREATE ROUNDED STEAK MESH with natural edges
+        let mesh = MeshResource.generateBox(width: width, height: height, depth: depth, cornerRadius: cornerRadius)
+        print("🥩 [GEOMETRY] AAA 3D medium steak with rounded edges created! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
+        return mesh
+    }
+    
+    /// Creates a photorealistic raw flesh glob with organic, irregular shape
+    /// - Returns: High-quality raw flesh mesh with natural organic form
+    static func createAAARawFleshMesh() -> MeshResource {
+        // 🩸 Generating organic raw flesh geometry...
+        
+        var vertices: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
+        var indices: [UInt32] = []
+        
+        let segments = 48  // Higher detail for lumpy surface
+        let rings = 32     // More rings for better surface irregularity
+        
+        // 🩸 RAW FLESH PARAMETERS: Organic, irregular glob
+        let baseRadius: Float = 0.6
+        let height: Float = 0.8
+        let irregularityFactor: Float = 0.8  // Much more aggressive distortion for lumpy texture
+        
+        // Generate vertices with organic irregularity
+        for ring in 0...rings {
+            let v = Float(ring) / Float(rings)
+            let y = (v - 0.5) * height
+            
+            // Create organic bulging - wider in middle, tapered ends
+            var ringRadius = baseRadius * sin(v * Float.pi)  // Natural blob shape: 0 at ends, max in middle
+            
+            // Add organic irregularity based on position
+            let organicVariation = sin(v * Float.pi * 3.0) * 0.15 + cos(v * Float.pi * 5.0) * 0.1
+            ringRadius *= (1.0 + organicVariation * irregularityFactor)
+            
+            // Ensure we don't get negative radius (which would cause weird geometry)
+            ringRadius = max(0.01, ringRadius)
+            
+            for segment in 0...segments {
+                let u = Float(segment) / Float(segments)
+                let angle = u * 2.0 * Float.pi
+                
+                // Add more organic variation around the circumference
+                let circumferenceVariation = sin(angle * 4.0) * 0.2 + cos(angle * 7.0) * 0.15
+                let finalRadius = ringRadius * (1.0 + circumferenceVariation * irregularityFactor)
+                
+                let x = cos(angle) * finalRadius
+                let z = sin(angle) * finalRadius
+                
+                vertices.append(SIMD3<Float>(x, y, z))
+                
+                // Calculate normal for organic surface
+                let normal = normalize(SIMD3<Float>(x, 0.2, z))  // Slightly upward-pointing for flesh
+                normals.append(normal)
+                
+                // UV mapping
+                uvs.append(SIMD2<Float>(u, v))
+            }
+        }
+        
+        // Generate indices for triangular faces
+        for ring in 0..<rings {
+            for segment in 0..<segments {
+                let current = ring * (segments + 1) + segment
+                let next = current + segments + 1
+                
+                // Two triangles per quad
+                indices.append(UInt32(current))
+                indices.append(UInt32(next))
+                indices.append(UInt32(current + 1))
+                
+                indices.append(UInt32(current + 1))
+                indices.append(UInt32(next))
+                indices.append(UInt32(next + 1))
+            }
+        }
+        
+        // Create mesh descriptor
+        var meshDescriptor = MeshDescriptor()
+        meshDescriptor.positions = MeshBuffer(vertices)
+        meshDescriptor.normals = MeshBuffer(normals)
+        meshDescriptor.textureCoordinates = MeshBuffer(uvs)
+        meshDescriptor.primitives = .triangles(indices)
+        
+        do {
+            let mesh = try MeshResource.generate(from: [meshDescriptor])
+            print("🩸 [GEOMETRY] AAA organic raw flesh glob created successfully! (\(vertices.count) vertices)")
+            return mesh
+        } catch {
+            print("❌ [GEOMETRY] Failed to create raw flesh mesh: \(error)")
+            // Fallback to simple sphere
+            let fallbackMesh = MeshResource.generateSphere(radius: 0.6)
+            print("🩸 [GEOMETRY] Using fallback sphere for raw flesh")
+            return fallbackMesh
+        }
+    }
+    
+    /// Creates a photorealistic raw steak with natural steak proportions and rough edges
+    /// - Returns: High-quality raw steak mesh with organic steak shape
+    static func createAAARawSteakMesh() -> MeshResource {
+        // 🥩 Generating AAA raw steak geometry...
+        
+        // 🥩 RAW STEAK PARAMETERS: More irregular than cooked steak
+        let width: Float = 1.7      // Width of raw steak (slightly wider)
+        let height: Float = 0.6     // Height (thickness) - raw steak is thicker
+        let depth: Float = 1.0      // Depth of raw steak
+        let cornerRadius: Float = 0.05  // Less rounded edges for raw appearance
+        
+        // 🏗️ CREATE RAW STEAK MESH with slightly rougher edges
+        let mesh = MeshResource.generateBox(width: width, height: height, depth: depth, cornerRadius: cornerRadius)
+        print("🥩 [GEOMETRY] AAA 3D raw steak created successfully! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
+        return mesh
+    }
+    
+    /// Creates a photorealistic grilled steak with perfect grill marks and cooked appearance
+    /// - Returns: High-quality grilled steak mesh with refined steak shape
+    static func createAAAGrilledSteakMesh() -> MeshResource {
+        // 🔥 Generating AAA grilled steak geometry...
+        
+        // 🔥 GRILLED STEAK PARAMETERS: More refined than raw steak
+        let width: Float = 1.6      // Width of grilled steak (slightly smaller due to cooking)
+        let height: Float = 0.5     // Height (thickness) - grilled steak is slightly thinner
+        let depth: Float = 0.9      // Depth of grilled steak
+        let cornerRadius: Float = 0.08  // More rounded edges for cooked appearance
+        
+        // 🏗️ CREATE GRILLED STEAK MESH with refined edges
+        let mesh = MeshResource.generateBox(width: width, height: height, depth: depth, cornerRadius: cornerRadius)
+        print("🔥 [GEOMETRY] AAA 3D grilled steak created successfully! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
+        return mesh
     }
     
     /// Creates a photorealistic seeds cluster with proper topology and UV coordinates  
