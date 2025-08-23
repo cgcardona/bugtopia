@@ -296,19 +296,19 @@ class SimulationEngine {
         
         // 🍎 PRODUCTION: Setup evenly distributed food across entire arena
         foods.removeAll()
-        let initialFoodCount = 1   // 🫐 STYLING: Single blackberry for AAA quality focus
+        let initialFoodCount = 1   // 🍊 STYLING: Single orange for AAA quality focus
         
-        // 🫐 STYLING: Position single blackberry near origin for easy camera positioning
-        let blackberryX = 50.0   // Close to origin but not exactly at 0,0
-        let blackberryY = 50.0   // Close to origin but not exactly at 0,0
-        let blackberryPosition = CGPoint(x: blackberryX, y: blackberryY)
+        // 🍊 STYLING: Position single orange near origin for easy camera positioning
+        let orangeX = 50.0   // Close to origin but not exactly at 0,0
+        let orangeY = 50.0   // Close to origin but not exactly at 0,0
+        let orangePosition = CGPoint(x: orangeX, y: orangeY)
         
-        // Create single AAA-quality blackberry
-        let blackberry = FoodItem(position: blackberryPosition, type: .blackberry, targetSpecies: .herbivore)
-        foods.append(blackberry)
+        // Create single AAA-quality orange
+        let orange = FoodItem(position: orangePosition, type: .orange, targetSpecies: .herbivore)
+        foods.append(orange)
         
-        print("🫐 [STYLING] Created single blackberry near origin: (\(blackberryX), \(blackberryY))")
-        print("🫐 [SETUP] Initial food created: \(foods.count) food items")
+        print("🍊 [STYLING] Created single orange near origin: (\(orangeX), \(orangeY))")
+        print("🍊 [SETUP] Initial food created: \(foods.count) food items")
     }
     
     // MARK: - Simulation Control
@@ -436,19 +436,19 @@ class SimulationEngine {
         
         // 🍎 PRODUCTION: Setup evenly distributed food across entire arena (reset)
         foods.removeAll()
-        let initialFoodCount = 1   // 🫐 STYLING: Single blackberry for AAA quality focus
+        let initialFoodCount = 1   // 🍊 STYLING: Single orange for AAA quality focus
         
-        // 🫐 STYLING: Position single blackberry near origin for easy camera positioning
-        let blackberryX = 50.0   // Close to origin but not exactly at 0,0
-        let blackberryY = 50.0   // Close to origin but not exactly at 0,0
-        let blackberryPosition = CGPoint(x: blackberryX, y: blackberryY)
+        // 🍊 STYLING: Position single orange near origin for easy camera positioning
+        let orangeX = 50.0   // Close to origin but not exactly at 0,0
+        let orangeY = 50.0   // Close to origin but not exactly at 0,0
+        let orangePosition = CGPoint(x: orangeX, y: orangeY)
         
-        // Create single AAA-quality blackberry
-        let blackberry = FoodItem(position: blackberryPosition, type: .blackberry, targetSpecies: .herbivore)
-        foods.append(blackberry)
+        // Create single AAA-quality orange
+        let orange = FoodItem(position: orangePosition, type: .orange, targetSpecies: .herbivore)
+        foods.append(orange)
         
-        print("🫐 [STYLING] Created single blackberry near origin: (\(blackberryX), \(blackberryY))")
-        print("🫐 [RESET] Food created: \(foods.count) food items")
+        print("🍊 [STYLING] Created single orange near origin: (\(orangeX), \(orangeY))")
+        print("🍊 [RESET] Food created: \(foods.count) food items")
         
         // Skip spawnInitialResources for now in debug mode
         

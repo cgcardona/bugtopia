@@ -190,6 +190,15 @@ class AAAPBRMaterials {
         pbrMaterial.clearcoat = .init(floatLiteral: 0.2)  // Natural waxy surface
         pbrMaterial.clearcoatRoughness = .init(floatLiteral: 0.1)  // Very smooth wax
         
+        // 🌫️ LOAD APPLE AMBIENT OCCLUSION (Depth Enhancement)
+        if let aoTexture = loadTexture(named: "apple-ao") {
+            // Note: RealityKit doesn't have direct AO, but we can use it to modulate other properties
+            // This is a placeholder for future AO integration
+            print("🍎 ✅ Loaded professional apple AO map")
+        } else {
+            print("🍎 ⚠️ Apple AO map not found")
+        }
+        
         // 🏆 AAA apple material created successfully!
         return pbrMaterial
     }
@@ -271,38 +280,47 @@ class AAAPBRMaterials {
     /// - Returns: Complete PBR material with all texture maps
     static func createAAAOrangeMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        // Creating AAA orange material (logging disabled)
+        // 🍊 Creating AAA orange material (Energy: \(energyLevel), Freshness: \(freshness))
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
         
-        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
+        // 📸 LOAD ORANGE DIFFUSE TEXTURE (Professional PBR Color Map)
         if let diffuseTexture = loadTexture(named: "orange-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            // Orange diffuse texture loaded
+            print("🍊 ✅ Loaded professional orange diffuse texture")
         } else {
             // Fallback color matching orange
             let fallbackColor = NSColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1.0) // Bright orange
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            // Using fallback orange color
+            print("🍊 ⚠️ Using fallback orange color - diffuse texture not found")
         }
         
-        // 🗺️ LOAD NORMAL MAP (Surface Detail)
+        // 🗺️ LOAD ORANGE NORMAL MAP (Professional Surface Detail)
         if let normalTexture = loadTexture(named: "orange-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            // Orange normal map loaded
+            print("🍊 ✅ Loaded professional orange normal map")
         } else {
-            // Orange normal map not found
+            print("🍊 ⚠️ Orange normal map not found")
         }
         
-        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
+        // ✨ LOAD ORANGE ROUGHNESS MAP (Professional Surface Properties)
         if let roughnessTexture = loadTexture(named: "orange-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            // Orange roughness map loaded
+            print("🍊 ✅ Loaded professional orange roughness map")
         } else {
             // Fallback: Textured orange peel
             pbrMaterial.roughness = .init(floatLiteral: 0.7) // Rough citrus peel
-            // Using fallback orange roughness
+            print("🍊 ⚠️ Using fallback orange roughness - texture not found")
+        }
+        
+        // 🌫️ LOAD ORANGE AMBIENT OCCLUSION (Depth Enhancement)
+        if let aoTexture = loadTexture(named: "orange-ao") {
+            // Note: RealityKit doesn't have direct AO, but we can use it to modulate other properties
+            // This is a placeholder for future AO integration
+            print("🍊 ✅ Loaded professional orange AO map")
+        } else {
+            print("🍊 ⚠️ Orange AO map not found")
         }
         
         // 🥇 METALLIC PROPERTIES: Oranges are completely non-metallic
