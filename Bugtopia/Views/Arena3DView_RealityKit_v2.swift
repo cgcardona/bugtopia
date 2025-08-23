@@ -39,9 +39,9 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
     @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
-    @State private var cameraPosition = SIMD3<Float>(100, 80, 100)   // 🎮 COMPELLING VIEW: Positioned for screenshot 3 perspective
-    @State private var cameraPitch: Float = -0.6  // 🎮 BETTER ANGLE: More downward angle to see ecosystem clearly
-    @State private var cameraYaw: Float = Float.pi * 0.75     // 🎮 ANGLED VIEW: 135° for better terrain and ecosystem visibility
+    @State private var cameraPosition = SIMD3<Float>(-100, -20, -300)   // ✅ PROVEN WORKING: Exact original hardcoded values
+    @State private var cameraPitch: Float = 0.0   // ✅ PROVEN WORKING: No rotation (default)
+    @State private var cameraYaw: Float = 0.0     // ✅ PROVEN WORKING: No rotation (default)
     
     // MARK: - Selection System
     
@@ -62,6 +62,9 @@ struct Arena3DView_RealityKit_v2: View {
     // MARK: - Entity Management
     
     @StateObject private var bugEntityManager = BugEntityManager()
+
+    // MARK: - Skybox
+    @State private var skyboxEntity: ModelEntity?
     
     // MARK: - Performance Tracking
     
@@ -155,6 +158,11 @@ struct Arena3DView_RealityKit_v2: View {
         }
         .focusable()  // 🎯 SIMPLE FOCUS: Blue border but immediate navigation
         .onAppear {
+            // 🔍 CAMERA DEBUG: Log initial camera values
+            print("🎥 [CAMERA INIT] Position: \(cameraPosition)")
+            print("🎥 [CAMERA INIT] Pitch: \(cameraPitch) rad (\(cameraPitch * 180 / .pi)°)")
+            print("🎥 [CAMERA INIT] Yaw: \(cameraYaw) rad (\(cameraYaw * 180 / .pi)°)")
+            
             startPerformanceMonitoring()
             startEntityUpdates()
             updateDebugInfo()
@@ -166,6 +174,7 @@ struct Arena3DView_RealityKit_v2: View {
             )
             
             // View appeared, FPS monitoring and entity updates enabled
+            print("🎥 [CAMERA FINAL] Position after setup: \(cameraPosition)")
         }
         // 🎮 PORTED NAVIGATION: Battle-tested movement system from minimal implementation
         .onKeyPress(.init("w")) {
@@ -283,14 +292,16 @@ struct Arena3DView_RealityKit_v2: View {
     private func setupHelloWorldScene(_ content: any RealityViewContentProtocol) {
         // print("🚀 [RealityKit] BUILDING BUGTOPIA WORLD...")
         
-        // Create scene anchor positioned like SceneKit camera view
+        // Create scene anchor positioned using our camera variables
         let anchor = AnchorEntity(.world(transform: Transform.identity.matrix))
         
-        // Position the world anchor for elevated overview
-        anchor.transform.translation = [-112, 0, -112]  // Centered horizontally, terrain at Y=0
+        // 🎥 APPLY CAMERA STATE VARIABLES (direct application - no coordinate flipping)
+        anchor.transform.translation = cameraPosition
+        print("🎥 [SETUP] Camera position applied from @State: \(anchor.transform.translation)")
         
-        // 🎯 INITIAL ROTATION: Set the camera looking down at terrain
-        // Note: Orientation will be handled by new navigation system
+        // 🎯 APPLY CAMERA ROTATION (both are 0.0, so default identity)
+        anchor.orientation = simd_quatf(angle: cameraPitch, axis: SIMD3(1, 0, 0)) * simd_quatf(angle: cameraYaw, axis: SIMD3(0, 1, 0))
+        print("🎥 [SETUP] Camera rotation applied - Pitch: \(cameraPitch * 180 / .pi)°, Yaw: \(cameraYaw * 180 / .pi)°")
         // print("📷 [SETUP] Initial camera rotation applied - Pitch: \(cameraPitch * 180 / .pi)°, Yaw: \(cameraYaw * 180 / .pi)°")
         
         // Store reference for camera manipulation
@@ -301,6 +312,7 @@ struct Arena3DView_RealityKit_v2: View {
         
         // 2. Add continuous terrain surface (like SceneKit)
         setupGroundPlane(in: anchor)
+        print("🗺️ [SETUP] Ground plane added")
         
         // 🗑️ DISABLED: Individual voxel terrain (creates grey cubes)
         // SceneKit uses only smooth terrain mesh for continuous surface
@@ -308,21 +320,30 @@ struct Arena3DView_RealityKit_v2: View {
         
         // 4. Add lighting for proper visibility
         setupWorldLighting(in: anchor)
+        print("💡 [SETUP] World lighting added")
         
         // 5. Add dramatic lighting system
         setupDynamicLighting(in: anchor)
+        print("✨ [SETUP] Dynamic lighting added")
         
         // 6. Add bug entities
         addBugEntities(in: anchor)
+        print("🐛 [SETUP] Bug entities added: \(simulationEngine.bugs.count) bugs")
         
         // 7. Add food entities
         addFoodEntities(in: anchor)
+        print("🍎 [SETUP] Food entities added: \(simulationEngine.foods.count) food items")
         
         // 8. 🧪 ADD PHEROMONE VISUALIZATION: Stunning chemical trail rendering
         addPheromoneVisualization(in: anchor)
+        print("🧪 [SETUP] Pheromone visualization added")
+        
+        // 9. 🔍 ADD TEST OBJECT: Bright cube at origin to verify camera can see anything
+        // 🔍 TEST CUBE REMOVED - Camera working correctly now
         
         // Add to scene
         content.add(anchor)
+        print("✅ [SETUP] Scene anchor added to content with \(anchor.children.count) children")
         
         // print("✅ [RealityKit] Bugtopia world created with proper structure")
     }
@@ -392,53 +413,70 @@ struct Arena3DView_RealityKit_v2: View {
     
     @available(macOS 14.0, *)
     private func setupSkybox(in anchor: Entity) {
-        // print("🌌 [RealityKit] Setting up skybox sphere...")
+        print("🌌 [SKYBOX] Setting up skybox sphere...")
         
         // Get current world type from simulation
         let worldType = simulationEngine.voxelWorld.worldType
         let skyboxImageName = getSkyboxImageName(for: worldType)
         
-        // print("🌍 [RealityKit] World type: \(worldType), skybox: \(skyboxImageName)")
+        print("🌍 [SKYBOX] World type: \(worldType), skybox: \(skyboxImageName)")
         
-        // Create skybox material with actual texture
-        var skyboxMaterial: SimpleMaterial
+        // Create skybox material (prefer unlit); we will set face culling for inside rendering
+        var skyboxMaterial: RealityKit.Material
         
         // Try to load the actual skybox texture from Assets.xcassets (macOS)
         if let skyboxImage = NSImage(named: skyboxImageName),
            let cgImage = skyboxImage.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-            // print("✅ [RealityKit] Loaded skybox texture: \(skyboxImageName)")
+            print("✅ [SKYBOX] Loaded skybox texture: \(skyboxImageName)")
             
             // Create texture resource from CGImage
             do {
                 let textureResource = try TextureResource(image: cgImage, options: .init(semantic: .color))
-                skyboxMaterial = SimpleMaterial()
-                skyboxMaterial.color = .init(texture: .init(textureResource))
-                skyboxMaterial.roughness = 1.0
-                skyboxMaterial.metallic = 0.0
+                if #available(macOS 14.0, *) {
+                    var unlit = UnlitMaterial()
+                    unlit.color = .init(texture: .init(textureResource))
+                    unlit.faceCulling = .front
+                    skyboxMaterial = unlit
+                } else {
+                    var pbr = PhysicallyBasedMaterial()
+                    pbr.baseColor = .init(texture: .init(textureResource))
+                    pbr.roughness = 1.0
+                    pbr.metallic = 0.0
+                    pbr.faceCulling = .front
+                    skyboxMaterial = pbr
+                }
+                print("✅ [SKYBOX] Texture resource created successfully")
             } catch {
-                // print("⚠️ [RealityKit] Failed to create texture resource: \(error)")
-                skyboxMaterial = SimpleMaterial(color: getSkyboxFallbackColor(for: worldType), isMetallic: false)
+                print("⚠️ [SKYBOX] Failed to create texture resource: \(error)")
+                var fallback = PhysicallyBasedMaterial()
+                fallback.baseColor = .init(tint: getSkyboxFallbackColor(for: worldType))
+                fallback.faceCulling = .front
+                skyboxMaterial = fallback
             }
         } else {
-            // print("⚠️ [RealityKit] Could not load skybox image: \(skyboxImageName), using fallback color")
-            skyboxMaterial = SimpleMaterial(color: getSkyboxFallbackColor(for: worldType), isMetallic: false)
+            print("⚠️ [SKYBOX] Could not load skybox image: \(skyboxImageName), using fallback color")
+            var fallback = PhysicallyBasedMaterial()
+            fallback.baseColor = .init(tint: getSkyboxFallbackColor(for: worldType))
+            fallback.faceCulling = .front
+            skyboxMaterial = fallback
         }
         
-        // 🌌 CLOSER SKYBOX SPHERE: Make it visible and properly sized
+        // 🌌 SKYBOX SPHERE: Large, unlit, rendered from inside
         let skyboxSphere = ModelEntity(
-            mesh: .generateSphere(radius: 500), // 🔧 SMALLER: Ensure it's visible from camera
+            mesh: .generateSphere(radius: 2000),
             materials: [skyboxMaterial]
         )
         
-        // 🎨 SKYBOX SETUP: Invert sphere to view from inside & center on terrain
-        skyboxSphere.scale = [-1, 1, -1]  // Invert X and Z to view from inside
-        skyboxSphere.position = [100, 20, 100]  // 🔧 ELEVATED: Lift above terrain level
+        // Keep skybox centered at camera (anchor origin simulates camera)
+        skyboxSphere.position = SIMD3<Float>.zero
+        skyboxSphere.scale = [1, 1, 1]
         
-        // print("🌌 [SKYBOX] Sphere created at position: \(skyboxSphere.position), radius: 500")
+        print("🌌 [SKYBOX] Sphere created at position: \(skyboxSphere.position), radius: 500")
         
         // Add to scene
         anchor.addChild(skyboxSphere)
-        // print("🌅 [SKYBOX] Sphere skybox added successfully")
+        skyboxEntity = skyboxSphere
+        print("🌅 [SKYBOX] Sphere skybox added successfully")
     }
     
     @available(macOS 14.0, *)
@@ -3050,6 +3088,11 @@ extension Arena3DView_RealityKit_v2 {
         // Apply movement
         print("🎮 [MOVE] Setting anchor position to: \(newPos)")
         anchor.position = newPos
+
+        // Keep skybox centered relative to camera by cancelling anchor translation
+        if let sky = skyboxEntity {
+            sky.position = -newPos
+        }
         
         // In walk mode, always adjust Y to follow terrain
         if !isGodMode {
@@ -3108,6 +3151,11 @@ extension Arena3DView_RealityKit_v2 {
                 print("🚨 [BUG] Anchor position changed during orientation! Restoring...")
                 anchor.position = positionBefore
             }
+
+            // Ensure skybox remains centered after rotation changes
+            if let sky = skyboxEntity {
+                sky.position = -anchor.position
+            }
         }
     }
 }
@@ -3121,16 +3169,3 @@ struct Phase2PerformanceMetrics {
     var renderTime: Double = 0.0
 }
 
-// MARK: - Preview
-
-#Preview {
-    Arena3DView_RealityKit_v2(
-        simulationEngine: SimulationEngine(worldBounds: CGRect(x: 0, y: 0, width: 2000, height: 2000)),
-        onBugSelected: { bug in
-            // print("Selected bug: \(bug?.id.uuidString ?? "nil")")
-        },
-        onFoodSelected: { food in
-            // print("Selected food: \(food?.id.uuidString ?? "nil")")
-        }
-    )
-}

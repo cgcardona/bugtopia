@@ -179,8 +179,8 @@ class SimulationEngine {
         // let worldType = WorldType3D.volcano3D
         self.currentWorldType = worldType
         
-        // print("🌍 Generated World Type: \(worldType.rawValue)")
-        // print("🌍 Expected Features:")
+         print("🌍 Generated World Type: \(worldType.rawValue)")
+         print("🌍 Expected Features:")
         switch worldType {
         case .abyss3D:
             print("   • Deep underwater trenches")
