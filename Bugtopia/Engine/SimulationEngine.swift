@@ -39,7 +39,7 @@ class SimulationEngine {
     var currentWorldType: WorldType3D = .continental3D
     private let maxPopulation = 5    // 🔍 DEBUG: Minimal population for focused observation
     private let initialPopulation = 1    // 🔍 DEBUG: Single bug for detailed behavior analysis
-    private let maxFoodItems = 5         // 🔍 DEBUG: Minimal food for clear interaction tracking
+    private let maxFoodItems = 25        // 🍎 PRODUCTION: Allow plenty of food for sustained gameplay
     private let baseFoodSpawnRate = 0.05 // Much lower spawn rate to prevent oversaturation
     
     // MARK: - Simulation Speed & Analysis
@@ -283,27 +283,41 @@ class SimulationEngine {
         }
         print("🐛 [SETUP] Initial population created: \(bugs.count) bugs")
         
-        // 🍎 PRODUCTION: Setup distributed food across entire arena
+        // 🍎 PRODUCTION: Setup evenly distributed food across entire arena
         foods.removeAll()
-        let initialFoodCount = min(maxFoodItems, 20)
-        for _ in 0..<initialFoodCount {
-            // 🌍 DISTRIBUTED: Place food randomly across entire arena
-            let foodX = Double.random(in: voxelWorld.worldBounds.minX...voxelWorld.worldBounds.maxX)
-            let foodY = Double.random(in: voxelWorld.worldBounds.minY...voxelWorld.worldBounds.maxY)
-            
-            let randomPosition = CGPoint(
-                x: foodX,
-                y: foodY
-            )
-            
-            // 🌱 DEBUG: Generate herbivore-compatible food for debugging
-            let herbivoreFoodTypes: [FoodType] = [.apple, .orange, .plum, .melon] // Plant-based foods
-            let randomType = herbivoreFoodTypes.randomElement() ?? .apple
-            let newFood = FoodItem(position: randomPosition, type: randomType, targetSpecies: .herbivore)
-            foods.append(newFood)
-            print("🍎 [DEBUG] Created \(randomType.rawValue) food at position: \(randomPosition)")
-            print("🍎 [DEBUG] Food target species: \(newFood.targetSpecies.rawValue)")
-            print("🍎 [DEBUG] Food energy value: \(newFood.energyValue)")
+        let initialFoodCount = 20  // Always spawn 20 food items for good distribution
+        
+        // 🌍 GRID-BASED DISTRIBUTION: Divide arena into grid for even spacing
+        let gridSize = Int(sqrt(Double(initialFoodCount))) + 1  // 5x5 grid for 20 items
+        let cellWidth = voxelWorld.worldBounds.width / Double(gridSize)
+        let cellHeight = voxelWorld.worldBounds.height / Double(gridSize)
+        
+        var foodCount = 0
+        for row in 0..<gridSize {
+            for col in 0..<gridSize {
+                if foodCount >= initialFoodCount { break }
+                
+                // Calculate cell bounds
+                let cellMinX = voxelWorld.worldBounds.minX + Double(col) * cellWidth
+                let cellMaxX = cellMinX + cellWidth
+                let cellMinY = voxelWorld.worldBounds.minY + Double(row) * cellHeight
+                let cellMaxY = cellMinY + cellHeight
+                
+                // Add some randomness within the cell for natural distribution
+                let foodX = Double.random(in: cellMinX...cellMaxX)
+                let foodY = Double.random(in: cellMinY...cellMaxY)
+                
+                let randomPosition = CGPoint(x: foodX, y: foodY)
+                
+                // 🌱 DEBUG: Generate herbivore-compatible food for debugging
+                let herbivoreFoodTypes: [FoodType] = [.apple, .orange, .plum, .melon] // Plant-based foods
+                let randomType = herbivoreFoodTypes.randomElement() ?? .apple
+                let newFood = FoodItem(position: randomPosition, type: randomType, targetSpecies: .herbivore)
+                foods.append(newFood)
+                
+                foodCount += 1
+            }
+            if foodCount >= initialFoodCount { break }
         }
         print("🍎 [SETUP] Initial food created: \(foods.count) food items")
     }
@@ -420,25 +434,41 @@ class SimulationEngine {
         }
         print("🐛 [RESET] Population created: \(bugs.count) bugs")
         
-        // 🍎 PRODUCTION: Setup distributed food across entire arena (reset)
+        // 🍎 PRODUCTION: Setup evenly distributed food across entire arena (reset)
         foods.removeAll()
-        let initialFoodCount = min(maxFoodItems, 20)
-        for _ in 0..<initialFoodCount {
-            // 🌍 DISTRIBUTED: Place food randomly across entire arena
-            let foodX = Double.random(in: voxelWorld.worldBounds.minX...voxelWorld.worldBounds.maxX)
-            let foodY = Double.random(in: voxelWorld.worldBounds.minY...voxelWorld.worldBounds.maxY)
-            
-            let randomPosition = CGPoint(
-                x: foodX,
-                y: foodY
-            )
-            
-            // 🌱 DEBUG: Generate herbivore-compatible food for debugging
-            let herbivoreFoodTypes: [FoodType] = [.apple, .orange, .plum, .melon] // Plant-based foods
-            let randomType = herbivoreFoodTypes.randomElement() ?? .apple
-            let newFood = FoodItem(position: randomPosition, type: randomType, targetSpecies: .herbivore)
-            foods.append(newFood)
-            print("🍎 [RESET] Created \(randomType.rawValue) food at position: \(randomPosition)")
+        let initialFoodCount = 20  // Always spawn 20 food items for good distribution
+        
+        // 🌍 GRID-BASED DISTRIBUTION: Divide arena into grid for even spacing
+        let gridSize = Int(sqrt(Double(initialFoodCount))) + 1  // 5x5 grid for 20 items
+        let cellWidth = voxelWorld.worldBounds.width / Double(gridSize)
+        let cellHeight = voxelWorld.worldBounds.height / Double(gridSize)
+        
+        var foodCount = 0
+        for row in 0..<gridSize {
+            for col in 0..<gridSize {
+                if foodCount >= initialFoodCount { break }
+                
+                // Calculate cell bounds
+                let cellMinX = voxelWorld.worldBounds.minX + Double(col) * cellWidth
+                let cellMaxX = cellMinX + cellWidth
+                let cellMinY = voxelWorld.worldBounds.minY + Double(row) * cellHeight
+                let cellMaxY = cellMinY + cellHeight
+                
+                // Add some randomness within the cell for natural distribution
+                let foodX = Double.random(in: cellMinX...cellMaxX)
+                let foodY = Double.random(in: cellMinY...cellMaxY)
+                
+                let randomPosition = CGPoint(x: foodX, y: foodY)
+                
+                // 🌱 DEBUG: Generate herbivore-compatible food for debugging
+                let herbivoreFoodTypes: [FoodType] = [.apple, .orange, .plum, .melon] // Plant-based foods
+                let randomType = herbivoreFoodTypes.randomElement() ?? .apple
+                let newFood = FoodItem(position: randomPosition, type: randomType, targetSpecies: .herbivore)
+                foods.append(newFood)
+                
+                foodCount += 1
+            }
+            if foodCount >= initialFoodCount { break }
         }
         print("🍎 [RESET] Food created: \(foods.count) food items")
         
@@ -916,7 +946,7 @@ class SimulationEngine {
         let herbivoreFoodRatio = 0.8 // 80% herbivore foods for now
         
         // Spawn food in designated food zones (limited to prevent oversaturation)
-        for voxel in foodVoxels.prefix(min(5, maxFoodItems / 40)) { // Very conservative initial food zone spawning
+        for voxel in foodVoxels.prefix(min(8, maxFoodItems / 3)) { // Allow more food zone spawning
             let randomOffset = CGPoint(
                 x: Double.random(in: -15...15),
                 y: Double.random(in: -15...15)
@@ -935,7 +965,7 @@ class SimulationEngine {
         
         // Spawn majority of food distributed in open areas, hills, AND forests for better distribution
         let availableVoxels = openVoxels + hillVoxels + forestVoxels
-        let targetFoodCount = maxFoodItems / 2  // Double the food density for better distribution
+        let targetFoodCount = maxFoodItems * 3 / 4  // Allow 75% of max food items for good distribution
         // print("🎯 [FOOD DEBUG] Attempting to spawn \(targetFoodCount) foods in \(availableVoxels.count) available voxels")
         
         // DEBUG: Sample voxel positions to understand distribution
