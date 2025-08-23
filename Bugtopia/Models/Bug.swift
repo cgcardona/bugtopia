@@ -396,9 +396,15 @@ class Bug: Identifiable, Hashable {
         
         // Neural network can override hardcoded food targeting
         if let decision = lastDecision {
-            // 🍎 CRITICAL FIX: Only abandon food targets when well-fed AND not hungry
-            if decision.exploration > 0.8 && energy > 85.0 {  // Much higher thresholds to prioritize survival
-                targetFood = nil
+            // 🍎 ENHANCED EXPLORATION: Make well-fed bugs more exploratory to prevent camping
+            if (decision.exploration > 0.6 && energy > 70.0) || (energy > 90.0 && Double.random(in: 0...1) < 0.3) {
+                targetFood = nil // Abandon current food target to explore
+                
+                // 🔍 DEBUG: Log exploration behavior
+                if Int.random(in: 1...20) == 1 {
+                    let bugId = String(id.uuidString.prefix(8))
+                    print("🚶 [BUG \(bugId)] EXPLORING - abandoning food target (energy: \(String(format: "%.1f", energy)))")
+                }
             } else {
                 // 🍴 ALL SPECIES FOOD TARGETING: Every species needs to find appropriate food
                 updateTargetFood(foods: foods, arena: arena)
@@ -567,12 +573,30 @@ class Bug: Identifiable, Hashable {
         }
         // 5. PURE NEURAL EXPLORATION - lowest priority (when not hungry/threatened/mating)
         else {
-            // Pure neural network movement
-            finalVelocity = neuralVelocity
+            // 🚶 ENHANCED EXPLORATION: Add restlessness to prevent camping
+            var explorationVelocity = neuralVelocity
+            
+            // Add restlessness when well-fed to encourage movement
+            if energy > 80.0 && Double.random(in: 0...1) < 0.4 { // 40% chance when well-fed
+                let restlessAngle = Double.random(in: 0...(2 * Double.pi))
+                let restlessSpeed = terrainSpeed * 0.8
+                let restlessVelocity = CGPoint(
+                    x: cos(restlessAngle) * restlessSpeed,
+                    y: sin(restlessAngle) * restlessSpeed
+                )
+                
+                // Blend neural movement with restless movement
+                explorationVelocity = CGPoint(
+                    x: neuralVelocity.x * 0.6 + restlessVelocity.x * 0.4,
+                    y: neuralVelocity.y * 0.6 + restlessVelocity.y * 0.4
+                )
+            }
+            
+            finalVelocity = explorationVelocity
             
             let bugId = String(id.uuidString.prefix(8))
             if Int.random(in: 1...30) == 1 {  // Log occasionally
-                print("🔍 [BUG \(bugId)] EXPLORING (neural movement)")
+                print("🔍 [BUG \(bugId)] EXPLORING (neural + restless movement)")
             }
         }
         

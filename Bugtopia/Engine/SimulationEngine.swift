@@ -37,10 +37,10 @@ class SimulationEngine {
     let voxelWorld: VoxelWorld
     let pathfinding: VoxelPathfinding
     var currentWorldType: WorldType3D = .continental3D
-    private let maxPopulation = 5    // 🔍 DEBUG: Minimal population for focused observation
-    private let initialPopulation = 1    // 🔍 DEBUG: Single bug for detailed behavior analysis
-    private let maxFoodItems = 25        // 🍎 PRODUCTION: Allow plenty of food for sustained gameplay
-    private let baseFoodSpawnRate = 0.05 // Much lower spawn rate to prevent oversaturation
+    private let maxPopulation = 25   // 🌍 PRODUCTION: Allow population growth for large world
+    private let initialPopulation = 0    // 🍎 STYLING: No bugs for food styling focus
+    private let maxFoodItems = 80        // 🍎 PRODUCTION: Abundant food for diverse 20-bug ecosystem
+    private let baseFoodSpawnRate = 0.25 // 🍎 MODERATE: 25% chance per tick for 20-bug simulation
     
     // MARK: - Simulation Speed & Analysis
     
@@ -171,9 +171,9 @@ class SimulationEngine {
         // let wordType = WorldType3D.allCases.randomElement() ?? .continental3D
         // Uncomment if you want to test a specific world type
         // let worldType = WorldType3D.abyss3D
-        // let worldType = WorldType3D.archipelago3D
+        let worldType = WorldType3D.archipelago3D
         // let worldType = WorldType3D.canyon3D
-        let worldType = WorldType3D.cavern3D
+        // let worldType = WorldType3D.cavern3D
         // let worldType = WorldType3D.continental3D
         // let worldType = WorldType3D.skylands3D
         // let worldType = WorldType3D.volcano3D
@@ -234,16 +234,27 @@ class SimulationEngine {
                 y: centerY + sin(spawnAngle) * spawnDistance
             )
             
-            // 🐛 DEBUG: Force first bug to be herbivore for food-seeking debugging  
-            if i == 0 {
-                // Create a custom herbivore bug with enhanced vision for debugging
+            // 🌍 PRODUCTION: Create diverse ecosystem with all species types
+            if i < 15 { // First 15 bugs get enhanced vision for better survival
+                // Create diverse species distribution
+                let speciesType: SpeciesType
+                if i < 8 {
+                    speciesType = .herbivore  // 8 herbivores (40%)
+                } else if i < 12 {
+                    speciesType = .carnivore  // 4 carnivores (20%)
+                } else if i < 15 {
+                    speciesType = .omnivore   // 3 omnivores (15%)
+                } else {
+                    speciesType = .scavenger  // Remaining are scavengers
+                }
+                
                 let baseDNA = BugDNA.random()
-                let herbivoreTraits = SpeciesTraits.forSpecies(.herbivore)
+                let speciesTraits = SpeciesTraits.forSpecies(speciesType)
                 
                 // Create enhanced DNA with much better vision for small world debugging
                 let debugDNA = BugDNA(
                     speed: baseDNA.speed,
-                    visionRadius: 150.0, // Enhanced vision for 200x200 world
+                    visionRadius: 300.0, // Enhanced vision for 2000x2000 world
                     energyEfficiency: baseDNA.energyEfficiency,
                     size: baseDNA.size,
                     strength: baseDNA.strength,
@@ -261,7 +272,7 @@ class SimulationEngine {
                     neuralEnergyEfficiency: baseDNA.neuralEnergyEfficiency,
                     brainPlasticity: baseDNA.brainPlasticity,
                     neuralPruningTendency: baseDNA.neuralPruningTendency,
-                    speciesTraits: herbivoreTraits,
+                    speciesTraits: speciesTraits,
                     communicationDNA: baseDNA.communicationDNA,
                     toolDNA: baseDNA.toolDNA,
                     colorHue: baseDNA.colorHue,
@@ -271,11 +282,11 @@ class SimulationEngine {
                 
                 let newBug = Bug(dna: debugDNA, position: randomPosition, generation: 0)
                 bugs.append(newBug)
-                print("🌱 [DEBUG] Created herbivore bug at position: \(randomPosition)")
-                print("🌱 [DEBUG] Bug species: \(debugDNA.speciesTraits.speciesType.rawValue)")
-                print("🌱 [DEBUG] Bug vision radius: \(debugDNA.visionRadius)")
-                print("🌱 [DEBUG] Bug can eat plants: \(debugDNA.speciesTraits.speciesType.canEatPlants)")
-                print("🌱 [DEBUG] World bounds: \(voxelWorld.worldBounds)")
+                print("🌍 [DEBUG] Created \(speciesType.rawValue) bug #\(i+1) at position: \(randomPosition)")
+                print("🌍 [DEBUG] Bug #\(i+1) species: \(debugDNA.speciesTraits.speciesType.rawValue)")
+                print("🌍 [DEBUG] Bug #\(i+1) vision radius: \(debugDNA.visionRadius)")
+                print("🌍 [DEBUG] Bug #\(i+1) can eat plants: \(debugDNA.speciesTraits.speciesType.canEatPlants)")
+                if i == 0 { print("🌍 [DEBUG] World bounds: \(voxelWorld.worldBounds)") }
             } else {
                 let newBug = Bug.random(in: voxelWorld.worldBounds, generation: 0)
                 bugs.append(newBug)
@@ -285,40 +296,18 @@ class SimulationEngine {
         
         // 🍎 PRODUCTION: Setup evenly distributed food across entire arena
         foods.removeAll()
-        let initialFoodCount = 20  // Always spawn 20 food items for good distribution
+        let initialFoodCount = 1   // 🍎 STYLING: Single apple for AAA quality focus
         
-        // 🌍 GRID-BASED DISTRIBUTION: Divide arena into grid for even spacing
-        let gridSize = Int(sqrt(Double(initialFoodCount))) + 1  // 5x5 grid for 20 items
-        let cellWidth = voxelWorld.worldBounds.width / Double(gridSize)
-        let cellHeight = voxelWorld.worldBounds.height / Double(gridSize)
+        // 🍎 STYLING: Position single apple near origin for easy camera positioning
+        let appleX = 50.0   // Close to origin but not exactly at 0,0
+        let appleY = 50.0   // Close to origin but not exactly at 0,0
+        let applePosition = CGPoint(x: appleX, y: appleY)
         
-        var foodCount = 0
-        for row in 0..<gridSize {
-            for col in 0..<gridSize {
-                if foodCount >= initialFoodCount { break }
-                
-                // Calculate cell bounds
-                let cellMinX = voxelWorld.worldBounds.minX + Double(col) * cellWidth
-                let cellMaxX = cellMinX + cellWidth
-                let cellMinY = voxelWorld.worldBounds.minY + Double(row) * cellHeight
-                let cellMaxY = cellMinY + cellHeight
-                
-                // Add some randomness within the cell for natural distribution
-                let foodX = Double.random(in: cellMinX...cellMaxX)
-                let foodY = Double.random(in: cellMinY...cellMaxY)
-                
-                let randomPosition = CGPoint(x: foodX, y: foodY)
-                
-                // 🌱 DEBUG: Generate herbivore-compatible food for debugging
-                let herbivoreFoodTypes: [FoodType] = [.apple, .orange, .plum, .melon] // Plant-based foods
-                let randomType = herbivoreFoodTypes.randomElement() ?? .apple
-                let newFood = FoodItem(position: randomPosition, type: randomType, targetSpecies: .herbivore)
-                foods.append(newFood)
-                
-                foodCount += 1
-            }
-            if foodCount >= initialFoodCount { break }
-        }
+        // Create single AAA-quality apple
+        let apple = FoodItem(position: applePosition, type: .apple, targetSpecies: .herbivore)
+        foods.append(apple)
+        
+        print("🍎 [STYLING] Created single apple near origin: (\(appleX), \(appleY))")
         print("🍎 [SETUP] Initial food created: \(foods.count) food items")
     }
     
@@ -386,16 +375,27 @@ class SimulationEngine {
                 y: centerY + sin(spawnAngle) * spawnDistance
             )
             
-            // 🐛 DEBUG: Force first bug to be herbivore for food-seeking debugging
-            if i == 0 {
-                // Create a custom herbivore bug with enhanced vision for debugging
+            // 🌍 PRODUCTION: Create diverse ecosystem with all species types (reset)
+            if i < 15 { // First 15 bugs get enhanced vision for better survival
+                // Create diverse species distribution
+                let speciesType: SpeciesType
+                if i < 8 {
+                    speciesType = .herbivore  // 8 herbivores (40%)
+                } else if i < 12 {
+                    speciesType = .carnivore  // 4 carnivores (20%)
+                } else if i < 15 {
+                    speciesType = .omnivore   // 3 omnivores (15%)
+                } else {
+                    speciesType = .scavenger  // Remaining are scavengers
+                }
+                
                 let baseDNA = BugDNA.random()
-                let herbivoreTraits = SpeciesTraits.forSpecies(.herbivore)
+                let speciesTraits = SpeciesTraits.forSpecies(speciesType)
                 
                 // Create enhanced DNA with much better vision for small world debugging
                 let debugDNA = BugDNA(
                     speed: baseDNA.speed,
-                    visionRadius: 150.0, // Enhanced vision for 200x200 world
+                    visionRadius: 300.0, // Enhanced vision for 2000x2000 world
                     energyEfficiency: baseDNA.energyEfficiency,
                     size: baseDNA.size,
                     strength: baseDNA.strength,
@@ -413,7 +413,7 @@ class SimulationEngine {
                     neuralEnergyEfficiency: baseDNA.neuralEnergyEfficiency,
                     brainPlasticity: baseDNA.brainPlasticity,
                     neuralPruningTendency: baseDNA.neuralPruningTendency,
-                    speciesTraits: herbivoreTraits,
+                    speciesTraits: speciesTraits,
                     communicationDNA: baseDNA.communicationDNA,
                     toolDNA: baseDNA.toolDNA,
                     colorHue: baseDNA.colorHue,
@@ -436,40 +436,18 @@ class SimulationEngine {
         
         // 🍎 PRODUCTION: Setup evenly distributed food across entire arena (reset)
         foods.removeAll()
-        let initialFoodCount = 20  // Always spawn 20 food items for good distribution
+        let initialFoodCount = 1   // 🍎 STYLING: Single apple for AAA quality focus
         
-        // 🌍 GRID-BASED DISTRIBUTION: Divide arena into grid for even spacing
-        let gridSize = Int(sqrt(Double(initialFoodCount))) + 1  // 5x5 grid for 20 items
-        let cellWidth = voxelWorld.worldBounds.width / Double(gridSize)
-        let cellHeight = voxelWorld.worldBounds.height / Double(gridSize)
+        // 🍎 STYLING: Position single apple near origin for easy camera positioning
+        let appleX = 50.0   // Close to origin but not exactly at 0,0
+        let appleY = 50.0   // Close to origin but not exactly at 0,0
+        let applePosition = CGPoint(x: appleX, y: appleY)
         
-        var foodCount = 0
-        for row in 0..<gridSize {
-            for col in 0..<gridSize {
-                if foodCount >= initialFoodCount { break }
-                
-                // Calculate cell bounds
-                let cellMinX = voxelWorld.worldBounds.minX + Double(col) * cellWidth
-                let cellMaxX = cellMinX + cellWidth
-                let cellMinY = voxelWorld.worldBounds.minY + Double(row) * cellHeight
-                let cellMaxY = cellMinY + cellHeight
-                
-                // Add some randomness within the cell for natural distribution
-                let foodX = Double.random(in: cellMinX...cellMaxX)
-                let foodY = Double.random(in: cellMinY...cellMaxY)
-                
-                let randomPosition = CGPoint(x: foodX, y: foodY)
-                
-                // 🌱 DEBUG: Generate herbivore-compatible food for debugging
-                let herbivoreFoodTypes: [FoodType] = [.apple, .orange, .plum, .melon] // Plant-based foods
-                let randomType = herbivoreFoodTypes.randomElement() ?? .apple
-                let newFood = FoodItem(position: randomPosition, type: randomType, targetSpecies: .herbivore)
-                foods.append(newFood)
-                
-                foodCount += 1
-            }
-            if foodCount >= initialFoodCount { break }
-        }
+        // Create single AAA-quality apple
+        let apple = FoodItem(position: applePosition, type: .apple, targetSpecies: .herbivore)
+        foods.append(apple)
+        
+        print("🍎 [STYLING] Created single apple near origin: (\(appleX), \(appleY))")
         print("🍎 [RESET] Food created: \(foods.count) food items")
         
         // Skip spawnInitialResources for now in debug mode
@@ -485,10 +463,10 @@ class SimulationEngine {
         tick()
     }
     
-    /// Forces evolution to the next generation (disabled for debugging)
+    /// Forces evolution to the next generation (re-enabled for diverse ecosystem)
     func evolveNextGeneration() {
-        print("🔍 [DEBUG] Evolution disabled for focused debugging")
-        // evolvePopulation()
+        print("🧬 [EVOLUTION] Forcing evolution to next generation")
+        evolvePopulation()
     }
     
     // MARK: - Main Simulation Loop
@@ -548,8 +526,8 @@ class SimulationEngine {
         // Update tools and construction
         updateToolsAndConstruction()
         
-        // Handle reproduction (disabled for debugging)
-        // handleReproduction()
+        // Handle reproduction (re-enabled for diverse ecosystem)
+        handleReproduction()
         
         // Remove dead bugs
         let bugCountBefore = bugs.count
@@ -567,8 +545,8 @@ class SimulationEngine {
             // Normally this would trigger emergency population creation, but we're disabling it
         }
         
-        // Spawn food
-        spawnFood()
+        // 🍎 DISABLED: Food spawning disabled for styling focus
+        // spawnFood()
         
         // Remove consumed food
         removeConsumedFood()
@@ -582,14 +560,14 @@ class SimulationEngine {
         // Update natural disasters
         disasterManager.update(seasonalManager: seasonalManager, weatherManager: weatherManager)
         
-        // 🔍 DEBUG: Disable ecosystem and speciation updates to prevent population changes
+        // 🔍 DEBUG: Re-enable ecosystem updates to track food availability
         // Update ecosystem dynamics and resource health
-        // ecosystemManager.update(
-        //     bugs: bugs,
-        //     foods: foods,
-        //     generationCount: currentGeneration,
-        //     deltaTime: tickInterval
-        // )
+        ecosystemManager.update(
+            bugs: bugs,
+            foods: foods,
+            generationCount: currentGeneration,
+            deltaTime: tickInterval
+        )
         
         // Update territories and migrations (using 2D compatibility)
         // territoryManager.update(
@@ -965,7 +943,7 @@ class SimulationEngine {
         
         // Spawn majority of food distributed in open areas, hills, AND forests for better distribution
         let availableVoxels = openVoxels + hillVoxels + forestVoxels
-        let targetFoodCount = maxFoodItems * 3 / 4  // Allow 75% of max food items for good distribution
+        let targetFoodCount = maxFoodItems  // 🍎 AGGRESSIVE: Use full food capacity for 2 bugs
         // print("🎯 [FOOD DEBUG] Attempting to spawn \(targetFoodCount) foods in \(availableVoxels.count) available voxels")
         
         // DEBUG: Sample voxel positions to understand distribution
@@ -1080,11 +1058,28 @@ class SimulationEngine {
         // Cap seasonal max to prevent oversaturation - seasons affect spawn rate, not total capacity
         let seasonalMaxFood = maxFoodItems  // Use base limit, let spawn rate handle seasonal effects
         
-        if foods.count < seasonalMaxFood && Double.random(in: 0...1) < finalFoodSpawnRate {
+        // 🍎 MODERATE: Spawn food more frequently when food count is low (reduced from 80% to 40%)
+        let aggressiveSpawnRate = foods.count < 15 ? 0.4 : finalFoodSpawnRate // 40% chance when low food
+        
+        // 🔍 DEBUG: Log food spawning attempts
+        if foods.count < seasonalMaxFood && Int.random(in: 1...60) == 1 { // Log every ~60 ticks
+            print("🍎 [FOOD SPAWN] Current food: \(foods.count)/\(seasonalMaxFood), spawn rate: \(String(format: "%.2f", aggressiveSpawnRate))")
+        }
+        
+        if foods.count < seasonalMaxFood && Double.random(in: 0...1) < aggressiveSpawnRate {
+            // 🔍 DEBUG: Log when spawn attempt is triggered
+            if Int.random(in: 1...20) == 1 { // Log 5% of attempts
+                print("🍎 [FOOD SPAWN] 🎯 Spawn attempt triggered! Food: \(foods.count)/\(seasonalMaxFood)")
+            }
+            
             // Prevent food oversaturation in food zones - bias toward distributed spawning
             let foodZoneChance = min(0.3, 1.0 - (Double(foods.count) / Double(seasonalMaxFood))) // Reduce food zone chance as food increases
             
             if Double.random(in: 0...1) < foodZoneChance {
+                // 🔍 DEBUG: Log food zone path
+                if Int.random(in: 1...10) == 1 {
+                    print("🍎 [FOOD SPAWN] 🏞️ Trying food zone path (chance: \(String(format: "%.2f", foodZoneChance)))")
+                }
                 let foodVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .food }
                 
                 // Count existing food near each food zone to prevent oversaturation
@@ -1117,12 +1112,23 @@ class SimulationEngine {
                     }
                 }
             } else {
+                // 🔍 DEBUG: Log distributed spawning path
+                if Int.random(in: 1...10) == 1 {
+                    print("🍎 [FOOD SPAWN] 🌍 Trying distributed spawning path")
+                }
+                
                 let openVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .open }
                 let hillVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .hill }
                 let availableVoxels = openVoxels + hillVoxels
+                
+                // 🔍 DEBUG: Log voxel availability
+                if Int.random(in: 1...20) == 1 {
+                    print("🍎 [FOOD SPAWN] 📊 Available voxels: open=\(openVoxels.count), hill=\(hillVoxels.count), total=\(availableVoxels.count)")
+                }
+                
                 if let voxel = availableVoxels.randomElement() {
-                    // Much more liberal food spawning
-                    let minDistanceFromEdge = 30.0
+                    // 🍎 AGGRESSIVE: Very liberal food spawning for 2-bug testing
+                    let minDistanceFromEdge = 10.0 // Reduced from 30 to allow more spawning
                     let bounds = voxelWorld.worldBounds
                     let xDistance = min(voxel.position.x - bounds.minX, bounds.maxX - voxel.position.x)
                     let yDistance = min(voxel.position.y - bounds.minY, bounds.maxY - voxel.position.y)
@@ -1146,7 +1152,61 @@ class SimulationEngine {
                             let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
                             let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
                             foods.append(foodItem)
+                            
+                            // 🔍 DEBUG: Log successful food spawning
+                            if Int.random(in: 1...10) == 1 { // Log 10% of spawns
+                                print("🍎 [FOOD SPAWN] ✅ Spawned \(foodType.rawValue) at \(String(format: "(%.1f, %.1f)", foodPosition.x, foodPosition.y))")
+                            }
                         }
+                    } else {
+                        // 🔍 DEBUG: Log failed spawning due to edge distance
+                        if Int.random(in: 1...30) == 1 { // Log occasionally
+                            print("🍎 [FOOD SPAWN] ❌ Failed edge check: distance \(String(format: "%.1f", edgeDistance)) < \(minDistanceFromEdge)")
+                        }
+                    }
+                } else {
+                    // 🔍 DEBUG: No voxels available, try fallback spawning
+                    if Int.random(in: 1...5) == 1 {
+                        print("🍎 [FOOD SPAWN] ⚠️ No voxels available, trying fallback spawning")
+                    }
+                    
+                    // 🍎 SMART FALLBACK: Spawn food near bugs to encourage exploration
+                    let bounds = voxelWorld.worldBounds
+                    let margin = 20.0 // Stay away from edges
+                    
+                    var randomPosition: CGPoint
+                    
+                    // 60% chance to spawn near bugs, 40% chance random for exploration
+                    if !bugs.isEmpty && Double.random(in: 0...1) < 0.6 {
+                        // Spawn near a random bug but not too close
+                        let targetBug = bugs.randomElement()!
+                        let spawnRadius = Double.random(in: 30...80) // 30-80 units from bug
+                        let spawnAngle = Double.random(in: 0...(2 * Double.pi))
+                        
+                        randomPosition = CGPoint(
+                            x: targetBug.position.x + cos(spawnAngle) * spawnRadius,
+                            y: targetBug.position.y + sin(spawnAngle) * spawnRadius
+                        )
+                        
+                        // Clamp to bounds
+                        randomPosition.x = max(bounds.minX + margin, min(bounds.maxX - margin, randomPosition.x))
+                        randomPosition.y = max(bounds.minY + margin, min(bounds.maxY - margin, randomPosition.y))
+                    } else {
+                        // Random spawning for exploration
+                        randomPosition = CGPoint(
+                            x: Double.random(in: (bounds.minX + margin)...(bounds.maxX - margin)),
+                            y: Double.random(in: (bounds.minY + margin)...(bounds.maxY - margin))
+                        )
+                    }
+                    
+                    let herbivoreFoodTypes: [FoodType] = [.apple, .orange, .plum, .melon]
+                    let randomType = herbivoreFoodTypes.randomElement() ?? .apple
+                    let foodItem = FoodItem(position: randomPosition, type: randomType, targetSpecies: .herbivore)
+                    foods.append(foodItem)
+                    
+                    // 🔍 DEBUG: Log fallback spawning
+                    if Int.random(in: 1...5) == 1 {
+                        print("🍎 [FOOD SPAWN] 🆘 Fallback spawned \(randomType.rawValue) at \(String(format: "(%.1f, %.1f)", randomPosition.x, randomPosition.y))")
                     }
                 }
             }

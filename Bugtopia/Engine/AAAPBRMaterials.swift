@@ -130,10 +130,13 @@ class AAAPBRMaterials {
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
         
-        // 📸 LOAD DIFFUSE TEXTURE (Main Color)
-        if let diffuseTexture = loadTexture(named: "apple-diffuse") {
+        // 📸 LOAD AAA DIFFUSE TEXTURE (Professional PBR Color Map)
+        if let diffuseTexture = loadTexture(named: "food_0006_color_4k") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            // ✅ Loaded apple diffuse texture
+            // ✅ Loaded professional apple diffuse texture (4K)
+        } else if let diffuseTexture = loadTexture(named: "apple-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            // ✅ Loaded fallback apple diffuse texture
         } else {
             // Fallback color matching apple
             let fallbackColor = NSColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0) // Red apple
@@ -141,26 +144,41 @@ class AAAPBRMaterials {
             // Using fallback apple color
         }
         
-        // 🗺️ LOAD NORMAL MAP (Surface Detail)
-        if let normalTexture = loadTexture(named: "apple-normal") {
+        // 🗺️ LOAD AAA NORMAL MAP (Professional Surface Detail)
+        if let normalTexture = loadTexture(named: "food_0006_normal_opengl_4k") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            // ✅ Loaded apple normal map
+            // ✅ Loaded professional apple normal map (4K OpenGL format)
+        } else if let normalTexture = loadTexture(named: "apple-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            // ✅ Loaded fallback apple normal map
         } else {
-            // Apple normal map not found
+            // Apple normal map not found - using smooth surface
         }
         
-        // ✨ LOAD ROUGHNESS MAP (Surface Properties)
-        if let roughnessTexture = loadTexture(named: "apple-roughness") {
+        // ✨ LOAD AAA ROUGHNESS MAP (Professional Surface Properties)
+        if let roughnessTexture = loadTexture(named: "food_0006_roughness_4k") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            // ✅ Loaded apple roughness map
+            // ✅ Loaded professional apple roughness map (4K)
+        } else if let roughnessTexture = loadTexture(named: "apple-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            // ✅ Loaded fallback apple roughness map
         } else {
             // Fallback: Glossy apple skin
             pbrMaterial.roughness = .init(floatLiteral: 0.3) // Glossy like real apple
             // Using fallback apple roughness
         }
         
-        // 🥇 METALLIC PROPERTIES: Apples are non-metallic but can have slight sheen
-        pbrMaterial.metallic = .init(floatLiteral: 0.1) // Slight natural sheen
+        // 🥇 AAA METALLIC PROPERTIES: Apples are non-metallic organic material
+        pbrMaterial.metallic = .init(floatLiteral: 0.0) // Pure organic material
+        
+        // 🌟 AAA SUBSURFACE SCATTERING: Simulate light penetration through apple skin
+        // Note: RealityKit doesn't have direct SSS, but we can fake it with emission
+        let subsurfaceColor = NSColor(red: 0.9, green: 0.3, blue: 0.2, alpha: 0.1)
+        pbrMaterial.emissiveColor = .init(color: subsurfaceColor)
+        
+        // 🍎 AAA CLEARCOAT: Natural waxy apple skin finish
+        pbrMaterial.clearcoat = .init(floatLiteral: 0.3)
+        pbrMaterial.clearcoatRoughness = .init(floatLiteral: 0.1)
         
         // 🌟 ENERGY-BASED ENHANCEMENT
         if energyLevel > 1.0 {

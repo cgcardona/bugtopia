@@ -43,7 +43,7 @@ class SimulationEngineManager: ObservableObject {
         return Arena3DView_RealityKit_Minimal(simulationEngine: engine)
     }
     
-    init(worldSize: CGSize = CGSize(width: 200, height: 200)) {   // 🔍 DEBUG: 200x200 simulation for focused debugging
+    init(worldSize: CGSize = CGSize(width: 2000, height: 2000)) {   // 🌍 PRODUCTION: 2000x2000 simulation for 20-bug testing
         let bounds = CGRect(origin: .zero, size: worldSize)
         self.engine = SimulationEngine(worldBounds: bounds)
     }

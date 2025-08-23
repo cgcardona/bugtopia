@@ -170,39 +170,52 @@ class AAAFoodGeometry {
         var uvs: [SIMD2<Float>] = []
         var indices: [UInt32] = []
         
-        let segments = 32
-        let rings = 16
+        let segments = 48  // 🍎 AAA: Higher detail for close-up viewing
+        let rings = 24     // 🍎 AAA: More vertical resolution
         
-        // 🍎 APPLE SHAPE PARAMETERS: Classic apple proportions
+        // 🍎 APPLE SHAPE PARAMETERS: Photorealistic apple proportions
         let baseRadius: Float = 1.0
-        let heightScale: Float = 1.2  // Apples are taller than wide
-        let waistPosition: Float = 0.6  // Where the apple narrows (60% up)
-        let waistFactor: Float = 0.85  // How much it narrows at waist
-        let stemIndentDepth: Float = 0.15  // REDUCED: Gentler stem indent to prevent UV distortion
-        let stemIndentRadius: Float = 0.25  // REDUCED: Smaller stem area for better UV mapping
+        let heightScale: Float = 1.15  // More natural apple proportions
+        let waistPosition: Float = 0.65  // Slightly higher waist for realism
+        let waistFactor: Float = 0.88   // Subtle waist narrowing
+        let stemIndentDepth: Float = 0.12  // Natural stem depression
+        let stemIndentRadius: Float = 0.2   // Realistic stem area
+        let bottomBulge: Float = 1.05  // Slight bottom bulge for realism
+        let asymmetryFactor: Float = 0.02  // Subtle natural asymmetry
         
         // 🎨 GENERATE VERTICES WITH NATURAL APPLE SHAPE
         for ring in 0...rings {
             let ringAngle = Float(ring) / Float(rings) * Float.pi
             let y = cos(ringAngle) * heightScale
             
-            // 🍎 APPLE WAIST: Narrow in the middle like real apples
+            // 🍎 AAA APPLE SHAPE: Realistic proportions with natural variations
             var radiusMultiplier: Float = 1.0
             let normalizedY = (y + heightScale) / (2.0 * heightScale) // 0 to 1
             
+            // Bottom bulge for natural apple shape
+            if normalizedY < 0.3 {
+                radiusMultiplier *= bottomBulge
+            }
+            
+            // Waist narrowing in upper section
             if normalizedY > waistPosition {
-                // Upper section: gradually narrow toward stem
                 let waistProgress = (normalizedY - waistPosition) / (1.0 - waistPosition)
-                radiusMultiplier = waistFactor + (1.0 - waistFactor) * (1.0 - waistProgress * 0.8)
+                radiusMultiplier *= waistFactor + (1.0 - waistFactor) * (1.0 - waistProgress * 0.8)
             }
             
             for segment in 0...segments {
                 let segmentAngle = Float(segment) / Float(segments) * 2.0 * Float.pi
                 
-                // 🌍 BASIC SPHERICAL COORDINATES WITH APPLE WAIST
-                let x = sin(ringAngle) * cos(segmentAngle) * baseRadius * radiusMultiplier
-                let z = sin(ringAngle) * sin(segmentAngle) * baseRadius * radiusMultiplier
+                // 🌍 AAA SPHERICAL COORDINATES WITH NATURAL ASYMMETRY
+                var x = sin(ringAngle) * cos(segmentAngle) * baseRadius * radiusMultiplier
+                var z = sin(ringAngle) * sin(segmentAngle) * baseRadius * radiusMultiplier
                 var currentY = y
+                
+                // 🍎 SUBTLE ASYMMETRY: Real apples aren't perfectly symmetrical
+                let asymmetryX = sin(segmentAngle * 3.0) * asymmetryFactor * radiusMultiplier
+                let asymmetryZ = cos(segmentAngle * 2.0) * asymmetryFactor * radiusMultiplier
+                x += asymmetryX
+                z += asymmetryZ
                 
                 // 🍎 GENTLE STEM INDENT: Reduced distortion for better UV mapping
                 if ring < rings / 6 {  // REDUCED: Affect fewer rings

@@ -26,10 +26,10 @@ struct Arena3DView_RealityKit_v2: View {
     
     // MARK: - Coordinate System Constants (DEBUG SCALING!) 
     
-    private let simulationScale: Float = 0.1  // 🎯 DEBUG: 200 sim → 20 RK units for debugging
+    private let simulationScale: Float = 0.1  // 🎯 PRODUCTION: 2000 sim → 200 RK units for 20-bug testing
     private let terrainScale: Float = 6.25    // 🏔️ TERRAIN: Scale factor for mesh generation
-    private let terrainSize: Float = 20.0     // 🔍 DEBUG: 20 RK units for focused debugging
-    private let worldScale: Float = 0.1       // 🔁 DEBUG: 0.1 sim->RK scale for X/Z
+    private let terrainSize: Float = 200.0    // 🌍 PRODUCTION: 200 RK units for large world
+    private let worldScale: Float = 0.1       // 🔁 PRODUCTION: 0.1 sim->RK scale for X/Z
     
     // 🐛 DEBUG: Add coordinate debugging
     private func debugCoordinateSystem() {
@@ -72,7 +72,7 @@ struct Arena3DView_RealityKit_v2: View {
     
     @State private var isGodMode: Bool = true  // 🌟 Start in god mode (flying)
     @State private var walkModeHeight: Float = 5.0  // Height above terrain in walk mode
-    @State private var cameraPosition = SIMD3<Float>(-10, -20, -100)   // ✅ PROVEN WORKING: Exact original hardcoded values
+    @State private var cameraPosition = SIMD3<Float>(-4.0, 4.0, -30.0)   // ✅ PROVEN WORKING: Exact original hardcoded values
     @State private var cameraPitch: Float = 0.0   // ✅ PROVEN WORKING: No rotation (default)
     @State private var cameraYaw: Float = 0.0     // ✅ PROVEN WORKING: No rotation (default)
     
@@ -113,7 +113,7 @@ struct Arena3DView_RealityKit_v2: View {
     // MARK: - Debug Functions
     
     private func updateDebugInfo() {
-        let terrain = "Terrain: 200×200 units at Y=0-20" // 🟫 SQUARED: Fixed coordinate system
+        let terrain = "Terrain: 2000×2000 units at Y=0-20" // 🟫 SQUARED: Large world coordinate system
         let camera = String(format: "Cam: (%.1f, %.1f, %.1f)", cameraPosition.x, cameraPosition.y, cameraPosition.z)
         let rotation = String(format: "Rot: P%.1f° Y%.1f°", cameraPitch * 180 / .pi, cameraYaw * 180 / .pi)
         let mode = isGodMode ? "🌟 GOD" : "🚶 WALK"
@@ -143,7 +143,7 @@ struct Arena3DView_RealityKit_v2: View {
                     Text("Expected Bounds:")
                         .font(.caption)
                         .foregroundColor(.yellow)
-                    Text("X: 0 to 200 | Z: 0 to 200") // 🟫 SQUARED: Fixed coordinate bounds
+                    Text("X: 0 to 2000 | Z: 0 to 2000") // 🟫 SQUARED: Large world coordinate bounds
                         .font(.system(.caption2, design: .monospaced))
                         .foregroundColor(.white)
                         .padding(4)
@@ -211,8 +211,8 @@ struct Arena3DView_RealityKit_v2: View {
             
             // 🧪 INITIALIZE PHEROMONE SYSTEM: GameplayKit-powered chemical trails
             pheromoneManager = PheromoneFieldManager(
-                worldBounds: CGRect(x: 0, y: 0, width: 200, height: 200), // Use SCALED bounds (2000 * 0.1 = 200)
-                resolution: 200  // 🎯 PERFECT 1:1 MAPPING: Match bug coordinate system (scaled down from 2000)
+                worldBounds: CGRect(x: 0, y: 0, width: 2000, height: 2000), // Use FULL simulation bounds
+                resolution: 200  // 🎯 EFFICIENT MAPPING: 200x200 resolution for 2000x2000 world
             )
             
             // View appeared, FPS monitoring and entity updates enabled
@@ -1021,11 +1021,11 @@ struct Arena3DView_RealityKit_v2: View {
     private func setupDynamicLighting(in anchor: Entity) {
         // print("💡 [RealityKit] Setting up dramatic lighting system...")
         
-        // 🌅 PRIMARY SUN LIGHT: Warm directional light simulating sun
+        // 🍎 AAA FOOD PHOTOGRAPHY LIGHTING: Enhanced for apple showcase
         let sunLight = DirectionalLight()
-        sunLight.light.color = .init(red: 1.0, green: 0.95, blue: 0.8, alpha: 1.0) // Warm sunlight
-        sunLight.light.intensity = 3000 // Strong directional lighting
-        sunLight.light.isRealWorldProxy = true // Enable shadows
+        sunLight.light.color = .init(red: 1.0, green: 0.98, blue: 0.95, alpha: 1.0) // Neutral white for accurate colors
+        sunLight.light.intensity = 4000 // Brighter for close-up detail
+        sunLight.light.isRealWorldProxy = true // Enable shadows for depth
         
         // Position sun at realistic angle (45° elevation, slightly offset)
         sunLight.orientation = simd_quatf(angle: Float.pi * 0.25, axis: [1, 0, 0]) * 
@@ -2942,7 +2942,8 @@ struct Arena3DView_RealityKit_v2: View {
         // Update entities at 30 FPS to reduce load
         updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0/30.0, repeats: true) { _ in
             Task { @MainActor in
-                bugEntityManager.updateBugEntities(with: simulationEngine.bugs)
+                // 🍎 DISABLED: Bug rendering disabled for food styling focus
+                // bugEntityManager.updateBugEntities(with: simulationEngine.bugs)
             }
         }
     }
@@ -2982,8 +2983,8 @@ struct Arena3DView_RealityKit_v2: View {
         let deltaTime = currentTime - lastUpdateTime
         lastUpdateTime = currentTime
         
-        // Update bug positions and behaviors
-        updateBugEntities(in: anchor, deltaTime: Float(deltaTime))
+        // 🍎 DISABLED: Bug updates disabled for food styling focus
+        // updateBugEntities(in: anchor, deltaTime: Float(deltaTime))
         
         // Update food entities (spawn new, remove consumed)
         updateFoodEntities(in: anchor)

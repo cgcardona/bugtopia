@@ -148,6 +148,9 @@ class EcosystemManager {
         // Update resource zones
         updateResourceZones(bugs: bugs, foods: foods, deltaTime: deltaTime)
         
+        // Update global resource health based on food availability
+        updateGlobalResourceHealth(foods: foods, bugs: bugs)
+        
         // Calculate global metrics
         calculateGlobalMetrics(bugs: bugs)
         
@@ -207,14 +210,29 @@ class EcosystemManager {
         }
     }
     
+    private func updateGlobalResourceHealth(foods: [FoodItem], bugs: [Bug]) {
+        // Calculate food availability ratio (food per bug)
+        let foodPerBug = bugs.isEmpty ? Double(foods.count) : Double(foods.count) / Double(bugs.count)
+        
+        // Ideal ratio is about 10 food items per bug for healthy ecosystem
+        let idealFoodPerBug = 10.0
+        let foodAvailabilityRatio = min(1.0, foodPerBug / idealFoodPerBug)
+        
+        // Combine resource zone health with food availability
+        let zoneHealth = resourceZones.isEmpty ? 1.0 : resourceZones.map { $0.health }.reduce(0, +) / Double(resourceZones.count)
+        
+        // Weight food availability more heavily for immediate ecosystem health
+        globalResourceHealth = (foodAvailabilityRatio * 0.7) + (zoneHealth * 0.3)
+    }
+    
     private func calculateGlobalMetrics(bugs: [Bug]) {
-        // Population pressure affects survival rates (reserved for future expansion)
-        _ = max(0.5, 1.0 - (carryingCapacityUtilization - 1.0) * 0.5)
+        // Calculate carrying capacity utilization
+        carryingCapacityUtilization = Double(bugs.count) / Double(baseCarryingCapacity)
         
-        // Resource scarcity affects food availability (reserved for future expansion)
-        _ = max(0.1, globalResourceHealth)
-        
-        // These metrics will be used for future survival calculations
+        // Calculate average population pressure
+        let totalPressure = populationDensityGrid.flatMap { $0 }.reduce(0, +)
+        let gridCells = Double(gridResolution * gridResolution)
+        averagePopulationPressure = totalPressure / gridCells
     }
     
     private func checkForMajorCycles() {
