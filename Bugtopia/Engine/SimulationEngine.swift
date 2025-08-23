@@ -37,9 +37,9 @@ class SimulationEngine {
     let voxelWorld: VoxelWorld
     let pathfinding: VoxelPathfinding
     var currentWorldType: WorldType3D = .continental3D
-    private let maxPopulation = 800  // MASSIVE INCREASE: 4.4x more bugs for extensive debugging
-    private let initialPopulation = 20    // 🎉 FULL SIMULATION: Back to 20 bugs with visual sync fixed!
-    private let maxFoodItems = 200  // Reasonable food limit for good performance
+    private let maxPopulation = 5    // 🔍 DEBUG: Minimal population for focused observation
+    private let initialPopulation = 1    // 🔍 DEBUG: Single bug for detailed behavior analysis
+    private let maxFoodItems = 5         // 🔍 DEBUG: Minimal food for clear interaction tracking
     private let baseFoodSpawnRate = 0.05 // Much lower spawn rate to prevent oversaturation
     
     // MARK: - Simulation Speed & Analysis
@@ -218,8 +218,94 @@ class SimulationEngine {
         self.voxelWorld = VoxelWorld(bounds: worldBounds, worldType: worldType, resolution: 32)
         self.pathfinding = VoxelPathfinding(voxelWorld: voxelWorld)
         ecosystemManager.setWorldBounds(worldBounds)
-        setupInitialPopulation()
-        spawnInitialFood()
+        
+        // 🔍 DEBUG: Setup minimal population for focused debugging
+        bugs.removeAll()
+        for i in 0..<initialPopulation {
+            // 🐛 DEBUG: Spawn bug in safe zone away from boundaries
+            let centerX = (voxelWorld.worldBounds.minX + voxelWorld.worldBounds.maxX) / 2
+            let centerY = (voxelWorld.worldBounds.minY + voxelWorld.worldBounds.maxY) / 2
+            let spawnRadius = 30.0  // Spawn within 30 units of center for more room
+            let spawnAngle = Double.random(in: 0...(2 * Double.pi))
+            let spawnDistance = Double.random(in: 10...spawnRadius) // At least 10 units from center
+            
+            let randomPosition = CGPoint(
+                x: centerX + cos(spawnAngle) * spawnDistance,
+                y: centerY + sin(spawnAngle) * spawnDistance
+            )
+            
+            // 🐛 DEBUG: Force first bug to be herbivore for food-seeking debugging  
+            if i == 0 {
+                // Create a custom herbivore bug with enhanced vision for debugging
+                let baseDNA = BugDNA.random()
+                let herbivoreTraits = SpeciesTraits.forSpecies(.herbivore)
+                
+                // Create enhanced DNA with much better vision for small world debugging
+                let debugDNA = BugDNA(
+                    speed: baseDNA.speed,
+                    visionRadius: 150.0, // Enhanced vision for 200x200 world
+                    energyEfficiency: baseDNA.energyEfficiency,
+                    size: baseDNA.size,
+                    strength: baseDNA.strength,
+                    memory: baseDNA.memory,
+                    stickiness: baseDNA.stickiness,
+                    camouflage: baseDNA.camouflage,
+                    wingSpan: baseDNA.wingSpan,
+                    divingDepth: baseDNA.divingDepth,
+                    climbingGrip: baseDNA.climbingGrip,
+                    altitudePreference: baseDNA.altitudePreference,
+                    pressureTolerance: baseDNA.pressureTolerance,
+                    aggression: baseDNA.aggression,
+                    curiosity: baseDNA.curiosity,
+                    neuralDNA: baseDNA.neuralDNA,
+                    neuralEnergyEfficiency: baseDNA.neuralEnergyEfficiency,
+                    brainPlasticity: baseDNA.brainPlasticity,
+                    neuralPruningTendency: baseDNA.neuralPruningTendency,
+                    speciesTraits: herbivoreTraits,
+                    communicationDNA: baseDNA.communicationDNA,
+                    toolDNA: baseDNA.toolDNA,
+                    colorHue: baseDNA.colorHue,
+                    colorSaturation: baseDNA.colorSaturation,
+                    colorBrightness: baseDNA.colorBrightness
+                )
+                
+                let newBug = Bug(dna: debugDNA, position: randomPosition, generation: 0)
+                bugs.append(newBug)
+                print("🌱 [DEBUG] Created herbivore bug at position: \(randomPosition)")
+                print("🌱 [DEBUG] Bug species: \(debugDNA.speciesTraits.speciesType.rawValue)")
+                print("🌱 [DEBUG] Bug vision radius: \(debugDNA.visionRadius)")
+                print("🌱 [DEBUG] Bug can eat plants: \(debugDNA.speciesTraits.speciesType.canEatPlants)")
+                print("🌱 [DEBUG] World bounds: \(voxelWorld.worldBounds)")
+            } else {
+                let newBug = Bug.random(in: voxelWorld.worldBounds, generation: 0)
+                bugs.append(newBug)
+            }
+        }
+        print("🐛 [SETUP] Initial population created: \(bugs.count) bugs")
+        
+        // 🍎 PRODUCTION: Setup distributed food across entire arena
+        foods.removeAll()
+        let initialFoodCount = min(maxFoodItems, 20)
+        for _ in 0..<initialFoodCount {
+            // 🌍 DISTRIBUTED: Place food randomly across entire arena
+            let foodX = Double.random(in: voxelWorld.worldBounds.minX...voxelWorld.worldBounds.maxX)
+            let foodY = Double.random(in: voxelWorld.worldBounds.minY...voxelWorld.worldBounds.maxY)
+            
+            let randomPosition = CGPoint(
+                x: foodX,
+                y: foodY
+            )
+            
+            // 🌱 DEBUG: Generate herbivore-compatible food for debugging
+            let herbivoreFoodTypes: [FoodType] = [.apple, .orange, .plum, .melon] // Plant-based foods
+            let randomType = herbivoreFoodTypes.randomElement() ?? .apple
+            let newFood = FoodItem(position: randomPosition, type: randomType, targetSpecies: .herbivore)
+            foods.append(newFood)
+            print("🍎 [DEBUG] Created \(randomType.rawValue) food at position: \(randomPosition)")
+            print("🍎 [DEBUG] Food target species: \(newFood.targetSpecies.rawValue)")
+            print("🍎 [DEBUG] Food energy value: \(newFood.energyValue)")
+        }
+        print("🍎 [SETUP] Initial food created: \(foods.count) food items")
     }
     
     // MARK: - Simulation Control
@@ -271,9 +357,92 @@ class SimulationEngine {
         tickCount = 0
         statistics = SimulationStatistics()
         
-        setupInitialPopulation()
-        spawnInitialFood()
-        spawnInitialResources()
+        // 🔍 DEBUG: Setup minimal population for focused debugging (reset)
+        bugs.removeAll()
+        for i in 0..<initialPopulation {
+            // 🐛 DEBUG: Spawn bug in safe zone away from boundaries
+            let centerX = (voxelWorld.worldBounds.minX + voxelWorld.worldBounds.maxX) / 2
+            let centerY = (voxelWorld.worldBounds.minY + voxelWorld.worldBounds.maxY) / 2
+            let spawnRadius = 30.0  // Spawn within 30 units of center for more room
+            let spawnAngle = Double.random(in: 0...(2 * Double.pi))
+            let spawnDistance = Double.random(in: 10...spawnRadius) // At least 10 units from center
+            
+            let randomPosition = CGPoint(
+                x: centerX + cos(spawnAngle) * spawnDistance,
+                y: centerY + sin(spawnAngle) * spawnDistance
+            )
+            
+            // 🐛 DEBUG: Force first bug to be herbivore for food-seeking debugging
+            if i == 0 {
+                // Create a custom herbivore bug with enhanced vision for debugging
+                let baseDNA = BugDNA.random()
+                let herbivoreTraits = SpeciesTraits.forSpecies(.herbivore)
+                
+                // Create enhanced DNA with much better vision for small world debugging
+                let debugDNA = BugDNA(
+                    speed: baseDNA.speed,
+                    visionRadius: 150.0, // Enhanced vision for 200x200 world
+                    energyEfficiency: baseDNA.energyEfficiency,
+                    size: baseDNA.size,
+                    strength: baseDNA.strength,
+                    memory: baseDNA.memory,
+                    stickiness: baseDNA.stickiness,
+                    camouflage: baseDNA.camouflage,
+                    wingSpan: baseDNA.wingSpan,
+                    divingDepth: baseDNA.divingDepth,
+                    climbingGrip: baseDNA.climbingGrip,
+                    altitudePreference: baseDNA.altitudePreference,
+                    pressureTolerance: baseDNA.pressureTolerance,
+                    aggression: baseDNA.aggression,
+                    curiosity: baseDNA.curiosity,
+                    neuralDNA: baseDNA.neuralDNA,
+                    neuralEnergyEfficiency: baseDNA.neuralEnergyEfficiency,
+                    brainPlasticity: baseDNA.brainPlasticity,
+                    neuralPruningTendency: baseDNA.neuralPruningTendency,
+                    speciesTraits: herbivoreTraits,
+                    communicationDNA: baseDNA.communicationDNA,
+                    toolDNA: baseDNA.toolDNA,
+                    colorHue: baseDNA.colorHue,
+                    colorSaturation: baseDNA.colorSaturation,
+                    colorBrightness: baseDNA.colorBrightness
+                )
+                
+                let newBug = Bug(dna: debugDNA, position: randomPosition, generation: 0)
+                bugs.append(newBug)
+                print("🌱 [RESET] Created herbivore bug at position: \(randomPosition)")
+                print("🌱 [RESET] Bug species: \(debugDNA.speciesTraits.speciesType.rawValue)")
+                print("🌱 [RESET] Bug vision radius: \(debugDNA.visionRadius)")
+                print("🌱 [RESET] Bug can eat plants: \(debugDNA.speciesTraits.speciesType.canEatPlants)")
+            } else {
+                let newBug = Bug.random(in: voxelWorld.worldBounds, generation: 0)
+                bugs.append(newBug)
+            }
+        }
+        print("🐛 [RESET] Population created: \(bugs.count) bugs")
+        
+        // 🍎 PRODUCTION: Setup distributed food across entire arena (reset)
+        foods.removeAll()
+        let initialFoodCount = min(maxFoodItems, 20)
+        for _ in 0..<initialFoodCount {
+            // 🌍 DISTRIBUTED: Place food randomly across entire arena
+            let foodX = Double.random(in: voxelWorld.worldBounds.minX...voxelWorld.worldBounds.maxX)
+            let foodY = Double.random(in: voxelWorld.worldBounds.minY...voxelWorld.worldBounds.maxY)
+            
+            let randomPosition = CGPoint(
+                x: foodX,
+                y: foodY
+            )
+            
+            // 🌱 DEBUG: Generate herbivore-compatible food for debugging
+            let herbivoreFoodTypes: [FoodType] = [.apple, .orange, .plum, .melon] // Plant-based foods
+            let randomType = herbivoreFoodTypes.randomElement() ?? .apple
+            let newFood = FoodItem(position: randomPosition, type: randomType, targetSpecies: .herbivore)
+            foods.append(newFood)
+            print("🍎 [RESET] Created \(randomType.rawValue) food at position: \(randomPosition)")
+        }
+        print("🍎 [RESET] Food created: \(foods.count) food items")
+        
+        // Skip spawnInitialResources for now in debug mode
         
         // Restore the previous running state - if it was running, keep it running!
         if wasRunning {
@@ -286,9 +455,10 @@ class SimulationEngine {
         tick()
     }
     
-    /// Forces evolution to the next generation
+    /// Forces evolution to the next generation (disabled for debugging)
     func evolveNextGeneration() {
-        evolvePopulation()
+        print("🔍 [DEBUG] Evolution disabled for focused debugging")
+        // evolvePopulation()
     }
     
     // MARK: - Main Simulation Loop
@@ -309,8 +479,8 @@ class SimulationEngine {
         // Update all bugs with neural decisions first, then movement
         var newSignals: [Signal] = []
         for bug in bugs {
-            // 🎯 MOVEMENT TRACKING: Capture position before update
-            let positionBefore = bug.position3D
+            // 🎯 MOVEMENT TRACKING: Capture position before update (for future use)
+            let _ = bug.position3D
             // 🧠 FIRST: Make neural network decisions and update behaviors
             bug.update(
                 in: createVoxelArenaAdapter(),
@@ -348,11 +518,24 @@ class SimulationEngine {
         // Update tools and construction
         updateToolsAndConstruction()
         
-        // Handle reproduction
-        handleReproduction()
+        // Handle reproduction (disabled for debugging)
+        // handleReproduction()
         
         // Remove dead bugs
+        let bugCountBefore = bugs.count
         bugs.removeAll { !$0.isAlive }
+        let bugCountAfter = bugs.count
+        
+        // 🔍 DEBUG: Log population changes and prevent force-regeneration
+        if bugCountBefore != bugCountAfter {
+            print("🐛 [POPULATION] Bugs: \(bugCountBefore) → \(bugCountAfter)")
+        }
+        
+        // 🔍 DEBUG: Disable any force-regeneration logic for focused debugging
+        if bugs.count < 2 {
+            print("🔍 [DEBUG] Population below 2 (\(bugs.count)) - force-regeneration DISABLED for debugging")
+            // Normally this would trigger emergency population creation, but we're disabling it
+        }
         
         // Spawn food
         spawnFood()
@@ -369,23 +552,24 @@ class SimulationEngine {
         // Update natural disasters
         disasterManager.update(seasonalManager: seasonalManager, weatherManager: weatherManager)
         
+        // 🔍 DEBUG: Disable ecosystem and speciation updates to prevent population changes
         // Update ecosystem dynamics and resource health
-        ecosystemManager.update(
-            bugs: bugs,
-            foods: foods,
-            generationCount: currentGeneration,
-            deltaTime: tickInterval
-        )
+        // ecosystemManager.update(
+        //     bugs: bugs,
+        //     foods: foods,
+        //     generationCount: currentGeneration,
+        //     deltaTime: tickInterval
+        // )
         
         // Update territories and migrations (using 2D compatibility)
-        territoryManager.update(
-            populations: speciationManager.populations,
-            arena: createVoxelArenaAdapter(),
-            ecosystemManager: ecosystemManager
-        )
+        // territoryManager.update(
+        //     populations: speciationManager.populations,
+        //     arena: createVoxelArenaAdapter(),
+        //     ecosystemManager: ecosystemManager
+        // )
         
         // Update populations and speciation (using 2D compatibility)
-        speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: createVoxelArenaAdapter())
+        // speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: createVoxelArenaAdapter())
         
         // Clean up old speciation events every 50 ticks to prevent memory buildup
         if tickCount % 50 == 0 {
@@ -401,6 +585,17 @@ class SimulationEngine {
                 resources: resources.count,
                 tools: tools.count
             )
+            
+            // 🐛 DEBUG: Log bug-food distances every 30 ticks for debugging
+            if let firstBug = bugs.first, !foods.isEmpty {
+                print("🔍 [DEBUG] Bug position: \(firstBug.position)")
+                print("🔍 [DEBUG] Bug energy: \(firstBug.energy)")
+                print("🔍 [DEBUG] Bug species: \(firstBug.dna.speciesTraits.speciesType.rawValue)")
+                for (i, food) in foods.enumerated() {
+                    let distance = sqrt(pow(firstBug.position.x - food.position.x, 2) + pow(firstBug.position.y - food.position.y, 2))
+                    print("🔍 [DEBUG] Distance to food \(i) (\(food.type.rawValue)): \(String(format: "%.2f", distance))")
+                }
+            }
         }
         
         // 🔍 MEMORY LEAK DEBUG: Generate comprehensive memory report every 300 ticks (10 seconds)
@@ -411,16 +606,18 @@ class SimulationEngine {
         // Update statistics
         updateStatistics()
         
+        // 🔍 DEBUG: Disable automatic generation evolution for focused debugging
         // Check for generation end
-        if shouldEndGeneration() {
-            evolvePopulation()
-        }
+        // if shouldEndGeneration() {
+        //     evolvePopulation()
+        // }
         
+        // 🔍 DEBUG: Disable automatic repopulation for focused debugging
         // 🎉 RE-ENABLED: Repopulation for full simulation with visual sync fixed
         // Only repopulate if population is extremely critically low
-        if bugs.count < 2 { // Almost never repopulate - let natural selection work
-            repopulateFromSurvivors()
-        }
+        // if bugs.count < 2 { // Almost never repopulate - let natural selection work
+        //     repopulateFromSurvivors()
+        // }
     }
     
     // MARK: - Population Management
@@ -481,8 +678,10 @@ class SimulationEngine {
         }
         
         // Add new bugs if population allows
-        let newBugsToAdd = min(newBugs.count, maxPopulation - bugs.count)
-        bugs.append(contentsOf: Array(newBugs.prefix(newBugsToAdd)))
+        let newBugsToAdd = max(0, min(newBugs.count, maxPopulation - bugs.count))
+        if newBugsToAdd > 0 {
+            bugs.append(contentsOf: Array(newBugs.prefix(newBugsToAdd)))
+        }
     }
     
     /// Select a mate based on reproductive compatibility
@@ -702,7 +901,7 @@ class SimulationEngine {
         let openVoxels = allSurfaceVoxels.filter { $0.terrainType == .open }
         let hillVoxels = allSurfaceVoxels.filter { $0.terrainType == .hill }
         let forestVoxels = allSurfaceVoxels.filter { $0.terrainType == .forest }
-        let waterVoxels = allSurfaceVoxels.filter { $0.terrainType == .water }
+        let _ = allSurfaceVoxels.filter { $0.terrainType == .water }
         
         // print("🍎 [FOOD DEBUG] Surface voxel terrain analysis:")
         // print("📊 Total surface voxels: \(allSurfaceVoxels.count)")

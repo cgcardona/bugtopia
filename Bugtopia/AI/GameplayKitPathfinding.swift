@@ -156,7 +156,7 @@ class PheromoneFieldManager {
             }
         }
         
-        print("🛣️ [HIGHWAY] Created pheromone superhighway at (\(gridX), \(gridY))")
+//        print("🛣️ [HIGHWAY] Created pheromone superhighway at (\(gridX), \(gridY))")
     }
     
     private func addPheromoneWithSpread(gridX: Int, gridY: Int, signalIndex: Int, intensity: Double) {
