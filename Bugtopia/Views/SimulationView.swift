@@ -588,9 +588,12 @@ struct SimulationView: View {
             // Quick Performance Stats
             VStack(alignment: .leading, spacing: 2) {
                 let averageEnergy = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.energy).reduce(0, +) / Double(simulationEngine.bugs.count)
-                Text("Avg Energy: \(String(format: "%5.1f", averageEnergy))")
+                Text("Avg Energy: \(String(format: "%6.1f", averageEnergy))")
                     .font(.caption)
-                    .monospacedDigit() // Use monospaced digits to prevent width changes
+                    .monospacedDigit()
+                    .frame(minWidth: 120, alignment: .leading)
+                    .id("energy-display") // 🔧 FIX: Stable view identity to prevent recreation
+                    .animation(nil, value: averageEnergy) // 🔧 FIX: Disable animations on energy changes
                 Text("Food: \(simulationEngine.foods.count)")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -771,7 +774,8 @@ struct SimulationView: View {
                     let averageEnergy = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.energy).reduce(0, +) / Double(simulationEngine.bugs.count)
                     let averageAge = simulationEngine.bugs.isEmpty ? 0 : Double(simulationEngine.bugs.map(\.age).reduce(0, +)) / Double(simulationEngine.bugs.count)
                     
-                    StatRow(label: "⚡ Energy", value: String(format: "%5.1f", averageEnergy))
+                    StatRow(label: "⚡ Energy", value: String(format: "%6.1f", averageEnergy))
+                        .animation(nil, value: averageEnergy) // 🔧 FIX: Disable animations on energy changes
                     StatRow(label: "📅 Age", value: String(format: "%.0f", averageAge))
                 }
                 
