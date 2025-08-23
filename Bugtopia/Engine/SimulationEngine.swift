@@ -296,19 +296,19 @@ class SimulationEngine {
         
         // 🍎 PRODUCTION: Setup evenly distributed food across entire arena
         foods.removeAll()
-        let initialFoodCount = 1   // 🍎 STYLING: Single apple for AAA quality focus
+        let initialFoodCount = 1   // 🫐 STYLING: Single blackberry for AAA quality focus
         
-        // 🍎 STYLING: Position single apple near origin for easy camera positioning
-        let appleX = 50.0   // Close to origin but not exactly at 0,0
-        let appleY = 50.0   // Close to origin but not exactly at 0,0
-        let applePosition = CGPoint(x: appleX, y: appleY)
+        // 🫐 STYLING: Position single blackberry near origin for easy camera positioning
+        let blackberryX = 50.0   // Close to origin but not exactly at 0,0
+        let blackberryY = 50.0   // Close to origin but not exactly at 0,0
+        let blackberryPosition = CGPoint(x: blackberryX, y: blackberryY)
         
-        // Create single AAA-quality apple
-        let apple = FoodItem(position: applePosition, type: .apple, targetSpecies: .herbivore)
-        foods.append(apple)
+        // Create single AAA-quality blackberry
+        let blackberry = FoodItem(position: blackberryPosition, type: .blackberry, targetSpecies: .herbivore)
+        foods.append(blackberry)
         
-        print("🍎 [STYLING] Created single apple near origin: (\(appleX), \(appleY))")
-        print("🍎 [SETUP] Initial food created: \(foods.count) food items")
+        print("🫐 [STYLING] Created single blackberry near origin: (\(blackberryX), \(blackberryY))")
+        print("🫐 [SETUP] Initial food created: \(foods.count) food items")
     }
     
     // MARK: - Simulation Control
@@ -436,19 +436,19 @@ class SimulationEngine {
         
         // 🍎 PRODUCTION: Setup evenly distributed food across entire arena (reset)
         foods.removeAll()
-        let initialFoodCount = 1   // 🍎 STYLING: Single apple for AAA quality focus
+        let initialFoodCount = 1   // 🫐 STYLING: Single blackberry for AAA quality focus
         
-        // 🍎 STYLING: Position single apple near origin for easy camera positioning
-        let appleX = 50.0   // Close to origin but not exactly at 0,0
-        let appleY = 50.0   // Close to origin but not exactly at 0,0
-        let applePosition = CGPoint(x: appleX, y: appleY)
+        // 🫐 STYLING: Position single blackberry near origin for easy camera positioning
+        let blackberryX = 50.0   // Close to origin but not exactly at 0,0
+        let blackberryY = 50.0   // Close to origin but not exactly at 0,0
+        let blackberryPosition = CGPoint(x: blackberryX, y: blackberryY)
         
-        // Create single AAA-quality apple
-        let apple = FoodItem(position: applePosition, type: .apple, targetSpecies: .herbivore)
-        foods.append(apple)
+        // Create single AAA-quality blackberry
+        let blackberry = FoodItem(position: blackberryPosition, type: .blackberry, targetSpecies: .herbivore)
+        foods.append(blackberry)
         
-        print("🍎 [STYLING] Created single apple near origin: (\(appleX), \(appleY))")
-        print("🍎 [RESET] Food created: \(foods.count) food items")
+        print("🫐 [STYLING] Created single blackberry near origin: (\(blackberryX), \(blackberryY))")
+        print("🫐 [RESET] Food created: \(foods.count) food items")
         
         // Skip spawnInitialResources for now in debug mode
         
@@ -1510,6 +1510,7 @@ class SimulationEngine {
         case .apple: return "🍎"
         case .orange: return "🍊"
         case .melon: return "🍈"
+        case .blackberry: return "🫐"
         case .meat: return "🥩"
         case .fish: return "🐟"
         case .seeds: return "🌱"

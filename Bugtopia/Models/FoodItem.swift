@@ -36,6 +36,7 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
     case apple = "apple" 
     case orange = "orange"
     case melon = "melon"
+    case blackberry = "blackberry"
     
     // Future: Carnivore Foods (for expansion)
     case meat = "meat"
@@ -53,6 +54,7 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         case .apple: return 30.0    // 2x multiplier 
         case .orange: return 40.0   // 5x multiplier (rare)
         case .melon: return 60.0    // 10x multiplier (rare)
+        case .blackberry: return 35.0  // Sweet berries (common)
         
         // Carnivore foods (future)
         case .meat: return 45.0
@@ -71,6 +73,7 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         case .apple: return Color.red
         case .orange: return Color.orange
         case .melon: return Color.green
+        case .blackberry: return Color.black
         case .meat: return Color.brown
         case .fish: return Color.blue
         case .seeds: return Color.yellow
@@ -81,7 +84,7 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
     /// Rarity level affecting spawn chance
     var rarity: FoodRarity {
         switch self {
-        case .plum, .apple: return .common      // 70% of spawns
+        case .plum, .apple, .blackberry: return .common      // 70% of spawns
         case .orange, .melon: return .rare      // 30% of spawns
         case .meat, .fish: return .common       // For carnivores
         case .seeds, .nuts: return .common      // For omnivores
@@ -91,7 +94,7 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
     /// Which species types can eat this food
     var compatibleSpecies: [SpeciesType] {
         switch self {
-        case .plum, .apple, .orange, .melon:
+        case .plum, .apple, .orange, .melon, .blackberry:
             return [.herbivore, .omnivore]
         case .meat, .fish:
             return [.carnivore, .omnivore]
@@ -107,6 +110,7 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         case .apple: return "Apple"
         case .orange: return "Orange"
         case .melon: return "Melon"
+        case .blackberry: return "Blackberry"
         case .meat: return "Meat"
         case .fish: return "Fish"
         case .seeds: return "Seeds"
@@ -121,6 +125,7 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         case .apple: return [.temperateForest, .temperateGrassland]
         case .orange: return [.tropicalRainforest, .savanna]
         case .melon: return [.temperateGrassland, .savanna]
+        case .blackberry: return [.temperateForest, .borealForest, .temperateGrassland]
         case .meat: return [.tundra, .temperateGrassland, .savanna] // Where prey animals are
         case .fish: return [.wetlands, .coastal] // Near water sources
         case .seeds: return [.temperateGrassland, .desert, .savanna]
@@ -135,6 +140,7 @@ enum FoodType: String, CaseIterable, Codable, Hashable {
         case .apple: return [.fall] // Classic harvest season
         case .orange: return [.winter, .spring] // Citrus season
         case .melon: return [.summer] // Peak summer fruit
+        case .blackberry: return [.summer, .fall] // Berry season
         case .meat: return [.fall, .winter] // Hunting season
         case .fish: return [.spring, .summer] // Active fish season
         case .seeds: return [.fall] // Seed collection time

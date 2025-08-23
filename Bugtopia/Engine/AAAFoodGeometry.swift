@@ -28,6 +28,8 @@ class AAAFoodGeometry {
             return createAAAOrangeMesh()
         case .melon:
             return createAAAMelonMesh()
+        case .blackberry:
+            return createAAABlackberryMesh()
         case .meat:
             return createAAAMeatMesh()
         case .fish:
@@ -275,6 +277,103 @@ class AAAFoodGeometry {
         } catch {
             // Apple mesh generation failed
             return .generateSphere(radius: 1.0)
+        }
+    }
+    
+    /// Creates a photorealistic blackberry with clustered berry arrangement
+    /// - Returns: High-quality blackberry mesh with natural clustered berries
+    static func createAAABlackberryMesh() -> MeshResource {
+        // 🫐 Generating photorealistic blackberry geometry...
+        
+        var vertices: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
+        var indices: [UInt32] = []
+        
+        let segments = 24  // Fewer segments for berry clusters
+        let rings = 16     // Good detail for clustered shape
+        
+        // 🫐 BLACKBERRY SHAPE PARAMETERS: Clustered berry aggregate
+        let baseRadius: Float = 0.8
+        let clusterScale: Float = 1.1   // Overall cluster size
+        let berryBumpScale: Float = 0.15  // Individual berry bumps
+        let _: Float = 0.9   // How tightly packed (reserved for future use)
+        let asymmetryFactor: Float = 0.03 // Natural irregularity
+        
+        // 🎨 GENERATE VERTICES WITH CLUSTERED BERRY SHAPE
+        for ring in 0...rings {
+            let ringAngle = Float(ring) / Float(rings) * Float.pi
+            let y = cos(ringAngle) * clusterScale
+            
+            for segment in 0...segments {
+                let segmentAngle = Float(segment) / Float(segments) * 2.0 * Float.pi
+                
+                // 🌍 BASIC SPHERICAL COORDINATES
+                var x = sin(ringAngle) * cos(segmentAngle) * baseRadius * clusterScale
+                var z = sin(ringAngle) * sin(segmentAngle) * baseRadius * clusterScale
+                let currentY = y
+                
+                // 🫐 BERRY CLUSTERING: Create individual berry bumps
+                let berryU = sin(Float(segment * 3) * segmentAngle) * sin(Float(ring * 2) * ringAngle)
+                let berryV = cos(Float(segment * 2) * segmentAngle) * cos(Float(ring * 3) * ringAngle)
+                let berryBumps = berryBumpScale * (berryU + berryV) * sin(ringAngle)
+                
+                let bumpRadius = sqrt(x * x + z * z)
+                if bumpRadius > 0 {
+                    x += (x / bumpRadius) * berryBumps
+                    z += (z / bumpRadius) * berryBumps
+                }
+                
+                // 🫐 NATURAL ASYMMETRY: Slight irregularity
+                let asymmetryX = sin(segmentAngle * 2.5) * asymmetryFactor
+                let asymmetryZ = cos(segmentAngle * 1.8) * asymmetryFactor
+                x += asymmetryX
+                z += asymmetryZ
+                
+                let vertex = SIMD3<Float>(x, currentY, z)
+                vertices.append(vertex)
+                
+                // 🔆 CALCULATE NORMALS
+                let normal = normalize(vertex)
+                normals.append(normal)
+                
+                // 🗺️ UV MAPPING: Berry cluster friendly
+                let u = Float(segment) / Float(segments)
+                let v = Float(ring) / Float(rings)
+                uvs.append(SIMD2<Float>(u, v))
+            }
+        }
+        
+        // 🔗 GENERATE INDICES
+        for ring in 0..<rings {
+            for segment in 0..<segments {
+                let current = ring * (segments + 1) + segment
+                let next = current + segments + 1
+                
+                indices.append(UInt32(current))
+                indices.append(UInt32(next))
+                indices.append(UInt32(current + 1))
+                
+                indices.append(UInt32(current + 1))
+                indices.append(UInt32(next))
+                indices.append(UInt32(next + 1))
+            }
+        }
+        
+        // 🚀 CREATE REALITYKIT MESH
+        var meshDescriptor = MeshDescriptor()
+        meshDescriptor.positions = .init(vertices)
+        meshDescriptor.normals = .init(normals)
+        meshDescriptor.textureCoordinates = .init(uvs)
+        meshDescriptor.primitives = .triangles(indices)
+        
+        do {
+            let mesh = try MeshResource.generate(from: [meshDescriptor])
+            // 🏆 Blackberry mesh generation complete!
+            return mesh
+        } catch {
+            // Blackberry mesh generation failed
+            return .generateSphere(radius: 0.8)
         }
     }
     
@@ -967,6 +1066,11 @@ extension AAAFoodGeometry {
     /// Quick method to create a standard AAA apple with optimal settings
     static func createStandardApple() -> MeshResource {
         return createAAAAppleMesh()
+    }
+    
+    /// Quick method to create a standard AAA blackberry with optimal settings
+    static func createStandardBlackberry() -> MeshResource {
+        return createAAABlackberryMesh()
     }
     
     /// Quick method to create a standard AAA orange with optimal settings

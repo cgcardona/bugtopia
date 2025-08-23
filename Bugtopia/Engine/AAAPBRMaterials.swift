@@ -36,6 +36,8 @@ class AAAPBRMaterials {
             return createAAAOrangeMaterial(energyLevel: energyLevel, freshness: freshness)
         case .melon:
             return createAAAMelonMaterial(energyLevel: energyLevel, freshness: freshness)
+        case .blackberry:
+            return createAAABlackberryMaterial(energyLevel: energyLevel, freshness: freshness)
         case .meat:
             return createAAAMeatMaterial(energyLevel: energyLevel, freshness: freshness)
         case .fish:
@@ -131,12 +133,9 @@ class AAAPBRMaterials {
         var pbrMaterial = PhysicallyBasedMaterial()
         
         // 📸 LOAD AAA DIFFUSE TEXTURE (Professional PBR Color Map)
-        if let diffuseTexture = loadTexture(named: "food_0006_color_4k") {
+        if let diffuseTexture = loadTexture(named: "apple-diffuse-v2") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            // ✅ Loaded professional apple diffuse texture (4K)
-        } else if let diffuseTexture = loadTexture(named: "apple-diffuse") {
-            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            // ✅ Loaded fallback apple diffuse texture
+            // ✅ Loaded professional apple diffuse texture (v2)
         } else {
             // Fallback color matching apple
             let fallbackColor = NSColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0) // Red apple
@@ -145,23 +144,17 @@ class AAAPBRMaterials {
         }
         
         // 🗺️ LOAD AAA NORMAL MAP (Professional Surface Detail)
-        if let normalTexture = loadTexture(named: "food_0006_normal_opengl_4k") {
+        if let normalTexture = loadTexture(named: "apple-normal-v2") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            // ✅ Loaded professional apple normal map (4K OpenGL format)
-        } else if let normalTexture = loadTexture(named: "apple-normal") {
-            pbrMaterial.normal = .init(texture: .init(normalTexture))
-            // ✅ Loaded fallback apple normal map
+            // ✅ Loaded professional apple normal map (v2)
         } else {
             // Apple normal map not found - using smooth surface
         }
         
         // ✨ LOAD AAA ROUGHNESS MAP (Professional Surface Properties)
-        if let roughnessTexture = loadTexture(named: "food_0006_roughness_4k") {
+        if let roughnessTexture = loadTexture(named: "apple-roughness-v2") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            // ✅ Loaded professional apple roughness map (4K)
-        } else if let roughnessTexture = loadTexture(named: "apple-roughness") {
-            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            // ✅ Loaded fallback apple roughness map
+            // ✅ Loaded professional apple roughness map (v2)
         } else {
             // Fallback: Glossy apple skin
             pbrMaterial.roughness = .init(floatLiteral: 0.3) // Glossy like real apple
@@ -198,6 +191,76 @@ class AAAPBRMaterials {
         pbrMaterial.clearcoatRoughness = .init(floatLiteral: 0.1)  // Very smooth wax
         
         // 🏆 AAA apple material created successfully!
+        return pbrMaterial
+    }
+    
+    /// Creates a photorealistic PBR material for blackberries
+    /// - Parameters:
+    ///   - energyLevel: Food energy level (affects emission/glow)
+    ///   - freshness: Freshness factor (affects surface properties)
+    /// - Returns: Complete PBR material with all texture maps
+    static func createAAABlackberryMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
+        
+        // 🫐 Creating AAA blackberry material (Energy: \(energyLevel), Freshness: \(freshness))
+        
+        // 🎨 CREATE PHYSICALLY-BASED MATERIAL
+        var pbrMaterial = PhysicallyBasedMaterial()
+        
+        // 📸 LOAD BLACKBERRY DIFFUSE TEXTURE (Professional PBR Color Map)
+        if let diffuseTexture = loadTexture(named: "blackberry-diffuse") {
+            pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
+            print("🫐 ✅ Loaded professional blackberry diffuse texture")
+        } else {
+            // Fallback color matching blackberry
+            let blackberryColor = NSColor(red: 0.15, green: 0.05, blue: 0.25, alpha: 1.0) // Deep purple-black
+            pbrMaterial.baseColor = .init(tint: blackberryColor)
+            print("🫐 ⚠️ Using fallback blackberry color - diffuse texture not found")
+        }
+        
+        // 🗺️ LOAD BLACKBERRY NORMAL MAP (Surface Detail)
+        if let normalTexture = loadTexture(named: "blackberry-normal") {
+            pbrMaterial.normal = .init(texture: .init(normalTexture))
+            print("🫐 ✅ Loaded professional blackberry normal map")
+        } else {
+            print("🫐 ⚠️ Blackberry normal map not found")
+        }
+        
+        // ✨ LOAD BLACKBERRY ROUGHNESS MAP (Surface Properties)
+        if let roughnessTexture = loadTexture(named: "blackberry-roughness") {
+            pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
+            print("🫐 ✅ Loaded professional blackberry roughness map")
+        } else {
+            // Fallback: Berry surface properties
+            let berryRoughness = 0.4 - (freshness * 0.2) // Fresh berries are glossier
+            pbrMaterial.roughness = .init(floatLiteral: max(0.2, berryRoughness))
+            print("🫐 ⚠️ Using fallback blackberry roughness - texture not found")
+        }
+        
+        // 🌫️ LOAD BLACKBERRY AMBIENT OCCLUSION (Depth Enhancement)
+        if let aoTexture = loadTexture(named: "blackberry-ao") {
+            // Note: RealityKit doesn't have direct AO, but we can use it to modulate other properties
+            // This is a placeholder for future AO integration
+        }
+        
+        // 🫐 AAA METALLIC PROPERTIES: Berries are non-metallic organic material
+        pbrMaterial.metallic = .init(floatLiteral: 0.0) // Pure organic material
+        
+        // 🌟 AAA SUBSURFACE SCATTERING: Simulate light penetration through berry skin
+        let subsurfaceColor = NSColor(red: 0.4, green: 0.1, blue: 0.3, alpha: 0.1)
+        pbrMaterial.emissiveColor = .init(color: subsurfaceColor)
+        
+        // 🫐 NATURAL BERRY FINISH: Slight natural sheen
+        pbrMaterial.clearcoat = .init(floatLiteral: 0.1)
+        pbrMaterial.clearcoatRoughness = .init(floatLiteral: 0.3)
+        
+        // 🌟 ENERGY-BASED ENHANCEMENT
+        if energyLevel > 1.0 {
+            let emissionIntensity = min(0.15, (energyLevel - 1.0) * 0.06)
+            let emissionColor = NSColor(red: 0.6, green: 0.2, blue: 0.8, alpha: 1.0) // Purple glow
+            pbrMaterial.emissiveColor = .init(color: emissionColor.withAlphaComponent(CGFloat(emissionIntensity)))
+        }
+        
+        // 🏆 AAA blackberry material created successfully!
         return pbrMaterial
     }
     
@@ -565,12 +628,12 @@ class AAAPBRMaterials {
         
         // Load from assets
         guard let image = NSImage(named: name) else {
-            // print("❌ [PBR] Failed to load image: \(name)")
+            print("❌ [PBR] Failed to load image: \(name)")
             return nil
         }
         
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: [:]) else {
-            // print("❌ [PBR] Failed to convert image to CGImage: \(name)")
+            print("❌ [PBR] Failed to convert image to CGImage: \(name)")
             return nil
         }
         
@@ -591,11 +654,11 @@ class AAAPBRMaterials {
             // Cache for future use
             textureCache[name] = textureResource
             
-            // print("✅ [PBR] Loaded and cached texture: \(name)")
+            print("✅ [PBR] Successfully loaded and cached texture: \(name)")
             return textureResource
             
         } catch {
-            // print("❌ [PBR] Failed to create TextureResource for \(name): \(error)")
+            print("❌ [PBR] Failed to create TextureResource for \(name): \(error)")
             return nil
         }
     }

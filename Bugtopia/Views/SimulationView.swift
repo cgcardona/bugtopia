@@ -18,16 +18,7 @@ class SimulationEngineManager: ObservableObject {
     // 🍎 Food Selection Callback
     var onFoodSelected: ((FoodItem?) -> Void)?
     
-    // Lazy initialization ensures Arena3DView is created only once when first accessed
-    lazy var arena3DView: Arena3DView = {
-        return Arena3DView(simulationEngine: engine, onBugSelected: { [weak self] bug in
-            // Dynamic callback that uses the current onBugSelected value
-            self?.onBugSelected?(bug)
-        }, onFoodSelected: { [weak self] food in
-            // Dynamic callback that uses the current onFoodSelected value
-            self?.onFoodSelected?(food)
-        })
-    }()
+
     
     // 🚀 RealityKit implementation - Phase 2 Entity System
     func createRealityKitView() -> Arena3DView_RealityKit_v2 {
@@ -38,10 +29,7 @@ class SimulationEngineManager: ObservableObject {
         })
     }
     
-    // 🔧 MINIMAL: Coordinate system debugging implementation
-    func createMinimalRealityKitView() -> Arena3DView_RealityKit_Minimal {
-        return Arena3DView_RealityKit_Minimal(simulationEngine: engine)
-    }
+
     
     init(worldSize: CGSize = CGSize(width: 2000, height: 2000)) {   // 🌍 PRODUCTION: 2000x2000 simulation for 20-bug testing
         let bounds = CGRect(origin: .zero, size: worldSize)
@@ -619,25 +607,12 @@ struct SimulationView: View {
     private var simulationCanvas: some View {
         GeometryReader { geometry in
             ZStack {
-                // 🚀 CONDITIONAL 3D RENDERING: SceneKit ↔ RealityKit
-                ConditionalRenderer(
-                    sceneKit: {
-                        // 🏗️ SceneKit (Legacy) - Stable implementation
-                        engineManager.arena3DView
-                            .transition(.asymmetric(
-                                insertion: .scale.combined(with: .opacity),
-                                removal: .scale.combined(with: .opacity)
-                            ))
-                    },
-                    realityKit: {
-                        // 🚀 FIXED V2 RealityKit - Full features with coordinate fixes!
-                        engineManager.createRealityKitView()
-                            .transition(.asymmetric(
-                                insertion: .scale.combined(with: .opacity),
-                                removal: .scale.combined(with: .opacity)
-                            ))
-                    }
-                )
+                // 🚀 RealityKit V2 - Only implementation
+                engineManager.createRealityKitView()
+                    .transition(.asymmetric(
+                        insertion: .scale.combined(with: .opacity),
+                        removal: .scale.combined(with: .opacity)
+                    ))
             }
         }
     }
@@ -648,18 +623,10 @@ struct SimulationView: View {
     private func triggerSmartPerformanceAnalysis() {
         let config = RenderingConfiguration.shared
         
-        switch config.activeEngine {
-        case .sceneKit:
-            // Use SceneKit's comprehensive performance logger
-            engineManager.arena3DView.triggerPerformanceAnalysis()
-            print("📊 [Performance] SceneKit analysis completed - check console for detailed report")
-            
-        case .realityKit:
-            // Use RealityKit's built-in debug overlay and basic metrics
-            config.debugMode.toggle()
-            print("📊 [Performance] RealityKit debug overlay toggled: \(config.debugMode ? "ON" : "OFF")")
-            print("📊 [Performance] RealityKit metrics available in debug overlay")
-        }
+        // Use RealityKit's built-in debug overlay and basic metrics
+        config.debugMode.toggle()
+        print("📊 [Performance] RealityKit debug overlay toggled: \(config.debugMode ? "ON" : "OFF")")
+        print("📊 [Performance] RealityKit metrics available in debug overlay")
     }
 
     

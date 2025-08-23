@@ -905,7 +905,7 @@ class Bug: Identifiable, Hashable {
         
         switch food.type {
         // 🌱 PLANT FOODS: Herbivores, omnivores can eat
-        case .apple, .orange, .plum, .melon, .nuts, .seeds:
+        case .apple, .orange, .plum, .melon, .blackberry, .nuts, .seeds:
             return speciesType.canEatPlants
             
         // 🥩 ANIMAL FOODS: Carnivores, omnivores, scavengers can eat  

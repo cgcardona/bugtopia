@@ -1233,6 +1233,11 @@ struct Arena3DView_RealityKit_v2: View {
             let melonMesh = AAAFoodGeometry.createStandardMelon()
             return melonMesh
             
+        case .blackberry:
+            // 🫐 BLACKBERRY: AAA PHOTOREALISTIC MODEL with clustered berry shape!
+            let blackberryMesh = AAAFoodGeometry.createStandardBlackberry()
+            return blackberryMesh
+            
         case .meat:
             // 🥩 MEAT: AAA PHOTOREALISTIC MODEL with organic chunky shape!
             let meatMesh = AAAFoodGeometry.createStandardMeat()
@@ -1258,8 +1263,8 @@ struct Arena3DView_RealityKit_v2: View {
     @available(macOS 14.0, *)
     private func createFoodMaterial(for food: FoodItem) -> RealityKit.Material {
         
-        // 🍎🍊🍇🍈🥩🐟🌱🥜 AAA PBR MATERIALS: Check if this food type has AAA materials!
-        if [.plum, .apple, .orange, .melon, .meat, .fish, .seeds, .nuts].contains(food.type) {
+        // 🍎🍊🍇🍈🫐🥩🐟🌱🥜 AAA PBR MATERIALS: Check if this food type has AAA materials!
+        if [.plum, .apple, .orange, .melon, .blackberry, .meat, .fish, .seeds, .nuts].contains(food.type) {
             // 🎨 Creating photorealistic PBR \(food.type.rawValue) material...
             let energyFactor = Float(food.energyValue / 50.0) // Normalize energy
             return AAAPBRMaterials.createAAAFoodMaterial(
@@ -1305,6 +1310,10 @@ struct Arena3DView_RealityKit_v2: View {
         case .melon:
             // 🍈 FRESH MELON: Vibrant green with natural matte finish
             return (NSColor(red: 0.3, green: 0.7, blue: 0.3, alpha: 1.0), 0.7, 0.0)
+            
+        case .blackberry:
+            // 🫐 FRESH BLACKBERRY: Deep purple-black with slight gloss
+            return (NSColor(red: 0.15, green: 0.05, blue: 0.25, alpha: 1.0), 0.4, 0.0)
             
         case .meat:
             // 🥩 RAW MEAT: Rich red-brown with organic texture
