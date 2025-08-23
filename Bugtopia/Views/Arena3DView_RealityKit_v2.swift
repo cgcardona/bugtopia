@@ -162,7 +162,7 @@ struct Arena3DView_RealityKit_v2: View {
             // 🧪 INITIALIZE PHEROMONE SYSTEM: GameplayKit-powered chemical trails
             pheromoneManager = PheromoneFieldManager(
                 worldBounds: CGRect(x: 0, y: 0, width: 2000, height: 2000), // Use simulation bounds
-                resolution: 128
+                resolution: 2000  // 🎯 PERFECT 1:1 MAPPING: Match simulation world exactly
             )
             
             // View appeared, FPS monitoring and entity updates enabled
@@ -1695,7 +1695,7 @@ struct Arena3DView_RealityKit_v2: View {
         }
         
         anchor.addChild(pheromoneContainer)
-        print("🧪 [PHEROMONE] Added \(pheromonePoints.count) pheromone trail visualizations")
+        // print("🧪 [PHEROMONE] Added \(pheromonePoints.count) pheromone trail visualizations")
     }
     
     @available(macOS 14.0, *)
@@ -2475,7 +2475,7 @@ struct Arena3DView_RealityKit_v2: View {
     }
     
     private func updateCameraFollowing() {
-        print("🎥 [DEBUG] updateCameraFollowing - cameraFollowing: \(cameraFollowing), selectedBug: \(selectedBug?.id.uuidString.prefix(8) ?? "nil")")
+        // print("🎥 [DEBUG] updateCameraFollowing - cameraFollowing: \(cameraFollowing), selectedBug: \(selectedBug?.id.uuidString.prefix(8) ?? "nil")")
         
         guard cameraFollowing,
               let bug = selectedBug,

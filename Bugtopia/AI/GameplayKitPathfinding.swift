@@ -41,7 +41,7 @@ class PheromoneFieldManager {
     private var lastUpdateTime: TimeInterval = 0
     private let updateInterval: TimeInterval = 0.1 // Update 10 times per second
     
-    init(worldBounds: CGRect, resolution: Int = 128) {
+    init(worldBounds: CGRect, resolution: Int = 2000) {
         self.worldBounds = worldBounds
         self.gridResolution = resolution
         self.cellSize = worldBounds.width / Double(resolution)
@@ -117,7 +117,7 @@ class PheromoneFieldManager {
             timestamp: currentTime
         ))
         
-        print("🧪 [PHEROMONE] Added \(signal.type.emoji) signal at (\(gridX), \(gridY)) intensity: \(String(format: "%.2f", finalIntensity))")
+        // print("🧪 [PHEROMONE] Added \(signal.type.emoji) signal at (\(gridX), \(gridY)) intensity: \(String(format: "%.2f", finalIntensity))")
     }
     
     /// 🌈 Enhanced signal strength based on signal type importance
