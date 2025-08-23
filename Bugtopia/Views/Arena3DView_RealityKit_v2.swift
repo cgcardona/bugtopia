@@ -161,8 +161,8 @@ struct Arena3DView_RealityKit_v2: View {
             
             // 🧪 INITIALIZE PHEROMONE SYSTEM: GameplayKit-powered chemical trails
             pheromoneManager = PheromoneFieldManager(
-                worldBounds: CGRect(x: 0, y: 0, width: 2000, height: 2000), // Use simulation bounds
-                resolution: 2000  // 🎯 PERFECT 1:1 MAPPING: Match simulation world exactly
+                worldBounds: CGRect(x: 0, y: 0, width: 200, height: 200), // Use SCALED bounds (2000 * 0.1 = 200)
+                resolution: 200  // 🎯 PERFECT 1:1 MAPPING: Match bug coordinate system (scaled down from 2000)
             )
             
             // View appeared, FPS monitoring and entity updates enabled

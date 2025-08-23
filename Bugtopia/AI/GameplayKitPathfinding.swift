@@ -41,7 +41,7 @@ class PheromoneFieldManager {
     private var lastUpdateTime: TimeInterval = 0
     private let updateInterval: TimeInterval = 0.1 // Update 10 times per second
     
-    init(worldBounds: CGRect, resolution: Int = 2000) {
+    init(worldBounds: CGRect, resolution: Int = 200) {
         self.worldBounds = worldBounds
         self.gridResolution = resolution
         self.cellSize = worldBounds.width / Double(resolution)
