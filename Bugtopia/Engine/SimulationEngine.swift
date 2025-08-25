@@ -38,9 +38,12 @@ class SimulationEngine {
     let pathfinding: VoxelPathfinding
     var currentWorldType: WorldType3D = .continental3D
     private let maxPopulation = 25   // 🌍 PRODUCTION: Allow population growth for large world
-    private let initialPopulation = 0    // 🍎 STYLING: No bugs for food styling focus
+    private let initialPopulation = 1    // 🐛 BUG STYLING: Single bug for AAA styling focus
     private let maxFoodItems = 80        // 🍎 PRODUCTION: Abundant food for diverse 20-bug ecosystem
     private let baseFoodSpawnRate = 0.25 // 🍎 MODERATE: 25% chance per tick for 20-bug simulation
+    
+    // 🎨 BUG STYLING: Disable behavior for visual focus
+    private let enableBugBehavior = false  // Disable movement, AI, death for styling
     
     // MARK: - Simulation Speed & Analysis
     
@@ -222,93 +225,23 @@ class SimulationEngine {
         // 🔍 DEBUG: Setup minimal population for focused debugging
         bugs.removeAll()
         for i in 0..<initialPopulation {
-            // 🐛 DEBUG: Spawn bug in safe zone away from boundaries
-            let centerX = (voxelWorld.worldBounds.minX + voxelWorld.worldBounds.maxX) / 2
-            let centerY = (voxelWorld.worldBounds.minY + voxelWorld.worldBounds.maxY) / 2
-            let spawnRadius = 30.0  // Spawn within 30 units of center for more room
-            let spawnAngle = Double.random(in: 0...(2 * Double.pi))
-            let spawnDistance = Double.random(in: 10...spawnRadius) // At least 10 units from center
+            // 🎨 BUG STYLING: Position single bug near origin for easy camera positioning
+            let stylingPosition3D = Position3D(50.0, 50.0, 0.0)  // Close to origin, on ground level
             
-            let randomPosition = CGPoint(
-                x: centerX + cos(spawnAngle) * spawnDistance,
-                y: centerY + sin(spawnAngle) * spawnDistance
-            )
+            // 🎨 Create a herbivore bug for initial styling (butterfly/beetle inspiration)
+            let bugDNA = BugDNA.random(species: .herbivore)
             
-            // 🌍 PRODUCTION: Create diverse ecosystem with all species types
-            if i < 15 { // First 15 bugs get enhanced vision for better survival
-                // Create diverse species distribution
-                let speciesType: SpeciesType
-                if i < 8 {
-                    speciesType = .herbivore  // 8 herbivores (40%)
-                } else if i < 12 {
-                    speciesType = .carnivore  // 4 carnivores (20%)
-                } else if i < 15 {
-                    speciesType = .omnivore   // 3 omnivores (15%)
-                } else {
-                    speciesType = .scavenger  // Remaining are scavengers
-                }
-                
-                let baseDNA = BugDNA.random()
-                let speciesTraits = SpeciesTraits.forSpecies(speciesType)
-                
-                // Create enhanced DNA with much better vision for small world debugging
-                let debugDNA = BugDNA(
-                    speed: baseDNA.speed,
-                    visionRadius: 300.0, // Enhanced vision for 2000x2000 world
-                    energyEfficiency: baseDNA.energyEfficiency,
-                    size: baseDNA.size,
-                    strength: baseDNA.strength,
-                    memory: baseDNA.memory,
-                    stickiness: baseDNA.stickiness,
-                    camouflage: baseDNA.camouflage,
-                    wingSpan: baseDNA.wingSpan,
-                    divingDepth: baseDNA.divingDepth,
-                    climbingGrip: baseDNA.climbingGrip,
-                    altitudePreference: baseDNA.altitudePreference,
-                    pressureTolerance: baseDNA.pressureTolerance,
-                    aggression: baseDNA.aggression,
-                    curiosity: baseDNA.curiosity,
-                    neuralDNA: baseDNA.neuralDNA,
-                    neuralEnergyEfficiency: baseDNA.neuralEnergyEfficiency,
-                    brainPlasticity: baseDNA.brainPlasticity,
-                    neuralPruningTendency: baseDNA.neuralPruningTendency,
-                    speciesTraits: speciesTraits,
-                    communicationDNA: baseDNA.communicationDNA,
-                    toolDNA: baseDNA.toolDNA,
-                    colorHue: baseDNA.colorHue,
-                    colorSaturation: baseDNA.colorSaturation,
-                    colorBrightness: baseDNA.colorBrightness
-                )
-                
-                let newBug = Bug(dna: debugDNA, position: randomPosition, generation: 0)
-                bugs.append(newBug)
-                print("🌍 [DEBUG] Created \(speciesType.rawValue) bug #\(i+1) at position: \(randomPosition)")
-                print("🌍 [DEBUG] Bug #\(i+1) species: \(debugDNA.speciesTraits.speciesType.rawValue)")
-                print("🌍 [DEBUG] Bug #\(i+1) vision radius: \(debugDNA.visionRadius)")
-                print("🌍 [DEBUG] Bug #\(i+1) can eat plants: \(debugDNA.speciesTraits.speciesType.canEatPlants)")
-                if i == 0 { print("🌍 [DEBUG] World bounds: \(voxelWorld.worldBounds)") }
-            } else {
-                let newBug = Bug.random(in: voxelWorld.worldBounds, generation: 0)
-                bugs.append(newBug)
-            }
+            let newBug = Bug(dna: bugDNA, position3D: stylingPosition3D, generation: 0)
+            bugs.append(newBug)
+            print("🎨 [SETUP] Created styling bug at position: \(stylingPosition3D)")
+            print("🎨 [SETUP] Bug species: \(bugDNA.speciesTraits.speciesType.rawValue)")
         }
         print("🐛 [SETUP] Initial population created: \(bugs.count) bugs")
         
-        // 🍎 PRODUCTION: Setup evenly distributed food across entire arena
+        // 🐛 BUG STYLING: No food items needed for bug styling focus
         foods.removeAll()
-        let initialFoodCount = 1   // 🍣 STYLING: Single tuna for AAA quality focus
         
-        // 🍣 STYLING: Position single tuna near origin for easy camera positioning
-        let tunaX = 50.0   // Close to origin but not exactly at 0,0
-        let tunaY = 50.0   // Close to origin but not exactly at 0,0
-        let tunaPosition = CGPoint(x: tunaX, y: tunaY)
-        
-        // Create single AAA-quality grilled steak
-        let grilledSteak = FoodItem(position: tunaPosition, type: .grilledSteak, targetSpecies: .carnivore)
-        foods.append(grilledSteak)
-        
-        print("🔥 [STYLING] Created single grilled steak near origin: (\(tunaX), \(tunaY))")
-        print("🍣 [SETUP] Initial food created: \(foods.count) food items")
+        print("🐛 [SETUP] Bug styling mode: No food items created")
     }
     
     // MARK: - Simulation Control
@@ -363,92 +296,23 @@ class SimulationEngine {
         // 🔍 DEBUG: Setup minimal population for focused debugging (reset)
         bugs.removeAll()
         for i in 0..<initialPopulation {
-            // 🐛 DEBUG: Spawn bug in safe zone away from boundaries
-            let centerX = (voxelWorld.worldBounds.minX + voxelWorld.worldBounds.maxX) / 2
-            let centerY = (voxelWorld.worldBounds.minY + voxelWorld.worldBounds.maxY) / 2
-            let spawnRadius = 30.0  // Spawn within 30 units of center for more room
-            let spawnAngle = Double.random(in: 0...(2 * Double.pi))
-            let spawnDistance = Double.random(in: 10...spawnRadius) // At least 10 units from center
+            // 🎨 BUG STYLING: Position single bug near origin for easy camera positioning
+            let stylingPosition3D = Position3D(50.0, 50.0, 0.0)  // Close to origin, on ground level
             
-            let randomPosition = CGPoint(
-                x: centerX + cos(spawnAngle) * spawnDistance,
-                y: centerY + sin(spawnAngle) * spawnDistance
-            )
+            // 🎨 Create a herbivore bug for initial styling (butterfly/beetle inspiration)
+            let bugDNA = BugDNA.random(species: .herbivore)
             
-            // 🌍 PRODUCTION: Create diverse ecosystem with all species types (reset)
-            if i < 15 { // First 15 bugs get enhanced vision for better survival
-                // Create diverse species distribution
-                let speciesType: SpeciesType
-                if i < 8 {
-                    speciesType = .herbivore  // 8 herbivores (40%)
-                } else if i < 12 {
-                    speciesType = .carnivore  // 4 carnivores (20%)
-                } else if i < 15 {
-                    speciesType = .omnivore   // 3 omnivores (15%)
-                } else {
-                    speciesType = .scavenger  // Remaining are scavengers
-                }
-                
-                let baseDNA = BugDNA.random()
-                let speciesTraits = SpeciesTraits.forSpecies(speciesType)
-                
-                // Create enhanced DNA with much better vision for small world debugging
-                let debugDNA = BugDNA(
-                    speed: baseDNA.speed,
-                    visionRadius: 300.0, // Enhanced vision for 2000x2000 world
-                    energyEfficiency: baseDNA.energyEfficiency,
-                    size: baseDNA.size,
-                    strength: baseDNA.strength,
-                    memory: baseDNA.memory,
-                    stickiness: baseDNA.stickiness,
-                    camouflage: baseDNA.camouflage,
-                    wingSpan: baseDNA.wingSpan,
-                    divingDepth: baseDNA.divingDepth,
-                    climbingGrip: baseDNA.climbingGrip,
-                    altitudePreference: baseDNA.altitudePreference,
-                    pressureTolerance: baseDNA.pressureTolerance,
-                    aggression: baseDNA.aggression,
-                    curiosity: baseDNA.curiosity,
-                    neuralDNA: baseDNA.neuralDNA,
-                    neuralEnergyEfficiency: baseDNA.neuralEnergyEfficiency,
-                    brainPlasticity: baseDNA.brainPlasticity,
-                    neuralPruningTendency: baseDNA.neuralPruningTendency,
-                    speciesTraits: speciesTraits,
-                    communicationDNA: baseDNA.communicationDNA,
-                    toolDNA: baseDNA.toolDNA,
-                    colorHue: baseDNA.colorHue,
-                    colorSaturation: baseDNA.colorSaturation,
-                    colorBrightness: baseDNA.colorBrightness
-                )
-                
-                let newBug = Bug(dna: debugDNA, position: randomPosition, generation: 0)
-                bugs.append(newBug)
-                print("🌱 [RESET] Created herbivore bug at position: \(randomPosition)")
-                print("🌱 [RESET] Bug species: \(debugDNA.speciesTraits.speciesType.rawValue)")
-                print("🌱 [RESET] Bug vision radius: \(debugDNA.visionRadius)")
-                print("🌱 [RESET] Bug can eat plants: \(debugDNA.speciesTraits.speciesType.canEatPlants)")
-            } else {
-                let newBug = Bug.random(in: voxelWorld.worldBounds, generation: 0)
-                bugs.append(newBug)
-            }
+            let newBug = Bug(dna: bugDNA, position3D: stylingPosition3D, generation: 0)
+            bugs.append(newBug)
+            print("🎨 [RESET] Created styling bug at position: \(stylingPosition3D)")
+            print("🎨 [RESET] Bug species: \(bugDNA.speciesTraits.speciesType.rawValue)")
         }
         print("🐛 [RESET] Population created: \(bugs.count) bugs")
         
-        // 🍎 PRODUCTION: Setup evenly distributed food across entire arena (reset)
+        // 🐛 BUG STYLING: No food items needed for bug styling focus (reset)
         foods.removeAll()
-        let initialFoodCount = 1   // 🍣 STYLING: Single tuna for AAA quality focus
         
-        // 🍣 STYLING: Position single tuna near origin for easy camera positioning
-        let tunaX = 50.0   // Close to origin but not exactly at 0,0
-        let tunaY = 50.0   // Close to origin but not exactly at 0,0
-        let tunaPosition = CGPoint(x: tunaX, y: tunaY)
-        
-        // Create single AAA-quality grilled steak
-        let grilledSteak = FoodItem(position: tunaPosition, type: .grilledSteak, targetSpecies: .carnivore)
-        foods.append(grilledSteak)
-        
-        print("🔥 [STYLING] Created single grilled steak near origin: (\(tunaX), \(tunaY))")
-        print("🍣 [RESET] Food created: \(foods.count) food items")
+        print("🐛 [RESET] Bug styling mode: No food items created")
         
         // Skip spawnInitialResources for now in debug mode
         
@@ -484,34 +348,39 @@ class SimulationEngine {
     private func performSingleTick() {
         tickCount += 1
         
-        // Update all bugs with neural decisions first, then movement
+        // 🎨 BUG STYLING: Conditionally update bugs based on styling mode
         var newSignals: [Signal] = []
-        for bug in bugs {
-            // 🎯 MOVEMENT TRACKING: Capture position before update (for future use)
-            let _ = bug.position3D
-            // 🧠 FIRST: Make neural network decisions and update behaviors
-            bug.update(
-                in: createVoxelArenaAdapter(),
-                foods: foods,
-                otherBugs: bugs,
-                seasonalManager: seasonalManager,
-                weatherManager: weatherManager,
-                disasterManager: disasterManager,
-                ecosystemManager: ecosystemManager,
-                territoryManager: territoryManager
-            )
-            
-
-            
-            // 🚶 SECOND: Use fresh neural decisions for voxel-based movement
-            // 🔧 CONTINENTAL WORLD FIX: Disable voxel pathfinding to prevent Z-axis conflicts
-            // For Continental world, use only the 2D movement system in bug.update()
-            // bug.updateVoxelPosition(in: voxelWorld, pathfinding: pathfinding, decision: bug.lastDecision ?? BugOutputs.zero)
-            
-            // Let bug generate signals
-            if let signal = bug.generateSignals(in: createVoxelArenaAdapter(), foods: foods, otherBugs: bugs) {
-                newSignals.append(signal)
+        
+        if enableBugBehavior {
+            // 🐛 FULL SIMULATION: Update all bugs with neural decisions and movement
+            for bug in bugs {
+                // 🎯 MOVEMENT TRACKING: Capture position before update (for future use)
+                let _ = bug.position3D
+                // 🧠 FIRST: Make neural network decisions and update behaviors
+                bug.update(
+                    in: createVoxelArenaAdapter(),
+                    foods: foods,
+                    otherBugs: bugs,
+                    seasonalManager: seasonalManager,
+                    weatherManager: weatherManager,
+                    disasterManager: disasterManager,
+                    ecosystemManager: ecosystemManager,
+                    territoryManager: territoryManager
+                )
+                
+                // 🚶 SECOND: Use fresh neural decisions for voxel-based movement
+                // 🔧 CONTINENTAL WORLD FIX: Disable voxel pathfinding to prevent Z-axis conflicts
+                // For Continental world, use only the 2D movement system in bug.update()
+                // bug.updateVoxelPosition(in: voxelWorld, pathfinding: pathfinding, decision: bug.lastDecision ?? BugOutputs.zero)
+                
+                // Let bug generate signals
+                if let signal = bug.generateSignals(in: createVoxelArenaAdapter(), foods: foods, otherBugs: bugs) {
+                    newSignals.append(signal)
+                }
             }
+        } else {
+            // 🎨 BUG STYLING: Keep bugs stationary for visual focus
+            print("🎨 [STYLING] Bug behavior disabled - bugs remain stationary for styling")
         }
         
         // Add new signals to the world
@@ -630,15 +499,16 @@ class SimulationEngine {
     
     // MARK: - Population Management
     
-    /// Sets up the initial random population using voxel world spawn points
+    /// Sets up the initial population for bug styling showcase
     private func setupInitialPopulation() {
-        // 🎉 FULL SIMULATION: Random spawn positions across the terrain
         bugs = (0..<initialPopulation).map { index in
-            // Use voxel world to find random spawn positions across terrain
-            let randomPosition3D = voxelWorld.findSpawnPosition()
-            let surfacePosition = calculateSurfaceSpawnPosition(randomPosition3D)
+            // 🎨 BUG STYLING: Position single bug near origin for easy camera positioning
+            let stylingPosition = Position3D(50.0, 50.0, 0.0)  // Close to origin, on ground level
             
-            let bug = Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: currentGeneration)
+            // 🎨 Create a herbivore bug for initial styling (butterfly/beetle inspiration)
+            let bugDNA = BugDNA.random(species: .herbivore)
+            
+            let bug = Bug(dna: bugDNA, position3D: stylingPosition, generation: currentGeneration)
             logNeuralWeights(for: bug, survivalTime: 0)
             return bug
         }
