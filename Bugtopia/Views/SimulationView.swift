@@ -406,66 +406,7 @@ struct SimulationView: View {
                         .fontWeight(.semibold)
                 }
                 .buttonStyle(.borderedProminent)
-                
-
-                
-                // 🎮 AAA PERFORMANCE: Performance report (smart engine detection)
-                Button(action: {
-                    triggerSmartPerformanceAnalysis()
-                }) {
-                    Text("📊 Perf")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                }
-                .buttonStyle(.bordered)
-                .foregroundColor(.red)
             }
-            
-            Divider()
-                .frame(height: 20)
-            
-            // 🚀 RENDERING ENGINE SELECTOR
-            HStack(spacing: 8) {
-                Image(systemName: "cpu")
-                    .foregroundColor(.blue)
-                    .font(.title2)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Renderer")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.blue)
-                    
-                    Picker("", selection: Binding(
-                        get: { RenderingConfiguration.shared.activeEngine },
-                        set: { RenderingConfiguration.shared.activeEngine = $0 }
-                    )) {
-                        ForEach(RenderingEngine.allCases, id: \.self) { engine in
-                            Text(engine.rawValue).tag(engine)
-                        }
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .frame(width: 180)
-                }
-                
-                if RenderingConfiguration.shared.activeEngine.isExperimental {
-                    Text("BETA")
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.orange)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Color.orange.opacity(0.2))
-                        .cornerRadius(3)
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.blue.opacity(0.05))
-            .cornerRadius(6)
-            
-            Divider()
-                .frame(height: 20)
             
             // 🧠 Neural Analysis Controls
             HStack(spacing: 12) {
@@ -616,19 +557,6 @@ struct SimulationView: View {
             }
         }
     }
-    
-    // MARK: - Smart Performance Analysis
-    
-    /// 🎮 Smart Performance Analysis - works with both SceneKit and RealityKit
-    private func triggerSmartPerformanceAnalysis() {
-        let config = RenderingConfiguration.shared
-        
-        // Use RealityKit's built-in debug overlay and basic metrics
-        config.debugMode.toggle()
-        print("📊 [Performance] RealityKit debug overlay toggled: \(config.debugMode ? "ON" : "OFF")")
-        print("📊 [Performance] RealityKit metrics available in debug overlay")
-    }
-
     
     // MARK: - Statistics Panels
     
