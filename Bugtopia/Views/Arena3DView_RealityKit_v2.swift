@@ -2354,54 +2354,38 @@ struct Arena3DView_RealityKit_v2: View {
     private func selectEntityAt(location: CGPoint, in anchor: AnchorEntity) {
         print("🎯 [SELECTION] Click at screen coordinates: \(location)")
         
-        // 🚀 PIXEL-PERFECT RAY-CASTING: No distance limitations!
-        // Create a ray from the camera through the clicked pixel
-        // Get camera transform from current state
-        let cameraTransform = Transform(
-            rotation: simd_quatf(angle: cameraPitch, axis: [1, 0, 0]) * simd_quatf(angle: cameraYaw, axis: [0, 1, 0]),
-            translation: cameraPosition
-        )
-        let cameraPos = cameraPosition
+        // 🚀 SWIFTUI REALITYVIEW SELECTION: Use screen-to-world projection
+        // Since we can't access ARView directly in SwiftUI RealityView, we'll use
+        // a simplified approach based on screen coordinates and entity positions
         
-        // Convert screen coordinates to normalized device coordinates (-1 to 1)
-        let viewBounds = CGRect(x: 0, y: 0, width: 800, height: 600) // TODO: Get actual view bounds
+        // Convert screen coordinates to approximate world coordinates
+        // This is a simplified approach for the current camera setup
+        let viewBounds = CGRect(x: 0, y: 0, width: 1200, height: 800) // Approximate view size
         let normalizedX = (location.x / viewBounds.width) * 2.0 - 1.0
-        let normalizedY = -((location.y / viewBounds.height) * 2.0 - 1.0) // Flip Y for screen coordinates
+        let normalizedY = -((location.y / viewBounds.height) * 2.0 - 1.0) // Flip Y
         
-        // Simplified ray direction calculation
-        let forwardDir = SIMD3<Float>(0, 0, -1)
-        let rightDir = SIMD3<Float>(1, 0, 0)
-        let upDir = SIMD3<Float>(0, 1, 0)
+        // Project to world coordinates (simplified for top-down camera)
+        let worldX = Float(normalizedX) * 100.0  // Scale to world size
+        let worldZ = Float(normalizedY) * 100.0  // Scale to world size
+        let clickWorldPos = SIMD3<Float>(worldX, 0.0, worldZ)
         
-        // Apply camera rotation
-        let worldForward = cameraTransform.rotation.act(forwardDir)
-        let worldRight = cameraTransform.rotation.act(rightDir)
-        let worldUp = cameraTransform.rotation.act(upDir)
+        print("🎯 [PROJECTION] Screen: \(location) -> World: \(clickWorldPos)")
         
-        // Calculate ray direction (simplified)
-        let fov: Float = 60.0 * .pi / 180.0
-        let aspect: Float = Float(viewBounds.width / viewBounds.height)
-        let tanHalfFov = tan(fov / 2.0)
-        
-        let rightOffset = worldRight * Float(normalizedX) * tanHalfFov * aspect
-        let upOffset = worldUp * Float(normalizedY) * tanHalfFov
-        let rayDirection = simd_normalize(worldForward + rightOffset + upOffset)
-        
-        print("🎯 [RAY] From: \(cameraPos), Direction: \(rayDirection)")
-        
-        // Find the closest entity along the ray
+        // Find the closest entity to the click position
         var closestEntity: Entity?
         var closestDistance: Float = Float.greatestFiniteMagnitude
+        let selectionRadius: Float = 20.0  // Large radius for easier selection
         
         // Check all bug entities
         if let bugContainer = anchor.findEntity(named: "BugContainer") {
             for child in bugContainer.children {
                 if child.name.hasPrefix("Bug_") {
-                    if let distance = rayIntersectsEntity(rayOrigin: cameraPos, rayDirection: rayDirection, entity: child) {
-                        if distance < closestDistance {
-                            closestDistance = distance
-                            closestEntity = child
-                        }
+                    let distance = simd_distance(child.position, clickWorldPos)
+                    print("🐛 [CHECK] Bug \(child.name.prefix(8)) at \(child.position), distance: \(distance)")
+                    
+                    if distance < selectionRadius && distance < closestDistance {
+                        closestDistance = distance
+                        closestEntity = child
                     }
                 }
             }
@@ -2412,79 +2396,33 @@ struct Arena3DView_RealityKit_v2: View {
             print("🍎 [DEBUG] Found FoodContainer with \(foodContainer.children.count) children")
             for child in foodContainer.children {
                 if child.name.hasPrefix("Food_") {
-                    print("🍎 [DEBUG] Checking food entity: \(child.name) at position: \(child.position)")
-                    if let distance = rayIntersectsEntity(rayOrigin: cameraPos, rayDirection: rayDirection, entity: child) {
-                        print("🎯 [HIT] Food entity intersected at distance: \(distance)")
-                        if distance < closestDistance {
-                            closestDistance = distance
-                            closestEntity = child
-                        }
-                    } else {
-                        print("❌ [MISS] Ray missed food entity: \(child.name)")
+                    let distance = simd_distance(child.position, clickWorldPos)
+                    print("🍎 [CHECK] Food \(child.name.prefix(8)) at \(child.position), distance: \(distance)")
+                    
+                    if distance < selectionRadius && distance < closestDistance {
+                        closestDistance = distance
+                        closestEntity = child
                     }
                 }
             }
-        } else {
-            print("❌ [ERROR] FoodContainer not found!")
         }
         
-        // Select the closest entity found by ray-casting
+        // Select the closest entity found
         if let entity = closestEntity {
             if entity.name.hasPrefix("Bug_") {
-                print("🎯 SELECTED BUG (ray-cast): \(entity.name.prefix(12)) at distance \(closestDistance)")
+                print("🎯 SELECTED BUG (proximity): \(entity.name) at distance \(closestDistance)")
                 selectBugEntity(entity)
             } else if entity.name.hasPrefix("Food_") {
-                print("🎯 SELECTED FOOD (ray-cast): \(entity.name.prefix(12)) at distance \(closestDistance)")
+                print("🎯 SELECTED FOOD (proximity): \(entity.name) at distance \(closestDistance)")
                 selectFoodEntity(entity)
             }
         } else {
-            print("🎯 NO ENTITY found along ray")
+            print("🎯 NO ENTITY found within selection radius")
             deselectAllEntities()
         }
     }
     
-    // 🚀 RAY-ENTITY INTERSECTION: Pixel-perfect selection!
-    private func rayIntersectsEntity(rayOrigin: SIMD3<Float>, rayDirection: SIMD3<Float>, entity: Entity) -> Float? {
-        let entityPosition = entity.position
-        
-        // Simple sphere intersection test (entities treated as larger radius spheres for easier selection)
-        let entityRadius: Float = 5.0  // Increased from 2.0 for easier selection
-        
-        // Vector from ray origin to entity center
-        let toEntity = entityPosition - rayOrigin
-        
-        // Project toEntity onto ray direction to find closest point on ray
-        let projectionLength = dot(toEntity, rayDirection)
-        
-        print("🔍 [RAY] Entity: \(entity.name.prefix(8)) at \(entityPosition)")
-        print("🔍 [RAY] toEntity: \(toEntity), projectionLength: \(projectionLength)")
-        
-        // If projection is negative, entity is behind the ray origin
-        if projectionLength < 0 {
-            print("🔍 [RAY] Entity is behind camera")
-            return nil
-        }
-        
-        // Find closest point on ray to entity center
-        let closestPointOnRay = rayOrigin + rayDirection * projectionLength
-        
-        // Check if closest point is within entity radius
-        let distanceToEntity = distance(closestPointOnRay, entityPosition)
-        
-        print("🔍 [RAY] Closest point on ray: \(closestPointOnRay)")
-        print("🔍 [RAY] Distance to entity: \(distanceToEntity), radius: \(entityRadius)")
-        
-        if distanceToEntity <= entityRadius {
-            // Ray intersects entity - return distance along ray
-            let intersectionDistance = projectionLength - sqrt(entityRadius * entityRadius - distanceToEntity * distanceToEntity)
-            let finalDistance = max(0, intersectionDistance)
-            print("🎯 [RAY] HIT! Intersection distance: \(finalDistance)")
-            return finalDistance
-        }
-        
-        print("❌ [RAY] MISS - distance \(distanceToEntity) > radius \(entityRadius)")
-        return nil // No intersection
-    }
+
     
     private func projectClickToTerrain(normalizedX: Float, normalizedY: Float) -> SIMD3<Float> {
         // Simple projection: convert normalized screen coordinates to world coordinates
