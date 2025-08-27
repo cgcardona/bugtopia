@@ -3175,7 +3175,7 @@ extension Arena3DView_RealityKit_v2 {
         
         let currentPos = anchor.position
         var newPos = currentPos
-        let moveSpeed: Float = 2.0  // 🎮 SMOOTH MOVEMENT: Gentle camera movement for exploration
+        let moveSpeed: Float = 20.0  // 🚀 FAST NAVIGATION: 10x speed for rapid exploration
         
         // FIXED: Use axis-aligned movement vectors for proper WASD navigation
         switch direction {
@@ -3218,7 +3218,7 @@ extension Arena3DView_RealityKit_v2 {
     }
     
     private func lookCamera(direction: CameraDirection) {
-        let lookSpeed: Float = 0.02  // 🔧 REDUCED: Very small rotation for testing (1.1 degrees)
+        let lookSpeed: Float = 0.2   // 🚀 FAST ROTATION: 10x speed for rapid dev navigation
         
         switch direction {
         case .up:
