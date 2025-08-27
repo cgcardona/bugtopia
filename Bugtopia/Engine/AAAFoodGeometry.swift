@@ -178,8 +178,8 @@ class AAAFoodGeometry {
         var uvs: [SIMD2<Float>] = []
         var indices: [UInt32] = []
         
-        let segments = 48  // 🍎 AAA: Higher detail for close-up viewing
-        let rings = 24     // 🍎 AAA: More vertical resolution
+        let segments = 32  // 🍎 AAA: Balanced detail for close-up viewing (was 48)
+        let rings = 16     // 🍎 AAA: Good vertical resolution (was 24)
         
         // 🍎 APPLE SHAPE PARAMETERS: Photorealistic apple proportions
         let baseRadius: Float = 1.0
@@ -798,7 +798,7 @@ class AAAFoodGeometry {
         
         // 🏗️ CREATE PROPER 3D BOX MESH with all 6 faces
         let mesh = MeshResource.generateBox(width: width, height: height, depth: depth)
-        print("🍣 [GEOMETRY] AAA 3D sushi tuna box created successfully! (w:\(width) h:\(height) d:\(depth))")
+        // print("🍣 [GEOMETRY] AAA 3D sushi tuna box created successfully! (w:\(width) h:\(height) d:\(depth))")
         return mesh
     }
     
@@ -815,7 +815,7 @@ class AAAFoodGeometry {
         
         // 🏗️ CREATE ROUNDED STEAK MESH with natural edges
         let mesh = MeshResource.generateBox(width: width, height: height, depth: depth, cornerRadius: cornerRadius)
-        print("🥩 [GEOMETRY] AAA 3D medium steak with rounded edges created! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
+        // print("🥩 [GEOMETRY] AAA 3D medium steak with rounded edges created! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
         return mesh
     }
     
@@ -829,8 +829,8 @@ class AAAFoodGeometry {
         var uvs: [SIMD2<Float>] = []
         var indices: [UInt32] = []
         
-        let segments = 48  // Higher detail for lumpy surface
-        let rings = 32     // More rings for better surface irregularity
+        let segments = 24  // Balanced detail for lumpy surface (was 48)
+        let rings = 16     // Sufficient rings for surface irregularity (was 32)
         
         // 🩸 RAW FLESH PARAMETERS: Organic, irregular glob
         let baseRadius: Float = 0.6
@@ -900,7 +900,7 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🩸 [GEOMETRY] AAA organic raw flesh glob created successfully! (\(vertices.count) vertices)")
+            // print("🩸 [GEOMETRY] AAA organic raw flesh glob created successfully! (\(vertices.count) vertices)")
             return mesh
         } catch {
             print("❌ [GEOMETRY] Failed to create raw flesh mesh: \(error)")
@@ -924,7 +924,7 @@ class AAAFoodGeometry {
         
         // 🏗️ CREATE RAW STEAK MESH with slightly rougher edges
         let mesh = MeshResource.generateBox(width: width, height: height, depth: depth, cornerRadius: cornerRadius)
-        print("🥩 [GEOMETRY] AAA 3D raw steak created successfully! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
+        // print("🥩 [GEOMETRY] AAA 3D raw steak created successfully! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
         return mesh
     }
     
@@ -941,7 +941,7 @@ class AAAFoodGeometry {
         
         // 🏗️ CREATE GRILLED STEAK MESH with refined edges
         let mesh = MeshResource.generateBox(width: width, height: height, depth: depth, cornerRadius: cornerRadius)
-        print("🔥 [GEOMETRY] AAA 3D grilled steak created successfully! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
+        // print("🔥 [GEOMETRY] AAA 3D grilled steak created successfully! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
         return mesh
     }
     

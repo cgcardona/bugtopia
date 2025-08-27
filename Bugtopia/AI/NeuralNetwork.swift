@@ -573,7 +573,7 @@ struct BugSensors {
                 inputs.append(0.0)  // No 3D ratio difference for surface bugs
             } else {
                 // Flying/swimming/climbing bugs: use actual 3D calculations
-                let foodPosition3D = Position3D(from: nearestFood.position, z: 0.0)  // Food at surface
+                let foodPosition3D = nearestFood.position  // Food position is already 3D
                 let verticalDistance = abs(bug.position3D.z - foodPosition3D.z)
                 let normalizedVerticalDistance = min(1.0, verticalDistance / 200.0)  // Max height difference
                 inputs.append(normalizedVerticalDistance)

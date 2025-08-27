@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import SceneKit
+import QuartzCore
 
 /// Comprehensive memory leak detection and tracking system
 class MemoryLeakTracker {

@@ -11,13 +11,13 @@ import SwiftUI
 /// Represents different types of food with varying energy values, colors, and rarity
 struct FoodItem: Identifiable, Codable, Hashable, Equatable {
     let id = UUID()
-    let position: CGPoint
+    let position: Position3D
     let type: FoodType
     let energyValue: Double
     let targetSpecies: SpeciesType
     
     /// Creates a food item at the specified position
-    init(position: CGPoint, type: FoodType, targetSpecies: SpeciesType) {
+    init(position: Position3D, type: FoodType, targetSpecies: SpeciesType) {
         self.position = position
         self.type = type
         self.energyValue = type.energyValue

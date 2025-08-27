@@ -60,7 +60,7 @@ class PheromoneFieldManager {
         // Initialize pheromone grid for all signal types
         initializePheromoneGrid()
         
-        print("🧪 [PHEROMONE] Initialized digital pheromone field with \(resolution)x\(resolution) resolution")
+        // print("🧪 [PHEROMONE] Initialized digital pheromone field with \(resolution)x\(resolution) resolution")
     }
     
     private func initializePheromoneGrid() {
@@ -70,7 +70,7 @@ class PheromoneFieldManager {
                 count: gridResolution), 
             count: gridResolution)
         
-        print("🧪 [PHEROMONE] Grid initialized: \(gridResolution)x\(gridResolution)x\(SignalType.allCases.count)")
+        // print("🧪 [PHEROMONE] Grid initialized: \(gridResolution)x\(gridResolution)x\(SignalType.allCases.count)")
     }
     
     // MARK: - Pheromone Trail Creation

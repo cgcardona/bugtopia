@@ -50,8 +50,8 @@ class Bug: Identifiable, Hashable {
     
     // MARK: - Behavioral State
     
-    var targetFood: CGPoint?
-    var consumedFood: CGPoint?     // Food consumed this tick (for removal)
+    var targetFood: Position3D?
+    var consumedFood: Position3D?     // Food consumed this tick (for removal)
     var targetPrey: Bug?
     var predatorThreat: Bug?
     var lastMovementTime: TimeInterval
@@ -124,7 +124,7 @@ class Bug: Identifiable, Hashable {
         // 🐛 DEBUG: Log speed calculation for debugging
         if Int.random(in: 1...100) == 1 {
             let debugId = String(id.uuidString.prefix(8))
-            print("🏃 [BUG \(debugId)] Speed calc: DNA=\(String(format: "%.2f", dna.speed)), Energy=\(String(format: "%.1f", energy)), Multiplier=\(String(format: "%.2f", energyMultiplier)), Final=\(String(format: "%.2f", speed))")
+            // print("🏃 [BUG \(debugId)] Speed calc: DNA=\(String(format: "%.2f", dna.speed)), Energy=\(String(format: "%.1f", energy)), Multiplier=\(String(format: "%.2f", energyMultiplier)), Final=\(String(format: "%.2f", speed))")
         }
         
         return speed
@@ -376,22 +376,23 @@ class Bug: Identifiable, Hashable {
         // 🔍 DEBUG: Log detailed bug thoughts and decision-making
         if let decision = lastDecision {
             let bugId = String(id.uuidString.prefix(8))
-            print("🧠 [BUG \(bugId)] THOUGHTS:")
-            print("   Energy: \(String(format: "%.1f", energy))/\(String(format: "%.1f", Self.maxEnergy)) (\(String(format: "%.1f", (energy/Self.maxEnergy)*100))%)")
-            print("   Position: (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y)))")
-            print("   Neural Decisions:")
-            print("     Move: X=\(String(format: "%.2f", decision.moveX)), Y=\(String(format: "%.2f", decision.moveY))")
-            print("     Behaviors: Hunt=\(String(format: "%.2f", decision.hunting)), Flee=\(String(format: "%.2f", decision.fleeing)), Explore=\(String(format: "%.2f", decision.exploration)), Reproduce=\(String(format: "%.2f", decision.reproduction))")
-            print("   Food Status:")
-            if let targetFood = targetFood {
-                let distance = sqrt(pow(targetFood.x - position.x, 2) + pow(targetFood.y - position.y, 2))
-                print("     Target Food: (\(String(format: "%.1f", targetFood.x)), \(String(format: "%.1f", targetFood.y))) - Distance: \(String(format: "%.1f", distance))")
-            } else {
-                print("     Target Food: NONE")
-            }
-            print("   Species: \(dna.speciesTraits.speciesType.rawValue)")
-            print("   Age: \(age) ticks")
-            print("---")
+            // TODO: Uncomment this to log bug thoughts
+            // print("🧠 [BUG \(bugId)] THOUGHTS:")
+            // print("   Energy: \(String(format: "%.1f", energy))/\(String(format: "%.1f", Self.maxEnergy)) (\(String(format: "%.1f", (energy/Self.maxEnergy)*100))%)")
+            // print("   Position: (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y)))")
+            // print("   Neural Decisions:")
+            // print("     Move: X=\(String(format: "%.2f", decision.moveX)), Y=\(String(format: "%.2f", decision.moveY))")
+            // print("     Behaviors: Hunt=\(String(format: "%.2f", decision.hunting)), Flee=\(String(format: "%.2f", decision.fleeing)), Explore=\(String(format: "%.2f", decision.exploration)), Reproduce=\(String(format: "%.2f", decision.reproduction))")
+            // print("   Food Status:")
+            // if let targetFood = targetFood {
+            //     let distance = sqrt(pow(targetFood.x - position.x, 2) + pow(targetFood.y - position.y, 2))
+            //     print("     Target Food: (\(String(format: "%.1f", targetFood.x)), \(String(format: "%.1f", targetFood.y))) - Distance: \(String(format: "%.1f", distance))")
+            // } else {
+            //     print("     Target Food: NONE")
+            // }
+            // print("   Species: \(dna.speciesTraits.speciesType.rawValue)")
+            // print("   Age: \(age) ticks")
+            // print("---")
         }
         
         // Neural network can override hardcoded food targeting
@@ -401,10 +402,10 @@ class Bug: Identifiable, Hashable {
                 targetFood = nil // Abandon current food target to explore
                 
                 // 🔍 DEBUG: Log exploration behavior
-                if Int.random(in: 1...20) == 1 {
-                    let bugId = String(id.uuidString.prefix(8))
-                    print("🚶 [BUG \(bugId)] EXPLORING - abandoning food target (energy: \(String(format: "%.1f", energy)))")
-                }
+                // if Int.random(in: 1...20) == 1 {
+                //     let bugId = String(id.uuidString.prefix(8))
+                //     print("🚶 [BUG \(bugId)] EXPLORING - abandoning food target (energy: \(String(format: "%.1f", energy)))")
+                // }
             } else {
                 // 🍴 ALL SPECIES FOOD TARGETING: Every species needs to find appropriate food
                 updateTargetFood(foods: foods, arena: arena)
@@ -470,11 +471,11 @@ class Bug: Identifiable, Hashable {
         if let threat = predatorThreat {
             let bugId = String(id.uuidString.prefix(8))
             let distance = sqrt(pow(threat.position.x - position.x, 2) + pow(threat.position.y - position.y, 2))
-            print("⚠️ [BUG \(bugId)] PREDATOR DETECTED: Distance=\(String(format: "%.1f", distance)), Fleeing=\(String(format: "%.2f", decision.fleeing))")
+            // print("⚠️ [BUG \(bugId)] PREDATOR DETECTED: Distance=\(String(format: "%.1f", distance)), Fleeing=\(String(format: "%.2f", decision.fleeing))")
         } else {
             let bugId = String(id.uuidString.prefix(8))
             if Int.random(in: 1...50) == 1 {  // Log occasionally
-                print("✅ [BUG \(bugId)] NO PREDATOR THREAT - Energy: \(String(format: "%.1f", energy))")
+                // print("✅ [BUG \(bugId)] NO PREDATOR THREAT - Energy: \(String(format: "%.1f", energy))")
             }
         }
         
@@ -500,7 +501,7 @@ class Bug: Identifiable, Hashable {
                 energy -= fleeCost
                 
                 let bugId = String(id.uuidString.prefix(8))
-                print("🏃 [BUG \(bugId)] FLEEING from threat at distance \(String(format: "%.1f", distance))")
+                // print("🏃 [BUG \(bugId)] FLEEING from threat at distance \(String(format: "%.1f", distance))")
             } else {
                 // Threat is too far, clear it and proceed to food seeking
                 predatorThreat = nil
@@ -520,13 +521,14 @@ class Bug: Identifiable, Hashable {
             
             let bugId = String(id.uuidString.prefix(8))
             let distance = sqrt(pow(food.x - position.x, 2) + pow(food.y - position.y, 2))
-            print("🍎 [BUG \(bugId)] SEEKING FOOD at distance \(String(format: "%.1f", distance))")
+            // print("🍎 [BUG \(bugId)] SEEKING FOOD at distance \(String(format: "%.1f", distance))")
         }
         // 3. REPRODUCTION - third priority (when energy is sufficient)
         else if decision.reproduction > 0.6 && energy > Self.maxEnergy * 0.7 && age > 50 {
             // Look for potential mates of the same species
             let mateVision = dna.visionRadius * modifiers.vision * 1.5  // Calculate effective vision for mate detection
             let potentialMates = otherBugs.filter { mate in
+                mate.id != self.id &&  // 🚫 Don't mate with yourself!
                 mate.dna.speciesTraits.speciesType == self.dna.speciesTraits.speciesType &&
                 mate.energy > Self.maxEnergy * 0.6 &&
                 mate.age > 30 &&
@@ -550,7 +552,7 @@ class Bug: Identifiable, Hashable {
                 let bugId = String(id.uuidString.prefix(8))
                 let mateId = String(nearestMate.id.uuidString.prefix(8))
                 let distance = self.distance(to: nearestMate.position)
-                print("💕 [BUG \(bugId)] SEEKING MATE: Target=\(mateId), Distance=\(String(format: "%.1f", distance))")
+                // print("💕 [BUG \(bugId)] SEEKING MATE: Target=\(mateId), Distance=\(String(format: "%.1f", distance))")
             }
         }
         // 4. HUNTING - fourth priority
@@ -569,7 +571,7 @@ class Bug: Identifiable, Hashable {
             )
             
             let bugId = String(id.uuidString.prefix(8))
-            print("🦁 [BUG \(bugId)] HUNTING prey")
+            // print("🦁 [BUG \(bugId)] HUNTING prey")
         }
         // 5. PURE NEURAL EXPLORATION - lowest priority (when not hungry/threatened/mating)
         else {
@@ -596,7 +598,7 @@ class Bug: Identifiable, Hashable {
             
             let bugId = String(id.uuidString.prefix(8))
             if Int.random(in: 1...30) == 1 {  // Log occasionally
-                print("🔍 [BUG \(bugId)] EXPLORING (neural + restless movement)")
+                // print("🔍 [BUG \(bugId)] EXPLORING (neural + restless movement)")
             }
         }
         
@@ -655,17 +657,19 @@ class Bug: Identifiable, Hashable {
             // For surface bugs, calculate terrain height at CLAMPED position
             let terrainHeight = arena.getTerrainHeight(at: position)
             // 🌍 TERRAIN FOLLOWING: Bugs should walk ON the terrain, not float above it
-            let targetZ = terrainHeight + 1.0  // 1 unit above terrain surface
+            // CRITICAL: Account for renderer scaling (0.1x) - terrain height is in simulation coordinates
+            let scaledTerrainHeight = terrainHeight * 0.1  // Scale to match renderer coordinates
+            let targetZ = scaledTerrainHeight + 1.0  // 1 unit above scaled terrain surface
             
             // Smooth terrain following - don't teleport through terrain
             let maxHeightChange = 3.0  // Allow reasonable terrain climbing
             let heightDelta = abs(targetZ - position3D.z)
             
-            // 🔍 DEBUG: Log terrain height calculation
-            let debugId = String(id.uuidString.prefix(8))
-            if Int.random(in: 1...50) == 1 {  // Log occasionally
-                print("🏔️ [BUG \(debugId)] Terrain height at (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y))): \(String(format: "%.1f", terrainHeight)) → target Z: \(String(format: "%.1f", targetZ)) (current: \(String(format: "%.1f", position3D.z)))")
-            }
+            // 🔍 DEBUG: Log terrain height calculation (DISABLED - too noisy)
+            // let debugId = String(id.uuidString.prefix(8))
+            // if Int.random(in: 1...50) == 1 {  // Log occasionally
+            //     print("🏔️ [BUG \(debugId)] Terrain height at (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y))): \(String(format: "%.1f", terrainHeight)) → scaled: \(String(format: "%.1f", scaledTerrainHeight)) → target Z: \(String(format: "%.1f", targetZ)) (current: \(String(format: "%.1f", position3D.z)))")
+            // }
             
             if heightDelta <= maxHeightChange {
                 position3D = Position3D(position.x, position.y, targetZ)
@@ -675,9 +679,9 @@ class Bug: Identifiable, Hashable {
                 let adjustedZ = position3D.z + (direction * maxHeightChange)
                 position3D = Position3D(position.x, position.y, adjustedZ)
                 
-                if Int.random(in: 1...30) == 1 {  // Log steep terrain adjustments
-                    print("⛰️ [BUG \(debugId)] STEEP TERRAIN: Gradual adjustment from \(String(format: "%.1f", position3D.z)) to \(String(format: "%.1f", adjustedZ)) (target: \(String(format: "%.1f", targetZ)))")
-                }
+                // if Int.random(in: 1...30) == 1 {  // Log steep terrain adjustments
+                //     print("⛰️ [BUG \(debugId)] STEEP TERRAIN: Gradual adjustment from \(String(format: "%.1f", position3D.z)) to \(String(format: "%.1f", adjustedZ)) (target: \(String(format: "%.1f", targetZ)), terrain: \(String(format: "%.1f", terrainHeight)))")
+                // }
             }
         } else {
             // For non-surface bugs, sync with clamped 2D position
@@ -843,26 +847,26 @@ class Bug: Identifiable, Hashable {
         
         // 🐛 DEBUG: Log food detection process
         let debugId = String(id.uuidString.prefix(8))
-        if Int.random(in: 1...30) == 1 { // Log occasionally to avoid spam
-            print("🔍 [FOOD DETECT \(debugId)] Starting food search...")
-            print("   Bug position: (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y)))")
-            print("   Vision radius: \(String(format: "%.1f", dna.visionRadius))")
-            print("   Effective vision: \(String(format: "%.1f", effectiveVision))")
-            print("   Total foods available: \(foods.count)")
-            print("   Species: \(dna.speciesTraits.speciesType.rawValue)")
-            print("   Can eat plants: \(dna.speciesTraits.speciesType.canEatPlants)")
-        }
+        // if Int.random(in: 1...30) == 1 { // Log occasionally to avoid spam
+        //     print("🔍 [FOOD DETECT \(debugId)] Starting food search...")
+        //     print("   Bug position: (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y)))")
+        //     print("   Vision radius: \(String(format: "%.1f", dna.visionRadius))")
+        //     print("   Effective vision: \(String(format: "%.1f", effectiveVision))")
+        //     print("   Total foods available: \(foods.count)")
+        //     print("   Species: \(dna.speciesTraits.speciesType.rawValue)")
+        //     print("   Can eat plants: \(dna.speciesTraits.speciesType.canEatPlants)")
+        // }
         
         let visibleFoods = foods.filter { food in
             let dist = distance(to: food.position)
             
             // 🐛 DEBUG: Log each food check
-            if Int.random(in: 1...30) == 1 {
-                print("   Checking food: \(food.type.rawValue) at (\(String(format: "%.1f", food.position.x)), \(String(format: "%.1f", food.position.y)))")
-                print("     Distance: \(String(format: "%.1f", dist))")
-                print("     Can eat: \(canEat(food: food))")
-                print("     Within vision: \(dist <= effectiveVision)")
-            }
+            // if Int.random(in: 1...30) == 1 {
+            //     print("   Checking food: \(food.type.rawValue) at (\(String(format: "%.1f", food.position.x)), \(String(format: "%.1f", food.position.y)))")
+            //     print("     Distance: \(String(format: "%.1f", dist))")
+            //     print("     Can eat: \(canEat(food: food))")
+            //     print("     Within vision: \(dist <= effectiveVision)")
+            // }
             
             // Check if food is within vision range
             if dist > effectiveVision { return false }
@@ -890,22 +894,22 @@ class Bug: Identifiable, Hashable {
         }
         
         // 🐛 DEBUG: Log visible foods found
-        if Int.random(in: 1...30) == 1 {
-            print("   Visible foods found: \(visibleFoods.count)")
-            for (i, food) in visibleFoods.enumerated() {
-                let dist = distance(to: food.position)
-                print("     Food \(i): \(food.type.rawValue) at distance \(String(format: "%.1f", dist))")
-            }
-        }
+        // if Int.random(in: 1...30) == 1 {
+        //     print("   Visible foods found: \(visibleFoods.count)")
+        //     for (i, food) in visibleFoods.enumerated() {
+        //         let dist = distance(to: food.position)
+        //         print("     Food \(i): \(food.type.rawValue) at distance \(String(format: "%.1f", dist))")
+        //     }
+        // }
         
         // Prioritize food based on distance and terrain difficulty
         targetFood = visibleFoods.min { food1, food2 in
-            let dist1 = distance(to: food1.position)
-            let dist2 = distance(to: food2.position)
+            let dist1 = distance(to: food1.position)  // Uses Position3D version
+            let dist2 = distance(to: food2.position)  // Uses Position3D version
             
             // Factor in terrain difficulty for pathfinding
-            let terrain1 = arena.terrainAt(food1.position)
-            let terrain2 = arena.terrainAt(food2.position)
+            let terrain1 = arena.terrainAt(CGPoint(x: food1.position.x, y: food1.position.y))
+            let terrain2 = arena.terrainAt(CGPoint(x: food2.position.x, y: food2.position.y))
             
             let cost1 = dist1 * terrain1.energyCostMultiplier(for: dna)
             let cost2 = dist2 * terrain2.energyCostMultiplier(for: dna)
@@ -916,8 +920,8 @@ class Bug: Identifiable, Hashable {
         // 🐛 DEBUG: Log food targeting patterns to check for X-axis bias
         if let target = targetFood, Int.random(in: 1...30) == 1 {
             let _ = String(id.uuidString.prefix(8))
-            let _ = target.x - position.x
-            let _ = target.y - position.y
+            let _ = target.x - position3D.x
+            let _ = target.y - position3D.y
             // Debug logging removed for performance
         }
     }
@@ -949,7 +953,8 @@ class Bug: Identifiable, Hashable {
         if let target = targetFood {
             // 🧪 PHEROMONE-ENHANCED PATHFINDING: Use GameplayKit intelligence if available
             if let pheromoneManager = pheromoneManager {
-                let enhancedPath = findPheromoneEnhancedPath(to: target, pheromoneManager: pheromoneManager)
+                let targetCGPoint = CGPoint(x: target.x, y: target.y)
+                let enhancedPath = findPheromoneEnhancedPath(to: targetCGPoint, pheromoneManager: pheromoneManager)
                 if enhancedPath.count > 1 {
                     let nextWaypoint = enhancedPath[1]
                     let direction = normalize(CGPoint(x: nextWaypoint.x - position.x, y: nextWaypoint.y - position.y))
@@ -967,7 +972,8 @@ class Bug: Identifiable, Hashable {
                 // Use memory for smarter pathfinding (original logic)
                 if dna.memory > 0.7 {
                     // Smart pathfinding for high-memory bugs
-                    let path = arena.findPath(from: position, to: target, for: dna)
+                    let targetCGPoint = CGPoint(x: target.x, y: target.y)
+                    let path = arena.findPath(from: position, to: targetCGPoint, for: dna)
                     if path.count > 1, path.indices.contains(1) {
                         let nextWaypoint = path[1]
                         let direction = normalize(CGPoint(x: nextWaypoint.x - position.x, y: nextWaypoint.y - position.y))
@@ -1074,7 +1080,7 @@ class Bug: Identifiable, Hashable {
         // 🐛 DEBUG: Log when bug hits boundaries
         if clamped && Int.random(in: 1...20) == 1 {
             let debugId = String(id.uuidString.prefix(8))
-            print("🔒 [BUG \(debugId)] CLAMPED to bounds at (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y)))")
+            // print("🔒 [BUG \(debugId)] CLAMPED to bounds at (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y)))")
         }
     }
     
@@ -1166,7 +1172,10 @@ class Bug: Identifiable, Hashable {
             // Find the best accessible layer for this bug
             let accessibleLayers = TerrainLayer.allCases.filter { layer in
                 switch layer {
-                case .underground: return canSwim || canClimb
+                case .underground: 
+                    // Underground access requires swimming or climbing
+                    // TODO: Add terrain-specific logic when arena is available
+                    return canSwim || canClimb
                 case .aerial: return canFly
                 case .canopy: return canClimb || canFly
                 case .surface: return true  // Always accessible
@@ -1174,7 +1183,7 @@ class Bug: Identifiable, Hashable {
             }
             
             // Choose the closest accessible layer, preferring surface
-            let targetLayer = accessibleLayers.contains(.surface) ? .surface : (accessibleLayers.first ?? .surface)
+            let targetLayer = accessibleLayers.contains(TerrainLayer.surface) ? TerrainLayer.surface : (accessibleLayers.first ?? TerrainLayer.surface)
             let targetZ = targetLayer.heightRange.lowerBound + 
                          (targetLayer.heightRange.upperBound - targetLayer.heightRange.lowerBound) / 2
             let correctedPosition = Position3D(position3D.x, position3D.y, targetZ)
@@ -1531,7 +1540,7 @@ class Bug: Identifiable, Hashable {
                 if dna.communicationDNA.socialResponseRate > 0.8,
                    energy > 60 { // Only help if we have spare energy
                     // Move toward the bug requesting help
-                    targetFood = signal.position
+                    targetFood = Position3D(from: signal.position, z: 0.0)
                 }
                 
             case .foodShare:
@@ -1925,11 +1934,19 @@ class Bug: Identifiable, Hashable {
         return baseCapacity
     }
     
-    /// Calculates distance to a point
+    /// Calculates distance to a point (2D version for backward compatibility)
     func distance(to point: CGPoint) -> Double {
         let dx = position.x - point.x
         let dy = position.y - point.y
         return sqrt(dx * dx + dy * dy)
+    }
+    
+    /// Calculates distance to a 3D position
+    func distance(to targetPosition: Position3D) -> Double {
+        let dx = targetPosition.x - position3D.x
+        let dy = targetPosition.y - position3D.y
+        let dz = targetPosition.z - position3D.z
+        return sqrt(dx * dx + dy * dy + dz * dz)
     }
     
     /// Normalizes a vector
@@ -1989,11 +2006,11 @@ class Bug: Identifiable, Hashable {
             
             // Check if too close
             if distance < collisionRadius {
-                // 🔍 DEBUG: Log collision detection
+                // 🔍 DEBUG: Log collision detection (ENABLED - important for debugging)
                 let debugId = String(id.uuidString.prefix(8))
                 let otherDebugId = String(otherBug.id.uuidString.prefix(8))
-                if Int.random(in: 1...10) == 1 {  // Log occasionally
-                    print("🚫 [BUG \(debugId)] COLLISION with \(otherDebugId) at distance \(String(format: "%.1f", distance)) (radius: \(String(format: "%.1f", collisionRadius)))")
+                if Int.random(in: 1...3) == 1 {  // Log more frequently to debug collision issues
+                    // print("🚫 [BUG \(debugId)] COLLISION with \(otherDebugId) at distance \(String(format: "%.1f", distance)) (radius: \(String(format: "%.1f", collisionRadius)))")
                 }
                 return true
             }

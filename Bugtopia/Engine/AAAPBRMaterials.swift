@@ -200,9 +200,9 @@ class AAAPBRMaterials {
         if let aoTexture = loadTexture(named: "apple-ao") {
             // Note: RealityKit doesn't have direct AO, but we can use it to modulate other properties
             // This is a placeholder for future AO integration
-            print("🍎 ✅ Loaded professional apple AO map")
+            // print("🍎 ✅ Loaded professional apple AO map")
         } else {
-            print("🍎 ⚠️ Apple AO map not found")
+            // print("🍎 ⚠️ Apple AO map not found")
         }
         
         // 🏆 AAA apple material created successfully!
@@ -224,31 +224,31 @@ class AAAPBRMaterials {
         // 📸 LOAD BLACKBERRY DIFFUSE TEXTURE (Professional PBR Color Map)
         if let diffuseTexture = loadTexture(named: "blackberry-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("🫐 ✅ Loaded professional blackberry diffuse texture")
+            // print("🫐 ✅ Loaded professional blackberry diffuse texture")
         } else {
             // Fallback color matching blackberry
             let blackberryColor = NSColor(red: 0.15, green: 0.05, blue: 0.25, alpha: 1.0) // Deep purple-black
             pbrMaterial.baseColor = .init(tint: blackberryColor)
-            print("🫐 ⚠️ Using fallback blackberry color - diffuse texture not found")
+            // print("🫐 ⚠️ Using fallback blackberry color - diffuse texture not found")
         }
         
         // 🗺️ LOAD BLACKBERRY NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "blackberry-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("🫐 ✅ Loaded professional blackberry normal map")
+            // print("🫐 ✅ Loaded professional blackberry normal map")
         } else {
-            print("🫐 ⚠️ Blackberry normal map not found")
+            // print("🫐 ⚠️ Blackberry normal map not found")
         }
         
         // ✨ LOAD BLACKBERRY ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "blackberry-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("🫐 ✅ Loaded professional blackberry roughness map")
+            // print("🫐 ✅ Loaded professional blackberry roughness map")
         } else {
             // Fallback: Berry surface properties
             let berryRoughness = 0.4 - (freshness * 0.2) // Fresh berries are glossier
             pbrMaterial.roughness = .init(floatLiteral: max(0.2, berryRoughness))
-            print("🫐 ⚠️ Using fallback blackberry roughness - texture not found")
+            // print("🫐 ⚠️ Using fallback blackberry roughness - texture not found")
         }
         
         // 🌫️ LOAD BLACKBERRY AMBIENT OCCLUSION (Depth Enhancement)
@@ -294,39 +294,39 @@ class AAAPBRMaterials {
         // 📸 LOAD ORANGE DIFFUSE TEXTURE (Professional PBR Color Map)
         if let diffuseTexture = loadTexture(named: "orange-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("🍊 ✅ Loaded professional orange diffuse texture")
+            // print("🍊 ✅ Loaded professional orange diffuse texture")
         } else {
             // Fallback color matching orange
             let fallbackColor = NSColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1.0) // Bright orange
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("🍊 ⚠️ Using fallback orange color - diffuse texture not found")
+            // print("🍊 ⚠️ Using fallback orange color - diffuse texture not found")
         }
         
         // 🗺️ LOAD ORANGE NORMAL MAP (Professional Surface Detail)
         if let normalTexture = loadTexture(named: "orange-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("🍊 ✅ Loaded professional orange normal map")
+            // print("🍊 ✅ Loaded professional orange normal map")
         } else {
-            print("🍊 ⚠️ Orange normal map not found")
+            // print("🍊 ⚠️ Orange normal map not found")
         }
         
         // ✨ LOAD ORANGE ROUGHNESS MAP (Professional Surface Properties)
         if let roughnessTexture = loadTexture(named: "orange-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("🍊 ✅ Loaded professional orange roughness map")
+            // print("🍊 ✅ Loaded professional orange roughness map")
         } else {
             // Fallback: Textured orange peel
             pbrMaterial.roughness = .init(floatLiteral: 0.7) // Rough citrus peel
-            print("🍊 ⚠️ Using fallback orange roughness - texture not found")
+            // print("🍊 ⚠️ Using fallback orange roughness - texture not found")
         }
         
         // 🌫️ LOAD ORANGE AMBIENT OCCLUSION (Depth Enhancement)
         if let aoTexture = loadTexture(named: "orange-ao") {
             // Note: RealityKit doesn't have direct AO, but we can use it to modulate other properties
             // This is a placeholder for future AO integration
-            print("🍊 ✅ Loaded professional orange AO map")
+            // print("🍊 ✅ Loaded professional orange AO map")
         } else {
-            print("🍊 ⚠️ Orange AO map not found")
+            // print("🍊 ⚠️ Orange AO map not found")
         }
         
         // 🥇 METALLIC PROPERTIES: Oranges are completely non-metallic
@@ -526,8 +526,8 @@ class AAAPBRMaterials {
     
     static func createAAATunaMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🍣 [PBR] Creating AAA sushi-grade tuna material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // print("🍣 [PBR] Creating AAA sushi-grade tuna material...")
+        // print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -535,38 +535,38 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "tuna-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded tuna diffuse texture")
+            // print("✅ [PBR] Loaded tuna diffuse texture")
         } else {
             // Fallback color: Deep red sushi tuna
             let fallbackColor = NSColor(red: 0.8, green: 0.3, blue: 0.3, alpha: 1.0) // Deep red tuna
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback sushi tuna color")
+            // print("⚠️ [PBR] Using fallback sushi tuna color")
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "tuna-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded tuna normal map")
+            // print("✅ [PBR] Loaded tuna normal map")
         } else {
-            print("⚠️ [PBR] Tuna normal map not found")
+            // print("⚠️ [PBR] Tuna normal map not found")
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "tuna-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded tuna roughness map")
+            // print("✅ [PBR] Loaded tuna roughness map")
         } else {
             // Fallback: Fresh sushi tuna is smooth and slightly moist
             pbrMaterial.roughness = .init(floatLiteral: 0.15) // Very smooth, fresh cut
-            print("⚠️ [PBR] Using fallback tuna roughness")
+            // print("⚠️ [PBR] Using fallback tuna roughness")
         }
         
         // 🌫️ LOAD AMBIENT OCCLUSION MAP (Depth and Shadow Detail)
         if let aoTexture = loadTexture(named: "tuna-ao") {
             pbrMaterial.ambientOcclusion = .init(texture: .init(aoTexture))
-            print("✅ [PBR] Loaded tuna AO map")
+            // print("✅ [PBR] Loaded tuna AO map")
         } else {
-            print("⚠️ [PBR] Tuna AO map not found")
+            // print("⚠️ [PBR] Tuna AO map not found")
         }
         
         // 🥇 METALLIC PROPERTIES: Fresh tuna has subtle sheen but not metallic
@@ -592,14 +592,14 @@ class AAAPBRMaterials {
             pbrMaterial.baseColor = .init(tint: dullColor)
         }
         
-        print("🏆 [PBR] AAA sushi tuna material created successfully!")
+        // print("🏆 [PBR] AAA sushi tuna material created successfully!")
         return pbrMaterial
     }
     
     static func createAAAMediumSteakMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🥩 [PBR] Creating AAA medium steak material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // print("🥩 [PBR] Creating AAA medium steak material...")
+        // print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -607,38 +607,38 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "steak-medium-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded medium steak diffuse texture")
+            // print("✅ [PBR] Loaded medium steak diffuse texture")
         } else {
             // Fallback color: Medium-rare steak color
             let fallbackColor = NSColor(red: 0.7, green: 0.3, blue: 0.2, alpha: 1.0) // Medium-rare red-brown
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback medium steak color")
+            // print("⚠️ [PBR] Using fallback medium steak color")
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "steak-medium-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded medium steak normal map")
+            // print("✅ [PBR] Loaded medium steak normal map")
         } else {
-            print("⚠️ [PBR] Medium steak normal map not found")
+            // print("⚠️ [PBR] Medium steak normal map not found")
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "steak-medium-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded medium steak roughness map")
+            // print("✅ [PBR] Loaded medium steak roughness map")
         } else {
             // Fallback: Cooked steak has moderate roughness
             pbrMaterial.roughness = .init(floatLiteral: 0.6) // Cooked surface texture
-            print("⚠️ [PBR] Using fallback medium steak roughness")
+            // print("⚠️ [PBR] Using fallback medium steak roughness")
         }
         
         // 🌫️ LOAD AMBIENT OCCLUSION MAP (Depth and Shadow Detail)
         if let aoTexture = loadTexture(named: "steak-medium-ao") {
             pbrMaterial.ambientOcclusion = .init(texture: .init(aoTexture))
-            print("✅ [PBR] Loaded medium steak AO map")
+            // print("✅ [PBR] Loaded medium steak AO map")
         } else {
-            print("⚠️ [PBR] Medium steak AO map not found")
+            // print("⚠️ [PBR] Medium steak AO map not found")
         }
         
         // 🥇 METALLIC PROPERTIES: Cooked steak has minimal metallic properties
@@ -662,14 +662,14 @@ class AAAPBRMaterials {
             pbrMaterial.baseColor = .init(tint: grayColor)
         }
         
-        print("🏆 [PBR] AAA medium steak material created successfully!")
+        // print("🏆 [PBR] AAA medium steak material created successfully!")
         return pbrMaterial
     }
     
     static func createAAARawFleshMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🩸 [PBR] Creating AAA raw flesh material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // print("🩸 [PBR] Creating AAA raw flesh material...")
+        // print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -677,38 +677,38 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "flesh-raw-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded raw flesh diffuse texture")
+            // print("✅ [PBR] Loaded raw flesh diffuse texture")
         } else {
             // Fallback: Deep red raw flesh color
             let fallbackColor = NSColor(red: 0.9, green: 0.2, blue: 0.2, alpha: 1.0)
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback raw flesh color")
+            // print("⚠️ [PBR] Using fallback raw flesh color")
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail) - RealityKit doesn't support normal scale
         if let normalTexture = loadTexture(named: "flesh-raw-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded raw flesh normal map")
+            // print("✅ [PBR] Loaded raw flesh normal map")
         } else {
-            print("⚠️ [PBR] Raw flesh normal map not found")
+            // print("⚠️ [PBR] Raw flesh normal map not found")
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "flesh-raw-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded raw flesh roughness map")
+            // print("✅ [PBR] Loaded raw flesh roughness map")
         } else {
             // Fallback: Raw flesh is quite rough and wet
             pbrMaterial.roughness = .init(floatLiteral: 0.7)
-            print("⚠️ [PBR] Using fallback raw flesh roughness")
+            // print("⚠️ [PBR] Using fallback raw flesh roughness")
         }
         
         // 🌫️ LOAD AMBIENT OCCLUSION MAP (Depth/Shadows)
         if let aoTexture = loadTexture(named: "flesh-raw-ao") {
             pbrMaterial.ambientOcclusion = .init(texture: .init(aoTexture))
-            print("✅ [PBR] Loaded raw flesh AO map")
+            // print("✅ [PBR] Loaded raw flesh AO map")
         } else {
-            print("⚠️ [PBR] Raw flesh AO map not found")
+            // print("⚠️ [PBR] Raw flesh AO map not found")
         }
         
         // 🔧 MATERIAL PROPERTIES: Raw flesh characteristics
@@ -732,14 +732,14 @@ class AAAPBRMaterials {
             pbrMaterial.baseColor = .init(tint: dullColor)
         }
         
-        print("🏆 [PBR] AAA raw flesh material created successfully!")
+        // print("🏆 [PBR] AAA raw flesh material created successfully!")
         return pbrMaterial
     }
     
     static func createAAARawSteakMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🥩 [PBR] Creating AAA raw steak material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // print("🥩 [PBR] Creating AAA raw steak material...")
+        // print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -747,38 +747,38 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "steak-raw-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded raw steak diffuse texture")
+            // print("✅ [PBR] Loaded raw steak diffuse texture")
         } else {
             // Fallback: Raw steak color
             let fallbackColor = NSColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0)
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback raw steak color")
+            // print("⚠️ [PBR] Using fallback raw steak color")
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "steak-raw-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded raw steak normal map")
+            // print("✅ [PBR] Loaded raw steak normal map")
         } else {
-            print("⚠️ [PBR] Raw steak normal map not found")
+            // print("⚠️ [PBR] Raw steak normal map not found")
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "steak-raw-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded raw steak roughness map")
+            // print("✅ [PBR] Loaded raw steak roughness map")
         } else {
             // Fallback: Raw steak surface properties
             pbrMaterial.roughness = .init(floatLiteral: 0.6)
-            print("⚠️ [PBR] Using fallback raw steak roughness")
+            // print("⚠️ [PBR] Using fallback raw steak roughness")
         }
         
         // 🌫️ LOAD AMBIENT OCCLUSION MAP (Depth/Shadows)
         if let aoTexture = loadTexture(named: "steak-raw-ao") {
             pbrMaterial.ambientOcclusion = .init(texture: .init(aoTexture))
-            print("✅ [PBR] Loaded raw steak AO map")
+            // print("✅ [PBR] Loaded raw steak AO map")
         } else {
-            print("⚠️ [PBR] Raw steak AO map not found")
+            // print("⚠️ [PBR] Raw steak AO map not found")
         }
         
         // 🔧 MATERIAL PROPERTIES: Raw steak characteristics
@@ -802,14 +802,14 @@ class AAAPBRMaterials {
             pbrMaterial.baseColor = .init(tint: dullColor)
         }
         
-        print("🏆 [PBR] AAA raw steak material created successfully!")
+        // print("🏆 [PBR] AAA raw steak material created successfully!")
         return pbrMaterial
     }
     
     static func createAAAGrilledSteakMaterial(energyLevel: Float = 1.0, freshness: Float = 1.0) -> RealityKit.Material {
         
-        print("🔥 [PBR] Creating AAA grilled steak material...")
-        print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
+        // print("🔥 [PBR] Creating AAA grilled steak material...")
+        // print("⚡ [PBR] Energy: \(energyLevel), Freshness: \(freshness)")
         
         // 🎨 CREATE PHYSICALLY-BASED MATERIAL
         var pbrMaterial = PhysicallyBasedMaterial()
@@ -817,38 +817,38 @@ class AAAPBRMaterials {
         // 📸 LOAD DIFFUSE TEXTURE (Main Color)
         if let diffuseTexture = loadTexture(named: "steak-grilled-diffuse") {
             pbrMaterial.baseColor = .init(texture: .init(diffuseTexture))
-            print("✅ [PBR] Loaded grilled steak diffuse texture")
+            // print("✅ [PBR] Loaded grilled steak diffuse texture")
         } else {
             // Fallback: Grilled steak color
             let fallbackColor = NSColor(red: 0.6, green: 0.3, blue: 0.2, alpha: 1.0)
             pbrMaterial.baseColor = .init(tint: fallbackColor)
-            print("⚠️ [PBR] Using fallback grilled steak color")
+            // print("⚠️ [PBR] Using fallback grilled steak color")
         }
         
         // 🗺️ LOAD NORMAL MAP (Surface Detail)
         if let normalTexture = loadTexture(named: "steak-grilled-normal") {
             pbrMaterial.normal = .init(texture: .init(normalTexture))
-            print("✅ [PBR] Loaded grilled steak normal map")
+            // print("✅ [PBR] Loaded grilled steak normal map")
         } else {
-            print("⚠️ [PBR] Grilled steak normal map not found")
+            // print("⚠️ [PBR] Grilled steak normal map not found")
         }
         
         // ✨ LOAD ROUGHNESS MAP (Surface Properties)
         if let roughnessTexture = loadTexture(named: "steak-grilled-roughness") {
             pbrMaterial.roughness = .init(texture: .init(roughnessTexture))
-            print("✅ [PBR] Loaded grilled steak roughness map")
+            // print("✅ [PBR] Loaded grilled steak roughness map")
         } else {
             // Fallback: Grilled steak surface properties
             pbrMaterial.roughness = .init(floatLiteral: 0.4)
-            print("⚠️ [PBR] Using fallback grilled steak roughness")
+            // print("⚠️ [PBR] Using fallback grilled steak roughness")
         }
         
         // 🌫️ LOAD AMBIENT OCCLUSION MAP (Depth/Shadows)
         if let aoTexture = loadTexture(named: "steak-grilled-ao") {
             pbrMaterial.ambientOcclusion = .init(texture: .init(aoTexture))
-            print("✅ [PBR] Loaded grilled steak AO map")
+            // print("✅ [PBR] Loaded grilled steak AO map")
         } else {
-            print("⚠️ [PBR] Grilled steak AO map not found")
+            // print("⚠️ [PBR] Grilled steak AO map not found")
         }
         
         // 🔧 MATERIAL PROPERTIES: Grilled steak characteristics
@@ -872,7 +872,7 @@ class AAAPBRMaterials {
             pbrMaterial.baseColor = .init(tint: dullColor)
         }
         
-        print("🏆 [PBR] AAA grilled steak material created successfully!")
+        // print("🏆 [PBR] AAA grilled steak material created successfully!")
         return pbrMaterial
     }
     
@@ -1004,7 +1004,7 @@ class AAAPBRMaterials {
         
         // Load from assets
         guard let image = NSImage(named: name) else {
-            print("❌ [PBR] Failed to load image: \(name)")
+            // print("❌ [PBR] Failed to load image: \(name)")
             return nil
         }
         
@@ -1030,11 +1030,11 @@ class AAAPBRMaterials {
             // Cache for future use
             textureCache[name] = textureResource
             
-            print("✅ [PBR] Successfully loaded and cached texture: \(name)")
+            // print("✅ [PBR] Successfully loaded and cached texture: \(name)")
             return textureResource
             
         } catch {
-            print("❌ [PBR] Failed to create TextureResource for \(name): \(error)")
+            // print("❌ [PBR] Failed to create TextureResource for \(name): \(error)")
             return nil
         }
     }

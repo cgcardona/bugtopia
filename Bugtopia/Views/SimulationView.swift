@@ -297,7 +297,7 @@ struct SimulationView: View {
             // 🍎 Set up food selection callback
             engineManager.onFoodSelected = handleFoodSelection
             
-            print("✅ [SimulationView] Selection callbacks set up for both SceneKit and RealityKit")
+            // print("✅ [SimulationView] Selection callbacks set up for RealityKit")
         }
     }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
