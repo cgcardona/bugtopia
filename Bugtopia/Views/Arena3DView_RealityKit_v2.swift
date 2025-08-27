@@ -380,6 +380,8 @@ struct Arena3DView_RealityKit_v2: View {
         addPheromoneVisualization(in: anchor)
         print("🧪 [SETUP] Pheromone visualization added")
         
+
+        
         // 10. World debug grid and border
         addWorldDebugGrid(in: anchor)
         
@@ -1175,10 +1177,12 @@ struct Arena3DView_RealityKit_v2: View {
         let worldXZ = simToWorldXZ(CGPoint(x: food.position.x, y: food.position.y))
         let scaledX = worldXZ.x
         let scaledZ = worldXZ.y
-        let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
+        
+        // 🍎 3D FOOD POSITIONING: Position food at appropriate layer based on type and biome
+        let foodY = calculateFoodLayerPosition(for: food, at: scaledX, z: scaledZ)
         let scaledPosition = SIMD3<Float>(
             scaledX, // Use consistent simulation scaling
-            max(terrainHeight + 0.5, 0.5), // At least 0.5 above ground, or 0.5 above terrain
+            foodY,   // Use calculated 3D layer position
             scaledZ  // Use consistent simulation scaling
         )
         
@@ -1395,9 +1399,13 @@ struct Arena3DView_RealityKit_v2: View {
             let bugX = bugWorldXZ.x
             let bugZ = bugWorldXZ.y
             
-            // 🏔️ TERRAIN FOLLOWING: Position bugs at appropriate height above terrain
-            let terrainHeight = getTerrainHeightAtPosition(x: bugX, z: bugZ)
-            let bugY = max(terrainHeight + 1.0, 1.0)  // At least 1 unit above ground/terrain
+            // 🏔️ 3D LAYER POSITIONING: Use bug's actual 3D Z-position for proper layer placement
+            let bugY = Float(bug.position3D.z) * 0.1  // Scale Z-coordinate to RealityKit space
+            
+            // 🐛 DEBUG: Log 3D positioning
+            if Int.random(in: 1...100) == 1 {
+                print("🔍 [3D LAYER] Bug \(bug.id.uuidString.prefix(8)): Layer=\(bug.currentLayer.rawValue), Z=\(bug.position3D.z) -> RK Y=\(bugY)")
+            }
             
             if !(0...terrainSize).contains(bugX) || !(0...terrainSize).contains(bugZ) {
                 oobBugCount += 1
@@ -1918,10 +1926,13 @@ struct Arena3DView_RealityKit_v2: View {
         // Position in 3D space with coordinate conversion
         let scaledX = Float(point.position.x) * simulationScale
         let scaledZ = Float(point.position.y) * simulationScale
-        let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
         
-        // Float slightly above terrain
-        modelEntity.position = SIMD3<Float>(scaledX, terrainHeight + 2.0, scaledZ)
+        // 🧪 3D PHEROMONE POSITIONING: Pheromones should float at the layer where they were created
+        // For now, we'll position them slightly above terrain, but this should be enhanced to support 3D layers
+        let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
+        let pheromoneY = terrainHeight + 2.0  // TODO: Use actual 3D layer position when available
+        
+        modelEntity.position = SIMD3<Float>(scaledX, pheromoneY, scaledZ)
         
         // Add gentle floating animation
         addPheromoneAnimation(to: modelEntity, signalType: point.signalType)
@@ -1931,6 +1942,8 @@ struct Arena3DView_RealityKit_v2: View {
         
         return pheromoneEntity
     }
+    
+
     
     @available(macOS 14.0, *)
     private func getPheromoneColor(for signalType: SignalType) -> NSColor {
@@ -2031,6 +2044,56 @@ struct Arena3DView_RealityKit_v2: View {
     }
     
     @available(macOS 14.0, *)
+    private func calculateFoodLayerPosition(for food: FoodItem, at x: Float, z: Float) -> Float {
+        // 🍎 INTELLIGENT FOOD LAYER POSITIONING: Position food at appropriate 3D layers
+        let terrainHeight = getTerrainHeightAtPosition(x: x, z: z)
+        
+        // Get biome at this position to determine appropriate layer
+        let voxelWorld = simulationEngine.voxelWorld
+        let simX = Double(x) / Double(simulationScale)
+        let simZ = Double(z) / Double(simulationScale)
+        let voxel = voxelWorld.getVoxel(at: Position3D(simX, simZ, 0.0))
+        let biome = voxel?.biome ?? .temperateGrassland
+        
+        // Position food based on type and target species
+        switch food.targetSpecies {
+        case .herbivore:
+            // Plant foods - position based on biome
+            switch biome {
+            case .tropicalRainforest, .temperateForest:
+                // Forest fruits can be in canopy
+                return food.type == .apple || food.type == .plum ? 
+                    terrainHeight + Float(TerrainLayer.canopy.centerZ * 0.1) : 
+                    terrainHeight + 0.5
+            default:
+                // Ground level plants
+                return terrainHeight + 0.5
+            }
+            
+        case .carnivore:
+            // Meat foods - usually at surface or underground
+            switch food.type {
+            case .tuna:
+                // Fish - slightly underwater or at water surface
+                return terrainHeight - 1.0
+            case .rawFlesh:
+                // Carrion - on ground
+                return terrainHeight + 0.3
+            default:
+                return terrainHeight + 0.5
+            }
+            
+        case .scavenger:
+            // Scavenger foods - usually on ground or slightly buried
+            return terrainHeight + 0.2
+            
+        case .omnivore:
+            // Mixed foods - various heights
+            return terrainHeight + Float.random(in: 0.3...2.0)
+        }
+    }
+    
+    @available(macOS 14.0, *)
     private func getTerrainHeightAtPosition(x: Float, z: Float) -> Float {
         // 🏔️ TERRAIN HEIGHT: Sample height from simulation's height map
         let voxelWorld = simulationEngine.voxelWorld
@@ -2074,13 +2137,13 @@ struct Arena3DView_RealityKit_v2: View {
                 // Convert simulation coordinates to RealityKit coordinates
                 let bugX = Float(bug.position3D.x) * simulationScale
                 let bugZ = Float(bug.position3D.y) * simulationScale
-                let terrainHeight = getTerrainHeightAtPosition(x: bugX, z: bugZ)
-                let bugY = max(terrainHeight + 1.0, 1.0)  // At least 1 unit above ground/terrain
+                // 🏔️ 3D LAYER POSITIONING: Use bug's actual 3D Z-position for proper layer placement
+                let bugY = Float(bug.position3D.z) * 0.1  // Scale Z-coordinate to RealityKit space
                 
-                // 🐛 DEBUG: Log coordinate conversion every 60 frames (2 seconds at 30fps)
+                // 🐛 DEBUG: Log 3D coordinate conversion every 60 frames (2 seconds at 30fps)
                 if Int.random(in: 1...60) == 1 {
-                    print("🔍 [COORD] Bug sim pos: (\(bug.position3D.x), \(bug.position3D.y)) -> RK pos: (\(bugX), \(bugZ))")
-                    print("🔍 [COORD] Terrain height at position: \(terrainHeight)")
+                    print("🔍 [3D COORD] Bug sim pos: (\(bug.position3D.x), \(bug.position3D.y), \(bug.position3D.z)) -> RK pos: (\(bugX), \(bugY), \(bugZ))")
+                    print("🔍 [3D LAYER] Bug layer: \(bug.currentLayer.rawValue)")
                 }
                 
                 // Smooth movement to prevent jarring updates
@@ -2957,8 +3020,8 @@ struct Arena3DView_RealityKit_v2: View {
         let deltaTime = currentTime - lastUpdateTime
         lastUpdateTime = currentTime
         
-        // 🍎 DISABLED: Bug updates disabled for food styling focus
-        // updateBugEntities(in: anchor, deltaTime: Float(deltaTime))
+        // 🐛 ENABLED: Bug updates for full ecosystem simulation
+        updateBugEntities(in: anchor, deltaTime: Float(deltaTime))
         
         // Update food entities (spawn new, remove consumed)
         updateFoodEntities(in: anchor)
@@ -2988,10 +3051,11 @@ struct Arena3DView_RealityKit_v2: View {
                 // 🎯 USE UNIFIED CONSTANTS: From class-level constants
                 let scaledX = Float(bug.position3D.x) * simulationScale
                 let scaledZ = Float(bug.position3D.y) * simulationScale
-                let terrainHeight = getTerrainHeightAtPosition(x: scaledX, z: scaledZ)
+                // 🏔️ 3D LAYER POSITIONING: Use bug's actual 3D Z-position for proper layer placement
+                let bugY = Float(bug.position3D.z) * 0.1  // Scale Z-coordinate to RealityKit space
                 let newPosition = SIMD3<Float>(
                     scaledX, // Use consistent simulation scaling
-                    max(terrainHeight + 1.0, 1.0), // At least 1 unit above ground/terrain
+                    bugY,    // Use actual 3D layer position
                     scaledZ  // Use consistent simulation scaling
                 )
                 
@@ -3017,11 +3081,18 @@ struct Arena3DView_RealityKit_v2: View {
             }
         }
         
-        // Add entities for new bugs
+        // Add entities for new bugs (from generation evolution)
         for bug in currentBugs {
             if bugContainer.findEntity(named: "Bug_\(bug.id.uuidString)") == nil {
                 let bugEntity = createDetailedBugEntity(for: bug, index: 0)
                 bugEntity.name = "Bug_\(bug.id.uuidString)"
+                
+                // Position the new bug entity
+                let bugX = Float(bug.position3D.x) * simulationScale
+                let bugZ = Float(bug.position3D.y) * simulationScale
+                let bugY = Float(bug.position3D.z) * 0.1
+                bugEntity.position = SIMD3<Float>(bugX, bugY, bugZ)
+                
                 bugContainer.addChild(bugEntity)
             }
         }

@@ -26,6 +26,13 @@ This document outlines exactly what values need to be changed when scaling Bugto
 - **Value**: `private let simulationScale: Float = 0.1`
 - **Purpose**: Converts simulation coordinates to RealityKit coordinates
 
+### **3D Z-Coordinate Scaling: 0.1**
+- **File**: `Bugtopia/Views/Arena3DView_RealityKit_v2.swift`
+- **Line**: ~1399, ~2082, ~2996
+- **Value**: `Float(bug.position3D.z) * 0.1`
+- **Purpose**: Scales 3D layer Z-coordinates from simulation space to RealityKit space
+- **Layer Mapping**: Underground (-50 to -30) → RK (-5 to -3), Surface (-30 to 10) → RK (-3 to 1), etc.
+
 ### **Pheromone System Resolution: 200x200**
 - **File**: `Bugtopia/Views/Arena3DView_RealityKit_v2.swift`
 - **Line**: ~215
