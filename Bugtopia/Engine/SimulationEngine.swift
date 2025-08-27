@@ -331,26 +331,23 @@ class SimulationEngine {
         }
         print("🐛 [RESET] Population created: \(bugs.count) bugs")
         
-        // 🐛 BUG STYLING: No food items needed for bug styling focus (reset)
+        // 🔥 AAA FOOD QUALITY: Create showcase food for reset/styling mode
         foods.removeAll()
-<<<<<<< HEAD
-        let initialFoodCount = 1   // 🍣 STYLING: Single tuna for AAA quality focus
         
-        // 🍣 STYLING: Position single tuna near origin for easy camera positioning
-        let tunaX = 50.0   // Close to origin but not exactly at 0,0
-        let tunaY = 50.0   // Close to origin but not exactly at 0,0
-        let tunaPosition = CGPoint(x: tunaX, y: tunaY)
+        // 🔥 STYLING: Position single showcase food near origin for easy camera positioning
+        let showcaseX = 50.0   // Close to origin but not exactly at 0,0
+        let showcaseY = 50.0   // Close to origin but not exactly at 0,0
+        let showcasePosition = CGPoint(x: showcaseX, y: showcaseY)
         
-        // Create single AAA-quality grilled steak
-        let grilledSteak = FoodItem(position: tunaPosition, type: .grilledSteak, targetSpecies: .carnivore)
-        foods.append(grilledSteak)
+        // Create AAA-quality showcase food appropriate for current world type
+        let foodRatios = getFoodRatiosForWorldType(currentWorldType)
+        let showcaseSpecies = selectFoodSpecies(using: foodRatios)
+        let showcaseFoodType = FoodType.randomFoodFor(species: showcaseSpecies, biome: .temperateGrassland, season: seasonalManager.currentSeason)
+        let showcaseFood = FoodItem(position: showcasePosition, type: showcaseFoodType, targetSpecies: showcaseSpecies)
+        foods.append(showcaseFood)
         
-        print("🔥 [STYLING] Created single grilled steak near origin: (\(tunaX), \(tunaY))")
-        print("🍣 [RESET] Food created: \(foods.count) food items")
-=======
-        
-        print("🐛 [RESET] Bug styling mode: No food items created")
->>>>>>> main
+        print("🔥 [AAA RESET] Created \(showcaseFoodType.rawValue) for \(showcaseSpecies.rawValue) at (\(showcaseX), \(showcaseY))")
+        print("🍣 [RESET] Showcase food created: \(foods.count) food items")
         
         // Skip spawnInitialResources for now in debug mode
         
