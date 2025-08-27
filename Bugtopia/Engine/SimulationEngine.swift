@@ -171,10 +171,10 @@ class SimulationEngine {
     init(worldBounds: CGRect) {
         // 🌍 DYNAMIC WORLD TYPES: Randomly select a world type each app launch for variety
         // Uncomment if you want to randomly select a world type
-        // let wordType = WorldType3D.allCases.randomElement() ?? .continental3D
+        let wordType = WorldType3D.allCases.randomElement() ?? .continental3D
         // Uncomment if you want to test a specific world type
         // let worldType = WorldType3D.abyss3D
-        let worldType = WorldType3D.archipelago3D
+        // let worldType = WorldType3D.archipelago3D
         // let worldType = WorldType3D.canyon3D
         // let worldType = WorldType3D.cavern3D
         // let worldType = WorldType3D.continental3D
@@ -250,7 +250,22 @@ class SimulationEngine {
         // 🍎 ECOSYSTEM: Food will be spawned dynamically during simulation
         foods.removeAll()
         
-        print("🍎 [SETUP] Food will spawn dynamically based on world type and biomes")
+        // 🔥 AAA FOOD QUALITY: Create initial showcase food with AAA materials
+        let showcaseX = 50.0   // Close to origin for easy camera positioning
+        let showcaseY = 50.0   // Close to origin for easy camera positioning
+        let showcasePosition = CGPoint(x: showcaseX, y: showcaseY)
+        
+        // Create AAA-quality showcase food appropriate for this world type and local biome
+        let foodRatios = getFoodRatiosForWorldType(currentWorldType)
+        let showcaseSpecies = selectFoodSpecies(using: foodRatios)
+        let showcaseVoxel = voxelWorld.getVoxel(at: Position3D(showcaseX, showcaseY, 0.0))
+        let showcaseBiome = showcaseVoxel?.biome ?? .temperateGrassland
+        let showcaseFoodType = FoodType.randomFoodFor(species: showcaseSpecies, biome: showcaseBiome, season: seasonalManager.currentSeason)
+        let showcaseFood = FoodItem(position: showcasePosition, type: showcaseFoodType, targetSpecies: showcaseSpecies)
+        foods.append(showcaseFood)
+        
+        print("🔥 [AAA SHOWCASE] Created \(showcaseFoodType.rawValue) for \(showcaseSpecies.rawValue) at (\(showcaseX), \(showcaseY))")
+        print("🍎 [SETUP] AAA food showcase created, dynamic spawning will continue during simulation")
     }
     
     // MARK: - Simulation Control
@@ -318,10 +333,25 @@ class SimulationEngine {
         }
         print("🐛 [RESET] Population created: \(bugs.count) bugs")
         
-        // 🐛 BUG STYLING: No food items needed for bug styling focus (reset)
+        // 🔥 AAA FOOD QUALITY: Create showcase food for reset/styling mode
         foods.removeAll()
         
-        print("🐛 [RESET] Bug styling mode: No food items created")
+        // 🔥 STYLING: Position single showcase food near origin for easy camera positioning
+        let showcaseX = 50.0   // Close to origin but not exactly at 0,0
+        let showcaseY = 50.0   // Close to origin but not exactly at 0,0
+        let showcasePosition = CGPoint(x: showcaseX, y: showcaseY)
+        
+        // Create AAA-quality showcase food appropriate for current world type and local biome
+        let foodRatios = getFoodRatiosForWorldType(currentWorldType)
+        let showcaseSpecies = selectFoodSpecies(using: foodRatios)
+        let showcaseVoxel = voxelWorld.getVoxel(at: Position3D(showcaseX, showcaseY, 0.0))
+        let showcaseBiome = showcaseVoxel?.biome ?? .temperateGrassland
+        let showcaseFoodType = FoodType.randomFoodFor(species: showcaseSpecies, biome: showcaseBiome, season: seasonalManager.currentSeason)
+        let showcaseFood = FoodItem(position: showcasePosition, type: showcaseFoodType, targetSpecies: showcaseSpecies)
+        foods.append(showcaseFood)
+        
+        print("🔥 [AAA RESET] Created \(showcaseFoodType.rawValue) for \(showcaseSpecies.rawValue) at (\(showcaseX), \(showcaseY))")
+        print("🍣 [RESET] Showcase food created: \(foods.count) food items")
         
         // Skip spawnInitialResources for now in debug mode
         
