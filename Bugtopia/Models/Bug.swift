@@ -612,8 +612,8 @@ class Bug: Identifiable, Hashable {
         let moved = sqrt((proposedPosition.x - position.x) * (proposedPosition.x - position.x) + 
                        (proposedPosition.y - position.y) * (proposedPosition.y - position.y))
         
-        // Check if the proposed position is passable
-        if arena.isPassable(proposedPosition, for: dna) {
+        // Check if the proposed position is passable (terrain + bug collision)
+        if arena.isPassable(proposedPosition, for: dna) && !isCollidingWithOtherBugs(at: proposedPosition, otherBugs: otherBugs) {
             let debugId = String(id.uuidString.prefix(8))
             
             // 🔧 CRITICAL DEBUG: Track X vs Y movement to identify the X-axis issue
@@ -654,8 +654,31 @@ class Bug: Identifiable, Hashable {
         if currentLayer == .surface {
             // For surface bugs, calculate terrain height at CLAMPED position
             let terrainHeight = arena.getTerrainHeight(at: position)
-            let newZ = max(terrainHeight + 0.5, position3D.z - 2.0) // Gradual descent to terrain, minimum 0.5 above
-            position3D = Position3D(position.x, position.y, newZ)
+            // 🌍 TERRAIN FOLLOWING: Bugs should walk ON the terrain, not float above it
+            let targetZ = terrainHeight + 1.0  // 1 unit above terrain surface
+            
+            // Smooth terrain following - don't teleport through terrain
+            let maxHeightChange = 3.0  // Allow reasonable terrain climbing
+            let heightDelta = abs(targetZ - position3D.z)
+            
+            // 🔍 DEBUG: Log terrain height calculation
+            let debugId = String(id.uuidString.prefix(8))
+            if Int.random(in: 1...50) == 1 {  // Log occasionally
+                print("🏔️ [BUG \(debugId)] Terrain height at (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y))): \(String(format: "%.1f", terrainHeight)) → target Z: \(String(format: "%.1f", targetZ)) (current: \(String(format: "%.1f", position3D.z)))")
+            }
+            
+            if heightDelta <= maxHeightChange {
+                position3D = Position3D(position.x, position.y, targetZ)
+            } else {
+                // Gradual height adjustment for steep terrain
+                let direction = targetZ > position3D.z ? 1.0 : -1.0
+                let adjustedZ = position3D.z + (direction * maxHeightChange)
+                position3D = Position3D(position.x, position.y, adjustedZ)
+                
+                if Int.random(in: 1...30) == 1 {  // Log steep terrain adjustments
+                    print("⛰️ [BUG \(debugId)] STEEP TERRAIN: Gradual adjustment from \(String(format: "%.1f", position3D.z)) to \(String(format: "%.1f", adjustedZ)) (target: \(String(format: "%.1f", targetZ)))")
+                }
+            }
         } else {
             // For non-surface bugs, sync with clamped 2D position
             position3D = Position3D(position.x, position.y, position3D.z)
@@ -1946,6 +1969,39 @@ class Bug: Identifiable, Hashable {
         }
     }
     
+    // MARK: - Collision Detection
+    
+    /// Check if moving to a position would collide with other bugs
+    private func isCollidingWithOtherBugs(at position: CGPoint, otherBugs: [Bug]) -> Bool {
+        let collisionRadius = max(dna.size * 2.0, 3.0)  // Minimum 3 units apart
+        
+        for otherBug in otherBugs {
+            // Don't collide with self
+            if otherBug.id == self.id { continue }
+            
+            // Only check collision with living bugs
+            if !otherBug.isAlive { continue }
+            
+            // Calculate distance to other bug
+            let dx = position.x - otherBug.position.x
+            let dy = position.y - otherBug.position.y
+            let distance = sqrt(dx * dx + dy * dy)
+            
+            // Check if too close
+            if distance < collisionRadius {
+                // 🔍 DEBUG: Log collision detection
+                let debugId = String(id.uuidString.prefix(8))
+                let otherDebugId = String(otherBug.id.uuidString.prefix(8))
+                if Int.random(in: 1...10) == 1 {  // Log occasionally
+                    print("🚫 [BUG \(debugId)] COLLISION with \(otherDebugId) at distance \(String(format: "%.1f", distance)) (radius: \(String(format: "%.1f", collisionRadius)))")
+                }
+                return true
+            }
+        }
+        
+        return false
+    }
+    
     // MARK: - Hashable & Equatable
     
     func hash(into hasher: inout Hasher) {
@@ -2106,10 +2162,11 @@ class Bug: Identifiable, Hashable {
     
     /// Handle 3D movement based on neural network decisions
     private func handle3DMovement(decision: BugOutputs) {
-        // 🚨 CONTINENTAL WORLD: Disable Z-axis movement for surface bugs
+        // 🌍 TERRAIN FOLLOWING: Enable terrain height following for surface bugs
         if currentLayer == .surface {
-            velocity3D.z = 0.0
-            return  // Skip all 3D movement logic for surface bugs
+            // Surface bugs should follow terrain height, not user-controlled Z movement
+            velocity3D.z = 0.0  // No manual Z control, but allow terrain following
+            // Don't return - allow terrain height updates below
         }
         
         // Decrement vertical movement cooldown
