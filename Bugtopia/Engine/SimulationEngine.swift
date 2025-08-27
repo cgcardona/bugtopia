@@ -250,7 +250,20 @@ class SimulationEngine {
         // 🍎 ECOSYSTEM: Food will be spawned dynamically during simulation
         foods.removeAll()
         
-        print("🍎 [SETUP] Food will spawn dynamically based on world type and biomes")
+        // 🔥 AAA FOOD QUALITY: Create initial showcase food with AAA materials
+        let showcaseX = 50.0   // Close to origin for easy camera positioning
+        let showcaseY = 50.0   // Close to origin for easy camera positioning
+        let showcasePosition = CGPoint(x: showcaseX, y: showcaseY)
+        
+        // Create AAA-quality showcase food appropriate for this world type
+        let foodRatios = getFoodRatiosForWorldType(currentWorldType)
+        let showcaseSpecies = selectFoodSpecies(using: foodRatios)
+        let showcaseFoodType = FoodType.randomFoodFor(species: showcaseSpecies, biome: .temperateGrassland, season: seasonalManager.currentSeason)
+        let showcaseFood = FoodItem(position: showcasePosition, type: showcaseFoodType, targetSpecies: showcaseSpecies)
+        foods.append(showcaseFood)
+        
+        print("🔥 [AAA SHOWCASE] Created \(showcaseFoodType.rawValue) for \(showcaseSpecies.rawValue) at (\(showcaseX), \(showcaseY))")
+        print("🍎 [SETUP] AAA food showcase created, dynamic spawning will continue during simulation")
     }
     
     // MARK: - Simulation Control
@@ -320,8 +333,24 @@ class SimulationEngine {
         
         // 🐛 BUG STYLING: No food items needed for bug styling focus (reset)
         foods.removeAll()
+<<<<<<< HEAD
+        let initialFoodCount = 1   // 🍣 STYLING: Single tuna for AAA quality focus
+        
+        // 🍣 STYLING: Position single tuna near origin for easy camera positioning
+        let tunaX = 50.0   // Close to origin but not exactly at 0,0
+        let tunaY = 50.0   // Close to origin but not exactly at 0,0
+        let tunaPosition = CGPoint(x: tunaX, y: tunaY)
+        
+        // Create single AAA-quality grilled steak
+        let grilledSteak = FoodItem(position: tunaPosition, type: .grilledSteak, targetSpecies: .carnivore)
+        foods.append(grilledSteak)
+        
+        print("🔥 [STYLING] Created single grilled steak near origin: (\(tunaX), \(tunaY))")
+        print("🍣 [RESET] Food created: \(foods.count) food items")
+=======
         
         print("🐛 [RESET] Bug styling mode: No food items created")
+>>>>>>> main
         
         // Skip spawnInitialResources for now in debug mode
         
