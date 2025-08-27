@@ -48,7 +48,7 @@ class BugEntityManager: ObservableObject {
     init() {
         self.bugContainer = Entity()
         self.bugContainer.name = "BugContainer"
-        print("🐛 [BugEntityManager] Initialized with container: \(bugContainer.name)")
+//        print("🐛 [BugEntityManager] Initialized with container: \(bugContainer.name)")
     }
     
     /// Configure the bug container with the scene anchor

@@ -28,10 +28,18 @@ class AAAFoodGeometry {
             return createAAAOrangeMesh()
         case .melon:
             return createAAAMelonMesh()
-        case .meat:
-            return createAAAMeatMesh()
-        case .fish:
-            return createAAAFishMesh()
+        case .blackberry:
+            return createAAABlackberryMesh()
+        case .tuna:
+            return createAAATunaMesh()
+        case .mediumSteak:
+            return createAAAMediumSteakMesh()
+        case .rawFlesh:
+            return createAAARawFleshMesh()
+        case .rawSteak:
+            return createAAARawSteakMesh()
+        case .grilledSteak:
+            return createAAAGrilledSteakMesh()
         case .seeds:
             return createAAASeedsMesh()
         case .nuts:
@@ -55,8 +63,8 @@ class AAAFoodGeometry {
         stemIndent: Bool = true
     ) -> MeshResource {
         
-        print("🍇 [AAA] Generating photorealistic plum geometry...")
-        print("📐 [AAA] Segments: \(segments), Rings: \(rings), Asymmetry: \(asymmetry)")
+        // 🍇 Generating photorealistic plum geometry...
+        // Generating mesh with segments, rings, and asymmetry
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -140,8 +148,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated plum: \(vertices.count) vertices, \(indices.count/3) triangles")
-        print("🎯 [AAA] Performance: \(indices.count/3) triangles (target: <1000)")
+        // Generated plum mesh
         
         // 🚀 CREATE REALITYKIT MESH with proper vertex attributes
         var meshDescriptor = MeshDescriptor()
@@ -152,10 +159,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Plum mesh generation complete!")
+            // Plum mesh generation complete
             return mesh
         } catch {
-            print("❌ [AAA] Mesh generation failed: \(error)")
+            // Mesh generation failed
             // Fallback to basic sphere
             return .generateSphere(radius: 1.0)
         }
@@ -164,53 +171,67 @@ class AAAFoodGeometry {
     /// Creates a photorealistic apple with proper topology and UV coordinates
     /// - Returns: High-quality apple mesh with natural apple shape
     static func createAAAAppleMesh() -> MeshResource {
-        print("🍎 [AAA] Generating photorealistic apple geometry...")
+        // 🍎 Generating UV-optimized apple geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
         var uvs: [SIMD2<Float>] = []
         var indices: [UInt32] = []
         
-        let segments = 32
-        let rings = 16
+        let segments = 32  // 🍎 AAA: Balanced detail for close-up viewing (was 48)
+        let rings = 16     // 🍎 AAA: Good vertical resolution (was 24)
         
-        // 🍎 APPLE SHAPE PARAMETERS: Classic apple proportions
+        // 🍎 APPLE SHAPE PARAMETERS: Photorealistic apple proportions
         let baseRadius: Float = 1.0
-        let heightScale: Float = 1.2  // Apples are taller than wide
-        let waistPosition: Float = 0.6  // Where the apple narrows (60% up)
-        let waistFactor: Float = 0.85  // How much it narrows at waist
-        let stemIndentDepth: Float = 0.4  // Deep stem indent
-        let stemIndentRadius: Float = 0.3  // Narrow stem area
+        let heightScale: Float = 1.15  // More natural apple proportions
+        let waistPosition: Float = 0.65  // Slightly higher waist for realism
+        let waistFactor: Float = 0.88   // Subtle waist narrowing
+        let stemIndentDepth: Float = 0.12  // Natural stem depression
+        let stemIndentRadius: Float = 0.2   // Realistic stem area
+        let bottomBulge: Float = 1.05  // Slight bottom bulge for realism
+        let asymmetryFactor: Float = 0.02  // Subtle natural asymmetry
         
         // 🎨 GENERATE VERTICES WITH NATURAL APPLE SHAPE
         for ring in 0...rings {
             let ringAngle = Float(ring) / Float(rings) * Float.pi
             let y = cos(ringAngle) * heightScale
             
-            // 🍎 APPLE WAIST: Narrow in the middle like real apples
+            // 🍎 AAA APPLE SHAPE: Realistic proportions with natural variations
             var radiusMultiplier: Float = 1.0
             let normalizedY = (y + heightScale) / (2.0 * heightScale) // 0 to 1
             
+            // Bottom bulge for natural apple shape
+            if normalizedY < 0.3 {
+                radiusMultiplier *= bottomBulge
+            }
+            
+            // Waist narrowing in upper section
             if normalizedY > waistPosition {
-                // Upper section: gradually narrow toward stem
                 let waistProgress = (normalizedY - waistPosition) / (1.0 - waistPosition)
-                radiusMultiplier = waistFactor + (1.0 - waistFactor) * (1.0 - waistProgress * 0.8)
+                radiusMultiplier *= waistFactor + (1.0 - waistFactor) * (1.0 - waistProgress * 0.8)
             }
             
             for segment in 0...segments {
                 let segmentAngle = Float(segment) / Float(segments) * 2.0 * Float.pi
                 
-                // 🌍 BASIC SPHERICAL COORDINATES WITH APPLE WAIST
-                let x = sin(ringAngle) * cos(segmentAngle) * baseRadius * radiusMultiplier
-                let z = sin(ringAngle) * sin(segmentAngle) * baseRadius * radiusMultiplier
+                // 🌍 AAA SPHERICAL COORDINATES WITH NATURAL ASYMMETRY
+                var x = sin(ringAngle) * cos(segmentAngle) * baseRadius * radiusMultiplier
+                var z = sin(ringAngle) * sin(segmentAngle) * baseRadius * radiusMultiplier
                 var currentY = y
                 
-                // 🍎 STEM INDENT: Create characteristic apple top indentation
-                if ring < rings / 4 {
+                // 🍎 SUBTLE ASYMMETRY: Real apples aren't perfectly symmetrical
+                let asymmetryX = sin(segmentAngle * 3.0) * asymmetryFactor * radiusMultiplier
+                let asymmetryZ = cos(segmentAngle * 2.0) * asymmetryFactor * radiusMultiplier
+                x += asymmetryX
+                z += asymmetryZ
+                
+                // 🍎 GENTLE STEM INDENT: Reduced distortion for better UV mapping
+                if ring < rings / 6 {  // REDUCED: Affect fewer rings
                     let distanceFromCenter = sqrt(x * x + z * z)
                     if distanceFromCenter < stemIndentRadius {
                         let indentFactor = (stemIndentRadius - distanceFromCenter) / stemIndentRadius
-                        currentY -= stemIndentDepth * indentFactor * indentFactor
+                        // SMOOTHER: Use quartic curve instead of quadratic for gentler transition
+                        currentY -= stemIndentDepth * indentFactor * indentFactor * indentFactor * indentFactor
                     }
                 }
                 
@@ -246,7 +267,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated apple: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // ✅ Generated apple: \(vertices.count) vertices, \(indices.count/3) triangles
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -257,18 +278,115 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Apple mesh generation complete!")
+            // 🏆 Apple mesh generation complete!
             return mesh
         } catch {
-            print("❌ [AAA] Apple mesh generation failed: \(error)")
+            // Apple mesh generation failed
             return .generateSphere(radius: 1.0)
+        }
+    }
+    
+    /// Creates a photorealistic blackberry with clustered berry arrangement
+    /// - Returns: High-quality blackberry mesh with natural clustered berries
+    static func createAAABlackberryMesh() -> MeshResource {
+        // 🫐 Generating photorealistic blackberry geometry...
+        
+        var vertices: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
+        var indices: [UInt32] = []
+        
+        let segments = 24  // Fewer segments for berry clusters
+        let rings = 16     // Good detail for clustered shape
+        
+        // 🫐 BLACKBERRY SHAPE PARAMETERS: Clustered berry aggregate
+        let baseRadius: Float = 0.8
+        let clusterScale: Float = 1.1   // Overall cluster size
+        let berryBumpScale: Float = 0.15  // Individual berry bumps
+        let _: Float = 0.9   // How tightly packed (reserved for future use)
+        let asymmetryFactor: Float = 0.03 // Natural irregularity
+        
+        // 🎨 GENERATE VERTICES WITH CLUSTERED BERRY SHAPE
+        for ring in 0...rings {
+            let ringAngle = Float(ring) / Float(rings) * Float.pi
+            let y = cos(ringAngle) * clusterScale
+            
+            for segment in 0...segments {
+                let segmentAngle = Float(segment) / Float(segments) * 2.0 * Float.pi
+                
+                // 🌍 BASIC SPHERICAL COORDINATES
+                var x = sin(ringAngle) * cos(segmentAngle) * baseRadius * clusterScale
+                var z = sin(ringAngle) * sin(segmentAngle) * baseRadius * clusterScale
+                let currentY = y
+                
+                // 🫐 BERRY CLUSTERING: Create individual berry bumps
+                let berryU = sin(Float(segment * 3) * segmentAngle) * sin(Float(ring * 2) * ringAngle)
+                let berryV = cos(Float(segment * 2) * segmentAngle) * cos(Float(ring * 3) * ringAngle)
+                let berryBumps = berryBumpScale * (berryU + berryV) * sin(ringAngle)
+                
+                let bumpRadius = sqrt(x * x + z * z)
+                if bumpRadius > 0 {
+                    x += (x / bumpRadius) * berryBumps
+                    z += (z / bumpRadius) * berryBumps
+                }
+                
+                // 🫐 NATURAL ASYMMETRY: Slight irregularity
+                let asymmetryX = sin(segmentAngle * 2.5) * asymmetryFactor
+                let asymmetryZ = cos(segmentAngle * 1.8) * asymmetryFactor
+                x += asymmetryX
+                z += asymmetryZ
+                
+                let vertex = SIMD3<Float>(x, currentY, z)
+                vertices.append(vertex)
+                
+                // 🔆 CALCULATE NORMALS
+                let normal = normalize(vertex)
+                normals.append(normal)
+                
+                // 🗺️ UV MAPPING: Berry cluster friendly
+                let u = Float(segment) / Float(segments)
+                let v = Float(ring) / Float(rings)
+                uvs.append(SIMD2<Float>(u, v))
+            }
+        }
+        
+        // 🔗 GENERATE INDICES
+        for ring in 0..<rings {
+            for segment in 0..<segments {
+                let current = ring * (segments + 1) + segment
+                let next = current + segments + 1
+                
+                indices.append(UInt32(current))
+                indices.append(UInt32(next))
+                indices.append(UInt32(current + 1))
+                
+                indices.append(UInt32(current + 1))
+                indices.append(UInt32(next))
+                indices.append(UInt32(next + 1))
+            }
+        }
+        
+        // 🚀 CREATE REALITYKIT MESH
+        var meshDescriptor = MeshDescriptor()
+        meshDescriptor.positions = .init(vertices)
+        meshDescriptor.normals = .init(normals)
+        meshDescriptor.textureCoordinates = .init(uvs)
+        meshDescriptor.primitives = .triangles(indices)
+        
+        do {
+            let mesh = try MeshResource.generate(from: [meshDescriptor])
+            // 🏆 Blackberry mesh generation complete!
+            return mesh
+        } catch {
+            // Blackberry mesh generation failed
+            return .generateSphere(radius: 0.8)
         }
     }
     
     /// Creates a photorealistic orange with proper topology and UV coordinates  
     /// - Returns: High-quality orange mesh with natural citrus shape
     static func createAAAOrangeMesh() -> MeshResource {
-        print("🍊 [AAA] Generating photorealistic orange geometry...")
+        // 🍊 Generating photorealistic orange geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -333,7 +451,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated orange: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // Generated orange mesh
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -344,10 +462,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Orange mesh generation complete!")
+            // Orange mesh generation complete
             return mesh
         } catch {
-            print("❌ [AAA] Orange mesh generation failed: \(error)")
+            // Orange mesh generation failed
             return .generateSphere(radius: 1.0)
         }
     }
@@ -355,7 +473,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic melon with proper topology and UV coordinates  
     /// - Returns: High-quality melon mesh with characteristic netted cantaloupe surface
     static func createAAAMelonMesh() -> MeshResource {
-        print("🍈 [AAA] Generating photorealistic melon geometry...")
+        // 🍈 Generating photorealistic melon geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -429,7 +547,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated melon: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // Generated melon mesh
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -440,10 +558,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Melon mesh generation complete!")
+            // Melon mesh generation complete
             return mesh
         } catch {
-            print("❌ [AAA] Melon mesh generation failed: \(error)")
+            // Melon mesh generation failed
             return .generateSphere(radius: 1.3)
         }
     }
@@ -451,7 +569,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic meat chunk with proper topology and UV coordinates  
     /// - Returns: High-quality meat mesh with realistic organic shape
     static func createAAAMeatMesh() -> MeshResource {
-        print("🥩 [AAA] Generating photorealistic meat geometry...")
+        // 🥩 Generating photorealistic meat geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -532,7 +650,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated meat: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // Generated meat mesh
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -543,10 +661,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Meat mesh generation complete!")
+            // Meat mesh generation complete
             return mesh
         } catch {
-            print("❌ [AAA] Meat mesh generation failed: \(error)")
+            // Meat mesh generation failed
             return .generateBox(size: [1.2, 0.8, 1.0])
         }
     }
@@ -554,7 +672,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic fish with proper topology and UV coordinates  
     /// - Returns: High-quality fish mesh with streamlined aquatic shape
     static func createAAAFishMesh() -> MeshResource {
-        print("🐟 [AAA] Generating photorealistic fish geometry...")
+        // 🐟 Generating photorealistic fish geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -649,7 +767,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated fish: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // Generated fish mesh
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -660,18 +778,177 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Fish mesh generation complete!")
+            // Fish mesh generation complete
             return mesh
         } catch {
-            print("❌ [AAA] Fish mesh generation failed: \(error)")
+            // Fish mesh generation failed
             return .generateBox(size: [1.5, 0.6, 0.8])
         }
+    }
+    
+    /// Creates a photorealistic sushi tuna piece with rectangular shape and smooth surface
+    /// - Returns: High-quality tuna mesh optimized for sushi presentation
+    static func createAAATunaMesh() -> MeshResource {
+        // 🍣 Generating proper 3D sushi tuna geometry...
+        
+        // 🍣 SUSHI TUNA PARAMETERS: Rectangular piece dimensions
+        let width: Float = 1.2      // Width of tuna piece
+        let height: Float = 1.0     // Height (thickness) of piece - proper sushi thickness!
+        let depth: Float = 0.8      // Depth of tuna piece
+        
+        // 🏗️ CREATE PROPER 3D BOX MESH with all 6 faces
+        let mesh = MeshResource.generateBox(width: width, height: height, depth: depth)
+        // print("🍣 [GEOMETRY] AAA 3D sushi tuna box created successfully! (w:\(width) h:\(height) d:\(depth))")
+        return mesh
+    }
+    
+    /// Creates a photorealistic medium steak with proper topology and UV coordinates
+    /// - Returns: High-quality medium steak mesh with realistic proportions and rounded edges
+    static func createAAAMediumSteakMesh() -> MeshResource {
+        // 🥩 Generating AAA medium steak geometry with rounded edges...
+        
+        // 🥩 MEDIUM STEAK PARAMETERS: More rectangular, realistic steak dimensions
+        let width: Float = 1.8      // Width of steak (more rectangular)
+        let height: Float = 0.7     // Height (thickness) - medium steak thickness
+        let depth: Float = 1.1      // Depth of steak (less square)
+        let cornerRadius: Float = 0.08  // Rounded edges for natural appearance
+        
+        // 🏗️ CREATE ROUNDED STEAK MESH with natural edges
+        let mesh = MeshResource.generateBox(width: width, height: height, depth: depth, cornerRadius: cornerRadius)
+        // print("🥩 [GEOMETRY] AAA 3D medium steak with rounded edges created! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
+        return mesh
+    }
+    
+    /// Creates a photorealistic raw flesh glob with organic, irregular shape
+    /// - Returns: High-quality raw flesh mesh with natural organic form
+    static func createAAARawFleshMesh() -> MeshResource {
+        // 🩸 Generating organic raw flesh geometry...
+        
+        var vertices: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
+        var indices: [UInt32] = []
+        
+        let segments = 24  // Balanced detail for lumpy surface (was 48)
+        let rings = 16     // Sufficient rings for surface irregularity (was 32)
+        
+        // 🩸 RAW FLESH PARAMETERS: Organic, irregular glob
+        let baseRadius: Float = 0.6
+        let height: Float = 0.8
+        let irregularityFactor: Float = 0.8  // Much more aggressive distortion for lumpy texture
+        
+        // Generate vertices with organic irregularity
+        for ring in 0...rings {
+            let v = Float(ring) / Float(rings)
+            let y = (v - 0.5) * height
+            
+            // Create organic bulging - wider in middle, tapered ends
+            var ringRadius = baseRadius * sin(v * Float.pi)  // Natural blob shape: 0 at ends, max in middle
+            
+            // Add organic irregularity based on position
+            let organicVariation = sin(v * Float.pi * 3.0) * 0.15 + cos(v * Float.pi * 5.0) * 0.1
+            ringRadius *= (1.0 + organicVariation * irregularityFactor)
+            
+            // Ensure we don't get negative radius (which would cause weird geometry)
+            ringRadius = max(0.01, ringRadius)
+            
+            for segment in 0...segments {
+                let u = Float(segment) / Float(segments)
+                let angle = u * 2.0 * Float.pi
+                
+                // Add more organic variation around the circumference
+                let circumferenceVariation = sin(angle * 4.0) * 0.2 + cos(angle * 7.0) * 0.15
+                let finalRadius = ringRadius * (1.0 + circumferenceVariation * irregularityFactor)
+                
+                let x = cos(angle) * finalRadius
+                let z = sin(angle) * finalRadius
+                
+                vertices.append(SIMD3<Float>(x, y, z))
+                
+                // Calculate normal for organic surface
+                let normal = normalize(SIMD3<Float>(x, 0.2, z))  // Slightly upward-pointing for flesh
+                normals.append(normal)
+                
+                // UV mapping
+                uvs.append(SIMD2<Float>(u, v))
+            }
+        }
+        
+        // Generate indices for triangular faces
+        for ring in 0..<rings {
+            for segment in 0..<segments {
+                let current = ring * (segments + 1) + segment
+                let next = current + segments + 1
+                
+                // Two triangles per quad
+                indices.append(UInt32(current))
+                indices.append(UInt32(next))
+                indices.append(UInt32(current + 1))
+                
+                indices.append(UInt32(current + 1))
+                indices.append(UInt32(next))
+                indices.append(UInt32(next + 1))
+            }
+        }
+        
+        // Create mesh descriptor
+        var meshDescriptor = MeshDescriptor()
+        meshDescriptor.positions = MeshBuffer(vertices)
+        meshDescriptor.normals = MeshBuffer(normals)
+        meshDescriptor.textureCoordinates = MeshBuffer(uvs)
+        meshDescriptor.primitives = .triangles(indices)
+        
+        do {
+            let mesh = try MeshResource.generate(from: [meshDescriptor])
+            // print("🩸 [GEOMETRY] AAA organic raw flesh glob created successfully! (\(vertices.count) vertices)")
+            return mesh
+        } catch {
+            print("❌ [GEOMETRY] Failed to create raw flesh mesh: \(error)")
+            // Fallback to simple sphere
+            let fallbackMesh = MeshResource.generateSphere(radius: 0.6)
+            print("🩸 [GEOMETRY] Using fallback sphere for raw flesh")
+            return fallbackMesh
+        }
+    }
+    
+    /// Creates a photorealistic raw steak with natural steak proportions and rough edges
+    /// - Returns: High-quality raw steak mesh with organic steak shape
+    static func createAAARawSteakMesh() -> MeshResource {
+        // 🥩 Generating AAA raw steak geometry...
+        
+        // 🥩 RAW STEAK PARAMETERS: More irregular than cooked steak
+        let width: Float = 1.7      // Width of raw steak (slightly wider)
+        let height: Float = 0.6     // Height (thickness) - raw steak is thicker
+        let depth: Float = 1.0      // Depth of raw steak
+        let cornerRadius: Float = 0.05  // Less rounded edges for raw appearance
+        
+        // 🏗️ CREATE RAW STEAK MESH with slightly rougher edges
+        let mesh = MeshResource.generateBox(width: width, height: height, depth: depth, cornerRadius: cornerRadius)
+        // print("🥩 [GEOMETRY] AAA 3D raw steak created successfully! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
+        return mesh
+    }
+    
+    /// Creates a photorealistic grilled steak with perfect grill marks and cooked appearance
+    /// - Returns: High-quality grilled steak mesh with refined steak shape
+    static func createAAAGrilledSteakMesh() -> MeshResource {
+        // 🔥 Generating AAA grilled steak geometry...
+        
+        // 🔥 GRILLED STEAK PARAMETERS: More refined than raw steak
+        let width: Float = 1.6      // Width of grilled steak (slightly smaller due to cooking)
+        let height: Float = 0.5     // Height (thickness) - grilled steak is slightly thinner
+        let depth: Float = 0.9      // Depth of grilled steak
+        let cornerRadius: Float = 0.08  // More rounded edges for cooked appearance
+        
+        // 🏗️ CREATE GRILLED STEAK MESH with refined edges
+        let mesh = MeshResource.generateBox(width: width, height: height, depth: depth, cornerRadius: cornerRadius)
+        // print("🔥 [GEOMETRY] AAA 3D grilled steak created successfully! (w:\(width) h:\(height) d:\(depth) r:\(cornerRadius))")
+        return mesh
     }
     
     /// Creates a photorealistic seeds cluster with proper topology and UV coordinates  
     /// - Returns: High-quality seeds mesh with natural clustered arrangement
     static func createAAASeedsMesh() -> MeshResource {
-        print("🌱 [AAA] Generating photorealistic seeds geometry...")
+        // 🌱 Generating photorealistic seeds geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -754,7 +1031,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated seeds: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // Generated seeds mesh
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -765,10 +1042,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Seeds mesh generation complete!")
+            // print("🏆 [AAA] Seeds mesh generation complete!")
             return mesh
         } catch {
-            print("❌ [AAA] Seeds mesh generation failed: \(error)")
+            // print("❌ [AAA] Seeds mesh generation failed: \(error)")
             return .generateSphere(radius: 0.7)
         }
     }
@@ -776,7 +1053,7 @@ class AAAFoodGeometry {
     /// Creates a photorealistic nuts mix with proper topology and UV coordinates  
     /// - Returns: High-quality nuts mesh with mixed nut shapes and textures
     static func createAAANutsMesh() -> MeshResource {
-        print("🥜 [AAA] Generating photorealistic nuts geometry...")
+        // 🥜 Generating photorealistic nuts geometry...
         
         var vertices: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
@@ -872,7 +1149,7 @@ class AAAFoodGeometry {
             }
         }
         
-        print("✅ [AAA] Generated nuts: \(vertices.count) vertices, \(indices.count/3) triangles")
+        // print("✅ [AAA] Generated nuts: \(vertices.count) vertices, \(indices.count/3) triangles")
         
         // 🚀 CREATE REALITYKIT MESH
         var meshDescriptor = MeshDescriptor()
@@ -883,10 +1160,10 @@ class AAAFoodGeometry {
         
         do {
             let mesh = try MeshResource.generate(from: [meshDescriptor])
-            print("🏆 [AAA] Nuts mesh generation complete!")
+            // print("🏆 [AAA] Nuts mesh generation complete!")
             return mesh
         } catch {
-            print("❌ [AAA] Nuts mesh generation failed: \(error)")
+            // print("❌ [AAA] Nuts mesh generation failed: \(error)")
             return .generateBox(size: [0.9, 0.7, 0.8])
         }
     }
@@ -954,6 +1231,11 @@ extension AAAFoodGeometry {
     /// Quick method to create a standard AAA apple with optimal settings
     static func createStandardApple() -> MeshResource {
         return createAAAAppleMesh()
+    }
+    
+    /// Quick method to create a standard AAA blackberry with optimal settings
+    static func createStandardBlackberry() -> MeshResource {
+        return createAAABlackberryMesh()
     }
     
     /// Quick method to create a standard AAA orange with optimal settings

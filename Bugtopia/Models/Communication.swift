@@ -79,13 +79,13 @@ struct Signal: Identifiable, Codable, Equatable, Hashable {
 
 /// Additional data that can be attached to signals
 struct SignalData: Codable, Equatable, Hashable {
-    let foodPosition: CGPoint?      // For food_found and food_share signals
+    let foodPosition: Position3D?   // For food_found and food_share signals
     let threatId: UUID?             // For danger_alert signals
     let huntTargetId: UUID?         // For hunt_call signals
     let energyLevel: Double?        // For help_request and food_share signals
     let groupSize: Int?             // For group_form signals
     
-    init(foodPosition: CGPoint? = nil, 
+    init(foodPosition: Position3D? = nil, 
          threatId: UUID? = nil, 
          huntTargetId: UUID? = nil, 
          energyLevel: Double? = nil, 

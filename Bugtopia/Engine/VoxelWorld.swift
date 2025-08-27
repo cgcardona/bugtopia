@@ -38,7 +38,7 @@ struct ArenaTile3D {
 }
 
 /// 3D coordinate system for bugs and objects  
-struct Position3D: Codable, Equatable {
+struct Position3D: Codable, Equatable, Hashable {
     var x: Double
     var y: Double
     var z: Double  // Height/depth coordinate
@@ -1096,10 +1096,17 @@ class VoxelWorld {
         }
         
         if height > 40 {
-            // High mountains override most biomes
-            if noise > 0.3 { return .wall }    // Rocky cliffs
-            if noise > -0.2 { return .hill }   // Mountain slopes
-            return .hill                       // Mountain terrain
+            // High mountains override most biomes - make them mostly impassable
+            if noise > 0.0 { return .wall }    // Rocky cliffs (increased from 0.3 to 0.0)
+            if noise > -0.4 { return .hill }   // Mountain slopes (reduced range)
+            return .wall                       // Steep mountain walls (changed from .hill)
+        }
+        
+        if height > 25 {
+            // Medium mountains - create impassable barriers
+            if noise > 0.2 { return .wall }    // Rocky areas
+            if noise > -0.3 { return .hill }   // Climbable slopes
+            return .wall                       // Default to impassable
         }
         
         // 🌍 MODERATE HEIGHT MODULATION: Enhance biome terrain with height awareness
@@ -2177,7 +2184,14 @@ class VoxelWorldArenaAdapter: Arena {
     
     /// Gets terrain height from VoxelWorld for proper 3D positioning
     override func getTerrainHeight(at position: CGPoint) -> Double {
-        return voxelWorld.getHeightAt(x: position.x, z: position.y)
+        let terrainHeight = voxelWorld.getHeightAt(x: position.x, z: position.y)
+        
+        // 🔍 DEBUG: Log terrain height lookups (DISABLED - too noisy)
+        // if Int.random(in: 1...100) == 1 {  // 1% chance
+        //     print("🗺️ [TERRAIN] Height at (\(String(format: "%.1f", position.x)), \(String(format: "%.1f", position.y))): \(String(format: "%.1f", terrainHeight))")
+        // }
+        
+        return terrainHeight
     }
     
     override func findPath(from start: CGPoint, to end: CGPoint, for dna: BugDNA) -> [CGPoint] {

@@ -18,16 +18,7 @@ class SimulationEngineManager: ObservableObject {
     // 🍎 Food Selection Callback
     var onFoodSelected: ((FoodItem?) -> Void)?
     
-    // Lazy initialization ensures Arena3DView is created only once when first accessed
-    lazy var arena3DView: Arena3DView = {
-        return Arena3DView(simulationEngine: engine, onBugSelected: { [weak self] bug in
-            // Dynamic callback that uses the current onBugSelected value
-            self?.onBugSelected?(bug)
-        }, onFoodSelected: { [weak self] food in
-            // Dynamic callback that uses the current onFoodSelected value
-            self?.onFoodSelected?(food)
-        })
-    }()
+
     
     // 🚀 RealityKit implementation - Phase 2 Entity System
     func createRealityKitView() -> Arena3DView_RealityKit_v2 {
@@ -38,7 +29,9 @@ class SimulationEngineManager: ObservableObject {
         })
     }
     
-    init(worldSize: CGSize = CGSize(width: 2000, height: 1500)) {
+
+    
+    init(worldSize: CGSize = CGSize(width: 2000, height: 2000)) {   // 🌍 PRODUCTION: 2000x2000 simulation for 20-bug testing
         let bounds = CGRect(origin: .zero, size: worldSize)
         self.engine = SimulationEngine(worldBounds: bounds)
     }
@@ -304,7 +297,7 @@ struct SimulationView: View {
             // 🍎 Set up food selection callback
             engineManager.onFoodSelected = handleFoodSelection
             
-            print("✅ [SimulationView] Selection callbacks set up for both SceneKit and RealityKit")
+            // print("✅ [SimulationView] Selection callbacks set up for RealityKit")
         }
     }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -413,66 +406,7 @@ struct SimulationView: View {
                         .fontWeight(.semibold)
                 }
                 .buttonStyle(.borderedProminent)
-                
-
-                
-                // 🎮 AAA PERFORMANCE: Performance report (smart engine detection)
-                Button(action: {
-                    triggerSmartPerformanceAnalysis()
-                }) {
-                    Text("📊 Perf")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                }
-                .buttonStyle(.bordered)
-                .foregroundColor(.red)
             }
-            
-            Divider()
-                .frame(height: 20)
-            
-            // 🚀 RENDERING ENGINE SELECTOR
-            HStack(spacing: 8) {
-                Image(systemName: "cpu")
-                    .foregroundColor(.blue)
-                    .font(.title2)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Renderer")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.blue)
-                    
-                    Picker("", selection: Binding(
-                        get: { RenderingConfiguration.shared.activeEngine },
-                        set: { RenderingConfiguration.shared.activeEngine = $0 }
-                    )) {
-                        ForEach(RenderingEngine.allCases, id: \.self) { engine in
-                            Text(engine.rawValue).tag(engine)
-                        }
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .frame(width: 180)
-                }
-                
-                if RenderingConfiguration.shared.activeEngine.isExperimental {
-                    Text("BETA")
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.orange)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Color.orange.opacity(0.2))
-                        .cornerRadius(3)
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.blue.opacity(0.05))
-            .cornerRadius(6)
-            
-            Divider()
-                .frame(height: 20)
             
             // 🧠 Neural Analysis Controls
             HStack(spacing: 12) {
@@ -583,8 +517,12 @@ struct SimulationView: View {
             // Quick Performance Stats
             VStack(alignment: .leading, spacing: 2) {
                 let averageEnergy = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.energy).reduce(0, +) / Double(simulationEngine.bugs.count)
-                Text("Avg Energy: \(String(format: "%.1f", averageEnergy))")
+                Text("Avg Energy: \(String(format: "%6.1f", averageEnergy))")
                     .font(.caption)
+                    .monospacedDigit()
+                    .frame(minWidth: 120, alignment: .leading)
+                    .id("energy-display") // 🔧 FIX: Stable view identity to prevent recreation
+                    .animation(nil, value: averageEnergy) // 🔧 FIX: Disable animations on energy changes
                 Text("Food: \(simulationEngine.foods.count)")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -610,49 +548,15 @@ struct SimulationView: View {
     private var simulationCanvas: some View {
         GeometryReader { geometry in
             ZStack {
-                // 🚀 CONDITIONAL 3D RENDERING: SceneKit ↔ RealityKit
-                ConditionalRenderer(
-                    sceneKit: {
-                        // 🏗️ SceneKit (Legacy) - Stable implementation
-                        engineManager.arena3DView
-                            .transition(.asymmetric(
-                                insertion: .scale.combined(with: .opacity),
-                                removal: .scale.combined(with: .opacity)
-                            ))
-                    },
-                    realityKit: {
-                        // 🚀 RealityKit (Future) - Next-generation spatial computing
-                        engineManager.createRealityKitView()
-                            .transition(.asymmetric(
-                                insertion: .scale.combined(with: .opacity),
-                                removal: .scale.combined(with: .opacity)
-                            ))
-                    }
-                )
+                // 🚀 RealityKit V2 - Only implementation
+                engineManager.createRealityKitView()
+                    .transition(.asymmetric(
+                        insertion: .scale.combined(with: .opacity),
+                        removal: .scale.combined(with: .opacity)
+                    ))
             }
         }
     }
-    
-    // MARK: - Smart Performance Analysis
-    
-    /// 🎮 Smart Performance Analysis - works with both SceneKit and RealityKit
-    private func triggerSmartPerformanceAnalysis() {
-        let config = RenderingConfiguration.shared
-        
-        switch config.activeEngine {
-        case .sceneKit:
-            // Use SceneKit's comprehensive performance logger
-            engineManager.arena3DView.triggerPerformanceAnalysis()
-            print("📊 [Performance] SceneKit analysis completed - check console for detailed report")
-            
-        case .realityKit:
-            // Use RealityKit's built-in debug overlay and basic metrics
-            config.debugMode.toggle()
-            print("📊 [Performance] RealityKit debug overlay toggled: \(config.debugMode ? "ON" : "OFF")")
-            print("📊 [Performance] RealityKit metrics available in debug overlay")
-        }
-    }
-
     
     // MARK: - Statistics Panels
     
@@ -765,7 +669,8 @@ struct SimulationView: View {
                     let averageEnergy = simulationEngine.bugs.isEmpty ? 0 : simulationEngine.bugs.map(\.energy).reduce(0, +) / Double(simulationEngine.bugs.count)
                     let averageAge = simulationEngine.bugs.isEmpty ? 0 : Double(simulationEngine.bugs.map(\.age).reduce(0, +)) / Double(simulationEngine.bugs.count)
                     
-                    StatRow(label: "⚡ Energy", value: String(format: "%.1f", averageEnergy))
+                    StatRow(label: "⚡ Energy", value: String(format: "%6.1f", averageEnergy))
+                        .animation(nil, value: averageEnergy) // 🔧 FIX: Disable animations on energy changes
                     StatRow(label: "📅 Age", value: String(format: "%.0f", averageAge))
                 }
                 

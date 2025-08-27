@@ -243,14 +243,15 @@ struct Tool: Identifiable, Codable, Equatable, Hashable {
         let (foodType, targetSpecies) = generateFoodTypeForTool(biome: biome, season: season)
         
         // Create slight position offset for the generated food
-        let offsetPosition = CGPoint(
+        let offsetPosition2D = CGPoint(
             x: position.x + Double.random(in: -15...15),
             y: position.y + Double.random(in: -15...15)
         )
+        let offsetPosition3D = Position3D(from: offsetPosition2D, z: 0.0)  // Surface level
         
         lastFoodGeneration = currentTime
         
-        return FoodItem(position: offsetPosition, type: foodType, targetSpecies: targetSpecies)
+        return FoodItem(position: offsetPosition3D, type: foodType, targetSpecies: targetSpecies)
     }
     
     /// Determines appropriate food type based on tool type and environment

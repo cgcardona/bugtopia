@@ -37,10 +37,13 @@ class SimulationEngine {
     let voxelWorld: VoxelWorld
     let pathfinding: VoxelPathfinding
     var currentWorldType: WorldType3D = .continental3D
-    private let maxPopulation = 800  // MASSIVE INCREASE: 4.4x more bugs for extensive debugging
-    private let initialPopulation = 20    // 🎉 FULL SIMULATION: Back to 20 bugs with visual sync fixed!
-    private let maxFoodItems = 200  // Reasonable food limit for good performance
-    private let baseFoodSpawnRate = 0.05 // Much lower spawn rate to prevent oversaturation
+    private let maxPopulation = 25   // 🌍 PRODUCTION: Allow population growth for large world
+    private let initialPopulation = 20   // 🐛 PRODUCTION: 20 bugs for full ecosystem simulation
+    private let maxFoodItems = 80        // 🍎 PRODUCTION: Abundant food for diverse 20-bug ecosystem
+    private let baseFoodSpawnRate = 0.25 // 🍎 MODERATE: 25% chance per tick for 20-bug simulation
+    
+    // 🎉 PRODUCTION: Enable full bug behavior for ecosystem simulation
+    private let enableBugBehavior = true   // Enable movement, AI, death for full simulation
     
     // MARK: - Simulation Speed & Analysis
     
@@ -168,19 +171,19 @@ class SimulationEngine {
     init(worldBounds: CGRect) {
         // 🌍 DYNAMIC WORLD TYPES: Randomly select a world type each app launch for variety
         // Uncomment if you want to randomly select a world type
-        // let wordType = WorldType3D.allCases.randomElement() ?? .continental3D
+        let wordType = WorldType3D.allCases.randomElement() ?? .continental3D
         // Uncomment if you want to test a specific world type
         // let worldType = WorldType3D.abyss3D
-        // let worldType = WorldType3D.archipelago3D
+        let worldType = WorldType3D.archipelago3D
         // let worldType = WorldType3D.canyon3D
         // let worldType = WorldType3D.cavern3D
-        let worldType = WorldType3D.continental3D
+        // let worldType = WorldType3D.continental3D
         // let worldType = WorldType3D.skylands3D
         // let worldType = WorldType3D.volcano3D
         self.currentWorldType = worldType
         
-        print("🌍 Generated World Type: \(worldType.rawValue)")
-        print("🌍 Expected Features:")
+         print("🌍 Generated World Type: \(worldType.rawValue)")
+         print("🌍 Expected Features:")
         switch worldType {
         case .abyss3D:
             print("   • Deep underwater trenches")
@@ -218,8 +221,51 @@ class SimulationEngine {
         self.voxelWorld = VoxelWorld(bounds: worldBounds, worldType: worldType, resolution: 32)
         self.pathfinding = VoxelPathfinding(voxelWorld: voxelWorld)
         ecosystemManager.setWorldBounds(worldBounds)
-        setupInitialPopulation()
-        spawnInitialFood()
+        
+        // 🎉 ECOSYSTEM: Setup diverse population for full ecosystem simulation
+        bugs.removeAll()
+        for _ in 0..<initialPopulation {
+            // 🎉 ECOSYSTEM: Distribute bugs across the world with proper species diversity
+            let randomPosition = generateRandomSpawnPosition()
+            
+            // 🎉 Create diverse species appropriate for this world type and biome
+            let bugDNA = createSpeciesForWorldType(worldType: currentWorldType, position: randomPosition)
+            
+            let newBug = Bug(dna: bugDNA, position3D: randomPosition, generation: 0)
+            bugs.append(newBug)
+            // print("🎉 [ECOSYSTEM] Created \(bugDNA.speciesTraits.speciesType.rawValue) at position: \(randomPosition)")
+            // print("🎉 [ECOSYSTEM] Bug species: \(bugDNA.speciesTraits.speciesType.rawValue)")
+        }
+        print("🐛 [SETUP] Initial population created: \(bugs.count) bugs")
+        
+        // 🎉 Log species distribution
+        let speciesCounts = Dictionary(grouping: bugs, by: { $0.dna.speciesTraits.speciesType })
+            .mapValues { $0.count }
+        print("🎉 [SPECIES] Distribution for \(currentWorldType.rawValue):")
+        for (species, count) in speciesCounts.sorted(by: { $0.value > $1.value }) {
+            let percentage = Double(count) / Double(bugs.count) * 100
+            print("   • \(species.rawValue): \(count) bugs (\(String(format: "%.1f", percentage))%)")
+        }
+        
+        // 🍎 ECOSYSTEM: Food will be spawned dynamically during simulation
+        foods.removeAll()
+        
+        // 🔥 AAA FOOD QUALITY: Create initial showcase food with AAA materials
+        let showcaseX = 50.0   // Close to origin for easy camera positioning
+        let showcaseY = 50.0   // Close to origin for easy camera positioning
+        let showcasePosition3D = Position3D(showcaseX, showcaseY, 0.0)  // Surface level
+        
+        // Create AAA-quality showcase food appropriate for this world type and local biome
+        let foodRatios = getFoodRatiosForWorldType(currentWorldType)
+        let showcaseSpecies = selectFoodSpecies(using: foodRatios)
+        let showcaseVoxel = voxelWorld.getVoxel(at: showcasePosition3D)
+        let showcaseBiome = showcaseVoxel?.biome ?? .temperateGrassland
+        let showcaseFoodType = FoodType.randomFoodFor(species: showcaseSpecies, biome: showcaseBiome, season: seasonalManager.currentSeason)
+        let showcaseFood = FoodItem(position: showcasePosition3D, type: showcaseFoodType, targetSpecies: showcaseSpecies)
+        foods.append(showcaseFood)
+        
+        // print("🔥 [AAA SHOWCASE] Created \(showcaseFoodType.rawValue) for \(showcaseSpecies.rawValue) at (\(showcaseX), \(showcaseY))")
+        // print("🍎 [SETUP] AAA food showcase created, dynamic spawning will continue during simulation")
     }
     
     // MARK: - Simulation Control
@@ -271,9 +317,43 @@ class SimulationEngine {
         tickCount = 0
         statistics = SimulationStatistics()
         
-        setupInitialPopulation()
-        spawnInitialFood()
-        spawnInitialResources()
+        // 🔍 DEBUG: Setup minimal population for focused debugging (reset)
+        bugs.removeAll()
+        for _ in 0..<initialPopulation {
+            // 🎨 BUG STYLING: Position single bug near origin for easy camera positioning
+            let stylingPosition3D = Position3D(50.0, 50.0, 0.0)  // Close to origin, on ground level
+            
+            // 🎨 Create a herbivore bug for initial styling (butterfly/beetle inspiration)
+            let bugDNA = BugDNA.random(species: .herbivore)
+            
+            let newBug = Bug(dna: bugDNA, position3D: stylingPosition3D, generation: 0)
+            bugs.append(newBug)
+            print("🎨 [RESET] Created styling bug at position: \(stylingPosition3D)")
+            print("🎨 [RESET] Bug species: \(bugDNA.speciesTraits.speciesType.rawValue)")
+        }
+        print("🐛 [RESET] Population created: \(bugs.count) bugs")
+        
+        // 🔥 AAA FOOD QUALITY: Create showcase food for reset/styling mode
+        foods.removeAll()
+        
+        // 🔥 STYLING: Position single showcase food near origin for easy camera positioning
+        let showcaseX = 50.0   // Close to origin but not exactly at 0,0
+        let showcaseY = 50.0   // Close to origin but not exactly at 0,0
+        let showcasePosition3D = Position3D(showcaseX, showcaseY, 0.0)  // Surface level
+        
+        // Create AAA-quality showcase food appropriate for current world type and local biome
+        let foodRatios = getFoodRatiosForWorldType(currentWorldType)
+        let showcaseSpecies = selectFoodSpecies(using: foodRatios)
+        let showcaseVoxel = voxelWorld.getVoxel(at: showcasePosition3D)
+        let showcaseBiome = showcaseVoxel?.biome ?? .temperateGrassland
+        let showcaseFoodType = FoodType.randomFoodFor(species: showcaseSpecies, biome: showcaseBiome, season: seasonalManager.currentSeason)
+        let showcaseFood = FoodItem(position: showcasePosition3D, type: showcaseFoodType, targetSpecies: showcaseSpecies)
+        foods.append(showcaseFood)
+        
+        print("🔥 [AAA RESET] Created \(showcaseFoodType.rawValue) for \(showcaseSpecies.rawValue) at (\(showcaseX), \(showcaseY))")
+        print("🍣 [RESET] Showcase food created: \(foods.count) food items")
+        
+        // Skip spawnInitialResources for now in debug mode
         
         // Restore the previous running state - if it was running, keep it running!
         if wasRunning {
@@ -286,8 +366,9 @@ class SimulationEngine {
         tick()
     }
     
-    /// Forces evolution to the next generation
+    /// Forces evolution to the next generation (re-enabled for diverse ecosystem)
     func evolveNextGeneration() {
+        print("🧬 [EVOLUTION] Forcing evolution to next generation")
         evolvePopulation()
     }
     
@@ -306,34 +387,39 @@ class SimulationEngine {
     private func performSingleTick() {
         tickCount += 1
         
-        // Update all bugs with neural decisions first, then movement
+        // 🎨 BUG STYLING: Conditionally update bugs based on styling mode
         var newSignals: [Signal] = []
-        for bug in bugs {
-            // 🎯 MOVEMENT TRACKING: Capture position before update
-            let positionBefore = bug.position3D
-            // 🧠 FIRST: Make neural network decisions and update behaviors
-            bug.update(
-                in: createVoxelArenaAdapter(),
-                foods: foods,
-                otherBugs: bugs,
-                seasonalManager: seasonalManager,
-                weatherManager: weatherManager,
-                disasterManager: disasterManager,
-                ecosystemManager: ecosystemManager,
-                territoryManager: territoryManager
-            )
-            
-
-            
-            // 🚶 SECOND: Use fresh neural decisions for voxel-based movement
-            // 🔧 CONTINENTAL WORLD FIX: Disable voxel pathfinding to prevent Z-axis conflicts
-            // For Continental world, use only the 2D movement system in bug.update()
-            // bug.updateVoxelPosition(in: voxelWorld, pathfinding: pathfinding, decision: bug.lastDecision ?? BugOutputs.zero)
-            
-            // Let bug generate signals
-            if let signal = bug.generateSignals(in: createVoxelArenaAdapter(), foods: foods, otherBugs: bugs) {
-                newSignals.append(signal)
+        
+        if enableBugBehavior {
+            // 🐛 FULL SIMULATION: Update all bugs with neural decisions and movement
+            for bug in bugs {
+                // 🎯 MOVEMENT TRACKING: Capture position before update (for future use)
+                let _ = bug.position3D
+                // 🧠 FIRST: Make neural network decisions and update behaviors
+                bug.update(
+                    in: createVoxelArenaAdapter(),
+                    foods: foods,
+                    otherBugs: bugs,
+                    seasonalManager: seasonalManager,
+                    weatherManager: weatherManager,
+                    disasterManager: disasterManager,
+                    ecosystemManager: ecosystemManager,
+                    territoryManager: territoryManager
+                )
+                
+                // 🚶 SECOND: Use fresh neural decisions for voxel-based movement
+                // 🔧 CONTINENTAL WORLD FIX: Disable voxel pathfinding to prevent Z-axis conflicts
+                // For Continental world, use only the 2D movement system in bug.update()
+                // bug.updateVoxelPosition(in: voxelWorld, pathfinding: pathfinding, decision: bug.lastDecision ?? BugOutputs.zero)
+                
+                // Let bug generate signals
+                if let signal = bug.generateSignals(in: createVoxelArenaAdapter(), foods: foods, otherBugs: bugs) {
+                    newSignals.append(signal)
+                }
             }
+        } else {
+            // 🎨 BUG STYLING: Keep bugs stationary for visual focus
+            print("🎨 [STYLING] Bug behavior disabled - bugs remain stationary for styling")
         }
         
         // Add new signals to the world
@@ -348,13 +434,26 @@ class SimulationEngine {
         // Update tools and construction
         updateToolsAndConstruction()
         
-        // Handle reproduction
+        // Handle reproduction (re-enabled for diverse ecosystem)
         handleReproduction()
         
         // Remove dead bugs
+        let bugCountBefore = bugs.count
         bugs.removeAll { !$0.isAlive }
+        let bugCountAfter = bugs.count
         
-        // Spawn food
+        // 🔍 DEBUG: Log population changes and prevent force-regeneration
+        if bugCountBefore != bugCountAfter {
+            print("🐛 [POPULATION] Bugs: \(bugCountBefore) → \(bugCountAfter)")
+        }
+        
+        // 🎉 PRODUCTION: Force regeneration when population gets too low
+        if bugs.count < 2 {
+            print("🔄 [REPOPULATION] Population below 2 (\(bugs.count)) - triggering emergency repopulation")
+            repopulateFromSurvivors()
+        }
+        
+        // 🍎 PRODUCTION: Enable food spawning for full ecosystem
         spawnFood()
         
         // Remove consumed food
@@ -369,6 +468,7 @@ class SimulationEngine {
         // Update natural disasters
         disasterManager.update(seasonalManager: seasonalManager, weatherManager: weatherManager)
         
+        // 🔍 DEBUG: Re-enable ecosystem updates to track food availability
         // Update ecosystem dynamics and resource health
         ecosystemManager.update(
             bugs: bugs,
@@ -378,14 +478,14 @@ class SimulationEngine {
         )
         
         // Update territories and migrations (using 2D compatibility)
-        territoryManager.update(
-            populations: speciationManager.populations,
-            arena: createVoxelArenaAdapter(),
-            ecosystemManager: ecosystemManager
-        )
+        // territoryManager.update(
+        //     populations: speciationManager.populations,
+        //     arena: createVoxelArenaAdapter(),
+        //     ecosystemManager: ecosystemManager
+        // )
         
         // Update populations and speciation (using 2D compatibility)
-        speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: createVoxelArenaAdapter())
+        // speciationManager.updatePopulations(bugs: bugs, generation: currentGeneration, arena: createVoxelArenaAdapter())
         
         // Clean up old speciation events every 50 ticks to prevent memory buildup
         if tickCount % 50 == 0 {
@@ -401,6 +501,17 @@ class SimulationEngine {
                 resources: resources.count,
                 tools: tools.count
             )
+            
+            // 🐛 DEBUG: Log bug-food distances every 30 ticks for debugging
+            if let firstBug = bugs.first, !foods.isEmpty {
+                // print("🔍 [DEBUG] Bug position: \(firstBug.position)")
+                // print("🔍 [DEBUG] Bug energy: \(firstBug.energy)")
+                // print("🔍 [DEBUG] Bug species: \(firstBug.dna.speciesTraits.speciesType.rawValue)")
+                for (i, food) in foods.enumerated() {
+                    let distance = sqrt(pow(firstBug.position.x - food.position.x, 2) + pow(firstBug.position.y - food.position.y, 2))
+                    // print("🔍 [DEBUG] Distance to food \(i) (\(food.type.rawValue)): \(String(format: "%.2f", distance))")
+                }
+            }
         }
         
         // 🔍 MEMORY LEAK DEBUG: Generate comprehensive memory report every 300 ticks (10 seconds)
@@ -411,35 +522,257 @@ class SimulationEngine {
         // Update statistics
         updateStatistics()
         
+        // 🎉 PRODUCTION: Enable automatic generation evolution
         // Check for generation end
         if shouldEndGeneration() {
             evolvePopulation()
-        }
-        
-        // 🎉 RE-ENABLED: Repopulation for full simulation with visual sync fixed
-        // Only repopulate if population is extremely critically low
-        if bugs.count < 2 { // Almost never repopulate - let natural selection work
-            repopulateFromSurvivors()
         }
     }
     
     // MARK: - Population Management
     
-    /// Sets up the initial random population using voxel world spawn points
+    /// Sets up the initial population with diverse species for full ecosystem
     private func setupInitialPopulation() {
-        // 🎉 FULL SIMULATION: Random spawn positions across the terrain
         bugs = (0..<initialPopulation).map { index in
-            // Use voxel world to find random spawn positions across terrain
-            let randomPosition3D = voxelWorld.findSpawnPosition()
-            let surfacePosition = calculateSurfaceSpawnPosition(randomPosition3D)
+            // 🎉 ECOSYSTEM: Distribute bugs across the world with proper species diversity
+            let randomPosition = generateRandomSpawnPosition()
             
-            let bug = Bug(dna: BugDNA.random(), position3D: surfacePosition, generation: currentGeneration)
+            // 🎉 Create diverse species appropriate for this world type and biome
+            let bugDNA = createSpeciesForWorldType(worldType: currentWorldType, position: randomPosition)
+            
+            let bug = Bug(dna: bugDNA, position3D: randomPosition, generation: currentGeneration)
             logNeuralWeights(for: bug, survivalTime: 0)
             return bug
         }
-        // 🎉 Bugs spawned randomly across terrain
+        // 🎉 Bugs spawned with diverse species across terrain
     }
     
+    /// Generate a random spawn position across the world
+    private func generateRandomSpawnPosition() -> Position3D {
+        let bounds = voxelWorld.worldBounds
+        let randomX = Double.random(in: bounds.minX...bounds.maxX)
+        let randomY = Double.random(in: bounds.minY...bounds.maxY)
+        
+        // Get terrain height at this position for proper surface spawning
+        let terrainHeight = voxelWorld.getHeightAt(x: randomX, z: randomY)
+        
+        return Position3D(randomX, randomY, terrainHeight + 2.0) // Spawn slightly above terrain
+    }
+    
+    /// Create species appropriate for the world type and local biome
+    private func createSpeciesForWorldType(worldType: WorldType3D, position: Position3D) -> BugDNA {
+        // Get the biome at this position to influence species selection
+        let voxel = voxelWorld.getVoxel(at: Position3D(position.x, position.y, 0.0))
+        let biome = voxel?.biome ?? .temperateGrassland
+        
+        // Define species probabilities based on world type and biome
+        let speciesWeights = getSpeciesWeightsFor(worldType: worldType, biome: biome)
+        
+        // Select species based on weighted probabilities
+        let randomValue = Double.random(in: 0...1)
+        var cumulative = 0.0
+        
+        for (species, weight) in speciesWeights {
+            cumulative += weight
+            if randomValue <= cumulative {
+                return BugDNA.random(species: species)
+            }
+        }
+        
+        // Fallback to balanced random distribution
+        return BugDNA.random()
+    }
+    
+    /// Get species distribution weights based on world type and biome
+    private func getSpeciesWeightsFor(worldType: WorldType3D, biome: BiomeType) -> [(SpeciesType, Double)] {
+        switch worldType {
+        case .archipelago3D:
+            // Island chains favor swimmers and omnivores
+            return [
+                (.omnivore, 0.40),    // Versatile for island life
+                (.herbivore, 0.30),   // Plant-rich tropical islands
+                (.scavenger, 0.20),   // Beach scavenging opportunities
+                (.carnivore, 0.10)    // Limited prey on islands
+            ]
+            
+        case .canyon3D:
+            // Desert canyons favor climbers and heat-resistant species
+            return [
+                (.scavenger, 0.35),   // Desert scavenging specialists
+                (.carnivore, 0.30),   // Predators in harsh environment
+                (.omnivore, 0.25),    // Adaptable to scarce resources
+                (.herbivore, 0.10)    // Limited vegetation
+            ]
+            
+        case .volcano3D:
+            // Volcanic regions favor heat-resistant and aggressive species
+            return [
+                (.carnivore, 0.40),   // Aggressive predators thrive
+                (.scavenger, 0.30),   // Volcanic ash creates scavenging opportunities
+                (.omnivore, 0.20),    // Heat-adapted generalists
+                (.herbivore, 0.10)    // Limited by volcanic conditions
+            ]
+            
+        case .skylands3D:
+            // Floating islands favor flyers and climbers
+            return [
+                (.herbivore, 0.40),   // Flying herbivores (like butterflies)
+                (.omnivore, 0.30),    // Versatile flyers
+                (.carnivore, 0.20),   // Aerial predators
+                (.scavenger, 0.10)    // Limited scavenging in sky
+            ]
+            
+        case .abyss3D:
+            // Deep underwater favors pressure-resistant species
+            return [
+                (.carnivore, 0.35),   // Deep-sea predators
+                (.scavenger, 0.35),   // Marine scavengers
+                (.omnivore, 0.20),    // Pressure-adapted generalists
+                (.herbivore, 0.10)    // Limited underwater vegetation
+            ]
+            
+        case .cavern3D:
+            // Underground caves favor climbers and low-light specialists
+            return [
+                (.scavenger, 0.40),   // Cave scavenging specialists
+                (.carnivore, 0.30),   // Cave predators
+                (.omnivore, 0.25),    // Adaptable to cave conditions
+                (.herbivore, 0.05)    // Very limited underground vegetation
+            ]
+            
+        case .continental3D:
+            // Balanced ecosystem supports all species types
+            return [
+                (.herbivore, 0.40),   // Primary producers
+                (.omnivore, 0.30),    // Versatile species
+                (.carnivore, 0.20),   // Predators
+                (.scavenger, 0.10)    // Cleanup specialists
+            ]
+        }
+    }
+    
+    /// Get food distribution ratios based on world type
+    private func getFoodRatiosForWorldType(_ worldType: WorldType3D) -> [(SpeciesType, Double)] {
+        switch worldType {
+        case .archipelago3D:
+            // Island ecosystems have more fish and marine resources
+            return [
+                (.herbivore, 0.50),   // Tropical plants
+                (.carnivore, 0.30),   // Fish and marine protein
+                (.omnivore, 0.15),    // Mixed island diet
+                (.scavenger, 0.05)    // Beach scavenging
+            ]
+            
+        case .canyon3D, .volcano3D:
+            // Harsh environments favor scavenging and limited vegetation
+            return [
+                (.scavenger, 0.45),   // Harsh environment scavenging
+                (.carnivore, 0.30),   // Predatory opportunities
+                (.herbivore, 0.15),   // Limited vegetation
+                (.omnivore, 0.10)     // Adaptable resources
+            ]
+            
+        case .skylands3D:
+            // Floating islands have unique aerial ecosystems
+            return [
+                (.herbivore, 0.60),   // Aerial plants and nectar
+                (.omnivore, 0.25),    // Flying generalists
+                (.carnivore, 0.10),   // Aerial predators
+                (.scavenger, 0.05)    // Limited scavenging in sky
+            ]
+            
+        case .abyss3D:
+            // Deep water environments favor marine protein
+            return [
+                (.carnivore, 0.50),   // Deep sea fish and protein
+                (.scavenger, 0.30),   // Marine detritus
+                (.omnivore, 0.15),    // Mixed marine diet
+                (.herbivore, 0.05)    // Limited underwater plants
+            ]
+            
+        case .cavern3D:
+            // Underground environments have limited food diversity
+            return [
+                (.scavenger, 0.50),   // Cave detritus and fungi
+                (.carnivore, 0.30),   // Cave-dwelling protein
+                (.omnivore, 0.15),    // Adaptable cave diet
+                (.herbivore, 0.05)    // Very limited cave plants
+            ]
+            
+        case .continental3D:
+            // Balanced ecosystem supports diverse food types
+            return [
+                (.herbivore, 0.45),   // Abundant vegetation
+                (.carnivore, 0.25),   // Balanced protein sources
+                (.omnivore, 0.20),    // Mixed diet options
+                (.scavenger, 0.10)    // Natural cleanup
+            ]
+        }
+    }
+    
+    /// Select a food species based on weighted probabilities
+    private func selectFoodSpecies(using ratios: [(SpeciesType, Double)]) -> SpeciesType {
+        let randomValue = Double.random(in: 0...1)
+        var cumulative = 0.0
+        
+        for (species, weight) in ratios {
+            cumulative += weight
+            if randomValue <= cumulative {
+                return species
+            }
+        }
+        
+        // Fallback to herbivore
+        return .herbivore
+    }
+    
+    /// Select terrain-appropriate food type ensuring tuna only spawns in water
+    private func selectTerrainAppropriateFoodType(
+        species: SpeciesType, 
+        terrain: TerrainType, 
+        biome: BiomeType, 
+        season: Season
+    ) -> FoodType {
+        // 🌊 WATER TERRAIN: Only allow aquatic foods like tuna
+        if terrain == .water {
+            let aquaticFoods: [FoodType] = [.tuna]  // Add more aquatic foods here in future
+            let compatibleAquaticFoods = aquaticFoods.filter { food in
+                food.compatibleSpecies.contains(species)
+            }
+            
+            if !compatibleAquaticFoods.isEmpty {
+                return compatibleAquaticFoods.randomElement() ?? .tuna
+            }
+        }
+        
+        // 🏔️ NON-WATER TERRAIN: Exclude aquatic foods
+        let allFoods = FoodType.foodsFor(species: species)
+        let terrestrialFoods = allFoods.filter { $0 != .tuna }  // Exclude aquatic foods
+        
+        // Use existing biome/season selection for terrestrial foods
+        let biomeFoods = terrestrialFoods.filter { $0.preferredBiomes.contains(biome) }
+        let seasonalFoods = terrestrialFoods.filter { $0.preferredSeasons.contains(season) }
+        
+        // Perfect match: both biome and season
+        let perfectMatch = biomeFoods.filter { seasonalFoods.contains($0) }
+        if !perfectMatch.isEmpty && Double.random(in: 0...1) < 0.15 {
+            return perfectMatch.randomElement() ?? terrestrialFoods.randomElement() ?? .plum
+        }
+        
+        // Biome match
+        if !biomeFoods.isEmpty && Double.random(in: 0...1) < 0.15 {
+            return biomeFoods.randomElement() ?? terrestrialFoods.randomElement() ?? .plum
+        }
+        
+        // Season match
+        if !seasonalFoods.isEmpty && Double.random(in: 0...1) < 0.15 {
+            return seasonalFoods.randomElement() ?? terrestrialFoods.randomElement() ?? .plum
+        }
+        
+        // Fallback to any terrestrial food
+        return terrestrialFoods.randomElement() ?? .plum
+    }
+
     /// Calculate proper surface position for spawning bugs with terrain following
     private func calculateSurfaceSpawnPosition(_ position3D: Position3D) -> Position3D {
         // 🌍 TERRAIN FOLLOWING: Use actual terrain height for proper surface positioning
@@ -481,8 +814,10 @@ class SimulationEngine {
         }
         
         // Add new bugs if population allows
-        let newBugsToAdd = min(newBugs.count, maxPopulation - bugs.count)
-        bugs.append(contentsOf: Array(newBugs.prefix(newBugsToAdd)))
+        let newBugsToAdd = max(0, min(newBugs.count, maxPopulation - bugs.count))
+        if newBugsToAdd > 0 {
+            bugs.append(contentsOf: Array(newBugs.prefix(newBugsToAdd)))
+        }
     }
     
     /// Select a mate based on reproductive compatibility
@@ -702,58 +1037,59 @@ class SimulationEngine {
         let openVoxels = allSurfaceVoxels.filter { $0.terrainType == .open }
         let hillVoxels = allSurfaceVoxels.filter { $0.terrainType == .hill }
         let forestVoxels = allSurfaceVoxels.filter { $0.terrainType == .forest }
-        let waterVoxels = allSurfaceVoxels.filter { $0.terrainType == .water }
+        let _ = allSurfaceVoxels.filter { $0.terrainType == .water }
         
-        print("🍎 [FOOD DEBUG] Surface voxel terrain analysis:")
-        print("📊 Total surface voxels: \(allSurfaceVoxels.count)")
-        print("🍇 Food zones: \(foodVoxels.count)")
-        print("🌾 Open areas: \(openVoxels.count)")
-        print("⛰️ Hills: \(hillVoxels.count)")
-        print("🌲 Forests: \(forestVoxels.count)")
-        print("🌊 Water: \(waterVoxels.count)")
-        print("🌱 Current season: \(seasonalManager.currentSeason.rawValue) \(seasonalManager.currentSeason.emoji)")
+        // print("🍎 [FOOD DEBUG] Surface voxel terrain analysis:")
+        // print("📊 Total surface voxels: \(allSurfaceVoxels.count)")
+        // print("🍇 Food zones: \(foodVoxels.count)")
+        // print("🌾 Open areas: \(openVoxels.count)")
+        // print("⛰️ Hills: \(hillVoxels.count)")
+        // print("🌲 Forests: \(forestVoxels.count)")
+        // print("🌊 Water: \(waterVoxels.count)")
+        // print("🌱 Current season: \(seasonalManager.currentSeason.rawValue) \(seasonalManager.currentSeason.emoji)")
         
-        // Original logic (reduced for focused debugging)
-        let herbivoreFoodRatio = 0.8 // 80% herbivore foods for now
+        // 🎉 ECOSYSTEM: Dynamic food ratios based on world type
+        let foodRatios = getFoodRatiosForWorldType(currentWorldType)
         
         // Spawn food in designated food zones (limited to prevent oversaturation)
-        for voxel in foodVoxels.prefix(min(5, maxFoodItems / 40)) { // Very conservative initial food zone spawning
+        for voxel in foodVoxels.prefix(min(8, maxFoodItems / 3)) { // Allow more food zone spawning
             let randomOffset = CGPoint(
                 x: Double.random(in: -15...15),
                 y: Double.random(in: -15...15)
             )
-            let foodPosition = CGPoint(
+            let foodPosition2D = CGPoint(
                 x: voxel.position.x + randomOffset.x,
                 y: voxel.position.y + randomOffset.y
             )
+            let foodPosition3D = Position3D(from: foodPosition2D, z: 0.0)  // Surface level
             
-            // Generate biome and season appropriate food type
-            let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
+            // Generate biome and season appropriate food type based on world type
+            let targetSpecies = selectFoodSpecies(using: foodRatios)
             let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
-            let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+            let foodItem = FoodItem(position: foodPosition3D, type: foodType, targetSpecies: targetSpecies)
             newFoods.append(foodItem)
         }
         
         // Spawn majority of food distributed in open areas, hills, AND forests for better distribution
         let availableVoxels = openVoxels + hillVoxels + forestVoxels
-        let targetFoodCount = maxFoodItems / 2  // Double the food density for better distribution
-        print("🎯 [FOOD DEBUG] Attempting to spawn \(targetFoodCount) foods in \(availableVoxels.count) available voxels")
+        let targetFoodCount = maxFoodItems  // 🍎 AGGRESSIVE: Use full food capacity for 2 bugs
+        // print("🎯 [FOOD DEBUG] Attempting to spawn \(targetFoodCount) foods in \(availableVoxels.count) available voxels")
         
         // DEBUG: Sample voxel positions to understand distribution
         let sampleVoxels = Array(availableVoxels.prefix(10))
-        print("📍 [FOOD DEBUG] Sample voxel positions:")
-        for (i, voxel) in sampleVoxels.enumerated() {
-            print("   Voxel \(i): \(voxel.terrainType) at (\(voxel.position.x), \(voxel.position.y)) in \(voxel.biome)")
+        // print("📍 [FOOD DEBUG] Sample voxel positions:")
+        for (_, _) in sampleVoxels.enumerated() {
+            // print("   Voxel \(i): \(voxel.terrainType) at (\(voxel.position.x), \(voxel.position.y)) in \(voxel.biome)")
         }
-        print("🌍 [FOOD DEBUG] World bounds: \(voxelWorld.worldBounds)")
+        // print("🌍 [FOOD DEBUG] World bounds: \(voxelWorld.worldBounds)")
         
         // DEBUG: Analyze voxel distribution
         if !availableVoxels.isEmpty {
-            let voxelX = availableVoxels.map { $0.position.x }
-            let voxelY = availableVoxels.map { $0.position.y }
-            print("📊 [VOXEL DEBUG] Available voxel coordinate ranges:")
-            print("   X: \(voxelX.min()!) to \(voxelX.max()!) (span: \(voxelX.max()! - voxelX.min()!))")
-            print("   Y: \(voxelY.min()!) to \(voxelY.max()!) (span: \(voxelY.max()! - voxelY.min()!))")
+            let _ = availableVoxels.map { $0.position.x }
+            let _ = availableVoxels.map { $0.position.y }
+            // print("📊 [VOXEL DEBUG] Available voxel coordinate ranges:")
+            // print("   X: \(voxelX.min()!) to \(voxelX.max()!) (span: \(voxelX.max()! - voxelX.min()!))")
+            // print("   Y: \(voxelY.min()!) to \(voxelY.max()!) (span: \(voxelY.max()! - voxelY.min()!))")
         }
         
         var successfulSpawns = 0
@@ -778,24 +1114,25 @@ class SimulationEngine {
                     edgeSkips += 1
                     continue
                 }
-                let foodPosition = CGPoint(
+                let foodPosition2D = CGPoint(
                     x: voxel.position.x + randomOffset.x,
                     y: voxel.position.y + randomOffset.y
                 )
+                let foodPosition3D = Position3D(from: foodPosition2D, z: 0.0)  // Surface level
                 
-                // Generate biome and season appropriate food type
-                let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
+                // Generate biome and season appropriate food type based on world type
+                let targetSpecies = selectFoodSpecies(using: foodRatios)
                 let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
-                let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+                let foodItem = FoodItem(position: foodPosition3D, type: foodType, targetSpecies: targetSpecies)
                 newFoods.append(foodItem)
-                foodPositions.append(foodPosition)
+                foodPositions.append(foodPosition2D)
                 successfulSpawns += 1
             }
         }
         
         // ADDITIONAL PASS: Ensure good coverage across the entire terrain
         let additionalTargetCount = min(50, availableVoxels.count / 100)  // 1% coverage minimum
-        print("🎯 [FOOD DEBUG] Additional distribution pass: \(additionalTargetCount) more foods")
+        // print("🎯 [FOOD DEBUG] Additional distribution pass: \(additionalTargetCount) more foods")
         
         for _ in 0..<additionalTargetCount {
             if let voxel = availableVoxels.randomElement() {
@@ -803,49 +1140,39 @@ class SimulationEngine {
                     x: Double.random(in: -15...15),
                     y: Double.random(in: -15...15)
                 )
-                let foodPosition = CGPoint(
+                let foodPosition2D = CGPoint(
                     x: voxel.position.x + randomOffset.x,
                     y: voxel.position.y + randomOffset.y
                 )
+                let foodPosition3D = Position3D(from: foodPosition2D, z: 0.0)  // Surface level
                 
-                // More liberal placement for coverage
-                let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
+                // More liberal placement for coverage based on world type
+                let targetSpecies = selectFoodSpecies(using: foodRatios)
                 let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
-                let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+                let foodItem = FoodItem(position: foodPosition3D, type: foodType, targetSpecies: targetSpecies)
                 newFoods.append(foodItem)
-                foodPositions.append(foodPosition)
+                foodPositions.append(foodPosition2D)
                 successfulSpawns += 1
             }
         }
         
         // DEBUG: Analyze food position distribution
-        print("📍 [FOOD DEBUG] Food position analysis after main pass:")
+        // print("📍 [FOOD DEBUG] Food position analysis after main pass:")
         if !foodPositions.isEmpty {
-            let minX = foodPositions.map { $0.x }.min()!
-            let maxX = foodPositions.map { $0.x }.max()!
-            let minY = foodPositions.map { $0.y }.min()!
-            let maxY = foodPositions.map { $0.y }.max()!
-            print("   X range: \(minX) to \(maxX) (span: \(maxX - minX))")
-            print("   Y range: \(minY) to \(maxY) (span: \(maxY - minY))")
-            let samplePositions = Array(foodPositions.prefix(5))
-            print("   Sample positions: \(samplePositions)")
+            let _ = foodPositions.map { $0.x }.min()!
+            let _ = foodPositions.map { $0.x }.max()!
+            let _ = foodPositions.map { $0.y }.min()!
+            let _ = foodPositions.map { $0.y }.max()!
+            // print("   X range: \(minX) to \(maxX) (span: \(maxX - minX))")
+            // print("   Y range: \(minY) to \(maxY) (span: \(maxY - minY))")
+            let _ = Array(foodPositions.prefix(5))
+            // print("   Sample positions: \(samplePositions)")
         }
         
         // DEBUG: Analyze food type distribution
-        print("🍎 [FOOD DEBUG] Food type distribution analysis:")
-        let foodTypeCounts = Dictionary(grouping: newFoods, by: { $0.type })
-            .mapValues { $0.count }
-            .sorted { $0.value > $1.value }
-        for (foodType, count) in foodTypeCounts {
-            let percentage = Double(count) / Double(newFoods.count) * 100
-            let emoji = foodTypeEmoji(foodType)
-            print("   \(emoji) \(foodType.rawValue): \(count) (\(String(format: "%.1f", percentage))%)")
-        }
+        // 🍎 Food distribution: \(newFoods.count) items spawned across \(Dictionary(grouping: newFoods, by: { $0.type }).count) food types
         
-        print("🍎 [FOOD DEBUG] Final results:")
-        print("✅ Successful spawns: \(successfulSpawns)")
-        print("❌ Edge skips: \(edgeSkips)")
-        print("🎯 Total food items created: \(newFoods.count)")
+        // 🍎 Final results: \(successfulSpawns) spawns, \(edgeSkips) edge skips, \(newFoods.count) total items
         
         foods = newFoods
     }
@@ -862,11 +1189,28 @@ class SimulationEngine {
         // Cap seasonal max to prevent oversaturation - seasons affect spawn rate, not total capacity
         let seasonalMaxFood = maxFoodItems  // Use base limit, let spawn rate handle seasonal effects
         
-        if foods.count < seasonalMaxFood && Double.random(in: 0...1) < finalFoodSpawnRate {
+        // 🍎 MODERATE: Spawn food more frequently when food count is low (reduced from 80% to 40%)
+        let aggressiveSpawnRate = foods.count < 15 ? 0.4 : finalFoodSpawnRate // 40% chance when low food
+        
+        // 🔍 DEBUG: Log food spawning attempts
+        // if foods.count < seasonalMaxFood && Int.random(in: 1...60) == 1 { // Log every ~60 ticks
+        //     print("🍎 [FOOD SPAWN] Current food: \(foods.count)/\(seasonalMaxFood), spawn rate: \(String(format: "%.2f", aggressiveSpawnRate))")
+        // }
+        
+        if foods.count < seasonalMaxFood && Double.random(in: 0...1) < aggressiveSpawnRate {
+            // 🔍 DEBUG: Log when spawn attempt is triggered
+            // if Int.random(in: 1...20) == 1 { // Log 5% of attempts
+            //     print("🍎 [FOOD SPAWN] 🎯 Spawn attempt triggered! Food: \(foods.count)/\(seasonalMaxFood)")
+            // }
+            
             // Prevent food oversaturation in food zones - bias toward distributed spawning
             let foodZoneChance = min(0.3, 1.0 - (Double(foods.count) / Double(seasonalMaxFood))) // Reduce food zone chance as food increases
             
             if Double.random(in: 0...1) < foodZoneChance {
+                // 🔍 DEBUG: Log food zone path
+                // if Int.random(in: 1...10) == 1 {
+                //     print("🍎 [FOOD SPAWN] 🏞️ Trying food zone path (chance: \(String(format: "%.2f", foodZoneChance)))")
+                // }
                 let foodVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .food }
                 
                 // Count existing food near each food zone to prevent oversaturation
@@ -890,21 +1234,38 @@ class SimulationEngine {
                     )
                     // Check if disasters would destroy this food immediately
                     if !disasterManager.shouldDestroyFood(at: foodPosition) {
-                        // Generate biome and season appropriate food type with higher herbivore ratio
-                        let herbivoreFoodRatio = 0.8 // 80% herbivore foods
-                        let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
-                        let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
-                        let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+                        // Generate terrain, biome and season appropriate food type based on world type
+                        let foodRatios = getFoodRatiosForWorldType(currentWorldType)
+                        let targetSpecies = selectFoodSpecies(using: foodRatios)
+                        let foodType = selectTerrainAppropriateFoodType(
+                            species: targetSpecies, 
+                            terrain: voxel.terrainType, 
+                            biome: voxel.biome, 
+                            season: seasonalManager.currentSeason
+                        )
+                        let foodItem = FoodItem(position: Position3D(from: foodPosition, z: 0.0), type: foodType, targetSpecies: targetSpecies)
                         foods.append(foodItem)
                     }
                 }
             } else {
+                // 🔍 DEBUG: Log distributed spawning path
+                // if Int.random(in: 1...10) == 1 {
+                //     print("🍎 [FOOD SPAWN] 🌍 Trying distributed spawning path")
+                // }
+                
                 let openVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .open }
                 let hillVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .hill }
-                let availableVoxels = openVoxels + hillVoxels
+                let waterVoxels = voxelWorld.getVoxelsInLayer(.surface).filter { $0.terrainType == .water }
+                let availableVoxels = openVoxels + hillVoxels + waterVoxels
+                
+                // 🔍 DEBUG: Log voxel availability
+                // if Int.random(in: 1...20) == 1 {
+                //     print("🍎 [FOOD SPAWN] 📊 Available voxels: open=\(openVoxels.count), hill=\(hillVoxels.count), water=\(waterVoxels.count), total=\(availableVoxels.count)")
+                // }
+                
                 if let voxel = availableVoxels.randomElement() {
-                    // Much more liberal food spawning
-                    let minDistanceFromEdge = 30.0
+                    // 🍎 AGGRESSIVE: Very liberal food spawning for 2-bug testing
+                    let minDistanceFromEdge = 10.0 // Reduced from 30 to allow more spawning
                     let bounds = voxelWorld.worldBounds
                     let xDistance = min(voxel.position.x - bounds.minX, bounds.maxX - voxel.position.x)
                     let yDistance = min(voxel.position.y - bounds.minY, bounds.maxY - voxel.position.y)
@@ -922,13 +1283,72 @@ class SimulationEngine {
                         )
                         // Check if disasters would destroy this food immediately
                         if !disasterManager.shouldDestroyFood(at: foodPosition) {
-                            // Generate biome and season appropriate food type with higher herbivore ratio
-                            let herbivoreFoodRatio = 0.8 // 80% herbivore foods
-                            let targetSpecies: SpeciesType = Double.random(in: 0...1) < herbivoreFoodRatio ? .herbivore : .carnivore
-                            let foodType = FoodType.randomFoodFor(species: targetSpecies, biome: voxel.biome, season: seasonalManager.currentSeason)
-                            let foodItem = FoodItem(position: foodPosition, type: foodType, targetSpecies: targetSpecies)
+                            // Generate terrain, biome and season appropriate food type based on world type
+                            let foodRatios = getFoodRatiosForWorldType(currentWorldType)
+                            let targetSpecies = selectFoodSpecies(using: foodRatios)
+                            let foodType = selectTerrainAppropriateFoodType(
+                                species: targetSpecies, 
+                                terrain: voxel.terrainType, 
+                                biome: voxel.biome, 
+                                season: seasonalManager.currentSeason
+                            )
+                            let foodItem = FoodItem(position: Position3D(from: foodPosition, z: 0.0), type: foodType, targetSpecies: targetSpecies)
                             foods.append(foodItem)
+                            
+                            // 🔍 DEBUG: Log successful food spawning
+                            // if Int.random(in: 1...10) == 1 { // Log 10% of spawns
+                            //     print("🍎 [FOOD SPAWN] ✅ Spawned \(foodType.rawValue) at \(String(format: "(%.1f, %.1f)", foodPosition.x, foodPosition.y))")
+                            // }
                         }
+                    } else {
+                        // 🔍 DEBUG: Log failed spawning due to edge distance
+                        if Int.random(in: 1...30) == 1 { // Log occasionally
+                            print("🍎 [FOOD SPAWN] ❌ Failed edge check: distance \(String(format: "%.1f", edgeDistance)) < \(minDistanceFromEdge)")
+                        }
+                    }
+                } else {
+                    // 🔍 DEBUG: No voxels available, try fallback spawning
+                    if Int.random(in: 1...5) == 1 {
+                        print("🍎 [FOOD SPAWN] ⚠️ No voxels available, trying fallback spawning")
+                    }
+                    
+                    // 🍎 SMART FALLBACK: Spawn food near bugs to encourage exploration
+                    let bounds = voxelWorld.worldBounds
+                    let margin = 20.0 // Stay away from edges
+                    
+                    var randomPosition: CGPoint
+                    
+                    // 60% chance to spawn near bugs, 40% chance random for exploration
+                    if !bugs.isEmpty && Double.random(in: 0...1) < 0.6 {
+                        // Spawn near a random bug but not too close
+                        let targetBug = bugs.randomElement()!
+                        let spawnRadius = Double.random(in: 30...80) // 30-80 units from bug
+                        let spawnAngle = Double.random(in: 0...(2 * Double.pi))
+                        
+                        randomPosition = CGPoint(
+                            x: targetBug.position.x + cos(spawnAngle) * spawnRadius,
+                            y: targetBug.position.y + sin(spawnAngle) * spawnRadius
+                        )
+                        
+                        // Clamp to bounds
+                        randomPosition.x = max(bounds.minX + margin, min(bounds.maxX - margin, randomPosition.x))
+                        randomPosition.y = max(bounds.minY + margin, min(bounds.maxY - margin, randomPosition.y))
+                    } else {
+                        // Random spawning for exploration
+                        randomPosition = CGPoint(
+                            x: Double.random(in: (bounds.minX + margin)...(bounds.maxX - margin)),
+                            y: Double.random(in: (bounds.minY + margin)...(bounds.maxY - margin))
+                        )
+                    }
+                    
+                    let herbivoreFoodTypes: [FoodType] = [.apple, .orange, .plum, .melon]
+                    let randomType = herbivoreFoodTypes.randomElement() ?? .apple
+                    let foodItem = FoodItem(position: Position3D(from: randomPosition, z: 0.0), type: randomType, targetSpecies: .herbivore)
+                    foods.append(foodItem)
+                    
+                    // 🔍 DEBUG: Log fallback spawning
+                    if Int.random(in: 1...5) == 1 {
+                        print("🍎 [FOOD SPAWN] 🆘 Fallback spawned \(randomType.rawValue) at \(String(format: "(%.1f, %.1f)", randomPosition.x, randomPosition.y))")
                     }
                 }
             }
@@ -937,7 +1357,7 @@ class SimulationEngine {
         // Destroy existing food due to disasters
         let foodCountBefore = foods.count
         foods.removeAll { foodItem in
-            disasterManager.shouldDestroyFood(at: foodItem.position)
+            disasterManager.shouldDestroyFood(at: CGPoint(x: foodItem.position.x, y: foodItem.position.y))
         }
         
         if foods.count < foodCountBefore {
@@ -1232,8 +1652,12 @@ class SimulationEngine {
         case .apple: return "🍎"
         case .orange: return "🍊"
         case .melon: return "🍈"
-        case .meat: return "🥩"
-        case .fish: return "🐟"
+        case .blackberry: return "🫐"
+        case .tuna: return "🍣"
+        case .mediumSteak: return "🥩"
+        case .rawFlesh: return "🩸"
+        case .rawSteak: return "🥩"
+        case .grilledSteak: return "🔥"
         case .seeds: return "🌱"
         case .nuts: return "🥜"
         }
