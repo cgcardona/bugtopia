@@ -255,10 +255,12 @@ class SimulationEngine {
         let showcaseY = 50.0   // Close to origin for easy camera positioning
         let showcasePosition = CGPoint(x: showcaseX, y: showcaseY)
         
-        // Create AAA-quality showcase food appropriate for this world type
+        // Create AAA-quality showcase food appropriate for this world type and local biome
         let foodRatios = getFoodRatiosForWorldType(currentWorldType)
         let showcaseSpecies = selectFoodSpecies(using: foodRatios)
-        let showcaseFoodType = FoodType.randomFoodFor(species: showcaseSpecies, biome: .temperateGrassland, season: seasonalManager.currentSeason)
+        let showcaseVoxel = voxelWorld.getVoxel(at: Position3D(showcaseX, showcaseY, 0.0))
+        let showcaseBiome = showcaseVoxel?.biome ?? .temperateGrassland
+        let showcaseFoodType = FoodType.randomFoodFor(species: showcaseSpecies, biome: showcaseBiome, season: seasonalManager.currentSeason)
         let showcaseFood = FoodItem(position: showcasePosition, type: showcaseFoodType, targetSpecies: showcaseSpecies)
         foods.append(showcaseFood)
         
@@ -339,10 +341,12 @@ class SimulationEngine {
         let showcaseY = 50.0   // Close to origin but not exactly at 0,0
         let showcasePosition = CGPoint(x: showcaseX, y: showcaseY)
         
-        // Create AAA-quality showcase food appropriate for current world type
+        // Create AAA-quality showcase food appropriate for current world type and local biome
         let foodRatios = getFoodRatiosForWorldType(currentWorldType)
         let showcaseSpecies = selectFoodSpecies(using: foodRatios)
-        let showcaseFoodType = FoodType.randomFoodFor(species: showcaseSpecies, biome: .temperateGrassland, season: seasonalManager.currentSeason)
+        let showcaseVoxel = voxelWorld.getVoxel(at: Position3D(showcaseX, showcaseY, 0.0))
+        let showcaseBiome = showcaseVoxel?.biome ?? .temperateGrassland
+        let showcaseFoodType = FoodType.randomFoodFor(species: showcaseSpecies, biome: showcaseBiome, season: seasonalManager.currentSeason)
         let showcaseFood = FoodItem(position: showcasePosition, type: showcaseFoodType, targetSpecies: showcaseSpecies)
         foods.append(showcaseFood)
         
