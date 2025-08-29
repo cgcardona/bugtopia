@@ -45,8 +45,8 @@ brew install ava-labs/tap/avalanche-cli
 # Start a local Avalanche network
 avalanche network start
 
-# Start with specific configuration
-avalanche network start --avalanchego-version v1.10.0
+# Start with specific version (use stable versions)
+avalanche network start --avalanchego-version v1.13.4
 
 # Start with custom number of validators
 avalanche network start --num-validators 5
@@ -317,17 +317,77 @@ avalanche l1 delete bugtopia-l1
 
 ### Common Issues and Solutions
 
-#### Network Won't Start
+#### "Address Already in Use" Error
+This is the most common issue when starting Avalanche networks.
+
 ```bash
-# Check if ports are in use
+# Error you might see:
+# listen tcp 127.0.0.1:9650: bind: address already in use
+
+# Step 1: Check what's using the ports
 lsof -i :9650
 lsof -i :9651
+lsof -i :9652
 
-# Kill conflicting processes
+# Step 2: Kill conflicting processes
 kill -9 <PID>
 
-# Clean and restart
+# Step 3: Clean any leftover network state
+avalanche network stop
 avalanche network clean
+
+# Step 4: Restart fresh
+avalanche network start
+
+# Alternative: Force kill all avalanchego processes
+pkill -f avalanchego
+# Then clean and restart
+avalanche network clean
+avalanche network start
+```
+
+#### AvalancheGo Version Compatibility Issues
+Some versions may have compatibility issues or bugs.
+
+```bash
+# Error you might see with v1.10.0:
+# context deadline exceeded
+# failed to load process context
+
+# Solution 1: Use latest stable version (recommended)
+avalanche network start
+# This uses the latest version (currently v1.13.4)
+
+# Solution 2: If you need a specific version, try these stable versions:
+avalanche network start --avalanchego-version v1.13.4
+avalanche network start --avalanchego-version v1.12.9
+avalanche network start --avalanchego-version v1.11.11
+
+# Solution 3: Check available versions
+ls ~/.avalanche-cli/bin/avalanchego/
+
+# Solution 4: Clean install if version is corrupted
+rm -rf ~/.avalanche-cli/bin/avalanchego/avalanchego-v1.10.0
+avalanche network start --avalanchego-version v1.13.4
+```
+
+#### Network Won't Start (General)
+```bash
+# Full diagnostic and cleanup procedure
+echo "=== Checking for running processes ==="
+ps aux | grep avalanchego
+
+echo "=== Checking port usage ==="
+lsof -i :9650 -i :9651 -i :9652
+
+echo "=== Stopping everything ==="
+avalanche network stop
+pkill -f avalanchego
+
+echo "=== Cleaning state ==="
+avalanche network clean
+
+echo "=== Starting fresh ==="
 avalanche network start
 ```
 
