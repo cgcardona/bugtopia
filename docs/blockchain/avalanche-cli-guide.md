@@ -58,10 +58,21 @@ avalanche network start --num-validators 5
 avalanche network status
 
 # Example output:
-# Network is running
-# Endpoint: http://127.0.0.1:9650
-# Network ID: 1337
-# Validators: 5
+# Network is Up:
+#   Number of Nodes: 2
+#   Number of Blockchains: 0
+#   Network Healthy: true
+#   Blockchains Healthy: true
+#
+# +------------------------------------------------------------------+
+# |                           PRIMARY NODES                          |
+# +------------------------------------------+-----------------------+
+# | NODE ID                                  | LOCALHOST ENDPOINT    |
+# +------------------------------------------+-----------------------+
+# | NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg | http://127.0.0.1:9650 |
+# +------------------------------------------+-----------------------+
+# | NodeID-MFrZFVCXPv5iCn6M9K6XduxGTYp891xXZ | http://127.0.0.1:9652 |
+# +------------------------------------------+-----------------------+
 ```
 
 ### Stop Network
