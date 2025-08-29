@@ -57,9 +57,6 @@ avalanche network start --num-validators 5
 # Check if network is running
 avalanche network status
 
-# Get detailed network information
-avalanche network info
-
 # Example output:
 # Network is running
 # Endpoint: http://127.0.0.1:9650
