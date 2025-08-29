@@ -80,11 +80,14 @@ avalanche network status
 
 ### Stop Network
 ```bash
-# Stop the local network
+# Stop the local network (saves snapshot by default)
 avalanche network stop
 
-# Force stop (if network is unresponsive)
-avalanche network stop --force
+# Stop without saving snapshot
+avalanche network stop --dont-save
+
+# Stop and save to custom snapshot name
+avalanche network stop --snapshot-name "my-custom-snapshot"
 ```
 
 ### Clean/Reset Network
@@ -98,14 +101,11 @@ avalanche network clean && avalanche network start
 
 ### Delete Network
 ```bash
-# Delete a specific network
-avalanche network delete <network-name>
+# Note: There is no 'avalanche network delete' command
+# To remove network data, use:
+avalanche network clean
 
-# Example: Delete Bugtopia L1 network
-avalanche network delete bugtopial1
-
-# Delete with confirmation bypass
-avalanche network delete bugtopial1 --force
+# This stops the network and deletes all state
 ```
 
 ## ⛓️ Blockchain Management
@@ -176,84 +176,79 @@ avalanche blockchain deploy <blockchain-name> --mainnet
 avalanche blockchain deploy bugtopia-l1 --local
 ```
 
-### Remove Blockchain
+### Delete Blockchain Configuration
 ```bash
-# Remove a blockchain from local network
-avalanche blockchain remove <blockchain-name>
+# Delete a blockchain configuration (not deployment)
+avalanche blockchain delete <blockchain-name>
 
-# Example: Remove Bugtopia L1
-avalanche blockchain remove bugtopia-l1
+# Example: Delete Bugtopia L1 configuration
+avalanche blockchain delete bugtopia-l1
 
-# Force removal
-avalanche blockchain remove bugtopia-l1 --force
+# Note: This only deletes the configuration, not active deployments
+# To stop deployments, use: avalanche network stop
 ```
 
 ## 🏗️ L1/Subnet Management
 
+**Note**: L1s (Layer 1 blockchains) are managed through the `blockchain` command, not a separate `l1` command.
+
 ### Create L1/Subnet
 ```bash
-# Create a new L1 (modern term for subnet)
-avalanche l1 create <l1-name>
+# Create a new blockchain (L1/Subnet)
+avalanche blockchain create <blockchain-name>
 
 # Example: Create Bugtopia L1
-avalanche l1 create bugtopia-l1
+avalanche blockchain create bugtopia-l1
 
-# With specific VM
-avalanche l1 create bugtopia-l1 --vm subnet-evm
+# Interactive wizard will ask for:
+# - VM type (SubnetEVM for EVM compatibility)
+# - Chain ID, token symbol, etc.
 ```
 
 ### Deploy L1
 ```bash
-# Deploy L1 locally
-avalanche l1 deploy <l1-name> --local
+# Deploy blockchain locally
+avalanche blockchain deploy <blockchain-name> --local
 
 # Deploy to testnet
-avalanche l1 deploy <l1-name> --fuji
+avalanche blockchain deploy <blockchain-name> --fuji
 
 # Deploy to mainnet
-avalanche l1 deploy <l1-name> --mainnet
+avalanche blockchain deploy <blockchain-name> --mainnet
 
 # Example: Deploy Bugtopia L1
-avalanche l1 deploy bugtopia-l1 --local
+avalanche blockchain deploy bugtopia-l1 --local
 ```
 
 ### L1 Status and Information
 ```bash
-# List all L1s
-avalanche l1 list
+# List all blockchains
+avalanche blockchain list
 
-# Describe specific L1
-avalanche l1 describe <l1-name>
-
-# Get L1 logs
-avalanche l1 logs <l1-name>
+# Describe specific blockchain
+avalanche blockchain describe <blockchain-name>
 
 # Example: Get Bugtopia L1 info
-avalanche l1 describe bugtopia-l1
+avalanche blockchain describe bugtopia-l1
 ```
 
 ### Start/Stop L1
 ```bash
-# Start L1
-avalanche l1 start <l1-name>
-
-# Stop L1
-avalanche l1 stop <l1-name>
-
-# Restart L1
-avalanche l1 stop <l1-name> && avalanche l1 start <l1-name>
+# L1s are started/stopped with the network
+avalanche network start   # Starts all deployed blockchains
+avalanche network stop    # Stops all blockchains
+avalanche network status  # Shows status of all blockchains
 ```
 
 ### Delete L1
 ```bash
-# Delete L1 configuration
-avalanche l1 delete <l1-name>
+# Delete blockchain configuration
+avalanche blockchain delete <blockchain-name>
 
-# Example: Delete Bugtopia L1
-avalanche l1 delete bugtopia-l1
+# Example: Delete Bugtopia L1 configuration
+avalanche blockchain delete bugtopia-l1
 
-# Force delete
-avalanche l1 delete bugtopia-l1 --force
+# Note: This only removes the configuration, not active deployments
 ```
 
 ## 🔧 Development Workflow
@@ -264,14 +259,14 @@ avalanche l1 delete bugtopia-l1 --force
 avalanche network start
 
 # Create Bugtopia L1
-avalanche l1 create bugtopia-l1
+avalanche blockchain create bugtopia-l1
 # Choose: SubnetEVM
 # Chain ID: 68420
 # Token Symbol: BUG
 # Initial Allocation: 1000000000 (1B BUG)
 
 # Deploy locally
-avalanche l1 deploy bugtopia-l1 --local
+avalanche blockchain deploy bugtopia-l1 --local
 ```
 
 ### 2. Development Cycle
@@ -279,15 +274,12 @@ avalanche l1 deploy bugtopia-l1 --local
 # Check network status
 avalanche network status
 
-# Check L1 status
-avalanche l1 describe bugtopia-l1
+# Check blockchain status
+avalanche blockchain describe bugtopia-l1
 
-# View logs for debugging
-avalanche l1 logs bugtopia-l1
-
-# If issues occur, restart L1
-avalanche l1 stop bugtopia-l1
-avalanche l1 start bugtopia-l1
+# If issues occur, restart network
+avalanche network stop
+avalanche network start
 ```
 
 ### 3. Testing and Iteration
@@ -296,24 +288,23 @@ avalanche l1 start bugtopia-l1
 avalanche blockchain list
 
 # Get detailed blockchain info
-avalanche blockchain describe bugtopial11754956150
+avalanche blockchain describe bugtopia-l1
 
 # Clean restart if needed
 avalanche network stop
 avalanche network clean
 avalanche network start
-avalanche l1 deploy bugtopia-l1 --local
+avalanche blockchain deploy bugtopia-l1 --local
 ```
 
 ### 4. Cleanup
 ```bash
 # Stop everything
-avalanche l1 stop bugtopia-l1
 avalanche network stop
 
 # Clean up (optional)
 avalanche network clean
-avalanche l1 delete bugtopia-l1
+avalanche blockchain delete bugtopia-l1
 ```
 
 ## 🐛 Troubleshooting
@@ -589,26 +580,23 @@ export AVALANCHE_CLI_NETWORK_TIMEOUT=30s
 ```bash
 # Start Bugtopia development environment
 avalanche network start
-avalanche l1 deploy bugtopia-l1 --local
+avalanche blockchain deploy bugtopia-l1 --local
 
 # Get Bugtopia L1 details for Swift integration
-avalanche l1 describe bugtopia-l1
-
-# Monitor Bugtopia L1 during development
-avalanche l1 logs bugtopia-l1 --follow
+avalanche blockchain describe bugtopia-l1
 
 # Reset Bugtopia L1 for testing
-avalanche l1 stop bugtopia-l1
+avalanche network stop
 avalanche network clean
 avalanche network start
-avalanche l1 deploy bugtopia-l1 --local
+avalanche blockchain deploy bugtopia-l1 --local
 ```
 
 ### Swift App Integration
 After running the commands above, use the output to configure `BlockchainManagerL1.swift`:
 
 ```swift
-// Use the RPC URL from: avalanche l1 describe bugtopia-l1
+// Use the RPC URL from: avalanche blockchain describe bugtopia-l1
 let rpcURL = "http://127.0.0.1:9650/ext/bc/<blockchain-id>/rpc"
 let chainId = 68420
 let nativeToken = "BUG"
@@ -619,7 +607,7 @@ let nativeToken = "BUG"
 ## 💡 Pro Tips
 
 1. **Always check network status** before deploying L1s
-2. **Use `--force` flags carefully** - they bypass safety checks
+2. **Use `--dont-save` flag carefully** - it prevents snapshot creation
 3. **Keep blockchain IDs handy** - they change with each deployment
 4. **Monitor logs** during development for debugging
 5. **Clean network data** when switching between different configurations
