@@ -24,7 +24,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **🧠 Evolvable Neural Networks**: 71-input AI brains with 3D spatial awareness, terrain layer detection, and altitude preferences
 - **🦁 Predator-Prey Dynamics**: Four species types (herbivores, carnivores, omnivores, scavengers) in dynamic 3D food webs
 - **🔧 Environmental Engineering**: Bugs create tools, modify terrain, and build infrastructure in full 3D space
-- **🗣️ Social Intelligence**: Signal-based communication, pack hunting, and cooperative construction across multiple terrain layers
+- **🗣️ Social Intelligence**: Signal-based communication with GameplayKit pheromone trails, pack hunting, and cooperative construction across multiple terrain layers
 - **🧬 Advanced 3D Genetics**: 28+ evolvable traits including 3D movement (wingSpan, divingDepth, climbingGrip, altitudePreference, pressureTolerance)
 - **🧬 Population Speciation**: Automatic species formation through reproductive isolation and 3D territorial genetic divergence
 - **🌦️ Dynamic Weather & Seasons**: Four seasons plus 6 weather types with real-time 3D environmental effects and survival challenges
@@ -34,7 +34,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **🧠 Neural Energy Economics**: Energy costs for neural networks with adaptive brain scaling, pruning, and growth based on 3D environmental demands
 - **🤖 Emergent 3D Intelligence**: Neural decision-making for 3D movement, layer changes, altitude management, and spatial interactions
 - **📊 Real-time Evolution**: Watch genetics, neural architecture, and 3D population dynamics evolve simultaneously
-- **🎨 Stunning 3D Visualization**: Real-time SceneKit rendering with energy indicators, species differentiation, and immersive terrain
+- **🎨 Stunning 3D Visualization**: Real-time RealityKit rendering with energy indicators, species differentiation, and immersive terrain
 
 ## 🎮 Features
 
@@ -61,10 +61,11 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
   - 🤝 **Group Form** - Initiate group formation
   - 🏃 **Retreat** - Emergency evacuation signal
   - 🍯 **Food Share** - **NEW** - Share energy with group members
+- **GameplayKit Pheromone System**: Advanced chemical trail simulation using GKNoise, GKGraphNode2D pathfinding, and realistic pheromone decay
 - **Evolvable Communication**: Signal strength, sensitivity, trust levels, social response rates, memory duration
 - **Pack Behaviors**: Coordinated hunting, group formation, collective danger responses, resource sharing
 - **Social Intelligence**: Neural-driven communication decisions and cooperation strategies
-- **Information Networks**: Knowledge sharing about food sources, threats, and territories
+- **Information Networks**: Knowledge sharing about food sources, threats, and territories with persistent pheromone trails
 
 ### 🔧 Environmental Modification & Tool Use
 - **8 Tool Types**:
@@ -100,7 +101,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **Dynamic Terrain Features**: Rivers, cave systems, wind corridors, and erosion patterns
 - **Procedural Biomes**: Temperature and moisture-based biome generation with vegetation density
 - **Natural 3D Boundaries**: Terrain flows organically in all three dimensions
-- **Immersive 3D Visualization**: Real-time SceneKit rendering with realistic lighting and shadows
+- **Immersive 3D Visualization**: Real-time RealityKit rendering with realistic lighting and shadows
 
 ### 🗿 Voxel Resource System
 - **8 Resource Types**:
@@ -234,7 +235,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 
 ### Prerequisites
 - **Xcode 15.0+** with Swift 6.0 support
-- **macOS 14.0+** (3D visualization requires SceneKit)
+- **macOS 14.0+** (3D visualization requires RealityKit)
 - Git for version control
 
 ### Installation
@@ -277,7 +278,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 ├── 🧬 3D Genetic Engine     # DNA with 3D movement traits and spatial evolution
 ├── 🐛 Bug Entities          # Individual organisms with 3D AI, physics, and layer navigation
 ├── 🔄 Simulation Engine     # Population management and 3D evolutionary cycles
-└── 🎨 3D Visualization      # Real-time SceneKit rendering with immersive environments
+└── 🎨 3D Visualization      # Real-time RealityKit rendering with immersive environments
 ```
 
 ### Core Components
@@ -290,7 +291,7 @@ Bugtopia is a cutting-edge evolutionary simulation where digital organisms with 
 - **`BugDNA`**: Genetic blueprint with 28+ traits including 3D movement, neural, communication, and spatial genetics
 - **`Bug`**: Individual organism with 3D AI decision-making, layer navigation, and altitude management
 - **`SimulationEngine`**: Population dynamics, 3D evolution, ecosystem management, and multi-layer resource economy
-- **`Arena3DView`**: Real-time SceneKit rendering with immersive 3D environments, energy indicators, and species visualization
+- **`Arena3DView`**: Real-time RealityKit rendering with immersive 3D environments, energy indicators, and species visualization
 
 ## 🧪 The Science
 
@@ -377,8 +378,12 @@ struct BugDNA {
 - [x] **🌍 Full 3D Arena**: Complete 3D terrain with procedural generation, multi-layer environments, and realistic physics
 - [x] **🕊️ 3D Movement System**: Flying, swimming, climbing, diving with species-specific 3D capabilities
 - [x] **🧠 3D Neural Intelligence**: 71-input neural networks with spatial awareness and layer-specific decision making
-- [x] **🎨 Immersive 3D Visualization**: Real-time SceneKit rendering with energy indicators and species differentiation
+- [x] **🎨 Immersive 3D Visualization**: Real-time RealityKit rendering with energy indicators and species differentiation
 - [x] **🏔️ Advanced Terrain Generation**: Multi-octave Perlin noise, biomes, climate zones, rivers, caves, and wind corridors
+- [x] **🧬 Complete 3D Coordinate Migration**: Full transition from 2D CGPoint to 3D Position3D coordinate system
+- [x] **🎮 GameplayKit Pheromone Pathfinding**: Advanced chemical trail simulation with GKNoise and intelligent pathfinding
+- [x] **⚡ Performance Optimization**: 70% reduction in food geometry vertices for improved GPU performance
+- [x] **🐛 Bug Behavior Fixes**: Resolved self-mating loops, improved collision detection, and terrain following
 
 ### 🌟 Future Expansions
 - [ ] **🌅 Day/Night Cycles**: Dynamic lighting transitions with circadian rhythms affecting bug behavior, predator-prey activity patterns, and neural adaptation to light/dark cycles
@@ -416,6 +421,7 @@ git push origin feature/amazing-new-trait
 - **[🧠 Neural Network System](docs/features/neural-network-system.md)**: Evolvable AI brains with 3D spatial awareness and decision making
 - **[🦁 Predator-Prey System](docs/features/predator-prey-system.md)**: Species interactions and hunting mechanics
 - **[🗣️ Signal & Communication System](docs/features/signal-communication-system.md)**: **NEW** - 9 signal types, social intelligence, pack coordination, and emergent cooperation
+- **[🧪 GameplayKit Pheromone System](docs/features/gameplaykit-pheromone-system.md)**: **NEW** - Advanced chemical trail simulation with GKNoise, pathfinding, and realistic decay
 - **[🌦️ Weather & Seasons System](docs/features/weather-seasons-system.md)**: Environmental cycles and survival challenges
 - **[🧬 Genetic System](docs/features/genetic-system.md)**: DNA, mutations, and inheritance
 - **[🔨 Tool System](docs/features/tool-system.md)**: Construction, resources, and environmental modification
