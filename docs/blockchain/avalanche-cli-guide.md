@@ -1,0 +1,522 @@
+# 🏔️ Avalanche CLI Complete Guide
+
+A comprehensive guide to using Avalanche CLI for network and blockchain management in the Bugtopia project.
+
+## 📋 Table of Contents
+
+- [Installation](#installation)
+- [Network Management](#network-management)
+- [Blockchain Management](#blockchain-management)
+- [L1/Subnet Management](#l1subnet-management)
+- [Development Workflow](#development-workflow)
+- [Troubleshooting](#troubleshooting)
+- [Advanced Usage](#advanced-usage)
+
+## 🚀 Installation
+
+### Install Avalanche CLI
+```bash
+# Install via official script
+curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-cli/main/scripts/install.sh | sh -s
+
+# Add to PATH (add to your .zshrc or .bashrc)
+export PATH=$PATH:$HOME/bin
+
+# Verify installation
+avalanche --version
+```
+
+### Alternative Installation Methods
+```bash
+# Using Go (if you have Go installed)
+go install github.com/ava-labs/avalanche-cli/cmd/avalanche@latest
+
+# Using Homebrew (macOS)
+brew install ava-labs/tap/avalanche-cli
+
+# Manual download from GitHub releases
+# https://github.com/ava-labs/avalanche-cli/releases
+```
+
+## 🌐 Network Management
+
+### Start Local Network
+```bash
+# Start a local Avalanche network
+avalanche network start
+
+# Start with specific configuration
+avalanche network start --avalanchego-version v1.10.0
+
+# Start with custom number of validators
+avalanche network start --num-validators 5
+```
+
+### Check Network Status
+```bash
+# Check if network is running
+avalanche network status
+
+# Get detailed network information
+avalanche network info
+
+# Example output:
+# Network is running
+# Endpoint: http://127.0.0.1:9650
+# Network ID: 1337
+# Validators: 5
+```
+
+### Stop Network
+```bash
+# Stop the local network
+avalanche network stop
+
+# Force stop (if network is unresponsive)
+avalanche network stop --force
+```
+
+### Clean/Reset Network
+```bash
+# Clean network data (removes all blockchain data)
+avalanche network clean
+
+# Clean and restart
+avalanche network clean && avalanche network start
+```
+
+### Delete Network
+```bash
+# Delete a specific network
+avalanche network delete <network-name>
+
+# Example: Delete Bugtopia L1 network
+avalanche network delete bugtopial1
+
+# Delete with confirmation bypass
+avalanche network delete bugtopial1 --force
+```
+
+## ⛓️ Blockchain Management
+
+### List Blockchains
+```bash
+# List all available blockchains/L1s
+avalanche blockchain list
+
+# List with detailed information
+avalanche blockchain list --deployed
+
+# Example output:
+# +------------------+--------+----------+---------+
+# | BLOCKCHAIN       | VM     | VM ID    | NETWORK |
+# +------------------+--------+----------+---------+
+# | bugtopial1       | Subnet | subnet   | Local   |
+# +------------------+--------+----------+---------+
+```
+
+### Describe Blockchain
+```bash
+# Get detailed information about a blockchain
+avalanche blockchain describe <blockchain-name>
+
+# Example: Describe Bugtopia L1
+avalanche blockchain describe bugtopial11754956150
+
+# Get configuration details
+avalanche blockchain describe bugtopial11754956150 --config
+
+# Example output:
+# Blockchain: bugtopial11754956150
+# VM: SubnetEVM
+# Chain ID: 68420
+# RPC URL: http://127.0.0.1:9650/ext/bc/2ZEUiUD3bYhrqsXCVvRdHNfAdegYuUVy3Vn9BYhQkhZ3uKzXeA/rpc
+# Token Symbol: BUG
+# Network: Local
+```
+
+### Create New Blockchain
+```bash
+# Create a new blockchain/L1
+avalanche blockchain create <blockchain-name>
+
+# Example: Create Bugtopia L1
+avalanche blockchain create bugtopia-l1
+
+# Interactive prompts will ask for:
+# - VM type (SubnetEVM for EVM compatibility)
+# - Chain ID (68420 for Bugtopia)
+# - Token symbol (BUG)
+# - Initial token allocation
+```
+
+### Deploy Blockchain
+```bash
+# Deploy to local network
+avalanche blockchain deploy <blockchain-name> --local
+
+# Deploy to Fuji testnet
+avalanche blockchain deploy <blockchain-name> --fuji
+
+# Deploy to mainnet
+avalanche blockchain deploy <blockchain-name> --mainnet
+
+# Example: Deploy Bugtopia L1 locally
+avalanche blockchain deploy bugtopia-l1 --local
+```
+
+### Remove Blockchain
+```bash
+# Remove a blockchain from local network
+avalanche blockchain remove <blockchain-name>
+
+# Example: Remove Bugtopia L1
+avalanche blockchain remove bugtopia-l1
+
+# Force removal
+avalanche blockchain remove bugtopia-l1 --force
+```
+
+## 🏗️ L1/Subnet Management
+
+### Create L1/Subnet
+```bash
+# Create a new L1 (modern term for subnet)
+avalanche l1 create <l1-name>
+
+# Example: Create Bugtopia L1
+avalanche l1 create bugtopia-l1
+
+# With specific VM
+avalanche l1 create bugtopia-l1 --vm subnet-evm
+```
+
+### Deploy L1
+```bash
+# Deploy L1 locally
+avalanche l1 deploy <l1-name> --local
+
+# Deploy to testnet
+avalanche l1 deploy <l1-name> --fuji
+
+# Deploy to mainnet
+avalanche l1 deploy <l1-name> --mainnet
+
+# Example: Deploy Bugtopia L1
+avalanche l1 deploy bugtopia-l1 --local
+```
+
+### L1 Status and Information
+```bash
+# List all L1s
+avalanche l1 list
+
+# Describe specific L1
+avalanche l1 describe <l1-name>
+
+# Get L1 logs
+avalanche l1 logs <l1-name>
+
+# Example: Get Bugtopia L1 info
+avalanche l1 describe bugtopia-l1
+```
+
+### Start/Stop L1
+```bash
+# Start L1
+avalanche l1 start <l1-name>
+
+# Stop L1
+avalanche l1 stop <l1-name>
+
+# Restart L1
+avalanche l1 stop <l1-name> && avalanche l1 start <l1-name>
+```
+
+### Delete L1
+```bash
+# Delete L1 configuration
+avalanche l1 delete <l1-name>
+
+# Example: Delete Bugtopia L1
+avalanche l1 delete bugtopia-l1
+
+# Force delete
+avalanche l1 delete bugtopia-l1 --force
+```
+
+## 🔧 Development Workflow
+
+### 1. Initial Setup
+```bash
+# Start local network
+avalanche network start
+
+# Create Bugtopia L1
+avalanche l1 create bugtopia-l1
+# Choose: SubnetEVM
+# Chain ID: 68420
+# Token Symbol: BUG
+# Initial Allocation: 1000000000 (1B BUG)
+
+# Deploy locally
+avalanche l1 deploy bugtopia-l1 --local
+```
+
+### 2. Development Cycle
+```bash
+# Check network status
+avalanche network status
+
+# Check L1 status
+avalanche l1 describe bugtopia-l1
+
+# View logs for debugging
+avalanche l1 logs bugtopia-l1
+
+# If issues occur, restart L1
+avalanche l1 stop bugtopia-l1
+avalanche l1 start bugtopia-l1
+```
+
+### 3. Testing and Iteration
+```bash
+# List all blockchains
+avalanche blockchain list
+
+# Get detailed blockchain info
+avalanche blockchain describe bugtopial11754956150
+
+# Clean restart if needed
+avalanche network stop
+avalanche network clean
+avalanche network start
+avalanche l1 deploy bugtopia-l1 --local
+```
+
+### 4. Cleanup
+```bash
+# Stop everything
+avalanche l1 stop bugtopia-l1
+avalanche network stop
+
+# Clean up (optional)
+avalanche network clean
+avalanche l1 delete bugtopia-l1
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues and Solutions
+
+#### Network Won't Start
+```bash
+# Check if ports are in use
+lsof -i :9650
+lsof -i :9651
+
+# Kill conflicting processes
+kill -9 <PID>
+
+# Clean and restart
+avalanche network clean
+avalanche network start
+```
+
+#### L1 Deployment Fails
+```bash
+# Check network is running
+avalanche network status
+
+# Check available resources
+docker ps
+docker system df
+
+# Clean Docker if needed
+docker system prune -f
+
+# Retry deployment
+avalanche l1 deploy bugtopia-l1 --local
+```
+
+#### Can't Connect to RPC
+```bash
+# Verify L1 is running
+avalanche l1 describe bugtopia-l1
+
+# Check RPC endpoint
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+  -H "Content-Type: application/json" \
+  http://127.0.0.1:9650/ext/bc/<blockchain-id>/rpc
+```
+
+#### Blockchain ID Changes
+```bash
+# Get current blockchain ID
+avalanche blockchain describe bugtopia-l1
+
+# Update your application configuration with new ID
+# The blockchain ID changes each time you redeploy
+```
+
+### Debug Commands
+```bash
+# Verbose logging
+avalanche --log-level debug network start
+
+# Check configuration
+avalanche config list
+
+# View all network data
+ls -la ~/.avalanche-cli/
+
+# Check logs
+tail -f ~/.avalanche-cli/logs/avalanchego.log
+```
+
+## 🚀 Advanced Usage
+
+### Custom Network Configuration
+```bash
+# Start network with custom config
+avalanche network start --config custom-network-config.json
+
+# Example config file:
+cat > custom-network-config.json << EOF
+{
+  "network-id": 1337,
+  "staking-enabled": false,
+  "log-level": "info",
+  "http-port": 9650,
+  "staker-port": 9651
+}
+EOF
+```
+
+### Multi-Node Setup
+```bash
+# Start network with multiple validators
+avalanche network start --num-validators 7
+
+# Add additional nodes
+avalanche network add-validator --node-id <node-id>
+```
+
+### Monitoring and Metrics
+```bash
+# Enable metrics
+avalanche network start --metrics-enabled
+
+# View metrics endpoint
+curl http://127.0.0.1:9650/ext/metrics
+
+# Health check
+curl http://127.0.0.1:9650/ext/health
+```
+
+### Backup and Restore
+```bash
+# Backup network data
+cp -r ~/.avalanche-cli/networks/local ~/backup/
+
+# Restore network data
+cp -r ~/backup/local ~/.avalanche-cli/networks/
+
+# Export L1 configuration
+avalanche l1 export bugtopia-l1 --output bugtopia-l1-config.json
+
+# Import L1 configuration
+avalanche l1 import --config bugtopia-l1-config.json
+```
+
+## 📚 Useful Commands Reference
+
+### Quick Commands
+```bash
+# Status check
+avalanche network status && avalanche l1 list
+
+# Full restart
+avalanche network stop && avalanche network start
+
+# Deploy fresh L1
+avalanche l1 deploy bugtopia-l1 --local
+
+# Get RPC endpoint
+avalanche l1 describe bugtopia-l1 | grep "RPC URL"
+
+# Clean everything
+avalanche network stop && avalanche network clean
+```
+
+### Environment Variables
+```bash
+# Set custom Avalanche CLI home
+export AVALANCHE_CLI_HOME=~/.avalanche-cli
+
+# Set log level
+export AVALANCHE_CLI_LOG_LEVEL=debug
+
+# Set network timeout
+export AVALANCHE_CLI_NETWORK_TIMEOUT=30s
+```
+
+### Configuration Files
+```bash
+# Global config location
+~/.avalanche-cli/config.json
+
+# Network configurations
+~/.avalanche-cli/networks/
+
+# L1 configurations
+~/.avalanche-cli/l1s/
+
+# Logs
+~/.avalanche-cli/logs/
+```
+
+## 🔗 Integration with Bugtopia
+
+### Bugtopia-Specific Commands
+```bash
+# Start Bugtopia development environment
+avalanche network start
+avalanche l1 deploy bugtopia-l1 --local
+
+# Get Bugtopia L1 details for Swift integration
+avalanche l1 describe bugtopia-l1
+
+# Monitor Bugtopia L1 during development
+avalanche l1 logs bugtopia-l1 --follow
+
+# Reset Bugtopia L1 for testing
+avalanche l1 stop bugtopia-l1
+avalanche network clean
+avalanche network start
+avalanche l1 deploy bugtopia-l1 --local
+```
+
+### Swift App Integration
+After running the commands above, use the output to configure `BlockchainManagerL1.swift`:
+
+```swift
+// Use the RPC URL from: avalanche l1 describe bugtopia-l1
+let rpcURL = "http://127.0.0.1:9650/ext/bc/<blockchain-id>/rpc"
+let chainId = 68420
+let nativeToken = "BUG"
+```
+
+---
+
+## 💡 Pro Tips
+
+1. **Always check network status** before deploying L1s
+2. **Use `--force` flags carefully** - they bypass safety checks
+3. **Keep blockchain IDs handy** - they change with each deployment
+4. **Monitor logs** during development for debugging
+5. **Clean network data** when switching between different configurations
+6. **Backup important configurations** before major changes
+7. **Use descriptive names** for L1s to avoid confusion
+
+This guide covers the essential Avalanche CLI commands for Bugtopia development. For the latest features and commands, always refer to `avalanche --help` and the official [Avalanche CLI documentation](https://docs.avax.network/tooling/cli-guides/install-avalanche-cli).

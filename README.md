@@ -438,6 +438,7 @@ git commit -m "Add heat resistance trait for lava terrain"
 - **[🏦 DeFi Protocol Review](docs/blockchain/defi-protocol-review.md)**: DeFi integration strategy and protocol design analysis
 - **[⚙️ Implementation Notes](docs/blockchain/implementation-notes.md)**: Technical implementation details and development notes
 - **[🚀 Local L1 Setup Guide](docs/blockchain/local-l1-setup-guide.md)**: How to run and deploy the Bugtopia L1 blockchain locally
+- **[🏔️ Avalanche CLI Complete Guide](docs/blockchain/avalanche-cli-guide.md)**: Comprehensive guide to using Avalanche CLI for network and blockchain management
 - **[🧬💰 Blockchain Implementation Guide](blockchain/README.md)**: Smart contracts, deployment scripts, and technical implementation details
 
 ### 🛠️ Technical Documentation
