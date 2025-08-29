@@ -438,6 +438,7 @@ git push origin feature/amazing-new-trait
 
 - **[🧬💰 Bugtopia Tokenomics Framework: Evolutionary Economics Architecture](docs/technical/bugtopia-tokenomics-framework.md)**: **NEW** - Native L1 blockchain, NFT tokenomics, $BUG token utility, and evolutionary economics
 - **[🧬🕸️ Bugtopia Web3 Integration & World Evolution Brainstorm](docs/features/bugtopia-web3-brainstorm.md)**: **NEW** - Web3 integration vision, NFT tokenomics, $BUG token utility, and evolutionary competition
+- **[🧬💰 Blockchain Implementation Guide](blockchain/README.md)**: **NEW** - Smart contracts, deployment scripts, and technical implementation details
 - **[🧠 Neural Network Architecture ELI5](docs/technical/neural-network-architecture-eli5.md)**: Simplified explanation of evolvable AI brain architecture
 - **[📏 Simulation Scaling Guide](docs/technical/simulation-scaling-guide.md)**: Production settings, scaling configurations, and performance optimization
 - **[🎮 GameplayKit Revolution 2025](docs/technical/gameplaykit-revolution-2025.md)**: Advanced GameplayKit integration for pheromone pathfinding

@@ -6,6 +6,10 @@
 
 This implementation transforms Bugtopia's evolutionary simulation into a sustainable blockchain-based economy where:
 
+> **📚 Related Documentation:**
+> - **[Web3 Integration Brainstorm](../docs/features/bugtopia-web3-brainstorm.md)**: Creative vision and game design concepts
+> - **[Tokenomics Framework](../docs/technical/bugtopia-tokenomics-framework.md)**: Comprehensive economic architecture and strategy
+
 - **Bug genetics become valuable NFTs** with automatic rarity calculation
 - **Territorial evolution drives land ownership** through 3D Territory NFTs
 - **$BUG tokens power the ecosystem** with utility-first tokenomics
