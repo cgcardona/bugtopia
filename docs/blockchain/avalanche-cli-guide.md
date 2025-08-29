@@ -12,7 +12,7 @@ A comprehensive guide to using Avalanche CLI for network and blockchain manageme
 - [Troubleshooting](#troubleshooting)
 - [Advanced Usage](#advanced-usage)
 
-## 🚀 Installation
+## Installation
 
 ### Install Avalanche CLI
 ```bash
@@ -38,7 +38,7 @@ brew install ava-labs/tap/avalanche-cli
 # https://github.com/ava-labs/avalanche-cli/releases
 ```
 
-## 🌐 Network Management
+## Network Management
 
 ### Start Local Network
 ```bash
@@ -108,7 +108,7 @@ avalanche network clean
 # This stops the network and deletes all state
 ```
 
-## ⛓️ Blockchain Management
+## Blockchain Management
 
 ### List Blockchains
 ```bash
@@ -188,7 +188,7 @@ avalanche blockchain delete bugtopia-l1
 # To stop deployments, use: avalanche network stop
 ```
 
-## 🏗️ L1/Subnet Management
+## L1/Subnet Management
 
 **Note**: L1s (Layer 1 blockchains) are managed through the `blockchain` command, not a separate `l1` command.
 
@@ -251,7 +251,7 @@ avalanche blockchain delete bugtopia-l1
 # Note: This only removes the configuration, not active deployments
 ```
 
-## 🔧 Development Workflow
+## Development Workflow
 
 ### 1. Initial Setup
 ```bash
@@ -307,7 +307,7 @@ avalanche network clean
 avalanche blockchain delete bugtopia-l1
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues and Solutions
 
@@ -457,7 +457,7 @@ ls -la ~/.avalanche-cli/
 tail -f ~/.avalanche-cli/logs/avalanchego.log
 ```
 
-## 🚀 Advanced Usage
+## Advanced Usage
 
 ### Custom Network Configuration
 ```bash
