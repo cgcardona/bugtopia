@@ -408,7 +408,6 @@ git checkout -b feature/amazing-new-trait
 # Commit with descriptive messages
 git commit -m "Add heat resistance trait for lava terrain"
 
-
 ## 📚 Documentation
 
 ### 🎮 Core Game Systems
