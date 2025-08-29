@@ -48,8 +48,8 @@ avalanche network start
 # Start with specific version (use stable versions)
 avalanche network start --avalanchego-version v1.13.4
 
-# Start with custom number of validators
-avalanche network start --num-validators 5
+# Start with custom number of nodes
+avalanche network start --num-nodes 5
 ```
 
 ### Check Network Status
@@ -484,11 +484,11 @@ EOF
 
 ### Multi-Node Setup
 ```bash
-# Start network with multiple validators
-avalanche network start --num-validators 7
+# Start network with multiple nodes (default is 2)
+avalanche network start --num-nodes 7
 
-# Add additional nodes
-avalanche network add-validator --node-id <node-id>
+# Note: Additional nodes are automatically created when you specify --num-nodes
+# The network will create the specified number of validator nodes
 ```
 
 ### Monitoring and Metrics
