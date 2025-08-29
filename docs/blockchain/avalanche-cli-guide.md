@@ -349,10 +349,13 @@ avalanche network start
 #### AvalancheGo Version Compatibility Issues
 Some versions may have compatibility issues or bugs.
 
+⚠️ **KNOWN ISSUE: v1.10.0 is unstable and creates stuck processes!**
+
 ```bash
 # Error you might see with v1.10.0:
 # context deadline exceeded
 # failed to load process context
+# IMPORTANT: v1.10.0 often leaves stuck processes that block ports!
 
 # Solution 1: Use latest stable version (recommended)
 avalanche network start
@@ -369,6 +372,24 @@ ls ~/.avalanche-cli/bin/avalanchego/
 # Solution 4: Clean install if version is corrupted
 rm -rf ~/.avalanche-cli/bin/avalanchego/avalanchego-v1.10.0
 avalanche network start --avalanchego-version v1.13.4
+```
+
+#### "Tried v1.10.0, Now Getting Address in Use" 
+This is a common sequence: v1.10.0 fails → leaves stuck process → next start fails with port conflict.
+
+```bash
+# The exact scenario you experienced:
+# 1. avalanche network start --avalanchego-version v1.10.0  # FAILS
+# 2. avalanche network start                                # "address already in use"
+
+# Quick fix for this specific scenario:
+pkill -f avalanchego                    # Kill stuck v1.10.0 process
+avalanche network clean                 # Clean state
+avalanche network start                 # Start with stable version
+
+# Verification steps:
+ps aux | grep avalanchego              # Should only show the grep command
+lsof -i :9650 -i :9651 -i :9652      # Should show no output or only new processes
 ```
 
 #### Network Won't Start (General)
