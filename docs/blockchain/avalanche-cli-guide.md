@@ -50,7 +50,7 @@ avalanche network start --avalanchego-version v1.13.4
 
 # Start with custom number of nodes (requires clean network)
 avalanche network clean  # Required for --num-nodes to take effect
-avalanche network start --num-nodes 5
+avalanche network start --num-nodes 3
 ```
 
 ### Check Network Status

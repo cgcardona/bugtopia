@@ -407,6 +407,7 @@ git checkout -b feature/amazing-new-trait
 # Make your changes and test thoroughly
 # Commit with descriptive messages
 git commit -m "Add heat resistance trait for lava terrain"
+```
 
 ## 📚 Documentation
 
