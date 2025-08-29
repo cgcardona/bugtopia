@@ -132,6 +132,3 @@ To synthesize the entire current state of the Bugtopia simulation—spanning ter
 
 Bugtopia is more than a game—it is a simulation of evolution, ownership, and intelligence. With the right tokenomics and gameplay loops, it can pioneer a **new genre**:  
 **EvoChain Games** — evolutionary systems where success is measurable, ownable, and valuable.
-
----
-
