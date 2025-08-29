@@ -48,7 +48,8 @@ avalanche network start
 # Start with specific version (use stable versions)
 avalanche network start --avalanchego-version v1.13.4
 
-# Start with custom number of nodes
+# Start with custom number of nodes (requires clean network)
+avalanche network clean  # Required for --num-nodes to take effect
 avalanche network start --num-nodes 5
 ```
 
@@ -57,9 +58,9 @@ avalanche network start --num-nodes 5
 # Check if network is running
 avalanche network status
 
-# Example output:
+# Example output (3-node network):
 # Network is Up:
-#   Number of Nodes: 2
+#   Number of Nodes: 3
 #   Number of Blockchains: 0
 #   Network Healthy: true
 #   Blockchains Healthy: true
@@ -72,6 +73,8 @@ avalanche network status
 # | NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg | http://127.0.0.1:9650 |
 # +------------------------------------------+-----------------------+
 # | NodeID-MFrZFVCXPv5iCn6M9K6XduxGTYp891xXZ | http://127.0.0.1:9652 |
+# +------------------------------------------+-----------------------+
+# | NodeID-NFBbbJ4qCmNaCzeW7sxErhvWqvEQMnYcN | http://127.0.0.1:9654 |
 # +------------------------------------------+-----------------------+
 ```
 
@@ -484,12 +487,27 @@ EOF
 
 ### Multi-Node Setup
 ```bash
-# Start network with multiple nodes (default is 2)
+# IMPORTANT: --num-nodes only works with fresh networks, not existing snapshots
+
+# Method 1: Clean start (recommended for changing node count)
+avalanche network clean
 avalanche network start --num-nodes 7
 
-# Note: Additional nodes are automatically created when you specify --num-nodes
-# The network will create the specified number of validator nodes
+# Method 2: Use a custom snapshot name
+avalanche network start --num-nodes 7 --snapshot-name "my-7-node-network"
+
+# Verify the node count worked
+avalanche network status
+# Should show: "Number of Nodes: 7"
 ```
+
+#### ⚠️ **Important: Snapshot Behavior**
+- If you run `avalanche network start --num-nodes 5` on an existing network, it will show:
+  ```
+  Starting previously deployed and stopped snapshot
+  ```
+- This **ignores** the `--num-nodes` flag and uses the existing snapshot's configuration
+- **Solution**: Always run `avalanche network clean` first, or use a new `--snapshot-name`
 
 ### Monitoring and Metrics
 ```bash
