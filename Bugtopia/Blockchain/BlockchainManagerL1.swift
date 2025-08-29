@@ -316,15 +316,14 @@ class BlockchainManagerL1 {
         var rarity = 50.0 // Base rarity
         
         // Fitness contribution
-        rarity += bug.fitness / 4.0
+        rarity += bug.dna.geneticFitness / 4.0
         
         // Age contribution
-        rarity += min(bug.age / 1000.0 * 15.0, 15.0)
+        rarity += min(Double(bug.age) / 1000.0 * 15.0, 15.0)
         
         // Neural complexity
-        if let neuralDNA = bug.dna.neuralDNA {
-            rarity += Double(neuralDNA.layers.count) * 2.0
-        }
+        let neuralDNA = bug.dna.neuralDNA
+        rarity += Double(neuralDNA.topology.count) * 2.0
         
         return min(rarity, 100.0)
     }
@@ -339,7 +338,7 @@ class BlockchainManagerL1 {
     /// Check if bug should be minted as NFT
     func shouldMintBugNFT(for bug: Bug) -> Bool {
         let rarity = calculateBugRarity(bug)
-        let generation = bug.dna.generation
+        let generation = bug.generation
         
         // Mint criteria:
         // - High rarity (>80)
@@ -349,7 +348,7 @@ class BlockchainManagerL1 {
         
         return rarity > 80 || 
                generation % 10 == 0 ||
-               bug.fitness > 90 ||
+               bug.dna.geneticFitness > 90 ||
                bug.age > 500
     }
     
@@ -380,7 +379,7 @@ class BlockchainManagerL1 {
     
     /// Handle territory events
     func processPopulationEvent(_ population: Population) {
-        if population.isViableSpecies && population.members.count > 50 {
+        if population.isViableSpecies && population.size > 50 {
             mintTerritory(for: population, to: "default_address")
         }
     }
