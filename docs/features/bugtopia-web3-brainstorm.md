@@ -5,6 +5,7 @@
 To synthesize the entire current state of the Bugtopia simulation—spanning terrain, AI, evolution, rendering, and world generation—and produce a visionary brainstorm for future development, particularly focused on:
 
 - Advanced Web3 integration (NFTs, $BUG token, ERC-1155 land/items)
+
 - Unique world-type differentiation and biome constraint systems
 - Trait provenance, tokenized ancestry, and evolvable neural intelligence
 - Replayable, user-owned, high-stakes evolutionary competition
